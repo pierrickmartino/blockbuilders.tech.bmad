@@ -3,8 +3,25 @@
 import { useEffect, useState, use, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Node, Edge } from "@xyflow/react";
 import { apiFetch } from "@/lib/api";
 import { Strategy, StrategyVersion, StrategyVersionDetail } from "@/types/strategy";
+import {
+  StrategyDefinition,
+  ValidationError,
+  ValidationResponse,
+  BlockMeta,
+  BlockType,
+  getBlockMeta,
+} from "@/types/canvas";
+import {
+  definitionToReactFlow,
+  reactFlowToDefinition,
+  createDefaultDefinition,
+} from "@/lib/canvas-utils";
+import StrategyCanvas from "@/components/canvas/StrategyCanvas";
+import BlockPalette from "@/components/canvas/BlockPalette";
+import PropertiesPanel from "@/components/canvas/PropertiesPanel";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -20,6 +37,16 @@ export default function StrategyEditorPage({ params }: Props) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Canvas state
+  const [nodes, setNodes] = useState<Node[]>([]);
+  const [edges, setEdges] = useState<Edge[]>([]);
+  const [selectedNode, setSelectedNode] = useState<Node | null>(null);
+  const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
+
+  // Mobile drawer state
+  const [showPalette, setShowPalette] = useState(false);
+  const [showProperties, setShowProperties] = useState(false);
+
   // Editable name state
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState("");
@@ -29,16 +56,34 @@ export default function StrategyEditorPage({ params }: Props) {
   const [isSavingVersion, setIsSavingVersion] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
-  const loadVersionDetail = useCallback(async (versionNumber: number) => {
-    try {
-      const data = await apiFetch<StrategyVersionDetail>(
-        `/strategies/${id}/versions/${versionNumber}`
-      );
-      setSelectedVersion(data);
-    } catch {
-      // Failed to load version detail
-    }
-  }, [id]);
+  const loadVersionDetail = useCallback(
+    async (versionNumber: number) => {
+      try {
+        const data = await apiFetch<StrategyVersionDetail>(
+          `/strategies/${id}/versions/${versionNumber}`
+        );
+        setSelectedVersion(data);
+
+        // Convert definition to React Flow format
+        const definition = data.definition_json as unknown as StrategyDefinition | null;
+        if (definition && definition.blocks && definition.blocks.length > 0) {
+          const { nodes: newNodes, edges: newEdges } = definitionToReactFlow(definition);
+          setNodes(newNodes);
+          setEdges(newEdges);
+        } else {
+          // Create default canvas with pre-placed blocks
+          const defaultDef = createDefaultDefinition();
+          const { nodes: newNodes, edges: newEdges } = definitionToReactFlow(defaultDef);
+          setNodes(newNodes);
+          setEdges(newEdges);
+        }
+        setValidationErrors([]);
+      } catch {
+        // Failed to load version detail
+      }
+    },
+    [id]
+  );
 
   const loadStrategy = useCallback(async () => {
     try {
@@ -63,9 +108,19 @@ export default function StrategyEditorPage({ params }: Props) {
       setVersions(data);
       if (data.length > 0) {
         loadVersionDetail(data[0].version_number);
+      } else {
+        // No versions yet, create default canvas
+        const defaultDef = createDefaultDefinition();
+        const { nodes: newNodes, edges: newEdges } = definitionToReactFlow(defaultDef);
+        setNodes(newNodes);
+        setEdges(newEdges);
       }
     } catch {
-      // Versions are optional, don't show error
+      // Versions are optional, create default canvas
+      const defaultDef = createDefaultDefinition();
+      const { nodes: newNodes, edges: newEdges } = definitionToReactFlow(defaultDef);
+      setNodes(newNodes);
+      setEdges(newEdges);
     }
   }, [id, loadVersionDetail]);
 
@@ -100,15 +155,35 @@ export default function StrategyEditorPage({ params }: Props) {
   const handleSaveVersion = async () => {
     setIsSavingVersion(true);
     setSaveMessage(null);
+    setValidationErrors([]);
+
     try {
-      // For now, save an empty definition (Epic 3 will add canvas logic)
-      const definition = selectedVersion?.definition_json || {};
+      // Convert canvas state to our JSON format
+      const definition = reactFlowToDefinition(nodes, edges);
+
+      // Validate first
+      const validation = await apiFetch<ValidationResponse>(
+        `/strategies/${id}/validate`,
+        {
+          method: "POST",
+          body: JSON.stringify(definition),
+        }
+      );
+
+      if (validation.status === "invalid") {
+        setValidationErrors(validation.errors);
+        setError("Strategy has validation errors. Please fix the issues and try again.");
+        setIsSavingVersion(false);
+        return;
+      }
+
+      // Save the version
       await apiFetch(`/strategies/${id}/versions`, {
         method: "POST",
         body: JSON.stringify({ definition }),
       });
       await loadVersions();
-      await loadStrategy(); // Refresh updated_at
+      await loadStrategy();
       setSaveMessage("Version saved successfully");
       setTimeout(() => setSaveMessage(null), 3000);
     } catch (err) {
@@ -116,6 +191,46 @@ export default function StrategyEditorPage({ params }: Props) {
     } finally {
       setIsSavingVersion(false);
     }
+  };
+
+  // Handle drag start from palette
+  const handlePaletteDragStart = (event: React.DragEvent, blockMeta: BlockMeta) => {
+    event.dataTransfer.setData("application/blockMeta", JSON.stringify(blockMeta));
+    event.dataTransfer.effectAllowed = "move";
+  };
+
+  // Handle parameter changes from properties panel
+  const handleParamsChange = (nodeId: string, params: Record<string, unknown>) => {
+    setNodes((currentNodes) =>
+      currentNodes.map((node) => {
+        if (node.id === nodeId) {
+          const blockMeta = getBlockMeta(node.type as BlockType);
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              params,
+              label: blockMeta?.label || node.data?.label,
+            },
+          };
+        }
+        return node;
+      })
+    );
+    // Clear validation errors when user makes changes
+    setValidationErrors([]);
+    setError(null);
+  };
+
+  // Handle node deletion from properties panel
+  const handleDeleteNode = (nodeId: string) => {
+    setNodes((currentNodes) => currentNodes.filter((node) => node.id !== nodeId));
+    setEdges((currentEdges) =>
+      currentEdges.filter((edge) => edge.source !== nodeId && edge.target !== nodeId)
+    );
+    setSelectedNode(null);
+    setValidationErrors([]);
+    setError(null);
   };
 
   const formatDate = (dateString: string) => {
@@ -130,7 +245,7 @@ export default function StrategyEditorPage({ params }: Props) {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12">
+      <div className="flex h-screen items-center justify-center">
         <div className="text-gray-500">Loading strategy...</div>
       </div>
     );
@@ -138,41 +253,29 @@ export default function StrategyEditorPage({ params }: Props) {
 
   if (!strategy) {
     return (
-      <div className="py-12 text-center">
-        <p className="text-gray-500">Strategy not found</p>
-        <Link href="/strategies" className="mt-4 text-blue-600 hover:text-blue-800">
-          Back to strategies
-        </Link>
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-500">Strategy not found</p>
+          <Link href="/strategies" className="mt-4 text-blue-600 hover:text-blue-800">
+            Back to strategies
+          </Link>
+        </div>
       </div>
     );
   }
 
   return (
-    <div>
-      <div className="mb-6">
-        <Link
-          href="/strategies"
-          className="text-sm text-gray-500 hover:text-gray-700"
-        >
-          &larr; Back to strategies
-        </Link>
-      </div>
+    <div className="flex h-screen flex-col">
+      {/* Top Bar */}
+      <div className="border-b bg-white px-4 py-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-4">
+            <Link href="/strategies" className="text-gray-500 hover:text-gray-700">
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </Link>
 
-      {error && (
-        <div className="mb-4 rounded border border-red-200 bg-red-50 p-3 text-sm text-red-600">
-          {error}
-        </div>
-      )}
-
-      {saveMessage && (
-        <div className="mb-4 rounded border border-green-200 bg-green-50 p-3 text-sm text-green-600">
-          {saveMessage}
-        </div>
-      )}
-
-      <div className="mb-6 rounded-lg bg-white p-6 shadow-sm">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex-1">
             {editingName ? (
               <div className="flex items-center gap-2">
                 <input
@@ -186,13 +289,13 @@ export default function StrategyEditorPage({ params }: Props) {
                       setNameInput(strategy.name);
                     }
                   }}
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-xl font-bold focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-48 rounded border border-gray-300 px-2 py-1 text-sm font-semibold focus:border-blue-500 focus:outline-none"
                   autoFocus
                 />
                 <button
                   onClick={handleNameSave}
                   disabled={isSavingName}
-                  className="rounded bg-blue-600 px-3 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
+                  className="rounded bg-blue-600 px-2 py-1 text-xs text-white hover:bg-blue-700 disabled:opacity-50"
                 >
                   {isSavingName ? "..." : "Save"}
                 </button>
@@ -201,14 +304,14 @@ export default function StrategyEditorPage({ params }: Props) {
                     setEditingName(false);
                     setNameInput(strategy.name);
                   }}
-                  className="rounded border border-gray-300 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50"
+                  className="rounded border border-gray-300 px-2 py-1 text-xs text-gray-600 hover:bg-gray-50"
                 >
                   Cancel
                 </button>
               </div>
             ) : (
               <h1
-                className="cursor-pointer text-2xl font-bold text-gray-900 hover:text-blue-600"
+                className="cursor-pointer text-lg font-semibold text-gray-900 hover:text-blue-600"
                 onClick={() => setEditingName(true)}
                 title="Click to edit name"
               >
@@ -216,27 +319,20 @@ export default function StrategyEditorPage({ params }: Props) {
               </h1>
             )}
 
-            <div className="mt-2 flex flex-wrap gap-4 text-sm text-gray-600">
-              <span className="rounded bg-gray-100 px-2 py-1">
-                {strategy.asset}
-              </span>
-              <span className="rounded bg-gray-100 px-2 py-1">
-                {strategy.timeframe}
-              </span>
-              {strategy.is_archived && (
-                <span className="rounded bg-yellow-100 px-2 py-1 text-yellow-700">
-                  Archived
-                </span>
-              )}
-            </div>
+            <span className="hidden rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600 sm:inline">
+              {strategy.asset}
+            </span>
+            <span className="hidden rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600 sm:inline">
+              {strategy.timeframe}
+            </span>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
             {versions.length > 0 && (
               <select
                 value={selectedVersion?.version_number || ""}
                 onChange={(e) => loadVersionDetail(Number(e.target.value))}
-                className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="rounded border border-gray-300 px-2 py-1.5 text-sm focus:border-blue-500 focus:outline-none"
               >
                 {versions.map((v) => (
                   <option key={v.id} value={v.version_number}>
@@ -249,30 +345,118 @@ export default function StrategyEditorPage({ params }: Props) {
             <button
               onClick={handleSaveVersion}
               disabled={isSavingVersion}
-              className="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+              className="rounded bg-blue-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
             >
-              {isSavingVersion ? "Saving..." : "Save Version"}
+              {isSavingVersion ? "Saving..." : "Save"}
             </button>
           </div>
         </div>
+
+        {/* Error/Success Messages */}
+        {error && (
+          <div className="mt-2 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+            {error}
+          </div>
+        )}
+        {saveMessage && (
+          <div className="mt-2 rounded border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-600">
+            {saveMessage}
+          </div>
+        )}
       </div>
 
-      {/* Canvas placeholder - Epic 3 will implement this */}
-      <div className="rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 p-12 text-center">
-        <div className="text-gray-500">
-          <p className="text-lg font-medium">Strategy Canvas</p>
-          <p className="mt-2 text-sm">
-            The visual block-based strategy builder will be implemented in Epic 3.
-          </p>
-          {selectedVersion && (
-            <div className="mt-6 text-left">
-              <p className="text-xs font-medium text-gray-400">Current definition (JSON):</p>
-              <pre className="mt-2 max-h-64 overflow-auto rounded bg-gray-100 p-4 text-xs text-gray-600">
-                {JSON.stringify(selectedVersion.definition_json, null, 2) || "{}"}
-              </pre>
-            </div>
-          )}
+      {/* Main Content - Three Panel Layout */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Left Panel - Block Palette (hidden on mobile, drawer) */}
+        <div className="hidden w-64 flex-shrink-0 border-r lg:block">
+          <BlockPalette onDragStart={handlePaletteDragStart} />
         </div>
+
+        {/* Mobile Palette Drawer */}
+        {showPalette && (
+          <div className="fixed inset-0 z-50 lg:hidden">
+            <div className="absolute inset-0 bg-black/50" onClick={() => setShowPalette(false)} />
+            <div className="absolute left-0 top-0 h-full w-72 bg-white shadow-xl">
+              <div className="flex items-center justify-between border-b px-4 py-3">
+                <span className="font-semibold">Blocks</span>
+                <button onClick={() => setShowPalette(false)} className="text-gray-500">
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <BlockPalette onDragStart={handlePaletteDragStart} />
+            </div>
+          </div>
+        )}
+
+        {/* Center - Canvas */}
+        <div className="relative flex-1">
+          {/* Mobile floating buttons */}
+          <div className="absolute left-4 top-4 z-10 flex gap-2 lg:hidden">
+            <button
+              onClick={() => setShowPalette(true)}
+              className="rounded-full bg-white p-2 shadow-md"
+            >
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+            </button>
+          </div>
+          <div className="absolute right-4 top-4 z-10 lg:hidden">
+            <button
+              onClick={() => setShowProperties(true)}
+              className="rounded-full bg-white p-2 shadow-md"
+              disabled={!selectedNode}
+            >
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </button>
+          </div>
+
+          <StrategyCanvas
+            initialNodes={nodes}
+            initialEdges={edges}
+            onNodesChange={setNodes}
+            onEdgesChange={setEdges}
+            onNodeSelect={setSelectedNode}
+          />
+        </div>
+
+        {/* Right Panel - Properties (hidden on mobile, drawer) */}
+        <div className="hidden w-72 flex-shrink-0 border-l lg:block">
+          <PropertiesPanel
+            selectedNode={selectedNode}
+            onParamsChange={handleParamsChange}
+            onDeleteNode={handleDeleteNode}
+            validationErrors={validationErrors}
+          />
+        </div>
+
+        {/* Mobile Properties Drawer */}
+        {showProperties && (
+          <div className="fixed inset-0 z-50 lg:hidden">
+            <div className="absolute inset-0 bg-black/50" onClick={() => setShowProperties(false)} />
+            <div className="absolute right-0 top-0 h-full w-80 bg-white shadow-xl">
+              <div className="flex items-center justify-between border-b px-4 py-3">
+                <span className="font-semibold">Properties</span>
+                <button onClick={() => setShowProperties(false)} className="text-gray-500">
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <PropertiesPanel
+                selectedNode={selectedNode}
+                onParamsChange={handleParamsChange}
+                onDeleteNode={handleDeleteNode}
+                validationErrors={validationErrors}
+              />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
