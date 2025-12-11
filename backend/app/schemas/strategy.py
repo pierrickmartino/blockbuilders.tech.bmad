@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any, Literal, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, Field, field_validator
@@ -76,3 +76,46 @@ class StrategyVersionDetailResponse(BaseModel):
     version_number: int
     definition_json: dict[str, Any]
     created_at: datetime
+
+
+# Strategy validation schemas (Epic 3)
+class BlockPosition(BaseModel):
+    x: float
+    y: float
+
+
+class Block(BaseModel):
+    id: str
+    type: str
+    label: str
+    position: BlockPosition
+    params: dict[str, Any] = Field(default_factory=dict)
+
+
+class ConnectionPort(BaseModel):
+    block_id: str
+    port: str
+
+
+class Connection(BaseModel):
+    from_port: ConnectionPort = Field(alias="from")
+    to_port: ConnectionPort = Field(alias="to")
+
+    model_config = {"populate_by_name": True}
+
+
+class StrategyDefinitionValidate(BaseModel):
+    blocks: list[Block]
+    connections: list[Connection]
+    meta: dict[str, Any] = Field(default_factory=dict)
+
+
+class ValidationError(BaseModel):
+    block_id: Optional[str] = None
+    code: str
+    message: str
+
+
+class ValidationResponse(BaseModel):
+    status: Literal["valid", "invalid"]
+    errors: list[ValidationError]
