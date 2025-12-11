@@ -42,6 +42,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               Dashboard
             </Link>
             <Link
+              href="/strategies"
+              className="text-sm text-gray-600 hover:text-gray-900"
+            >
+              Strategies
+            </Link>
+            <Link
               href="/settings"
               className="text-sm text-gray-600 hover:text-gray-900"
             >
