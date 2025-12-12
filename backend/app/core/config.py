@@ -10,6 +10,23 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_expire_days: int = 7
 
+    # S3/MinIO settings
+    s3_endpoint_url: str = "http://storage:9000"
+    s3_access_key: str = "minioadmin"
+    s3_secret_key: str = "minioadmin"
+    s3_bucket_name: str = "blockbuilders"
+    s3_region: str = "us-east-1"
+
+    # CryptoCompare API settings
+    cryptocompare_api_url: str = "https://min-api.cryptocompare.com/data/v2"
+    cryptocompare_api_key: str = ""
+
+    # Backtest defaults
+    default_initial_balance: float = 10000.0
+    default_fee_rate: float = 0.001
+    default_slippage_rate: float = 0.0005
+    max_gap_candles: int = 5
+
     class Config:
         env_file = ".env"
 
