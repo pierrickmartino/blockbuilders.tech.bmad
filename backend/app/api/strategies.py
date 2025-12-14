@@ -60,6 +60,8 @@ def create_strategy(
         timeframe=strategy.timeframe,
         is_archived=strategy.is_archived,
         auto_update_enabled=strategy.auto_update_enabled,
+        auto_update_lookback_days=strategy.auto_update_lookback_days,
+        last_auto_run_at=strategy.last_auto_run_at,
         created_at=strategy.created_at,
         updated_at=strategy.updated_at,
     )
@@ -92,6 +94,8 @@ def list_strategies(
             timeframe=s.timeframe,
             is_archived=s.is_archived,
             auto_update_enabled=s.auto_update_enabled,
+            auto_update_lookback_days=s.auto_update_lookback_days,
+            last_auto_run_at=s.last_auto_run_at,
             created_at=s.created_at,
             updated_at=s.updated_at,
         )
@@ -114,6 +118,8 @@ def get_strategy(
         timeframe=strategy.timeframe,
         is_archived=strategy.is_archived,
         auto_update_enabled=strategy.auto_update_enabled,
+        auto_update_lookback_days=strategy.auto_update_lookback_days,
+        last_auto_run_at=strategy.last_auto_run_at,
         created_at=strategy.created_at,
         updated_at=strategy.updated_at,
     )
@@ -137,6 +143,10 @@ def update_strategy(
         strategy.timeframe = data.timeframe
     if data.is_archived is not None:
         strategy.is_archived = data.is_archived
+    if data.auto_update_enabled is not None:
+        strategy.auto_update_enabled = data.auto_update_enabled
+    if data.auto_update_lookback_days is not None:
+        strategy.auto_update_lookback_days = data.auto_update_lookback_days
 
     strategy.updated_at = datetime.now(timezone.utc)
     session.add(strategy)
@@ -150,6 +160,8 @@ def update_strategy(
         timeframe=strategy.timeframe,
         is_archived=strategy.is_archived,
         auto_update_enabled=strategy.auto_update_enabled,
+        auto_update_lookback_days=strategy.auto_update_lookback_days,
+        last_auto_run_at=strategy.last_auto_run_at,
         created_at=strategy.created_at,
         updated_at=strategy.updated_at,
     )
@@ -198,6 +210,8 @@ def duplicate_strategy(
         timeframe=new_strategy.timeframe,
         is_archived=new_strategy.is_archived,
         auto_update_enabled=new_strategy.auto_update_enabled,
+        auto_update_lookback_days=new_strategy.auto_update_lookback_days,
+        last_auto_run_at=new_strategy.last_auto_run_at,
         created_at=new_strategy.created_at,
         updated_at=new_strategy.updated_at,
     )

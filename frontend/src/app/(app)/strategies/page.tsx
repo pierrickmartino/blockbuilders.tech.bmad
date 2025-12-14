@@ -108,6 +108,12 @@ export default function StrategiesPage() {
     });
   };
 
+  const isUpdatedToday = (lastAutoRunAt: string | null): boolean => {
+    if (!lastAutoRunAt) return false;
+    const today = new Date().toDateString();
+    return new Date(lastAutoRunAt).toDateString() === today;
+  };
+
   const SortIcon = ({ field }: { field: SortField }) => {
     if (sortField !== field) return <span className="ml-1 text-gray-400">↕</span>;
     return <span className="ml-1">{sortOrder === "asc" ? "↑" : "↓"}</span>;
@@ -201,17 +207,40 @@ export default function StrategiesPage() {
                   className={`hover:bg-gray-50 ${strategy.is_archived ? "opacity-60" : ""}`}
                 >
                   <td className="whitespace-nowrap px-6 py-4">
-                    <button
-                      onClick={() => router.push(`/strategies/${strategy.id}`)}
-                      className="font-medium text-blue-600 hover:text-blue-800"
-                    >
-                      {strategy.name}
-                    </button>
-                    {strategy.is_archived && (
-                      <span className="ml-2 rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-500">
-                        Archived
-                      </span>
-                    )}
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => router.push(`/strategies/${strategy.id}`)}
+                        className="font-medium text-blue-600 hover:text-blue-800"
+                      >
+                        {strategy.name}
+                      </button>
+                      {strategy.is_archived && (
+                        <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-500">
+                          Archived
+                        </span>
+                      )}
+                      {strategy.auto_update_enabled && (
+                        <span className="rounded bg-blue-100 px-2 py-0.5 text-xs text-blue-600">
+                          Auto: On
+                        </span>
+                      )}
+                      {strategy.auto_update_enabled && (
+                        <span
+                          className={`rounded px-2 py-0.5 text-xs ${
+                            isUpdatedToday(strategy.last_auto_run_at)
+                              ? "bg-green-100 text-green-600"
+                              : "bg-amber-100 text-amber-600"
+                          }`}
+                          title={
+                            strategy.last_auto_run_at
+                              ? `Last auto-run: ${formatDate(strategy.last_auto_run_at)}`
+                              : "No auto-runs yet"
+                          }
+                        >
+                          {isUpdatedToday(strategy.last_auto_run_at) ? "Updated today" : "Needs update"}
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-600">
                     {strategy.asset}

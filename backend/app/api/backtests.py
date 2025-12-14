@@ -155,6 +155,7 @@ def get_backtest_status(
         timeframe=run.timeframe,
         date_from=run.date_from,
         date_to=run.date_to,
+        triggered_by=run.triggered_by,
         summary=summary,
         error_message=run.error_message,
     )
@@ -184,6 +185,7 @@ def list_backtests(
             timeframe=r.timeframe,
             date_from=r.date_from,
             date_to=r.date_to,
+            triggered_by=r.triggered_by,
             total_return=r.total_return,
             created_at=r.created_at,
         )

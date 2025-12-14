@@ -32,5 +32,6 @@ class BacktestRun(SQLModel, table=True):
     equity_curve_key: Optional[str] = None
     trades_key: Optional[str] = None
     error_message: Optional[str] = None
+    triggered_by: str = Field(default="manual")  # "manual" or "auto"
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)

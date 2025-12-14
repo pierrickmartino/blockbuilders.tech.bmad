@@ -5,6 +5,8 @@ export interface Strategy {
   timeframe: string;
   is_archived: boolean;
   auto_update_enabled: boolean;
+  auto_update_lookback_days: number;
+  last_auto_run_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -30,6 +32,8 @@ export interface StrategyUpdateRequest {
   asset?: string;
   timeframe?: string;
   is_archived?: boolean;
+  auto_update_enabled?: boolean;
+  auto_update_lookback_days?: number;
 }
 
 export interface StrategyVersionCreateRequest {

@@ -27,6 +27,11 @@ class Settings(BaseSettings):
     default_slippage_rate: float = 0.0005
     max_gap_candles: int = 5
 
+    # Scheduler settings
+    scheduler_hour_utc: int = 2  # 02:00 UTC default
+    scheduler_enabled: bool = True
+    default_max_backtests_per_day: int = 50
+
     class Config:
         env_file = ".env"
 
