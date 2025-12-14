@@ -56,6 +56,9 @@ export default function StrategyEditorPage({ params }: Props) {
   const [isSavingVersion, setIsSavingVersion] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
+  // Auto-update state
+  const [isUpdatingAutoUpdate, setIsUpdatingAutoUpdate] = useState(false);
+
   const loadVersionDetail = useCallback(
     async (versionNumber: number) => {
       try {
@@ -243,6 +246,38 @@ export default function StrategyEditorPage({ params }: Props) {
     });
   };
 
+  const handleAutoUpdateToggle = async (enabled: boolean) => {
+    if (!strategy) return;
+    setIsUpdatingAutoUpdate(true);
+    try {
+      const updated = await apiFetch<Strategy>(`/strategies/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ auto_update_enabled: enabled }),
+      });
+      setStrategy(updated);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update auto-update setting");
+    } finally {
+      setIsUpdatingAutoUpdate(false);
+    }
+  };
+
+  const handleLookbackChange = async (days: number) => {
+    if (!strategy) return;
+    setIsUpdatingAutoUpdate(true);
+    try {
+      const updated = await apiFetch<Strategy>(`/strategies/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ auto_update_lookback_days: days }),
+      });
+      setStrategy(updated);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update lookback period");
+    } finally {
+      setIsUpdatingAutoUpdate(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -325,6 +360,32 @@ export default function StrategyEditorPage({ params }: Props) {
             <span className="hidden rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600 sm:inline">
               {strategy.timeframe}
             </span>
+
+            {/* Auto-update toggle section */}
+            <div className="ml-2 hidden items-center gap-2 border-l pl-4 sm:flex">
+              <label className="flex items-center gap-2 text-sm text-gray-600">
+                <input
+                  type="checkbox"
+                  checked={strategy.auto_update_enabled}
+                  onChange={(e) => handleAutoUpdateToggle(e.target.checked)}
+                  disabled={isUpdatingAutoUpdate}
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
+                />
+                Auto-update daily
+              </label>
+              {strategy.auto_update_enabled && (
+                <select
+                  value={strategy.auto_update_lookback_days}
+                  onChange={(e) => handleLookbackChange(Number(e.target.value))}
+                  disabled={isUpdatingAutoUpdate}
+                  className="rounded border border-gray-300 px-2 py-1 text-xs disabled:opacity-50"
+                >
+                  <option value={90}>90 days</option>
+                  <option value={180}>180 days</option>
+                  <option value={365}>365 days</option>
+                </select>
+              )}
+            </div>
           </div>
 
           <div className="flex items-center gap-2">

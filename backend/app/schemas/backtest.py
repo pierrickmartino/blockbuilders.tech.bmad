@@ -67,6 +67,7 @@ class BacktestStatusResponse(BaseModel):
     timeframe: str
     date_from: datetime
     date_to: datetime
+    triggered_by: str = "manual"
     summary: Optional[BacktestSummary] = None
     error_message: Optional[str] = None
 
@@ -81,5 +82,6 @@ class BacktestListItem(BaseModel):
     timeframe: str
     date_from: datetime
     date_to: datetime
+    triggered_by: str = "manual"
     total_return: Optional[float] = None
     created_at: datetime

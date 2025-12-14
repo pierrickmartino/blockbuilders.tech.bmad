@@ -1,14 +1,18 @@
 """RQ job functions for backtest processing."""
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
-from sqlmodel import Session, select
+from redis import Redis
+from rq import Queue
+from sqlmodel import Session, select, func
 
 from app.core.config import settings
 from app.core.database import engine
 from app.models.backtest_run import BacktestRun
+from app.models.strategy import Strategy
 from app.models.strategy_version import StrategyVersion
+from app.models.user import User
 from app.backtest.candles import fetch_candles
 from app.backtest.interpreter import interpret_strategy
 from app.backtest.engine import run_backtest
@@ -139,6 +143,16 @@ def run_backtest_job(run_id: str) -> None:
             run.trades_key = trades_key
             run.updated_at = datetime.now(timezone.utc)
             session.add(run)
+
+            # If this was an auto-run, update the strategy's last_auto_run_at
+            if run.triggered_by == "auto":
+                strategy = session.exec(
+                    select(Strategy).where(Strategy.id == run.strategy_id)
+                ).first()
+                if strategy:
+                    strategy.last_auto_run_at = datetime.now(timezone.utc)
+                    session.add(strategy)
+
             session.commit()
 
             logger.info(f"Backtest {run_id} completed successfully")
@@ -158,3 +172,141 @@ def run_backtest_job(run_id: str) -> None:
             run.updated_at = datetime.now(timezone.utc)
             session.add(run)
             session.commit()
+
+
+def auto_update_strategies_daily() -> None:
+    """
+    Daily scheduler job: Find all auto-update enabled strategies
+    and enqueue backtests for each.
+
+    Algorithm:
+    1. Query strategies WHERE auto_update_enabled = true
+    2. For each strategy:
+       - Count user's backtests today (check limits)
+       - Check for existing pending/running auto-runs (idempotency)
+       - If OK, create BacktestRun with triggered_by='auto'
+       - Enqueue job
+    """
+    if not settings.scheduler_enabled:
+        logger.info("Scheduler is disabled, skipping auto_update_strategies_daily")
+        return
+
+    logger.info("Starting auto_update_strategies_daily job")
+
+    redis_conn = Redis.from_url(settings.redis_url)
+    queue = Queue("default", connection=redis_conn)
+
+    with Session(engine) as session:
+        # Get all strategies with auto-update enabled
+        strategies = session.exec(
+            select(Strategy).where(Strategy.auto_update_enabled == True)  # noqa: E712
+        ).all()
+
+        logger.info(f"Found {len(strategies)} strategies with auto-update enabled")
+
+        # Group strategies by user to check limits
+        user_ids = {s.user_id for s in strategies}
+        users = {
+            u.id: u
+            for u in session.exec(select(User).where(User.id.in_(user_ids))).all()
+        }
+
+        # Count today's backtests per user
+        today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+        user_backtest_counts: dict[str, int] = {}
+        for user_id in user_ids:
+            count = session.exec(
+                select(func.count(BacktestRun.id)).where(
+                    BacktestRun.user_id == user_id,
+                    BacktestRun.created_at >= today_start,
+                )
+            ).one()
+            user_backtest_counts[str(user_id)] = count
+
+        enqueued = 0
+        skipped_limit = 0
+        skipped_existing = 0
+
+        for strategy in strategies:
+            user = users.get(strategy.user_id)
+            if not user:
+                logger.warning(f"User not found for strategy {strategy.id}")
+                continue
+
+            # Check daily limit
+            user_id_str = str(strategy.user_id)
+            current_count = user_backtest_counts.get(user_id_str, 0)
+            if current_count >= user.max_backtests_per_day:
+                logger.info(f"Skipping strategy {strategy.id}: user {user_id_str} at daily limit ({current_count}/{user.max_backtests_per_day})")
+                skipped_limit += 1
+                continue
+
+            # Check for existing pending/running auto-runs (idempotency)
+            existing_run = session.exec(
+                select(BacktestRun).where(
+                    BacktestRun.strategy_id == strategy.id,
+                    BacktestRun.triggered_by == "auto",
+                    BacktestRun.status.in_(["pending", "running"]),
+                )
+            ).first()
+
+            if existing_run:
+                logger.info(f"Skipping strategy {strategy.id}: existing auto-run in progress")
+                skipped_existing += 1
+                continue
+
+            # Get latest version
+            latest_version = session.exec(
+                select(StrategyVersion)
+                .where(StrategyVersion.strategy_id == strategy.id)
+                .order_by(StrategyVersion.version_number.desc())
+            ).first()
+
+            if not latest_version:
+                logger.warning(f"Skipping strategy {strategy.id}: no saved versions")
+                continue
+
+            # Calculate date range
+            now = datetime.now(timezone.utc)
+            date_to = now
+            date_from = now - timedelta(days=strategy.auto_update_lookback_days)
+
+            # Create backtest run
+            run = BacktestRun(
+                user_id=strategy.user_id,
+                strategy_id=strategy.id,
+                strategy_version_id=latest_version.id,
+                status="pending",
+                asset=strategy.asset,
+                timeframe=strategy.timeframe,
+                date_from=date_from,
+                date_to=date_to,
+                initial_balance=settings.default_initial_balance,
+                fee_rate=user.default_fee_percent if user.default_fee_percent else settings.default_fee_rate,
+                slippage_rate=user.default_slippage_percent if user.default_slippage_percent else settings.default_slippage_rate,
+                triggered_by="auto",
+            )
+            session.add(run)
+            session.commit()
+            session.refresh(run)
+
+            # Increment user count for next iteration
+            user_backtest_counts[user_id_str] = current_count + 1
+
+            # Enqueue job
+            try:
+                queue.enqueue(
+                    "app.worker.jobs.run_backtest_job",
+                    str(run.id),
+                    job_timeout=300,
+                )
+                enqueued += 1
+                logger.info(f"Enqueued auto-backtest for strategy {strategy.id}, run {run.id}")
+            except Exception as e:
+                logger.error(f"Failed to enqueue job for strategy {strategy.id}: {e}")
+                run.status = "failed"
+                run.error_message = "Failed to queue backtest job"
+                session.add(run)
+                session.commit()
+
+    logger.info(f"auto_update_strategies_daily completed: {enqueued} enqueued, {skipped_limit} skipped (limit), {skipped_existing} skipped (existing)")

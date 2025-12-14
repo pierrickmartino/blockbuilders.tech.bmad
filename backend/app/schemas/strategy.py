@@ -34,6 +34,8 @@ class StrategyUpdateRequest(BaseModel):
     asset: Optional[str] = None
     timeframe: Optional[str] = None
     is_archived: Optional[bool] = None
+    auto_update_enabled: Optional[bool] = None
+    auto_update_lookback_days: Optional[int] = Field(default=None, ge=30, le=730)
 
     @field_validator("asset")
     @classmethod
@@ -61,6 +63,8 @@ class StrategyResponse(BaseModel):
     timeframe: str
     is_archived: bool
     auto_update_enabled: bool
+    auto_update_lookback_days: int
+    last_auto_run_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
 
