@@ -7,7 +7,7 @@ import { useAuth } from "@/context/auth";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const { user, isLoading, logout } = useAuth();
+  const { user, usage, isLoading, logout } = useAuth();
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -53,8 +53,25 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             >
               Settings
             </Link>
+            <Link
+              href="/how-backtests-work"
+              className="text-sm text-gray-600 hover:text-gray-900"
+            >
+              How It Works
+            </Link>
           </div>
           <div className="flex items-center gap-4">
+            {usage && (
+              <div className="hidden items-center gap-3 text-xs text-gray-500 sm:flex">
+                <span title="Active strategies">
+                  Strategies: {usage.strategies_count}/{usage.strategies_limit}
+                </span>
+                <span title="Backtests run today (resets at midnight UTC)">
+                  Backtests: {usage.backtests_today_count}/
+                  {usage.backtests_daily_limit}
+                </span>
+              </div>
+            )}
             <span className="text-sm text-gray-600">{user.email}</span>
             <button
               onClick={() => {

@@ -32,6 +32,16 @@ export default function DashboardPage() {
           Your strategy workspace is ready. Start building your first backtest
           strategy.
         </p>
+        <p className="mt-2 text-xs text-gray-500">
+          Backtests are simulations using historical data.{" "}
+          <Link
+            href="/how-backtests-work"
+            className="text-blue-600 hover:underline"
+          >
+            Learn about assumptions
+          </Link>
+          .
+        </p>
 
         <div className="mt-6">
           <div className="mb-4 flex items-center justify-between">

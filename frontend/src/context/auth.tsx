@@ -9,21 +9,24 @@ import {
   ReactNode,
 } from "react";
 import { apiFetch, ApiError } from "@/lib/api";
-import { User, AuthResponse } from "@/types/auth";
+import { User, AuthResponse, Usage } from "@/types/auth";
 
 interface AuthContextType {
   user: User | null;
+  usage: Usage | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
+  refreshUsage: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [usage, setUsage] = useState<Usage | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const refreshUser = useCallback(async () => {
@@ -34,18 +37,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (error instanceof ApiError && error.status === 401) {
         localStorage.removeItem("token");
         setUser(null);
+        setUsage(null);
       }
+    }
+  }, []);
+
+  const refreshUsage = useCallback(async () => {
+    try {
+      const usageData = await apiFetch<Usage>("/usage/me");
+      setUsage(usageData);
+    } catch {
+      // Silently ignore - usage display is nice-to-have
     }
   }, []);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {
-      refreshUser().finally(() => setIsLoading(false));
+      Promise.all([refreshUser(), refreshUsage()]).finally(() =>
+        setIsLoading(false)
+      );
     } else {
       setIsLoading(false);
     }
-  }, [refreshUser]);
+  }, [refreshUser, refreshUsage]);
 
   const login = async (email: string, password: string) => {
     const response = await apiFetch<AuthResponse>("/auth/login", {
@@ -54,6 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     localStorage.setItem("token", response.token);
     setUser(response.user);
+    refreshUsage();
   };
 
   const signup = async (email: string, password: string) => {
@@ -63,16 +79,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     localStorage.setItem("token", response.token);
     setUser(response.user);
+    refreshUsage();
   };
 
   const logout = () => {
     localStorage.removeItem("token");
     setUser(null);
+    setUsage(null);
   };
 
   return (
     <AuthContext.Provider
-      value={{ user, isLoading, login, signup, logout, refreshUser }}
+      value={{
+        user,
+        usage,
+        isLoading,
+        login,
+        signup,
+        logout,
+        refreshUser,
+        refreshUsage,
+      }}
     >
       {children}
     </AuthContext.Provider>
