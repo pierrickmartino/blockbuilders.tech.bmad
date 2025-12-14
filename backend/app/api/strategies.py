@@ -44,6 +44,19 @@ def create_strategy(
     session: Session = Depends(get_session),
 ) -> StrategyResponse:
     """Create a new strategy."""
+    # Check strategy limit
+    active_count = session.exec(
+        select(func.count(Strategy.id)).where(
+            Strategy.user_id == user.id,
+            Strategy.is_archived == False,  # noqa: E712
+        )
+    ).one()
+    if active_count >= user.max_strategies:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Strategy limit reached ({user.max_strategies}). Archive existing strategies to create new ones.",
+        )
+
     strategy = Strategy(
         user_id=user.id,
         name=data.name,
@@ -174,6 +187,19 @@ def duplicate_strategy(
     session: Session = Depends(get_session),
 ) -> StrategyResponse:
     """Duplicate a strategy with its latest version."""
+    # Check strategy limit
+    active_count = session.exec(
+        select(func.count(Strategy.id)).where(
+            Strategy.user_id == user.id,
+            Strategy.is_archived == False,  # noqa: E712
+        )
+    ).one()
+    if active_count >= user.max_strategies:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Strategy limit reached ({user.max_strategies}). Archive existing strategies to create new ones.",
+        )
+
     original = get_user_strategy(strategy_id, user, session)
 
     # Create new strategy with "(copy)" suffix

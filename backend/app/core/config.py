@@ -30,6 +30,9 @@ class Settings(BaseSettings):
     # Scheduler settings
     scheduler_hour_utc: int = 2  # 02:00 UTC default
     scheduler_enabled: bool = True
+
+    # Usage limits (soft caps for beta)
+    default_max_strategies: int = 10
     default_max_backtests_per_day: int = 50
 
     class Config:

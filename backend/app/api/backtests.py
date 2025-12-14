@@ -1,4 +1,5 @@
 """API endpoints for backtest runs."""
+from datetime import datetime, timezone, timedelta
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -48,6 +49,23 @@ def create_backtest(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Strategy not found",
+        )
+
+    # Check daily backtest limit
+    today_start = datetime.now(timezone.utc).replace(
+        hour=0, minute=0, second=0, microsecond=0
+    )
+    today_count = session.exec(
+        select(func.count(BacktestRun.id)).where(
+            BacktestRun.user_id == user.id,
+            BacktestRun.created_at >= today_start,
+        )
+    ).one()
+    if today_count >= user.max_backtests_per_day:
+        tomorrow = today_start + timedelta(days=1)
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Daily backtest limit reached ({user.max_backtests_per_day}). Resets at {tomorrow.isoformat()}.",
         )
 
     # Get latest version

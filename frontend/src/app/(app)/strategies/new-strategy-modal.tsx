@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, ApiError } from "@/lib/api";
+import { useAuth } from "@/context/auth";
 import {
   Strategy,
   ALLOWED_ASSETS,
@@ -14,6 +15,7 @@ interface Props {
 }
 
 export default function NewStrategyModal({ onClose, onCreated }: Props) {
+  const { refreshUsage } = useAuth();
   const [name, setName] = useState("");
   const [asset, setAsset] = useState<string>(ALLOWED_ASSETS[0]);
   const [timeframe, setTimeframe] = useState<string>(ALLOWED_TIMEFRAMES[0]);
@@ -35,9 +37,16 @@ export default function NewStrategyModal({ onClose, onCreated }: Props) {
         method: "POST",
         body: JSON.stringify({ name: name.trim(), asset, timeframe }),
       });
+      refreshUsage();
       onCreated(strategy);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create strategy");
+      if (err instanceof ApiError && err.status === 403) {
+        setError(
+          "You've reached the maximum number of strategies. Archive some existing strategies to create new ones."
+        );
+      } else {
+        setError(err instanceof Error ? err.message : "Failed to create strategy");
+      }
     } finally {
       setIsSubmitting(false);
     }
