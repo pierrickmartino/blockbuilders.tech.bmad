@@ -85,3 +85,15 @@ class BacktestListItem(BaseModel):
     triggered_by: str = "manual"
     total_return: Optional[float] = None
     created_at: datetime
+
+
+class Trade(BaseModel):
+    """Single trade from a backtest run."""
+
+    entry_time: datetime
+    entry_price: float
+    exit_time: datetime
+    exit_price: float
+    side: str
+    pnl: float
+    pnl_pct: float

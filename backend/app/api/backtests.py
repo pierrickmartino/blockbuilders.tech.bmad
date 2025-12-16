@@ -14,12 +14,14 @@ from app.models.backtest_run import BacktestRun
 from app.models.strategy import Strategy
 from app.models.strategy_version import StrategyVersion
 from app.models.user import User
+from app.backtest.storage import download_json
 from app.schemas.backtest import (
     BacktestCreateRequest,
     BacktestCreateResponse,
     BacktestListItem,
     BacktestStatusResponse,
     BacktestSummary,
+    Trade,
 )
 
 router = APIRouter(prefix="/backtests", tags=["backtests"])
@@ -177,6 +179,65 @@ def get_backtest_status(
         summary=summary,
         error_message=run.error_message,
     )
+
+
+@router.get("/{run_id}/trades", response_model=list[Trade])
+def get_backtest_trades(
+    run_id: UUID,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> list[Trade]:
+    """Get trades for a completed backtest run."""
+    run = session.exec(
+        select(BacktestRun).where(
+            BacktestRun.id == run_id,
+            BacktestRun.user_id == user.id,
+        )
+    ).first()
+    if not run:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Backtest run not found",
+        )
+
+    if run.status != "completed":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Trades only available for completed runs",
+        )
+
+    if not run.trades_key:
+        return []
+
+    try:
+        trades_data = download_json(run.trades_key)
+
+        normalized = []
+        for t in trades_data:
+            if "pnl_pct" not in t:
+                entry = t.get("entry_price")
+                exit_price = t.get("exit_price")
+                side = t.get("side", "long")
+                if entry and exit_price:
+                    if side == "short":
+                        t["pnl_pct"] = ((entry - exit_price) / entry) * 100
+                    else:
+                        t["pnl_pct"] = ((exit_price - entry) / entry) * 100
+                else:
+                    t["pnl_pct"] = 0.0
+            normalized.append(Trade(**t))
+
+        return normalized
+    except (KeyError, TypeError, ValueError) as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to parse trades data: {e}",
+        )
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve trades data",
+        )
 
 
 @router.get("/", response_model=list[BacktestListItem])

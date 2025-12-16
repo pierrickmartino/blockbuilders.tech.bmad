@@ -126,6 +126,7 @@ def run_backtest_job(run_id: str) -> None:
                     "exit_price": t.exit_price,
                     "side": t.side,
                     "pnl": t.pnl,
+                    "pnl_pct": t.pnl_pct,
                 }
                 for t in result.trades
             ]
