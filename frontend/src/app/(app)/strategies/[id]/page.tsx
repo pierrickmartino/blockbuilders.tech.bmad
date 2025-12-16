@@ -22,6 +22,7 @@ import {
 import StrategyCanvas from "@/components/canvas/StrategyCanvas";
 import BlockPalette from "@/components/canvas/BlockPalette";
 import PropertiesPanel from "@/components/canvas/PropertiesPanel";
+import { StrategyTabs } from "@/components/StrategyTabs";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -423,6 +424,8 @@ export default function StrategyEditorPage({ params }: Props) {
             </button>
           </div>
         </div>
+
+        <StrategyTabs strategyId={id} activeTab="build" />
 
         {/* Error/Success Messages */}
         {error && (
