@@ -25,13 +25,18 @@ export function definitionToReactFlow(
     },
   }));
 
-  const edges: Edge[] = definition.connections.map((conn, index) => ({
-    id: `edge-${index}`,
-    source: conn.from.block_id,
-    sourceHandle: conn.from.port,
-    target: conn.to.block_id,
-    targetHandle: conn.to.port,
-  }));
+  const edges: Edge[] = definition.connections.map((conn, index) => {
+    // Handle both old format (from/to) and new format (from_port/to_port)
+    const fromPort = conn.from_port || (conn as unknown as { from: { block_id: string; port: string } }).from;
+    const toPort = conn.to_port || (conn as unknown as { to: { block_id: string; port: string } }).to;
+    return {
+      id: `edge-${index}`,
+      source: fromPort?.block_id || "",
+      sourceHandle: fromPort?.port || "output",
+      target: toPort?.block_id || "",
+      targetHandle: toPort?.port || "input",
+    };
+  });
 
   return { nodes, edges };
 }
@@ -50,11 +55,11 @@ export function reactFlowToDefinition(
   }));
 
   const connections: Connection[] = edges.map((edge) => ({
-    from: {
+    from_port: {
       block_id: edge.source,
       port: edge.sourceHandle || "output",
     },
-    to: {
+    to_port: {
       block_id: edge.target,
       port: edge.targetHandle || "input",
     },
