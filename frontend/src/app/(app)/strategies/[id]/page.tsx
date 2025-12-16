@@ -416,7 +416,23 @@ export default function StrategyEditorPage({ params }: Props) {
         {/* Error/Success Messages */}
         {error && (
           <div className="mt-2 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
-            {error}
+            <div>{error}</div>
+            {validationErrors.length > 0 && (
+              <ul className="mt-1 list-disc space-y-1 pl-5 text-xs text-red-700">
+                {validationErrors.map((err, index) => {
+                  const blockLabel =
+                    err.block_id &&
+                    nodes.find((node) => node.id === err.block_id)?.data?.label;
+                  const prefix = blockLabel ? `${blockLabel}: ` : "";
+                  return (
+                    <li key={`${err.code}-${err.block_id || index}`}>
+                      {prefix}
+                      {err.message}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </div>
         )}
         {saveMessage && (
