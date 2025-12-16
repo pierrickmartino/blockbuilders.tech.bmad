@@ -96,6 +96,11 @@ def interpret_strategy(
         elif block_type == "volume":
             block_outputs[block_id]["output"] = volumes
 
+        elif block_type == "constant":
+            value = float(params.get("value", 0.0))
+            result = [value] * n  # Repeat constant for all candles
+            block_outputs[block_id]["output"] = result
+
         elif block_type == "sma":
             input_data = _get_input(inputs, "input", get_block_output, closes)
             period = int(params.get("period", 20))

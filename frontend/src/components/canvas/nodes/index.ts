@@ -1,5 +1,6 @@
 import PriceNode from "./PriceNode";
 import VolumeNode from "./VolumeNode";
+import ConstantNode from "./ConstantNode";
 import SmaNode from "./SmaNode";
 import EmaNode from "./EmaNode";
 import RsiNode from "./RsiNode";
@@ -21,6 +22,7 @@ import StopLossNode from "./StopLossNode";
 export const nodeTypes = {
   price: PriceNode,
   volume: VolumeNode,
+  constant: ConstantNode,
   sma: SmaNode,
   ema: EmaNode,
   rsi: RsiNode,
@@ -42,6 +44,7 @@ export const nodeTypes = {
 export {
   PriceNode,
   VolumeNode,
+  ConstantNode,
   SmaNode,
   EmaNode,
   RsiNode,
