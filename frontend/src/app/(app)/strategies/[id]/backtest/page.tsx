@@ -10,6 +10,7 @@ import {
   BacktestListItem,
   BacktestStatus,
   BacktestStatusResponse,
+  Trade,
 } from "@/types/backtest";
 import { StrategyTabs } from "@/components/StrategyTabs";
 
@@ -66,6 +67,12 @@ export default function StrategyBacktestPage({ params }: Props) {
   const [isLoadingBacktests, setIsLoadingBacktests] = useState(false);
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
   const [selectedRun, setSelectedRun] = useState<BacktestStatusResponse | null>(null);
+
+  const [trades, setTrades] = useState<Trade[]>([]);
+  const [isLoadingTrades, setIsLoadingTrades] = useState(false);
+  const [tradesError, setTradesError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
 
   const loadStrategy = useCallback(async () => {
     setIsLoadingStrategy(true);
@@ -131,6 +138,30 @@ export default function StrategyBacktestPage({ params }: Props) {
     },
     []
   );
+
+  const fetchTrades = useCallback(async (runId: string) => {
+    setIsLoadingTrades(true);
+    setTradesError(null);
+    try {
+      const data = await apiFetch<Trade[]>(`/backtests/${runId}/trades`);
+      setTrades(data);
+    } catch (err) {
+      setTradesError(err instanceof Error ? err.message : "Failed to load trades");
+      setTrades([]);
+    } finally {
+      setIsLoadingTrades(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (selectedRun?.status === "completed" && selectedRunId) {
+      fetchTrades(selectedRunId);
+      setCurrentPage(1);
+    } else {
+      setTrades([]);
+      setTradesError(null);
+    }
+  }, [selectedRun?.status, selectedRunId, fetchTrades]);
 
   useEffect(() => {
     if (!selectedRunId) {
@@ -214,6 +245,33 @@ export default function StrategyBacktestPage({ params }: Props) {
     if (!selectedRun) return null;
     return `${new Date(selectedRun.date_from).toLocaleDateString()} → ${new Date(selectedRun.date_to).toLocaleDateString()}`;
   }, [selectedRun]);
+
+  // Trades pagination
+  const totalPages = Math.ceil(trades.length / pageSize);
+  const paginatedTrades = trades.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
+
+  const formatTradeDate = (value: string) =>
+    new Date(value).toLocaleString("en-US", {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: "UTC",
+    });
+
+  const formatPrice = (price: number) => {
+    if (price >= 1000) return `$${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    if (price >= 1) return `$${price.toFixed(2)}`;
+    return `$${price.toFixed(6)}`;
+  };
+
+  const formatPnl = (pnl: number) => {
+    const sign = pnl >= 0 ? "+" : "";
+    return `${sign}$${pnl.toFixed(2)}`;
+  };
 
   if (isLoadingStrategy) {
     return (
@@ -459,6 +517,130 @@ export default function StrategyBacktestPage({ params }: Props) {
             </div>
           )}
         </section>
+
+        {/* Trades Table - only show for completed runs */}
+        {selectedRun?.status === "completed" && (
+          <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-base font-semibold text-gray-900">Trades</h2>
+              {trades.length > 0 && (
+                <div className="flex items-center gap-2 text-sm text-gray-500">
+                  <span>{trades.length} total</span>
+                  <select
+                    value={pageSize}
+                    onChange={(e) => {
+                      setPageSize(Number(e.target.value));
+                      setCurrentPage(1);
+                    }}
+                    className="rounded border border-gray-300 px-2 py-1 text-sm"
+                  >
+                    <option value={25}>25 per page</option>
+                    <option value={50}>50 per page</option>
+                    <option value={100}>100 per page</option>
+                  </select>
+                </div>
+              )}
+            </div>
+
+            {isLoadingTrades ? (
+              <p className="text-sm text-gray-500">Loading trades...</p>
+            ) : tradesError ? (
+              <div className="flex items-center gap-2">
+                <p className="text-sm text-red-600">{tradesError}</p>
+                <button
+                  onClick={() => selectedRunId && fetchTrades(selectedRunId)}
+                  className="text-sm text-blue-600 hover:text-blue-800"
+                >
+                  Retry
+                </button>
+              </div>
+            ) : trades.length === 0 ? (
+              <p className="text-sm text-gray-500">No trades were generated for this run.</p>
+            ) : (
+              <>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-2 text-left text-xs font-medium uppercase text-gray-500">
+                          Entry (UTC)
+                        </th>
+                        <th className="px-4 py-2 text-left text-xs font-medium uppercase text-gray-500">
+                          Entry Price
+                        </th>
+                        <th className="px-4 py-2 text-left text-xs font-medium uppercase text-gray-500">
+                          Exit (UTC)
+                        </th>
+                        <th className="px-4 py-2 text-left text-xs font-medium uppercase text-gray-500">
+                          Exit Price
+                        </th>
+                        <th className="px-4 py-2 text-left text-xs font-medium uppercase text-gray-500">
+                          Side
+                        </th>
+                        <th className="px-4 py-2 text-right text-xs font-medium uppercase text-gray-500">
+                          P&L
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200 bg-white">
+                      {paginatedTrades.map((trade, idx) => (
+                        <tr key={`${trade.entry_time}-${idx}`} className="hover:bg-gray-50">
+                          <td className="whitespace-nowrap px-4 py-2 text-sm text-gray-900">
+                            {formatTradeDate(trade.entry_time)}
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-2 text-sm text-gray-600">
+                            {formatPrice(trade.entry_price)}
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-2 text-sm text-gray-900">
+                            {formatTradeDate(trade.exit_time)}
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-2 text-sm text-gray-600">
+                            {formatPrice(trade.exit_price)}
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-2 text-sm text-gray-600 uppercase">
+                            {trade.side}
+                          </td>
+                          <td
+                            className={`whitespace-nowrap px-4 py-2 text-right text-sm font-medium ${
+                              trade.pnl >= 0 ? "text-green-600" : "text-red-600"
+                            }`}
+                          >
+                            {formatPnl(trade.pnl)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="mt-3 flex items-center justify-between border-t pt-3">
+                    <p className="text-sm text-gray-500">
+                      Page {currentPage} of {totalPages}
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                        className="rounded border border-gray-300 px-3 py-1 text-sm disabled:opacity-50"
+                      >
+                        Previous
+                      </button>
+                      <button
+                        onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                        disabled={currentPage === totalPages}
+                        className="rounded border border-gray-300 px-3 py-1 text-sm disabled:opacity-50"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </section>
+        )}
       </div>
     </div>
   );

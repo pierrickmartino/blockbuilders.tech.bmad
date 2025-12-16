@@ -40,3 +40,13 @@ export interface BacktestListItem {
   total_return?: number | null;
   created_at: string;
 }
+
+export interface Trade {
+  entry_time: string;
+  entry_price: number;
+  exit_time: string;
+  exit_price: number;
+  side: string;
+  pnl: number;
+  pnl_pct: number;
+}
