@@ -36,12 +36,17 @@ def interpret_strategy(
     block_map = {b["id"]: b for b in blocks}
 
     # Build connection graph: to_block_id -> {port -> from_block_id.port}
+    # Handle both old format (from/to) and new format (from_port/to_port)
     input_map: dict[str, dict[str, tuple[str, str]]] = {}
     for conn in connections:
-        from_block = conn.get("from_port", {}).get("block_id")
-        from_port = conn.get("from_port", {}).get("port", "output")
-        to_block = conn.get("to_port", {}).get("block_id")
-        to_port = conn.get("to_port", {}).get("port", "input")
+        # Support both old and new format
+        from_data = conn.get("from_port") or conn.get("from", {})
+        to_data = conn.get("to_port") or conn.get("to", {})
+
+        from_block = from_data.get("block_id")
+        from_port = from_data.get("port", "output")
+        to_block = to_data.get("block_id")
+        to_port = to_data.get("port", "input")
 
         if to_block not in input_map:
             input_map[to_block] = {}

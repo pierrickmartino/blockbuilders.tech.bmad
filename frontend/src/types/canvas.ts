@@ -114,8 +114,8 @@ export interface Block {
 
 // Connection definition (stored in JSON)
 export interface Connection {
-  from: { block_id: string; port: string };
-  to: { block_id: string; port: string };
+  from_port: { block_id: string; port: string };
+  to_port: { block_id: string; port: string };
 }
 
 // Full strategy definition (stored in strategy_versions.definition_json)
