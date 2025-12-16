@@ -52,6 +52,7 @@ env/
 .vscode/
 *.swp
 *.swo
+.codex/
 
 # Docker
 docker-compose.override.yml

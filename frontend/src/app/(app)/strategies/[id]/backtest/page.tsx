@@ -580,6 +580,9 @@ export default function StrategyBacktestPage({ params }: Props) {
                         <th className="px-4 py-2 text-right text-xs font-medium uppercase text-gray-500">
                           P&L
                         </th>
+                        <th className="px-4 py-2 text-right text-xs font-medium uppercase text-gray-500">
+                          P&L %
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200 bg-white">
@@ -606,6 +609,13 @@ export default function StrategyBacktestPage({ params }: Props) {
                             }`}
                           >
                             {formatPnl(trade.pnl)}
+                          </td>
+                          <td
+                            className={`whitespace-nowrap px-4 py-2 text-right text-sm ${
+                              trade.pnl_pct >= 0 ? "text-green-600" : "text-red-600"
+                            }`}
+                          >
+                            {trade.pnl_pct >= 0 ? "+" : ""}{trade.pnl_pct.toFixed(2)}%
                           </td>
                         </tr>
                       ))}

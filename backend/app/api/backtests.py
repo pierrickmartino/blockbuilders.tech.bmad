@@ -217,13 +217,22 @@ def get_backtest_trades(
             if "pnl_pct" not in t:
                 entry = t.get("entry_price")
                 exit_price = t.get("exit_price")
+                side = t.get("side", "long")
                 if entry and exit_price:
-                    t["pnl_pct"] = ((exit_price - entry) / entry) * 100
+                    if side == "short":
+                        t["pnl_pct"] = ((entry - exit_price) / entry) * 100
+                    else:
+                        t["pnl_pct"] = ((exit_price - entry) / entry) * 100
                 else:
                     t["pnl_pct"] = 0.0
             normalized.append(Trade(**t))
 
         return normalized
+    except (KeyError, TypeError, ValueError) as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to parse trades data: {e}",
+        )
     except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
