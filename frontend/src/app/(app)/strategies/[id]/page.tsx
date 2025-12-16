@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, use, useCallback } from "react";
+import { useEffect, useState, use, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Node, Edge } from "@xyflow/react";
@@ -40,7 +40,7 @@ export default function StrategyEditorPage({ params }: Props) {
   // Canvas state
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
-  const [selectedNode, setSelectedNode] = useState<Node | null>(null);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
 
   // Mobile drawer state
@@ -131,6 +131,17 @@ export default function StrategyEditorPage({ params }: Props) {
     loadStrategy();
     loadVersions();
   }, [loadStrategy, loadVersions]);
+
+  const selectedNode = useMemo(
+    () => nodes.find((node) => node.id === selectedNodeId) || null,
+    [nodes, selectedNodeId]
+  );
+
+  useEffect(() => {
+    if (selectedNodeId && !nodes.some((node) => node.id === selectedNodeId)) {
+      setSelectedNodeId(null);
+    }
+  }, [nodes, selectedNodeId]);
 
   const handleNameSave = async () => {
     if (!nameInput.trim() || nameInput === strategy?.name) {
@@ -231,7 +242,7 @@ export default function StrategyEditorPage({ params }: Props) {
     setEdges((currentEdges) =>
       currentEdges.filter((edge) => edge.source !== nodeId && edge.target !== nodeId)
     );
-    setSelectedNode(null);
+    setSelectedNodeId(null);
     setValidationErrors([]);
     setError(null);
   };
@@ -494,11 +505,11 @@ export default function StrategyEditorPage({ params }: Props) {
           </div>
 
           <StrategyCanvas
-            initialNodes={nodes}
-            initialEdges={edges}
+            nodes={nodes}
+            edges={edges}
             onNodesChange={setNodes}
             onEdgesChange={setEdges}
-            onNodeSelect={setSelectedNode}
+            onNodeSelect={(node) => setSelectedNodeId(node?.id ?? null)}
           />
         </div>
 
