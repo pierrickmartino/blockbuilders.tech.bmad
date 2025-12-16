@@ -9,10 +9,10 @@ import {
   Edge,
   Connection,
   addEdge,
-  useNodesState,
-  useEdgesState,
   ReactFlowProvider,
   ReactFlowInstance,
+  applyNodeChanges,
+  applyEdgeChanges,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
@@ -21,77 +21,30 @@ import { BlockMeta, BlockType, getBlockMeta } from "@/types/canvas";
 import { generateBlockId } from "@/lib/canvas-utils";
 
 interface StrategyCanvasProps {
-  initialNodes: Node[];
-  initialEdges: Edge[];
+  nodes: Node[];
+  edges: Edge[];
   onNodesChange: (nodes: Node[]) => void;
   onEdgesChange: (edges: Edge[]) => void;
   onNodeSelect: (node: Node | null) => void;
 }
 
 function CanvasInner({
-  initialNodes,
-  initialEdges,
+  nodes,
+  edges,
   onNodesChange,
   onEdgesChange,
   onNodeSelect,
 }: StrategyCanvasProps) {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
-  const [nodes, setNodes, onNodesChangeInternal] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChangeInternal] = useEdgesState(initialEdges);
   const reactFlowInstance = useRef<ReactFlowInstance | null>(null);
-
-  // Sync nodes changes to parent
-  const handleNodesChange = useCallback(
-    (changes: Parameters<typeof onNodesChangeInternal>[0]) => {
-      onNodesChangeInternal(changes);
-      // We'll notify parent after state updates
-    },
-    [onNodesChangeInternal]
-  );
-
-  // Sync edges changes to parent
-  const handleEdgesChange = useCallback(
-    (changes: Parameters<typeof onEdgesChangeInternal>[0]) => {
-      onEdgesChangeInternal(changes);
-    },
-    [onEdgesChangeInternal]
-  );
-
-  // Notify parent when nodes/edges actually change
-  const handleNodesChangeComplete = useCallback(
-    (updatedNodes: Node[]) => {
-      onNodesChange(updatedNodes);
-    },
-    [onNodesChange]
-  );
-
-  const handleEdgesChangeComplete = useCallback(
-    (updatedEdges: Edge[]) => {
-      onEdgesChange(updatedEdges);
-    },
-    [onEdgesChange]
-  );
-
-  // Update parent when nodes change
-  useCallback(() => {
-    handleNodesChangeComplete(nodes);
-  }, [nodes, handleNodesChangeComplete]);
-
-  // Update parent when edges change
-  useCallback(() => {
-    handleEdgesChangeComplete(edges);
-  }, [edges, handleEdgesChangeComplete]);
 
   // Handle new connections
   const onConnect = useCallback(
     (connection: Connection) => {
-      setEdges((eds) => {
-        const newEdges = addEdge(connection, eds);
-        onEdgesChange(newEdges);
-        return newEdges;
-      });
+      const newEdges = addEdge(connection, edges);
+      onEdgesChange(newEdges);
     },
-    [setEdges, onEdgesChange]
+    [edges, onEdgesChange]
   );
 
   // Handle node selection
@@ -132,23 +85,28 @@ function CanvasInner({
         },
       };
 
-      setNodes((nds) => {
-        const updatedNodes = [...nds, newNode];
-        onNodesChange(updatedNodes);
-        return updatedNodes;
-      });
+      onNodesChange([...nodes, newNode]);
     },
-    [setNodes, onNodesChange]
+    [nodes, onNodesChange]
   );
 
   const onInit = useCallback((instance: ReactFlowInstance) => {
     reactFlowInstance.current = instance;
   }, []);
 
-  // Handle node changes and notify parent
-  const onNodeDragStop = useCallback(() => {
-    onNodesChange(nodes);
-  }, [nodes, onNodesChange]);
+  const handleNodesChange = useCallback(
+    (changes: Parameters<typeof applyNodeChanges>[0]) => {
+      onNodesChange(applyNodeChanges(changes, nodes));
+    },
+    [nodes, onNodesChange]
+  );
+
+  const handleEdgesChange = useCallback(
+    (changes: Parameters<typeof applyEdgeChanges>[0]) => {
+      onEdgesChange(applyEdgeChanges(changes, edges));
+    },
+    [edges, onEdgesChange]
+  );
 
   return (
     <div ref={reactFlowWrapper} className="h-full w-full">
@@ -162,7 +120,6 @@ function CanvasInner({
         onDragOver={onDragOver}
         onDrop={onDrop}
         onInit={onInit}
-        onNodeDragStop={onNodeDragStop}
         nodeTypes={nodeTypes}
         fitView
         snapToGrid
