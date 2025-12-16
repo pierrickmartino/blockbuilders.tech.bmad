@@ -211,7 +211,19 @@ def get_backtest_trades(
 
     try:
         trades_data = download_json(run.trades_key)
-        return [Trade(**t) for t in trades_data]
+
+        normalized = []
+        for t in trades_data:
+            if "pnl_pct" not in t:
+                entry = t.get("entry_price")
+                exit_price = t.get("exit_price")
+                if entry and exit_price:
+                    t["pnl_pct"] = ((exit_price - entry) / entry) * 100
+                else:
+                    t["pnl_pct"] = 0.0
+            normalized.append(Trade(**t))
+
+        return normalized
     except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
