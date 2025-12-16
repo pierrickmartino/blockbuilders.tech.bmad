@@ -169,6 +169,19 @@ function getParamConfigs(blockType: BlockType): ParamConfig[] {
           ],
         },
       ];
+    case "constant":
+      return [
+        {
+          key: "value",
+          label: "Value",
+          type: "number",
+          defaultValue: 0,
+          min: -1000000,
+          max: 1000000,
+          step: 0.01,
+          help: "Fixed numeric value (-1M to 1M)",
+        },
+      ];
     case "sma":
     case "ema":
       return [

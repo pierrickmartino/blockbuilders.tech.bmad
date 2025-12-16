@@ -2,7 +2,7 @@
 export type BlockCategory = "input" | "indicator" | "logic" | "signal" | "risk";
 
 // Block types by category
-export type InputBlockType = "price" | "volume";
+export type InputBlockType = "price" | "volume" | "constant";
 export type IndicatorBlockType = "sma" | "ema" | "rsi" | "macd" | "bollinger" | "atr";
 export type LogicBlockType = "compare" | "crossover" | "and" | "or" | "not";
 export type SignalBlockType = "entry_signal" | "exit_signal";
@@ -21,6 +21,10 @@ export interface PriceParams {
 }
 
 export type VolumeParams = Record<string, never>;
+
+export interface ConstantParams {
+  value: number;
+}
 
 export interface SmaParams {
   period: number;
@@ -81,6 +85,7 @@ export interface StopLossParams {
 export type BlockParams =
   | PriceParams
   | VolumeParams
+  | ConstantParams
   | SmaParams
   | EmaParams
   | RsiParams
@@ -163,6 +168,15 @@ export const BLOCK_REGISTRY: BlockMeta[] = [
     inputs: [],
     outputs: ["output"],
     defaultParams: {},
+  },
+  {
+    type: "constant",
+    category: "input",
+    label: "Constant",
+    description: "Fixed numeric value",
+    inputs: [],
+    outputs: ["output"],
+    defaultParams: { value: 0 },
   },
   // Indicators
   {

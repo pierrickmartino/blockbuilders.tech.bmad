@@ -340,6 +340,26 @@ def _validate_block_params(block: Block) -> list[ValidationError]:
     errors: list[ValidationError] = []
     params = block.params
 
+    # Constant block validation
+    if block.type == "constant":
+        value = params.get("value", 0)
+        if not isinstance(value, (int, float)):
+            errors.append(
+                ValidationError(
+                    block_id=block.id,
+                    code="INVALID_VALUE",
+                    message=f"Constant value must be a number, got {type(value).__name__}",
+                )
+            )
+        elif not -1_000_000 <= value <= 1_000_000:
+            errors.append(
+                ValidationError(
+                    block_id=block.id,
+                    code="INVALID_VALUE",
+                    message=f"Constant value must be between -1,000,000 and 1,000,000, got {value}",
+                )
+            )
+
     # Period validations for indicators
     if block.type in ("sma", "ema", "bollinger", "atr"):
         period = params.get("period", 0)

@@ -112,6 +112,28 @@ Provides trading volume data.
 
 ---
 
+#### Constant
+Provides a fixed numeric value that you configure. Essential for comparing indicators to specific thresholds.
+
+**Output Ports:**
+- `output`: The constant value you set
+
+**Properties:**
+- **Value**: Any number from -1,000,000 to 1,000,000 (default: 0)
+
+**Example Use**:
+- Compare RSI to 30 (oversold threshold)
+- Compare RSI to 70 (overbought threshold)
+- Set fixed stop loss amounts
+- Any comparison requiring a specific number
+
+**Common Values:**
+- RSI thresholds: 30 (oversold), 70 (overbought)
+- MACD zero line: 0
+- Percentage thresholds: 5, 10, 20
+
+---
+
 ### Indicator Blocks (Blue)
 
 #### SMA (Simple Moving Average)
@@ -390,10 +412,11 @@ Let's build a simple **"RSI Oversold Strategy"** together. This strategy buys wh
 
 From the Block Palette, drag these blocks onto the canvas:
 1. **RSI** (from Indicators)
-2. **Crossover** (from Logic) - drag two of these
-3. **Position Size** (from Risk)
-4. **Stop Loss** (from Risk)
-5. **Take Profit** (from Risk)
+2. **Constant** (from Input) - drag two of these (one for 30, one for 70)
+3. **Crossover** (from Logic) - drag two of these
+4. **Position Size** (from Risk)
+5. **Stop Loss** (from Risk)
+6. **Take Profit** (from Risk)
 
 You should now have these blocks plus the three pre-placed blocks (Price, Entry Signal, Exit Signal).
 
@@ -412,23 +435,24 @@ We want to enter when RSI crosses above 30.
    - Click the RSI block
    - In Properties Panel, keep Period at 14 (default)
 
-3. Create constant for "30"
-   - We need to compare RSI to the value 30
-   - Unfortunately, we don't have a "constant" block yet, so we'll use a workaround:
-   - Drag another **SMA** block onto canvas
-   - We'll configure it in a moment as our "30 threshold"
+3. Configure the first **Constant** block for threshold 30
+   - Click the first Constant block
+   - In Properties Panel, set Value to: **30**
 
 4. Connect **RSI → Crossover #1**
-   - Connect RSI's `output` to Crossover's `a` port
+   - Connect RSI's `output` to Crossover #1's `fast` port
 
-5. Configure Crossover #1
-   - Click the Crossover block
+5. Connect **Constant (30) → Crossover #1**
+   - Connect the Constant block's `output` to Crossover #1's `slow` port
+
+6. Configure Crossover #1
+   - Click the Crossover #1 block
    - Set Direction to: **crosses_above**
 
-6. Connect **Crossover #1 → Entry Signal**
-   - Connect Crossover's `output` to Entry Signal's `input`
+7. Connect **Crossover #1 → Entry Signal**
+   - Connect Crossover #1's `output` to Entry Signal's `input`
 
-**Note**: The current implementation requires numeric values for comparison. If you need to compare to a fixed threshold like 30, you may need to use a workaround or check if Compare block supports numeric literals.
+This creates the logic: "Enter when RSI crosses above 30"
 
 ---
 
@@ -437,17 +461,24 @@ We want to enter when RSI crosses above 30.
 We want to exit when RSI crosses below 70.
 
 **Connections:**
-1. Drag another **Crossover** block (Crossover #2)
+1. Configure the second **Constant** block for threshold 70
+   - Click the second Constant block
+   - In Properties Panel, set Value to: **70**
 
 2. Connect **RSI → Crossover #2**
-   - Connect RSI's `output` to Crossover #2's `a` port
+   - Connect RSI's `output` to Crossover #2's `fast` port
 
-3. Configure Crossover #2
+3. Connect **Constant (70) → Crossover #2**
+   - Connect the Constant block's `output` to Crossover #2's `slow` port
+
+4. Configure Crossover #2
    - Click the Crossover #2 block
    - Set Direction to: **crosses_below**
 
-4. Connect **Crossover #2 → Exit Signal**
+5. Connect **Crossover #2 → Exit Signal**
    - Connect Crossover #2's `output` to Exit Signal's `input`
+
+This creates the logic: "Exit when RSI crosses below 70"
 
 ---
 
@@ -680,6 +711,7 @@ A table showing every trade with:
 - Price
 - MACD
 - RSI
+- Constant (value: 40) - RSI threshold
 - Crossover (crosses_above) - MACD crossover
 - Compare (operator: <) - RSI < 40
 - AND - Combine conditions
@@ -690,15 +722,16 @@ A table showing every trade with:
 **Connections:**
 1. Price → MACD
 2. Price → RSI
-3. MACD (macd) → Crossover #1 (port a)
-4. MACD (signal) → Crossover #1 (port b)
+3. MACD (macd) → Crossover #1 (fast port)
+4. MACD (signal) → Crossover #1 (slow port)
 5. Crossover #1 (crosses_above) → AND (port a)
-6. RSI → Compare (port a)
-7. Compare (<) [threshold: 40] → AND (port b)
-8. AND → Entry Signal
-9. MACD (macd) → Crossover #2 (port a)
-10. MACD (signal) → Crossover #2 (port b)
-11. Crossover #2 (crosses_below) → Exit Signal
+6. RSI → Compare (left port)
+7. Constant (40) → Compare (right port)
+8. Compare (<) → AND (port b)
+9. AND → Entry Signal
+10. MACD (macd) → Crossover #2 (fast port)
+11. MACD (signal) → Crossover #2 (slow port)
+12. Crossover #2 (crosses_below) → Exit Signal
 
 ---
 
