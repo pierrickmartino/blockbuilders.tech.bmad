@@ -97,3 +97,10 @@ class Trade(BaseModel):
     side: str
     pnl: float
     pnl_pct: float
+
+
+class EquityCurvePoint(BaseModel):
+    """Single point on the equity curve."""
+
+    timestamp: datetime
+    equity: float

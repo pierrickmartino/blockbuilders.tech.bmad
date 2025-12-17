@@ -3,6 +3,14 @@
 import { use, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 import { apiFetch, ApiError } from "@/lib/api";
 import { Strategy } from "@/types/strategy";
 import {
@@ -10,6 +18,7 @@ import {
   BacktestListItem,
   BacktestStatus,
   BacktestStatusResponse,
+  EquityCurvePoint,
   Trade,
 } from "@/types/backtest";
 import { StrategyTabs } from "@/components/StrategyTabs";
@@ -73,6 +82,10 @@ export default function StrategyBacktestPage({ params }: Props) {
   const [tradesError, setTradesError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
+
+  const [equityCurve, setEquityCurve] = useState<EquityCurvePoint[]>([]);
+  const [isLoadingEquityCurve, setIsLoadingEquityCurve] = useState(false);
+  const [equityCurveError, setEquityCurveError] = useState<string | null>(null);
 
   const loadStrategy = useCallback(async () => {
     setIsLoadingStrategy(true);
@@ -153,15 +166,32 @@ export default function StrategyBacktestPage({ params }: Props) {
     }
   }, []);
 
+  const fetchEquityCurve = useCallback(async (runId: string) => {
+    setIsLoadingEquityCurve(true);
+    setEquityCurveError(null);
+    try {
+      const data = await apiFetch<EquityCurvePoint[]>(`/backtests/${runId}/equity-curve`);
+      setEquityCurve(data);
+    } catch (err) {
+      setEquityCurveError(err instanceof Error ? err.message : "Failed to load equity curve");
+      setEquityCurve([]);
+    } finally {
+      setIsLoadingEquityCurve(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (selectedRun?.status === "completed" && selectedRunId) {
       fetchTrades(selectedRunId);
+      fetchEquityCurve(selectedRunId);
       setCurrentPage(1);
     } else {
       setTrades([]);
       setTradesError(null);
+      setEquityCurve([]);
+      setEquityCurveError(null);
     }
-  }, [selectedRun?.status, selectedRunId, fetchTrades]);
+  }, [selectedRun?.status, selectedRunId, fetchTrades, fetchEquityCurve]);
 
   useEffect(() => {
     if (!selectedRunId) {
@@ -260,6 +290,12 @@ export default function StrategyBacktestPage({ params }: Props) {
       hour: "2-digit",
       minute: "2-digit",
       timeZone: "UTC",
+    });
+
+  const formatChartDate = (value: string) =>
+    new Date(value).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
     });
 
   const formatPrice = (price: number) => {
@@ -517,6 +553,90 @@ export default function StrategyBacktestPage({ params }: Props) {
             </div>
           )}
         </section>
+
+        {/* Equity Curve Chart - only show for completed runs */}
+        {selectedRun?.status === "completed" && (
+          <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+            <h2 className="mb-3 text-base font-semibold text-gray-900">Equity Curve</h2>
+
+            {isLoadingEquityCurve ? (
+              <div className="flex h-64 items-center justify-center">
+                <p className="text-sm text-gray-500">Loading equity curve...</p>
+              </div>
+            ) : equityCurveError ? (
+              <div className="flex h-64 items-center justify-center rounded border border-red-200 bg-red-50">
+                <div className="text-center">
+                  <p className="text-sm text-red-600">{equityCurveError}</p>
+                  <button
+                    onClick={() => selectedRunId && fetchEquityCurve(selectedRunId)}
+                    className="mt-2 text-sm text-blue-600 hover:text-blue-800"
+                  >
+                    Retry
+                  </button>
+                </div>
+              </div>
+            ) : equityCurve.length === 0 ? (
+              <div className="flex h-64 items-center justify-center">
+                <div className="text-center">
+                  <p className="text-sm text-gray-500">No equity data available for this run.</p>
+                  <button
+                    onClick={() => selectedRunId && fetchEquityCurve(selectedRunId)}
+                    className="mt-2 text-sm text-blue-600 hover:text-blue-800"
+                  >
+                    Retry
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="h-64 sm:h-72 md:h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={equityCurve} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                    <XAxis
+                      dataKey="timestamp"
+                      tickFormatter={formatChartDate}
+                      tick={{ fontSize: 12 }}
+                      tickLine={false}
+                      axisLine={{ stroke: "#e5e7eb" }}
+                    />
+                    <YAxis
+                      tickFormatter={(v) => `$${v.toLocaleString()}`}
+                      tick={{ fontSize: 12 }}
+                      tickLine={false}
+                      axisLine={{ stroke: "#e5e7eb" }}
+                      width={70}
+                    />
+                    <Tooltip
+                      formatter={(value) => [`$${Number(value).toLocaleString()}`, "Equity"]}
+                      labelFormatter={(label) =>
+                        new Date(label).toLocaleString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })
+                      }
+                      contentStyle={{
+                        backgroundColor: "white",
+                        border: "1px solid #e5e7eb",
+                        borderRadius: "0.375rem",
+                        fontSize: "0.875rem",
+                      }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="equity"
+                      stroke="#2563eb"
+                      strokeWidth={2}
+                      dot={false}
+                      activeDot={{ r: 4, fill: "#2563eb" }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </section>
+        )}
 
         {/* Trades Table - only show for completed runs */}
         {selectedRun?.status === "completed" && (

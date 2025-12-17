@@ -50,3 +50,8 @@ export interface Trade {
   pnl: number;
   pnl_pct: number;
 }
+
+export interface EquityCurvePoint {
+  timestamp: string;
+  equity: number;
+}

@@ -21,6 +21,7 @@ from app.schemas.backtest import (
     BacktestListItem,
     BacktestStatusResponse,
     BacktestSummary,
+    EquityCurvePoint,
     Trade,
 )
 
@@ -237,6 +238,44 @@ def get_backtest_trades(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to retrieve trades data",
+        )
+
+
+@router.get("/{run_id}/equity-curve", response_model=list[EquityCurvePoint])
+def get_backtest_equity_curve(
+    run_id: UUID,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> list[EquityCurvePoint]:
+    """Get equity curve for a completed backtest run."""
+    run = session.exec(
+        select(BacktestRun).where(
+            BacktestRun.id == run_id,
+            BacktestRun.user_id == user.id,
+        )
+    ).first()
+    if not run:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Backtest run not found",
+        )
+
+    if run.status != "completed":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Equity curve only available for completed runs",
+        )
+
+    if not run.equity_curve_key:
+        return []
+
+    try:
+        data = download_json(run.equity_curve_key)
+        return [EquityCurvePoint(**point) for point in data]
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve equity curve data",
         )
 
 
