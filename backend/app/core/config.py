@@ -35,6 +35,8 @@ class Settings(BaseSettings):
     default_max_strategies: int = 10
     default_max_backtests_per_day: int = 50
 
+    cors_origins: str = "http://localhost:3000"  # Override in production
+
     class Config:
         env_file = ".env"
 
