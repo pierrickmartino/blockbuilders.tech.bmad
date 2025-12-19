@@ -8,13 +8,12 @@ from app.api.health import router as health_router
 from app.api.strategies import router as strategies_router
 from app.api.usage import router as usage_router
 from app.api.users import router as users_router
-from app.core.config import settings
 
 app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins.split(","),
+    allow_origins=[origin.strip() for origin in settings.cors_origins.split(",")],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
