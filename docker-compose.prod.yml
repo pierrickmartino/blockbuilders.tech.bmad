@@ -13,7 +13,7 @@ services:
       - S3_ACCESS_KEY=${S3_ACCESS_KEY}
       - S3_SECRET_KEY=${S3_SECRET_KEY}
       - CRYPTOCOMPARE_API_KEY=${CRYPTOCOMPARE_API_KEY}
-      - CORS_ORIGINS=https://blockbuilders-tech-bmad.vercel.app,https://blockbuilders.tech
+      - CORS_ORIGINS=${CORS_ORIGINS}
     depends_on:
       db:
         condition: service_healthy
