@@ -22,6 +22,7 @@ import {
   Trade,
 } from "@/types/backtest";
 import { StrategyTabs } from "@/components/StrategyTabs";
+import TradeDrawer from "@/components/TradeDrawer";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -86,6 +87,9 @@ export default function StrategyBacktestPage({ params }: Props) {
   const [equityCurve, setEquityCurve] = useState<EquityCurvePoint[]>([]);
   const [isLoadingEquityCurve, setIsLoadingEquityCurve] = useState(false);
   const [equityCurveError, setEquityCurveError] = useState<string | null>(null);
+
+  // Trade drawer state
+  const [selectedTradeIdx, setSelectedTradeIdx] = useState<number | null>(null);
 
   const loadStrategy = useCallback(async () => {
     setIsLoadingStrategy(true);
@@ -707,7 +711,18 @@ export default function StrategyBacktestPage({ params }: Props) {
                     </thead>
                     <tbody className="divide-y divide-gray-200 bg-white">
                       {paginatedTrades.map((trade, idx) => (
-                        <tr key={`${trade.entry_time}-${idx}`} className="hover:bg-gray-50">
+                        <tr
+                          key={`${trade.entry_time}-${idx}`}
+                          className="cursor-pointer hover:bg-gray-50"
+                          onClick={() => setSelectedTradeIdx((currentPage - 1) * pageSize + idx)}
+                          tabIndex={0}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              setSelectedTradeIdx((currentPage - 1) * pageSize + idx);
+                            }
+                          }}
+                        >
                           <td className="whitespace-nowrap px-4 py-2 text-sm text-gray-900">
                             {formatTradeDate(trade.entry_time)}
                           </td>
@@ -772,6 +787,17 @@ export default function StrategyBacktestPage({ params }: Props) {
           </section>
         )}
       </div>
+
+      {/* Trade Details Drawer */}
+      {selectedTradeIdx !== null && selectedRunId && selectedRun && (
+        <TradeDrawer
+          runId={selectedRunId}
+          tradeIdx={selectedTradeIdx}
+          asset={selectedRun.asset}
+          timeframe={selectedRun.timeframe}
+          onClose={() => setSelectedTradeIdx(null)}
+        />
+      )}
     </div>
   );
 }
