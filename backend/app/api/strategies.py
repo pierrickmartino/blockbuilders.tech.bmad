@@ -425,15 +425,78 @@ def _validate_block_params(block: Block) -> list[ValidationError]:
             )
 
     if block.type == "take_profit":
-        pct = params.get("take_profit_pct", 0)
-        if not isinstance(pct, (int, float)) or not 0.1 <= pct <= 100:
-            errors.append(
-                ValidationError(
-                    block_id=block.id,
-                    code="INVALID_PERCENT",
-                    message=f"Take profit must be 0.1-100%, got {pct}",
+        # Support both new levels format and legacy take_profit_pct
+        levels = params.get("levels")
+        if levels and isinstance(levels, list):
+            # Validate levels format
+            if not 1 <= len(levels) <= 3:
+                errors.append(
+                    ValidationError(
+                        block_id=block.id,
+                        code="INVALID_LEVELS",
+                        message=f"Take profit must have 1-3 levels, got {len(levels)}",
+                    )
                 )
-            )
+            else:
+                total_close = 0
+                prev_profit = 0.0
+                for idx, lvl in enumerate(levels):
+                    if not isinstance(lvl, dict):
+                        errors.append(
+                            ValidationError(
+                                block_id=block.id,
+                                code="INVALID_LEVEL",
+                                message=f"Level {idx+1} must be an object",
+                            )
+                        )
+                        continue
+                    profit_pct = lvl.get("profit_pct", 0)
+                    close_pct = lvl.get("close_pct", 0)
+                    if not isinstance(profit_pct, (int, float)) or profit_pct <= 0:
+                        errors.append(
+                            ValidationError(
+                                block_id=block.id,
+                                code="INVALID_PROFIT",
+                                message=f"Level {idx+1} profit_pct must be > 0",
+                            )
+                        )
+                    elif profit_pct <= prev_profit:
+                        errors.append(
+                            ValidationError(
+                                block_id=block.id,
+                                code="INVALID_PROFIT_ORDER",
+                                message=f"Level {idx+1} profit must be > previous level",
+                            )
+                        )
+                    prev_profit = float(profit_pct)
+                    if not isinstance(close_pct, (int, float)) or not 1 <= close_pct <= 100:
+                        errors.append(
+                            ValidationError(
+                                block_id=block.id,
+                                code="INVALID_CLOSE",
+                                message=f"Level {idx+1} close_pct must be 1-100%",
+                            )
+                        )
+                    total_close += close_pct
+                if total_close > 100:
+                    errors.append(
+                        ValidationError(
+                            block_id=block.id,
+                            code="INVALID_TOTAL_CLOSE",
+                            message=f"Total close % cannot exceed 100%, got {total_close}%",
+                        )
+                    )
+        else:
+            # Legacy format: take_profit_pct
+            pct = params.get("take_profit_pct", 0)
+            if not isinstance(pct, (int, float)) or not 0.1 <= pct <= 100:
+                errors.append(
+                    ValidationError(
+                        block_id=block.id,
+                        code="INVALID_PERCENT",
+                        message=f"Take profit must be 0.1-100%, got {pct}",
+                    )
+                )
 
     if block.type == "stop_loss":
         pct = params.get("stop_loss_pct", 0)
@@ -443,6 +506,17 @@ def _validate_block_params(block: Block) -> list[ValidationError]:
                     block_id=block.id,
                     code="INVALID_PERCENT",
                     message=f"Stop loss must be 0.1-100%, got {pct}",
+                )
+            )
+
+    if block.type == "max_drawdown":
+        pct = params.get("max_drawdown_pct", 0)
+        if not isinstance(pct, (int, float)) or not 0.1 <= pct <= 100:
+            errors.append(
+                ValidationError(
+                    block_id=block.id,
+                    code="INVALID_PERCENT",
+                    message=f"Max drawdown must be 0.1-100%, got {pct}",
                 )
             )
 
@@ -494,7 +568,7 @@ def validate_strategy(
                 )
 
     # Rule 3: At most one of each risk block type
-    risk_counts = {"position_size": 0, "take_profit": 0, "stop_loss": 0}
+    risk_counts = {"position_size": 0, "take_profit": 0, "stop_loss": 0, "max_drawdown": 0}
     for block in definition.blocks:
         if block.type in risk_counts:
             risk_counts[block.type] += 1

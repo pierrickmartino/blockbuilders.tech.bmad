@@ -2,11 +2,11 @@
 export type BlockCategory = "input" | "indicator" | "logic" | "signal" | "risk";
 
 // Block types by category
-export type InputBlockType = "price" | "volume" | "constant";
+export type InputBlockType = "price" | "volume" | "constant" | "yesterday_close";
 export type IndicatorBlockType = "sma" | "ema" | "rsi" | "macd" | "bollinger" | "atr";
 export type LogicBlockType = "compare" | "crossover" | "and" | "or" | "not";
 export type SignalBlockType = "entry_signal" | "exit_signal";
-export type RiskBlockType = "position_size" | "take_profit" | "stop_loss";
+export type RiskBlockType = "position_size" | "take_profit" | "stop_loss" | "max_drawdown";
 
 export type BlockType =
   | InputBlockType
@@ -73,12 +73,23 @@ export interface PositionSizeParams {
   value: number;
 }
 
+export interface TakeProfitLevel {
+  profit_pct: number;
+  close_pct: number;
+}
+
 export interface TakeProfitParams {
-  take_profit_pct: number;
+  levels: TakeProfitLevel[];
 }
 
 export interface StopLossParams {
   stop_loss_pct: number;
+}
+
+export type YesterdayCloseParams = Record<string, never>;
+
+export interface MaxDrawdownParams {
+  max_drawdown_pct: number;
 }
 
 // Union of all param types
@@ -101,7 +112,9 @@ export type BlockParams =
   | ExitSignalParams
   | PositionSizeParams
   | TakeProfitParams
-  | StopLossParams;
+  | StopLossParams
+  | YesterdayCloseParams
+  | MaxDrawdownParams;
 
 // Block definition (stored in JSON)
 export interface Block {
@@ -177,6 +190,15 @@ export const BLOCK_REGISTRY: BlockMeta[] = [
     inputs: [],
     outputs: ["output"],
     defaultParams: { value: 0 },
+  },
+  {
+    type: "yesterday_close",
+    category: "input",
+    label: "Yesterday Close",
+    description: "Previous candle close price",
+    inputs: [],
+    outputs: ["output"],
+    defaultParams: {},
   },
   // Indicators
   {
@@ -312,10 +334,10 @@ export const BLOCK_REGISTRY: BlockMeta[] = [
     type: "take_profit",
     category: "risk",
     label: "Take Profit",
-    description: "Exit when profit reaches target %",
+    description: "Exit when profit reaches target % (supports 1-3 ladder levels)",
     inputs: [],
     outputs: [],
-    defaultParams: { take_profit_pct: 10 },
+    defaultParams: { levels: [{ profit_pct: 10, close_pct: 100 }] },
   },
   {
     type: "stop_loss",
@@ -325,6 +347,15 @@ export const BLOCK_REGISTRY: BlockMeta[] = [
     inputs: [],
     outputs: [],
     defaultParams: { stop_loss_pct: 5 },
+  },
+  {
+    type: "max_drawdown",
+    category: "risk",
+    label: "Max Drawdown",
+    description: "Exit when equity drawdown exceeds threshold %",
+    inputs: [],
+    outputs: [],
+    defaultParams: { max_drawdown_pct: 10 },
   },
 ];
 
