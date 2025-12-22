@@ -104,3 +104,49 @@ class EquityCurvePoint(BaseModel):
 
     timestamp: datetime
     equity: float
+
+
+class TradeDetail(BaseModel):
+    """Extended trade details for drawer view."""
+
+    entry_time: datetime
+    entry_price: float
+    exit_time: datetime
+    exit_price: float
+    side: str
+    pnl: float
+    pnl_pct: float
+    qty: float
+    sl_price_at_entry: Optional[float] = None
+    tp_price_at_entry: Optional[float] = None
+    exit_reason: str
+    mae_usd: float
+    mae_pct: float
+    mfe_usd: float
+    mfe_pct: float
+    initial_risk_usd: Optional[float] = None
+    r_multiple: Optional[float] = None
+    peak_price: float
+    peak_ts: datetime
+    trough_price: float
+    trough_ts: datetime
+    duration_seconds: int
+
+
+class CandleResponse(BaseModel):
+    """Single candle for chart."""
+
+    timestamp: datetime
+    open: float
+    high: float
+    low: float
+    close: float
+
+
+class TradeDetailResponse(BaseModel):
+    """Response for single trade detail endpoint."""
+
+    trade: TradeDetail
+    candles: list[CandleResponse]
+    asset: str
+    timeframe: str

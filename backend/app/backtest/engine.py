@@ -10,7 +10,7 @@ from app.backtest.interpreter import StrategySignals
 
 @dataclass
 class Trade:
-    """Represents a single trade."""
+    """Represents a single trade with extended analytics."""
 
     entry_time: datetime
     entry_price: float
@@ -19,6 +19,22 @@ class Trade:
     side: str  # "long"
     pnl: float
     pnl_pct: float
+    # Extended fields for trade details drawer
+    qty: float
+    sl_price_at_entry: Optional[float]
+    tp_price_at_entry: Optional[float]
+    exit_reason: str  # "tp", "sl", "signal", "end_of_data"
+    mae_usd: float  # Max Adverse Excursion in USD
+    mae_pct: float  # MAE as percentage
+    mfe_usd: float  # Max Favorable Excursion in USD
+    mfe_pct: float  # MFE as percentage
+    initial_risk_usd: Optional[float]  # Entry to SL distance * qty
+    r_multiple: Optional[float]  # PnL / initial_risk
+    peak_price: float  # Best price during trade (highest for long)
+    peak_ts: datetime  # Timestamp of peak
+    trough_price: float  # Worst price during trade (lowest for long)
+    trough_ts: datetime  # Timestamp of trough
+    duration_seconds: int
 
 
 @dataclass
@@ -70,6 +86,12 @@ def run_backtest(
     tp_price: Optional[float] = None
     sl_price: Optional[float] = None
 
+    # Excursion tracking for current position
+    peak_high: float = 0.0  # Highest high during position (for MFE in long)
+    peak_high_ts: Optional[datetime] = None
+    trough_low: float = float("inf")  # Lowest low during position (for MAE in long)
+    trough_low_ts: Optional[datetime] = None
+
     equity_curve: list[dict] = []
     trades: list[Trade] = []
     peak_equity = initial_balance
@@ -84,29 +106,57 @@ def run_backtest(
 
         # If in position, check for exits
         if position_open:
-            exit_price: Optional[float] = None
+            # Track excursions on this candle
+            if candle.high > peak_high:
+                peak_high = candle.high
+                peak_high_ts = candle.timestamp
+            if candle.low < trough_low:
+                trough_low = candle.low
+                trough_low_ts = candle.timestamp
+
+            exit_price_raw: Optional[float] = None
             exit_reason = ""
 
             # Check TP/SL on this candle's high/low
             if tp_price is not None and candle.high >= tp_price:
-                exit_price = tp_price
+                exit_price_raw = tp_price
                 exit_reason = "tp"
             elif sl_price is not None and candle.low <= sl_price:
-                exit_price = sl_price
+                exit_price_raw = sl_price
                 exit_reason = "sl"
             elif exit_signal:
-                exit_price = candle.close
+                exit_price_raw = candle.close
                 exit_reason = "signal"
 
-            if exit_price is not None:
+            if exit_price_raw is not None:
                 # Apply slippage and fees on exit
-                effective_exit = exit_price * (1 - slippage_rate) * (1 - fee_rate)
+                effective_exit = exit_price_raw * (1 - slippage_rate) * (1 - fee_rate)
 
                 # Calculate PnL
                 pnl = (effective_exit - entry_price) * position_size
                 pnl_pct = ((effective_exit - entry_price) / entry_price) * 100
 
                 equity += pnl
+
+                # Compute excursion metrics (for long positions)
+                mfe_pct = (peak_high - entry_price) / entry_price * 100
+                mfe_usd = (peak_high - entry_price) * position_size
+                mae_pct = (trough_low - entry_price) / entry_price * 100
+                mae_usd = (trough_low - entry_price) * position_size
+
+                # Compute R-multiple
+                initial_risk_usd: Optional[float] = None
+                r_multiple: Optional[float] = None
+                if sl_price is not None and sl_price != entry_price:
+                    risk_per_unit = abs(entry_price - sl_price)
+                    initial_risk_usd = risk_per_unit * position_size
+                    if initial_risk_usd > 0:
+                        r_multiple = pnl / initial_risk_usd
+
+                # Duration
+                duration_seconds = int(
+                    (candle.timestamp - entry_time).total_seconds()
+                )
 
                 trades.append(
                     Trade(
@@ -117,6 +167,23 @@ def run_backtest(
                         side="long",
                         pnl=pnl,
                         pnl_pct=pnl_pct,
+                        qty=position_size,
+                        sl_price_at_entry=sl_price,
+                        tp_price_at_entry=tp_price,
+                        exit_reason=exit_reason,
+                        mae_usd=round(mae_usd, 2),
+                        mae_pct=round(mae_pct, 4),
+                        mfe_usd=round(mfe_usd, 2),
+                        mfe_pct=round(mfe_pct, 4),
+                        initial_risk_usd=(
+                            round(initial_risk_usd, 2) if initial_risk_usd else None
+                        ),
+                        r_multiple=round(r_multiple, 2) if r_multiple else None,
+                        peak_price=peak_high,
+                        peak_ts=peak_high_ts,
+                        trough_price=trough_low,
+                        trough_ts=trough_low_ts,
+                        duration_seconds=duration_seconds,
                     )
                 )
 
@@ -127,6 +194,10 @@ def run_backtest(
                 entry_time = None
                 tp_price = None
                 sl_price = None
+                peak_high = 0.0
+                peak_high_ts = None
+                trough_low = float("inf")
+                trough_low_ts = None
 
         # If flat, check for entry on next candle
         # Entry signal on candle i means we enter at candle i+1 open
@@ -144,6 +215,12 @@ def run_backtest(
             position_open = True
             entry_price = effective_entry
             entry_time = next_candle.timestamp
+
+            # Initialize excursion tracking for this position
+            peak_high = next_candle.high
+            peak_high_ts = next_candle.timestamp
+            trough_low = next_candle.low
+            trough_low_ts = next_candle.timestamp
 
             # Set TP/SL prices
             if signals.take_profit_pct is not None:
@@ -178,10 +255,37 @@ def run_backtest(
     # Close any open position at final candle close
     if position_open and candles:
         final_candle = candles[-1]
+
+        # Update excursions for final candle
+        if final_candle.high > peak_high:
+            peak_high = final_candle.high
+            peak_high_ts = final_candle.timestamp
+        if final_candle.low < trough_low:
+            trough_low = final_candle.low
+            trough_low_ts = final_candle.timestamp
+
         effective_exit = final_candle.close * (1 - slippage_rate) * (1 - fee_rate)
         pnl = (effective_exit - entry_price) * position_size
         pnl_pct = ((effective_exit - entry_price) / entry_price) * 100
         equity += pnl
+
+        # Compute excursion metrics
+        mfe_pct = (peak_high - entry_price) / entry_price * 100
+        mfe_usd = (peak_high - entry_price) * position_size
+        mae_pct = (trough_low - entry_price) / entry_price * 100
+        mae_usd = (trough_low - entry_price) * position_size
+
+        # Compute R-multiple
+        initial_risk_usd: Optional[float] = None
+        r_multiple: Optional[float] = None
+        if sl_price is not None and sl_price != entry_price:
+            risk_per_unit = abs(entry_price - sl_price)
+            initial_risk_usd = risk_per_unit * position_size
+            if initial_risk_usd > 0:
+                r_multiple = pnl / initial_risk_usd
+
+        # Duration
+        duration_seconds = int((final_candle.timestamp - entry_time).total_seconds())
 
         trades.append(
             Trade(
@@ -192,6 +296,23 @@ def run_backtest(
                 side="long",
                 pnl=pnl,
                 pnl_pct=pnl_pct,
+                qty=position_size,
+                sl_price_at_entry=sl_price,
+                tp_price_at_entry=tp_price,
+                exit_reason="end_of_data",
+                mae_usd=round(mae_usd, 2),
+                mae_pct=round(mae_pct, 4),
+                mfe_usd=round(mfe_usd, 2),
+                mfe_pct=round(mfe_pct, 4),
+                initial_risk_usd=(
+                    round(initial_risk_usd, 2) if initial_risk_usd else None
+                ),
+                r_multiple=round(r_multiple, 2) if r_multiple else None,
+                peak_price=peak_high,
+                peak_ts=peak_high_ts,
+                trough_price=trough_low,
+                trough_ts=trough_low_ts,
+                duration_seconds=duration_seconds,
             )
         )
 

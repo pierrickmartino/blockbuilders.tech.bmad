@@ -11,6 +11,7 @@ from app.api.deps import get_current_user
 from app.core.config import settings
 from app.core.database import get_session
 from app.models.backtest_run import BacktestRun
+from app.models.candle import Candle
 from app.models.strategy import Strategy
 from app.models.strategy_version import StrategyVersion
 from app.models.user import User
@@ -21,8 +22,11 @@ from app.schemas.backtest import (
     BacktestListItem,
     BacktestStatusResponse,
     BacktestSummary,
+    CandleResponse,
     EquityCurvePoint,
     Trade,
+    TradeDetail,
+    TradeDetailResponse,
 )
 
 router = APIRouter(prefix="/backtests", tags=["backtests"])
@@ -309,3 +313,129 @@ def list_backtests(
         )
         for r in runs
     ]
+
+
+@router.get("/{run_id}/trades/{trade_idx}", response_model=TradeDetailResponse)
+def get_trade_detail(
+    run_id: UUID,
+    trade_idx: int,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> TradeDetailResponse:
+    """Get detailed trade info with surrounding candles for chart."""
+    # Verify run exists and belongs to user
+    run = session.exec(
+        select(BacktestRun).where(
+            BacktestRun.id == run_id,
+            BacktestRun.user_id == user.id,
+        )
+    ).first()
+    if not run:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Backtest run not found",
+        )
+
+    if run.status != "completed":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Trade details only available for completed runs",
+        )
+
+    if not run.trades_key:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No trades data available",
+        )
+
+    # Download trades from S3
+    try:
+        trades_data = download_json(run.trades_key)
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve trades data",
+        )
+
+    # Validate trade_idx
+    if trade_idx < 0 or trade_idx >= len(trades_data):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Trade index {trade_idx} out of range (0-{len(trades_data) - 1})",
+        )
+
+    trade_raw = trades_data[trade_idx]
+
+    # Parse trade timestamps
+    entry_ts_str = trade_raw.get("entry_time")
+    exit_ts_str = trade_raw.get("exit_time")
+    entry_ts = datetime.fromisoformat(entry_ts_str.replace("Z", "+00:00"))
+    exit_ts = datetime.fromisoformat(exit_ts_str.replace("Z", "+00:00"))
+
+    # Calculate chart window: 10 days before entry, 10 days after exit, min 90 days
+    chart_start = entry_ts - timedelta(days=10)
+    chart_end = exit_ts + timedelta(days=10)
+    window_days = (chart_end - chart_start).days
+    if window_days < 90:
+        # Extend symmetrically around the trade midpoint
+        needed = 90 - window_days
+        chart_start -= timedelta(days=needed // 2)
+        chart_end += timedelta(days=needed - needed // 2)
+
+    # Fetch candles for the window
+    candles = session.exec(
+        select(Candle)
+        .where(Candle.asset == run.asset)
+        .where(Candle.timeframe == run.timeframe)
+        .where(Candle.timestamp >= chart_start)
+        .where(Candle.timestamp <= chart_end)
+        .order_by(Candle.timestamp)
+    ).all()
+
+    candles_response = [
+        CandleResponse(
+            timestamp=c.timestamp,
+            open=c.open,
+            high=c.high,
+            low=c.low,
+            close=c.close,
+        )
+        for c in candles
+    ]
+
+    # Build TradeDetail with defaults for old trades missing new fields
+    trade_detail = TradeDetail(
+        entry_time=entry_ts,
+        entry_price=trade_raw.get("entry_price", 0),
+        exit_time=exit_ts,
+        exit_price=trade_raw.get("exit_price", 0),
+        side=trade_raw.get("side", "long"),
+        pnl=trade_raw.get("pnl", 0),
+        pnl_pct=trade_raw.get("pnl_pct", 0),
+        qty=trade_raw.get("qty", 0),
+        sl_price_at_entry=trade_raw.get("sl_price_at_entry"),
+        tp_price_at_entry=trade_raw.get("tp_price_at_entry"),
+        exit_reason=trade_raw.get("exit_reason", "unknown"),
+        mae_usd=trade_raw.get("mae_usd", 0),
+        mae_pct=trade_raw.get("mae_pct", 0),
+        mfe_usd=trade_raw.get("mfe_usd", 0),
+        mfe_pct=trade_raw.get("mfe_pct", 0),
+        initial_risk_usd=trade_raw.get("initial_risk_usd"),
+        r_multiple=trade_raw.get("r_multiple"),
+        peak_price=trade_raw.get("peak_price", 0),
+        peak_ts=datetime.fromisoformat(
+            trade_raw.get("peak_ts", entry_ts_str).replace("Z", "+00:00")
+        ),
+        trough_price=trade_raw.get("trough_price", 0),
+        trough_ts=datetime.fromisoformat(
+            trade_raw.get("trough_ts", entry_ts_str).replace("Z", "+00:00")
+        ),
+        duration_seconds=trade_raw.get("duration_seconds", 0),
+    )
+
+    return TradeDetailResponse(
+        trade=trade_detail,
+        candles=candles_response,
+        asset=run.asset,
+        timeframe=run.timeframe,
+    )

@@ -55,3 +55,43 @@ export interface EquityCurvePoint {
   timestamp: string;
   equity: number;
 }
+
+export interface TradeDetail {
+  entry_time: string;
+  entry_price: number;
+  exit_time: string;
+  exit_price: number;
+  side: string;
+  pnl: number;
+  pnl_pct: number;
+  qty: number;
+  sl_price_at_entry: number | null;
+  tp_price_at_entry: number | null;
+  exit_reason: string;
+  mae_usd: number;
+  mae_pct: number;
+  mfe_usd: number;
+  mfe_pct: number;
+  initial_risk_usd: number | null;
+  r_multiple: number | null;
+  peak_price: number;
+  peak_ts: string;
+  trough_price: number;
+  trough_ts: string;
+  duration_seconds: number;
+}
+
+export interface Candle {
+  timestamp: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+}
+
+export interface TradeDetailResponse {
+  trade: TradeDetail;
+  candles: Candle[];
+  asset: string;
+  timeframe: string;
+}
