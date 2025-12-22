@@ -303,9 +303,12 @@ def run_backtest(
         if drawdown > max_drawdown:
             max_drawdown = drawdown
 
-        # Max Drawdown exit check (after MTM)
+        # Max Drawdown exit check (trade-based, at candle close)
+        # Differs from SL: SL triggers on candle low, Max DD evaluates at close
         if position_open and position_size > 0 and max_dd_threshold is not None:
-            if drawdown >= max_dd_threshold:
+            # Trade-based drawdown: loss from entry price to close price
+            trade_drawdown = (entry_price - candle.close) / entry_price * 100
+            if trade_drawdown >= max_dd_threshold:
                 # Force close remaining position at candle close
                 record_trade(position_size, candle.close, "max_dd")
                 position_size = 0.0
