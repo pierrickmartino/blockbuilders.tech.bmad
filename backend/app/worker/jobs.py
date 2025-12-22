@@ -118,18 +118,35 @@ def run_backtest_job(run_id: str) -> None:
             equity_curve_key = generate_results_key(run.id, "equity_curve.json")
             upload_json(equity_curve_key, result.equity_curve)
 
-            trades_data = [
-                {
-                    "entry_time": t.entry_time.isoformat(),
-                    "entry_price": t.entry_price,
-                    "exit_time": t.exit_time.isoformat(),
-                    "exit_price": t.exit_price,
-                    "side": t.side,
-                    "pnl": t.pnl,
-                    "pnl_pct": t.pnl_pct,
-                }
-                for t in result.trades
-            ]
+            trades_data = []
+            for t in result.trades:
+                entry_time = t.entry_time.isoformat()
+                trades_data.append(
+                    {
+                        "entry_time": entry_time,
+                        "entry_price": t.entry_price,
+                        "exit_time": t.exit_time.isoformat(),
+                        "exit_price": t.exit_price,
+                        "side": t.side,
+                        "pnl": t.pnl,
+                        "pnl_pct": t.pnl_pct,
+                        "qty": t.qty,
+                        "sl_price_at_entry": t.sl_price_at_entry,
+                        "tp_price_at_entry": t.tp_price_at_entry,
+                        "exit_reason": t.exit_reason,
+                        "mae_usd": t.mae_usd,
+                        "mae_pct": t.mae_pct,
+                        "mfe_usd": t.mfe_usd,
+                        "mfe_pct": t.mfe_pct,
+                        "initial_risk_usd": t.initial_risk_usd,
+                        "r_multiple": t.r_multiple,
+                        "peak_price": t.peak_price,
+                        "peak_ts": t.peak_ts.isoformat() if t.peak_ts else entry_time,
+                        "trough_price": t.trough_price,
+                        "trough_ts": t.trough_ts.isoformat() if t.trough_ts else entry_time,
+                        "duration_seconds": t.duration_seconds,
+                    }
+                )
             trades_key = generate_results_key(run.id, "trades.json")
             upload_json(trades_key, trades_data)
 
