@@ -14,5 +14,6 @@ class User(SQLModel, table=True):
     default_slippage_percent: Optional[float] = None
     max_strategies: int = Field(default=10)
     max_backtests_per_day: int = Field(default=50)
+    timezone_preference: str = Field(default="local")
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)

@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field
@@ -19,6 +19,7 @@ class UserResponse(BaseModel):
     email: str
     default_fee_percent: Optional[float] = None
     default_slippage_percent: Optional[float] = None
+    timezone_preference: Literal["local", "utc"] = "local"
 
 
 class AuthResponse(BaseModel):
@@ -29,3 +30,32 @@ class AuthResponse(BaseModel):
 class UserUpdateRequest(BaseModel):
     default_fee_percent: Optional[float] = Field(default=None, ge=0, le=5)
     default_slippage_percent: Optional[float] = Field(default=None, ge=0, le=5)
+    timezone_preference: Optional[Literal["local", "utc"]] = None
+
+
+# Profile page bundled response types
+class UsageItem(BaseModel):
+    used: int
+    limit: int
+
+
+class BacktestUsageItem(UsageItem):
+    resets_at_utc: str
+
+
+class SettingsResponse(BaseModel):
+    default_fee_percent: Optional[float] = None
+    default_slippage_percent: Optional[float] = None
+    timezone_preference: Literal["local", "utc"] = "local"
+
+
+class UsageBundle(BaseModel):
+    strategies: UsageItem
+    backtests_today: BacktestUsageItem
+
+
+class ProfileResponse(BaseModel):
+    id: UUID
+    email: str
+    settings: SettingsResponse
+    usage: UsageBundle

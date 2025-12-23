@@ -9,7 +9,7 @@ import {
   ReactNode,
 } from "react";
 import { apiFetch, ApiError } from "@/lib/api";
-import { User, AuthResponse, Usage } from "@/types/auth";
+import { User, AuthResponse, Usage, ProfileResponse } from "@/types/auth";
 
 interface AuthContextType {
   user: User | null;
@@ -31,8 +31,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshUser = useCallback(async () => {
     try {
-      const userData = await apiFetch<User>("/users/me");
-      setUser(userData);
+      const profileData = await apiFetch<ProfileResponse>("/users/me");
+      setUser({
+        id: profileData.id,
+        email: profileData.email,
+        default_fee_percent: profileData.settings.default_fee_percent,
+        default_slippage_percent: profileData.settings.default_slippage_percent,
+        timezone_preference: profileData.settings.timezone_preference,
+      });
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
         localStorage.removeItem("token");

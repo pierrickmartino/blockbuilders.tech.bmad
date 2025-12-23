@@ -7,7 +7,7 @@ import { useAuth } from "@/context/auth";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const { user, usage, isLoading, logout } = useAuth();
+  const { user, isLoading, logout } = useAuth();
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -48,10 +48,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               Strategies
             </Link>
             <Link
-              href="/settings"
+              href="/profile"
               className="text-sm text-gray-600 hover:text-gray-900"
             >
-              Settings
+              Profile
             </Link>
             <Link
               href="/how-backtests-work"
@@ -61,17 +61,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </Link>
           </div>
           <div className="flex items-center gap-4">
-            {usage && (
-              <div className="hidden items-center gap-3 text-xs text-gray-500 sm:flex">
-                <span title="Active strategies">
-                  Strategies: {usage.strategies_count}/{usage.strategies_limit}
-                </span>
-                <span title="Backtests run today (resets at midnight UTC)">
-                  Backtests: {usage.backtests_today_count}/
-                  {usage.backtests_daily_limit}
-                </span>
-              </div>
-            )}
             <span className="text-sm text-gray-600">{user.email}</span>
             <button
               onClick={() => {
