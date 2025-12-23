@@ -3,6 +3,15 @@
 import { useEffect, useRef, useState } from "react";
 import { createChart, IChartApi, ISeriesApi, CandlestickSeries, Time } from "lightweight-charts";
 import { apiFetch } from "@/lib/api";
+import {
+  formatDateTime,
+  formatDuration,
+  formatMoney,
+  formatPercent,
+  formatQuantity,
+  formatNumber,
+} from "@/lib/format";
+import { useDisplay } from "@/context/display";
 import { TradeDetailResponse } from "@/types/backtest";
 
 interface TradeDrawerProps {
@@ -21,37 +30,6 @@ const EXIT_REASON_LABELS: Record<string, string> = {
   unknown: "Unknown",
 };
 
-function formatDuration(seconds: number): string {
-  const days = Math.floor(seconds / 86400);
-  const hours = Math.floor((seconds % 86400) / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-
-  if (days > 0) {
-    return hours > 0 ? `${days}d ${hours}h` : `${days}d`;
-  }
-  if (hours > 0) {
-    return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
-  }
-  return `${minutes}m`;
-}
-
-function formatPrice(price: number): string {
-  if (price >= 1000) return price.toLocaleString(undefined, { maximumFractionDigits: 2 });
-  if (price >= 1) return price.toFixed(2);
-  return price.toPrecision(4);
-}
-
-function formatTimestamp(ts: string): string {
-  return new Date(ts).toLocaleString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
-}
-
 export default function TradeDrawer({
   runId,
   tradeIdx,
@@ -59,6 +37,7 @@ export default function TradeDrawer({
   timeframe,
   onClose,
 }: TradeDrawerProps) {
+  const { timezone } = useDisplay();
   const [data, setData] = useState<TradeDetailResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -292,7 +271,7 @@ export default function TradeDrawer({
                       trade.pnl >= 0 ? "text-green-600" : "text-red-600"
                     }`}
                   >
-                    {trade.pnl >= 0 ? "+" : ""}${trade.pnl.toFixed(2)}
+                    {formatMoney(trade.pnl, "USDT", true)}
                   </div>
                 </div>
                 <div className="rounded-lg bg-gray-50 p-3">
@@ -302,7 +281,7 @@ export default function TradeDrawer({
                       trade.pnl_pct >= 0 ? "text-green-600" : "text-red-600"
                     }`}
                   >
-                    {trade.pnl_pct >= 0 ? "+" : ""}{trade.pnl_pct.toFixed(2)}%
+                    {trade.pnl_pct >= 0 ? "+" : ""}{formatPercent(trade.pnl_pct)}
                   </div>
                 </div>
                 <div className="rounded-lg bg-gray-50 p-3">
@@ -335,23 +314,23 @@ export default function TradeDrawer({
                 <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
                   <div>
                     <span className="text-gray-500">Entry Time</span>
-                    <div className="font-medium">{formatTimestamp(trade.entry_time)}</div>
+                    <div className="font-medium">{formatDateTime(trade.entry_time, timezone)}</div>
                   </div>
                   <div>
                     <span className="text-gray-500">Exit Time</span>
-                    <div className="font-medium">{formatTimestamp(trade.exit_time)}</div>
+                    <div className="font-medium">{formatDateTime(trade.exit_time, timezone)}</div>
                   </div>
                   <div>
                     <span className="text-gray-500">Entry Price</span>
-                    <div className="font-medium">{formatPrice(trade.entry_price)}</div>
+                    <div className="font-medium">{formatNumber(trade.entry_price, 2)}</div>
                   </div>
                   <div>
                     <span className="text-gray-500">Exit Price</span>
-                    <div className="font-medium">{formatPrice(trade.exit_price)}</div>
+                    <div className="font-medium">{formatNumber(trade.exit_price, 2)}</div>
                   </div>
                   <div>
                     <span className="text-gray-500">Quantity</span>
-                    <div className="font-medium">{trade.qty.toFixed(6)}</div>
+                    <div className="font-medium">{formatQuantity(trade.qty)}</div>
                   </div>
                   <div>
                     <span className="text-gray-500">Exit Reason</span>
@@ -370,7 +349,7 @@ export default function TradeDrawer({
                     <span className="text-gray-500">Stop Loss</span>
                     <div className="font-medium">
                       {trade.sl_price_at_entry !== null
-                        ? formatPrice(trade.sl_price_at_entry)
+                        ? formatNumber(trade.sl_price_at_entry, 2)
                         : "—"}
                     </div>
                   </div>
@@ -378,7 +357,7 @@ export default function TradeDrawer({
                     <span className="text-gray-500">Take Profit</span>
                     <div className="font-medium">
                       {trade.tp_price_at_entry !== null
-                        ? formatPrice(trade.tp_price_at_entry)
+                        ? formatNumber(trade.tp_price_at_entry, 2)
                         : "—"}
                     </div>
                   </div>
@@ -386,7 +365,7 @@ export default function TradeDrawer({
                     <span className="text-gray-500">Initial Risk</span>
                     <div className="font-medium">
                       {trade.initial_risk_usd !== null
-                        ? `$${trade.initial_risk_usd.toFixed(2)}`
+                        ? formatMoney(trade.initial_risk_usd, "USDT")
                         : "—"}
                     </div>
                   </div>
@@ -403,14 +382,14 @@ export default function TradeDrawer({
                       Max Adverse Excursion (MAE)
                     </div>
                     <div className="mt-1 text-lg font-semibold text-red-600">
-                      {trade.mae_pct.toFixed(2)}%
+                      {formatPercent(trade.mae_pct)}
                     </div>
                     <div className="text-sm text-red-600">
-                      ${trade.mae_usd.toFixed(2)}
+                      {formatMoney(trade.mae_usd, "USDT")}
                     </div>
                     <div className="mt-1 text-xs text-gray-500">
-                      Trough: {formatPrice(trade.trough_price)} @{" "}
-                      {formatTimestamp(trade.trough_ts)}
+                      Trough: {formatNumber(trade.trough_price, 2)} @{" "}
+                      {formatDateTime(trade.trough_ts, timezone)}
                     </div>
                   </div>
                   {/* MFE */}
@@ -419,14 +398,14 @@ export default function TradeDrawer({
                       Max Favorable Excursion (MFE)
                     </div>
                     <div className="mt-1 text-lg font-semibold text-green-600">
-                      +{trade.mfe_pct.toFixed(2)}%
+                      +{formatPercent(trade.mfe_pct)}
                     </div>
                     <div className="text-sm text-green-600">
-                      +${trade.mfe_usd.toFixed(2)}
+                      {formatMoney(trade.mfe_usd, "USDT", true)}
                     </div>
                     <div className="mt-1 text-xs text-gray-500">
-                      Peak: {formatPrice(trade.peak_price)} @{" "}
-                      {formatTimestamp(trade.peak_ts)}
+                      Peak: {formatNumber(trade.peak_price, 2)} @{" "}
+                      {formatDateTime(trade.peak_ts, timezone)}
                     </div>
                   </div>
                 </div>
@@ -436,7 +415,7 @@ export default function TradeDrawer({
                   <div className="mt-2 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
                     Gave back{" "}
                     <span className="font-medium">
-                      {(trade.mfe_pct - trade.pnl_pct).toFixed(2)}%
+                      {formatPercent(trade.mfe_pct - trade.pnl_pct)}
                     </span>{" "}
                     from peak to exit
                   </div>

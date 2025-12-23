@@ -2,11 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/auth";
+import { useDisplay } from "@/context/display";
 import { apiFetch, ApiError } from "@/lib/api";
 import { User, UserUpdateRequest } from "@/types/auth";
 
 export default function SettingsPage() {
   const { user, refreshUser } = useAuth();
+  const { timezone, setTimezone } = useDisplay();
   const [feePercent, setFeePercent] = useState("");
   const [slippagePercent, setSlippagePercent] = useState("");
   const [isSaving, setIsSaving] = useState(false);
@@ -133,6 +135,48 @@ export default function SettingsPage() {
             {isSaving ? "Saving..." : "Save Settings"}
           </button>
         </form>
+
+        <div className="mt-8 border-t pt-6">
+          <h2 className="text-lg font-semibold text-gray-900">
+            Display Preferences
+          </h2>
+          <p className="mt-1 text-sm text-gray-600">
+            Configure how dates and times are displayed across the app.
+          </p>
+
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-gray-700">
+              Timezone
+            </label>
+            <div className="mt-2 flex gap-2">
+              <button
+                type="button"
+                onClick={() => setTimezone("local")}
+                className={`rounded-md px-4 py-2 text-sm font-medium ${
+                  timezone === "local"
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
+              >
+                Local
+              </button>
+              <button
+                type="button"
+                onClick={() => setTimezone("utc")}
+                className={`rounded-md px-4 py-2 text-sm font-medium ${
+                  timezone === "utc"
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
+              >
+                UTC
+              </button>
+            </div>
+            <p className="mt-1 text-xs text-gray-500">
+              All timestamps will be displayed in {timezone === "local" ? "your local timezone" : "UTC"}.
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );
