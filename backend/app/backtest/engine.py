@@ -91,6 +91,7 @@ def run_backtest(
     initial_qty = 0.0  # Initial position size (for TP ladder % calculations)
     entry_price = 0.0
     entry_time: Optional[datetime] = None
+    entry_index: Optional[int] = None
 
     # TP ladder levels (with prices and triggered flags)
     tp_levels: list[TPLevelState] = []
@@ -176,6 +177,8 @@ def run_backtest(
 
         # If in position, check for exits
         if position_open:
+            # Avoid same-candle exits; wait at least one full candle after entry.
+            can_exit = entry_index is None or i > entry_index
             # Track excursions on this candle
             if candle.high > peak_high:
                 peak_high = candle.high
@@ -189,7 +192,7 @@ def run_backtest(
             exit_reason = ""
 
             # Priority 1: Check Stop Loss (full exit)
-            if sl_price is not None and candle.low <= sl_price:
+            if can_exit and sl_price is not None and candle.low <= sl_price:
                 exit_price_raw = sl_price
                 exit_reason = "sl"
                 full_exit = True
@@ -198,7 +201,7 @@ def run_backtest(
             # We'll do this check after equity update section below
 
             # Priority 3: Check TP levels (partial exits, in ascending order)
-            if not full_exit and tp_levels:
+            if can_exit and not full_exit and tp_levels:
                 # Sort by profit_pct ascending and process
                 for level in sorted(tp_levels, key=lambda x: x.profit_pct):
                     if not level.triggered and candle.high >= level.price:
@@ -218,7 +221,7 @@ def run_backtest(
                             break
 
             # Priority 4: Check signal exit (full exit of remaining)
-            if not full_exit and exit_signal and position_size > 0:
+            if can_exit and not full_exit and exit_signal and position_size > 0:
                 exit_price_raw = candle.close
                 exit_reason = "signal"
                 full_exit = True
@@ -235,6 +238,7 @@ def run_backtest(
                 initial_qty = 0.0
                 entry_price = 0.0
                 entry_time = None
+                entry_index = None
                 tp_levels = []
                 sl_price = None
                 peak_high = 0.0
@@ -259,6 +263,7 @@ def run_backtest(
             position_open = True
             entry_price = effective_entry
             entry_time = next_candle.timestamp
+            entry_index = i + 1
 
             # Initialize excursion tracking for this position
             peak_high = next_candle.high
@@ -305,7 +310,12 @@ def run_backtest(
 
         # Max Drawdown exit check (trade-based, at candle close)
         # Differs from SL: SL triggers on candle low, Max DD evaluates at close
-        if position_open and position_size > 0 and max_dd_threshold is not None:
+        if (
+            position_open
+            and position_size > 0
+            and max_dd_threshold is not None
+            and (entry_index is None or i > entry_index)
+        ):
             # Trade-based drawdown: loss from entry price to close price
             trade_drawdown = (entry_price - candle.close) / entry_price * 100
             if trade_drawdown >= max_dd_threshold:
@@ -316,6 +326,7 @@ def run_backtest(
                 initial_qty = 0.0
                 entry_price = 0.0
                 entry_time = None
+                entry_index = None
                 tp_levels = []
                 sl_price = None
                 peak_high = 0.0
