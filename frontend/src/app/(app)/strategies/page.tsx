@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
+import { formatDateTime } from "@/lib/format";
+import { useDisplay } from "@/context/display";
 import { Strategy } from "@/types/strategy";
 import NewStrategyModal from "./new-strategy-modal";
 
@@ -11,6 +13,7 @@ type SortOrder = "asc" | "desc";
 
 export default function StrategiesPage() {
   const router = useRouter();
+  const { timezone } = useDisplay();
   const [strategies, setStrategies] = useState<Strategy[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -96,16 +99,6 @@ export default function StrategiesPage() {
     } finally {
       setActionLoading(null);
     }
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
   };
 
   const isUpdatedToday = (lastAutoRunAt: string | null): boolean => {
@@ -233,7 +226,7 @@ export default function StrategiesPage() {
                           }`}
                           title={
                             strategy.last_auto_run_at
-                              ? `Last auto-run: ${formatDate(strategy.last_auto_run_at)}`
+                              ? `Last auto-run: ${formatDateTime(strategy.last_auto_run_at, timezone)}`
                               : "No auto-runs yet"
                           }
                         >
@@ -249,7 +242,7 @@ export default function StrategiesPage() {
                     {strategy.timeframe}
                   </td>
                   <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-                    {formatDate(strategy.updated_at)}
+                    {formatDateTime(strategy.updated_at, timezone)}
                   </td>
                   <td className="whitespace-nowrap px-6 py-4 text-right text-sm">
                     <div className="flex items-center justify-end gap-2">

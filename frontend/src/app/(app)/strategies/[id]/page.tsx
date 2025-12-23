@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Node, Edge } from "@xyflow/react";
 import { apiFetch } from "@/lib/api";
+import { formatDateTime } from "@/lib/format";
+import { useDisplay } from "@/context/display";
 import { Strategy, StrategyVersion, StrategyVersionDetail } from "@/types/strategy";
 import {
   StrategyDefinition,
@@ -31,6 +33,7 @@ interface Props {
 export default function StrategyEditorPage({ params }: Props) {
   const { id } = use(params);
   const router = useRouter();
+  const { timezone } = useDisplay();
 
   const [strategy, setStrategy] = useState<Strategy | null>(null);
   const [versions, setVersions] = useState<StrategyVersion[]>([]);
@@ -248,16 +251,6 @@ export default function StrategyEditorPage({ params }: Props) {
     setError(null);
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
   const handleAutoUpdateToggle = async (enabled: boolean) => {
     if (!strategy) return;
     setIsUpdatingAutoUpdate(true);
@@ -409,7 +402,7 @@ export default function StrategyEditorPage({ params }: Props) {
               >
                 {versions.map((v) => (
                   <option key={v.id} value={v.version_number}>
-                    v{v.version_number} – {formatDate(v.created_at)}
+                    v{v.version_number} – {formatDateTime(v.created_at, timezone)}
                   </option>
                 ))}
               </select>

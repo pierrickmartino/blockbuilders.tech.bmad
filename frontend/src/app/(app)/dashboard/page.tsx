@@ -3,11 +3,14 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/auth";
+import { useDisplay } from "@/context/display";
 import { apiFetch } from "@/lib/api";
+import { formatDateTime } from "@/lib/format";
 import { Strategy } from "@/types/strategy";
 
 export default function DashboardPage() {
   const { user } = useAuth();
+  const { timezone } = useDisplay();
   const [strategies, setStrategies] = useState<Strategy[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -81,7 +84,7 @@ export default function DashboardPage() {
                     </div>
                   </div>
                   <div className="text-sm text-gray-400">
-                    {new Date(strategy.updated_at).toLocaleDateString()}
+                    {formatDateTime(strategy.updated_at, timezone)}
                   </div>
                 </Link>
               ))}

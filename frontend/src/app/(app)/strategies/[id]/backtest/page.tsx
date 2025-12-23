@@ -12,6 +12,14 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { apiFetch, ApiError } from "@/lib/api";
+import {
+  formatDateTime,
+  formatPercent,
+  formatPrice,
+  formatMoney,
+  formatChartDate,
+} from "@/lib/format";
+import { useDisplay } from "@/context/display";
 import { Strategy } from "@/types/strategy";
 import {
   BacktestCreateResponse,
@@ -39,18 +47,6 @@ const defaultRange = (() => {
   return { from: formatDateInput(past), to: formatDateInput(today) };
 })();
 
-const formatDateTime = (value: string) =>
-  new Date(value).toLocaleString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-
-const formatPercent = (value: number | null | undefined) =>
-  value === null || value === undefined ? "—" : `${value.toFixed(2)}%`;
-
 const statusStyles: Record<BacktestStatus, string> = {
   pending: "bg-amber-100 text-amber-700",
   running: "bg-blue-100 text-blue-700",
@@ -61,6 +57,7 @@ const statusStyles: Record<BacktestStatus, string> = {
 export default function StrategyBacktestPage({ params }: Props) {
   const { id } = use(params);
   const router = useRouter();
+  const { timezone } = useDisplay();
 
   const [strategy, setStrategy] = useState<Strategy | null>(null);
   const [isLoadingStrategy, setIsLoadingStrategy] = useState(true);
@@ -277,8 +274,8 @@ export default function StrategyBacktestPage({ params }: Props) {
 
   const selectedRunRange = useMemo(() => {
     if (!selectedRun) return null;
-    return `${new Date(selectedRun.date_from).toLocaleDateString()} → ${new Date(selectedRun.date_to).toLocaleDateString()}`;
-  }, [selectedRun]);
+    return `${formatDateTime(selectedRun.date_from, timezone).split(" ")[0]} → ${formatDateTime(selectedRun.date_to, timezone).split(" ")[0]}`;
+  }, [selectedRun, timezone]);
 
   // Trades pagination
   const totalPages = Math.ceil(trades.length / pageSize);
@@ -286,32 +283,6 @@ export default function StrategyBacktestPage({ params }: Props) {
     (currentPage - 1) * pageSize,
     currentPage * pageSize
   );
-
-  const formatTradeDate = (value: string) =>
-    new Date(value).toLocaleString("en-US", {
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      timeZone: "UTC",
-    });
-
-  const formatChartDate = (value: string) =>
-    new Date(value).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-    });
-
-  const formatPrice = (price: number) => {
-    if (price >= 1000) return `$${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-    if (price >= 1) return `$${price.toFixed(2)}`;
-    return `$${price.toFixed(6)}`;
-  };
-
-  const formatPnl = (pnl: number) => {
-    const sign = pnl >= 0 ? "+" : "";
-    return `${sign}$${pnl.toFixed(2)}`;
-  };
 
   if (isLoadingStrategy) {
     return (
@@ -470,18 +441,16 @@ export default function StrategyBacktestPage({ params }: Props) {
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <div className="text-sm font-semibold text-gray-900">{formatDateTime(run.created_at)}</div>
+                      <div className="text-sm font-semibold text-gray-900">{formatDateTime(run.created_at, timezone)}</div>
                       {statusBadge(run.status)}
                     </div>
                     <div className="mt-1 flex items-center justify-between text-xs text-gray-600">
                       <span>
-                        {new Date(run.date_from).toLocaleDateString()} →{" "}
-                        {new Date(run.date_to).toLocaleDateString()}
+                        {formatDateTime(run.date_from, timezone).split(" ")[0]} →{" "}
+                        {formatDateTime(run.date_to, timezone).split(" ")[0]}
                       </span>
                       <span className="font-medium text-gray-900">
-                        {run.total_return !== null && run.total_return !== undefined
-                          ? `${run.total_return.toFixed(2)}%`
-                          : "—"}
+                        {formatPercent(run.total_return)}
                       </span>
                     </div>
                   </button>
@@ -515,7 +484,7 @@ export default function StrategyBacktestPage({ params }: Props) {
                   <div className="rounded border border-gray-200 bg-gray-50 p-3">
                     <div className="text-xs uppercase text-gray-500">Final balance</div>
                     <div className="text-lg font-semibold text-gray-900">
-                      ${selectedRun.summary.final_balance.toLocaleString()}
+                      {formatPrice(selectedRun.summary.final_balance)}
                     </div>
                   </div>
                   <div className="rounded border border-gray-200 bg-gray-50 p-3">
@@ -597,29 +566,21 @@ export default function StrategyBacktestPage({ params }: Props) {
                   <LineChart data={equityCurve} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
                     <XAxis
                       dataKey="timestamp"
-                      tickFormatter={formatChartDate}
+                      tickFormatter={(v) => formatChartDate(v, timezone)}
                       tick={{ fontSize: 12 }}
                       tickLine={false}
                       axisLine={{ stroke: "#e5e7eb" }}
                     />
                     <YAxis
-                      tickFormatter={(v) => `$${v.toLocaleString()}`}
+                      tickFormatter={(v) => formatPrice(v, "").trim()}
                       tick={{ fontSize: 12 }}
                       tickLine={false}
                       axisLine={{ stroke: "#e5e7eb" }}
-                      width={70}
+                      width={80}
                     />
                     <Tooltip
-                      formatter={(value) => [`$${Number(value).toLocaleString()}`, "Equity"]}
-                      labelFormatter={(label) =>
-                        new Date(label).toLocaleString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })
-                      }
+                      formatter={(value) => [formatPrice(Number(value)), "Equity"]}
+                      labelFormatter={(label) => formatDateTime(label as string, timezone)}
                       contentStyle={{
                         backgroundColor: "white",
                         border: "1px solid #e5e7eb",
@@ -687,13 +648,13 @@ export default function StrategyBacktestPage({ params }: Props) {
                     <thead className="bg-gray-50">
                       <tr>
                         <th className="px-4 py-2 text-left text-xs font-medium uppercase text-gray-500">
-                          Entry (UTC)
+                          Entry {timezone === "utc" ? "(UTC)" : ""}
                         </th>
                         <th className="px-4 py-2 text-left text-xs font-medium uppercase text-gray-500">
                           Entry Price
                         </th>
                         <th className="px-4 py-2 text-left text-xs font-medium uppercase text-gray-500">
-                          Exit (UTC)
+                          Exit {timezone === "utc" ? "(UTC)" : ""}
                         </th>
                         <th className="px-4 py-2 text-left text-xs font-medium uppercase text-gray-500">
                           Exit Price
@@ -724,13 +685,13 @@ export default function StrategyBacktestPage({ params }: Props) {
                           }}
                         >
                           <td className="whitespace-nowrap px-4 py-2 text-sm text-gray-900">
-                            {formatTradeDate(trade.entry_time)}
+                            {formatDateTime(trade.entry_time, timezone)}
                           </td>
                           <td className="whitespace-nowrap px-4 py-2 text-sm text-gray-600">
                             {formatPrice(trade.entry_price)}
                           </td>
                           <td className="whitespace-nowrap px-4 py-2 text-sm text-gray-900">
-                            {formatTradeDate(trade.exit_time)}
+                            {formatDateTime(trade.exit_time, timezone)}
                           </td>
                           <td className="whitespace-nowrap px-4 py-2 text-sm text-gray-600">
                             {formatPrice(trade.exit_price)}
@@ -743,14 +704,14 @@ export default function StrategyBacktestPage({ params }: Props) {
                               trade.pnl >= 0 ? "text-green-600" : "text-red-600"
                             }`}
                           >
-                            {formatPnl(trade.pnl)}
+                            {formatMoney(trade.pnl, "USDT", true)}
                           </td>
                           <td
                             className={`whitespace-nowrap px-4 py-2 text-right text-sm ${
                               trade.pnl_pct >= 0 ? "text-green-600" : "text-red-600"
                             }`}
                           >
-                            {trade.pnl_pct >= 0 ? "+" : ""}{trade.pnl_pct.toFixed(2)}%
+                            {trade.pnl_pct >= 0 ? "+" : ""}{formatPercent(trade.pnl_pct).replace("%", "")}%
                           </td>
                         </tr>
                       ))}
