@@ -1,6 +1,7 @@
 import PriceNode from "./PriceNode";
 import VolumeNode from "./VolumeNode";
 import ConstantNode from "./ConstantNode";
+import YesterdayCloseNode from "./YesterdayCloseNode";
 import SmaNode from "./SmaNode";
 import EmaNode from "./EmaNode";
 import RsiNode from "./RsiNode";
@@ -17,12 +18,14 @@ import ExitSignalNode from "./ExitSignalNode";
 import PositionSizeNode from "./PositionSizeNode";
 import TakeProfitNode from "./TakeProfitNode";
 import StopLossNode from "./StopLossNode";
+import MaxDrawdownNode from "./MaxDrawdownNode";
 
 // Node types map for React Flow
 export const nodeTypes = {
   price: PriceNode,
   volume: VolumeNode,
   constant: ConstantNode,
+  yesterday_close: YesterdayCloseNode,
   sma: SmaNode,
   ema: EmaNode,
   rsi: RsiNode,
@@ -39,12 +42,14 @@ export const nodeTypes = {
   position_size: PositionSizeNode,
   take_profit: TakeProfitNode,
   stop_loss: StopLossNode,
+  max_drawdown: MaxDrawdownNode,
 };
 
 export {
   PriceNode,
   VolumeNode,
   ConstantNode,
+  YesterdayCloseNode,
   SmaNode,
   EmaNode,
   RsiNode,
@@ -61,4 +66,5 @@ export {
   PositionSizeNode,
   TakeProfitNode,
   StopLossNode,
+  MaxDrawdownNode,
 };

@@ -8,14 +8,22 @@ from app.backtest import indicators
 
 
 @dataclass
+class TakeProfitLevel:
+    """A single take profit level."""
+    profit_pct: float
+    close_pct: int
+
+
+@dataclass
 class StrategySignals:
     """Output of strategy interpretation."""
 
     entry_long: list[bool]
     exit_long: list[bool]
     position_size_pct: float
-    take_profit_pct: Optional[float]
+    take_profit_levels: Optional[list[TakeProfitLevel]]  # New: TP ladder
     stop_loss_pct: Optional[float]
+    max_drawdown_pct: Optional[float]  # New: Max drawdown threshold
 
 
 def interpret_strategy(
@@ -106,6 +114,11 @@ def interpret_strategy(
             result = [value] * n  # Repeat constant for all candles
             block_outputs[block_id]["output"] = result
 
+        elif block_type == "yesterday_close":
+            # Previous candle close: null for first candle, then close[t-1]
+            result = [None] + closes[:-1]
+            block_outputs[block_id]["output"] = result
+
         elif block_type == "sma":
             input_data = _get_input(inputs, "input", get_block_output, closes)
             period = int(params.get("period", 20))
@@ -186,7 +199,7 @@ def interpret_strategy(
             result = [_to_bool(v) for v in signal_input]
             block_outputs[block_id]["output"] = result
 
-        elif block_type in ("position_size", "take_profit", "stop_loss"):
+        elif block_type in ("position_size", "take_profit", "stop_loss", "max_drawdown"):
             # Risk blocks don't produce time series output
             block_outputs[block_id]["output"] = [None] * n
 
@@ -202,8 +215,9 @@ def interpret_strategy(
     entry_block = None
     exit_block = None
     position_size_pct = 100.0
-    take_profit_pct = None
+    take_profit_levels: Optional[list[TakeProfitLevel]] = None
     stop_loss_pct = None
+    max_drawdown_pct = None
 
     for block in blocks:
         block_type = block["type"]
@@ -216,9 +230,30 @@ def interpret_strategy(
         elif block_type == "position_size":
             position_size_pct = float(params.get("value", 100))
         elif block_type == "take_profit":
-            take_profit_pct = float(params.get("take_profit_pct", 10))
+            # Support both new levels format and legacy take_profit_pct
+            if "levels" in params and isinstance(params["levels"], list):
+                take_profit_levels = [
+                    TakeProfitLevel(
+                        profit_pct=float(lvl.get("profit_pct", 10)),
+                        close_pct=int(lvl.get("close_pct", 100))
+                    )
+                    for lvl in params["levels"]
+                ]
+            elif "take_profit_pct" in params:
+                # Legacy format: single TP level with 100% close
+                take_profit_levels = [
+                    TakeProfitLevel(
+                        profit_pct=float(params.get("take_profit_pct", 10)),
+                        close_pct=100
+                    )
+                ]
+            else:
+                # Default
+                take_profit_levels = [TakeProfitLevel(profit_pct=10.0, close_pct=100)]
         elif block_type == "stop_loss":
             stop_loss_pct = float(params.get("stop_loss_pct", 5))
+        elif block_type == "max_drawdown":
+            max_drawdown_pct = float(params.get("max_drawdown_pct", 10))
 
     if not entry_block:
         raise StrategyInvalidError("No entry signal block", "Invalid strategy: missing Entry Signal block.")
@@ -233,8 +268,9 @@ def interpret_strategy(
         entry_long=[_to_bool(v) for v in entry_signals],
         exit_long=[_to_bool(v) for v in exit_signals],
         position_size_pct=position_size_pct,
-        take_profit_pct=take_profit_pct,
+        take_profit_levels=take_profit_levels,
         stop_loss_pct=stop_loss_pct,
+        max_drawdown_pct=max_drawdown_pct,
     )
 
 

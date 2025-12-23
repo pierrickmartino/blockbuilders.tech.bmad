@@ -1,7 +1,7 @@
 "use client";
 
 import { Node } from "@xyflow/react";
-import { BlockType, getBlockMeta, ValidationError } from "@/types/canvas";
+import { BlockType, getBlockMeta, ValidationError, TakeProfitLevel } from "@/types/canvas";
 
 interface PropertiesPanelProps {
   selectedNode: Node | null;
@@ -34,6 +34,103 @@ export default function PropertiesPanel({
 
   const handleChange = (key: string, value: unknown) => {
     onParamsChange(selectedNode.id, { ...params, [key]: value });
+  };
+
+  // TP Levels editor for take_profit block
+  const renderTakeProfitLevels = () => {
+    // Support both legacy and new format
+    let levels: TakeProfitLevel[];
+    if (params.levels && Array.isArray(params.levels)) {
+      levels = params.levels as TakeProfitLevel[];
+    } else if (typeof params.take_profit_pct === "number") {
+      levels = [{ profit_pct: params.take_profit_pct, close_pct: 100 }];
+    } else {
+      levels = [{ profit_pct: 10, close_pct: 100 }];
+    }
+
+    const updateLevels = (newLevels: TakeProfitLevel[]) => {
+      onParamsChange(selectedNode.id, { levels: newLevels });
+    };
+
+    const updateLevel = (index: number, field: "profit_pct" | "close_pct", value: number) => {
+      const newLevels = [...levels];
+      newLevels[index] = { ...newLevels[index], [field]: value };
+      updateLevels(newLevels);
+    };
+
+    const addLevel = () => {
+      if (levels.length >= 3) return;
+      const lastProfit = levels[levels.length - 1]?.profit_pct || 10;
+      updateLevels([...levels, { profit_pct: lastProfit + 20, close_pct: 25 }]);
+    };
+
+    const removeLevel = (index: number) => {
+      if (levels.length <= 1) return;
+      updateLevels(levels.filter((_, i) => i !== index));
+    };
+
+    // Validation
+    const totalClose = levels.reduce((sum, l) => sum + l.close_pct, 0);
+    const profitsAscending = levels.every((l, i) => i === 0 || l.profit_pct > levels[i - 1].profit_pct);
+
+    return (
+      <div className="space-y-3">
+        <div className="text-xs font-medium text-gray-500">TP Ladder Levels</div>
+        {levels.map((level, i) => (
+          <div key={i} className="flex items-center gap-2 rounded border border-gray-200 bg-gray-50 p-2">
+            <div className="flex-1">
+              <label className="block text-[10px] text-gray-500">Profit %</label>
+              <input
+                type="number"
+                value={level.profit_pct}
+                min={0.1}
+                max={1000}
+                step={0.1}
+                onChange={(e) => updateLevel(i, "profit_pct", Number(e.target.value))}
+                className="w-full rounded border border-gray-300 px-2 py-1 text-sm"
+              />
+            </div>
+            <div className="flex-1">
+              <label className="block text-[10px] text-gray-500">Close %</label>
+              <input
+                type="number"
+                value={level.close_pct}
+                min={1}
+                max={100}
+                step={1}
+                onChange={(e) => updateLevel(i, "close_pct", Number(e.target.value))}
+                className="w-full rounded border border-gray-300 px-2 py-1 text-sm"
+              />
+            </div>
+            {levels.length > 1 && (
+              <button
+                onClick={() => removeLevel(i)}
+                className="mt-4 text-xs text-red-500 hover:text-red-700"
+              >
+                ×
+              </button>
+            )}
+          </div>
+        ))}
+        {levels.length < 3 && (
+          <button
+            onClick={addLevel}
+            className="w-full rounded border border-dashed border-gray-300 py-1 text-xs text-gray-500 hover:border-gray-400 hover:text-gray-700"
+          >
+            + Add Level
+          </button>
+        )}
+        {totalClose > 100 && (
+          <p className="text-[10px] text-red-500">Total close % exceeds 100%</p>
+        )}
+        {!profitsAscending && (
+          <p className="text-[10px] text-red-500">Profit targets must be ascending</p>
+        )}
+        <p className="text-[10px] text-gray-400">
+          Total: {totalClose}% of position
+        </p>
+      </div>
+    );
   };
 
   const renderParamInput = (key: string, value: unknown, config: ParamConfig) => {
@@ -102,7 +199,9 @@ export default function PropertiesPanel({
           </div>
         )}
 
-        {paramConfigs.length > 0 && (
+        {blockType === "take_profit" ? (
+          renderTakeProfitLevels()
+        ) : paramConfigs.length > 0 ? (
           <div className="space-y-3">
             <div className="text-xs font-medium text-gray-500">Parameters</div>
             {paramConfigs.map((config) => (
@@ -121,7 +220,7 @@ export default function PropertiesPanel({
               </div>
             ))}
           </div>
-        )}
+        ) : null}
 
         {blockMeta && (
           <div className="border-t pt-3">
@@ -306,18 +405,8 @@ function getParamConfigs(blockType: BlockType): ParamConfig[] {
         },
       ];
     case "take_profit":
-      return [
-        {
-          key: "take_profit_pct",
-          label: "Take Profit (%)",
-          type: "number",
-          defaultValue: 10,
-          min: 0.1,
-          max: 100,
-          step: 0.1,
-          help: "Exit when profit reaches this %",
-        },
-      ];
+      // Handled by custom renderTakeProfitLevels
+      return [];
     case "stop_loss":
       return [
         {
@@ -329,6 +418,22 @@ function getParamConfigs(blockType: BlockType): ParamConfig[] {
           max: 100,
           step: 0.1,
           help: "Exit when loss reaches this %",
+        },
+      ];
+    case "yesterday_close":
+      // No params - zero config
+      return [];
+    case "max_drawdown":
+      return [
+        {
+          key: "max_drawdown_pct",
+          label: "Max Drawdown (%)",
+          type: "number",
+          defaultValue: 10,
+          min: 0.1,
+          max: 100,
+          step: 0.1,
+          help: "Exit when equity drawdown exceeds this %",
         },
       ];
     default:

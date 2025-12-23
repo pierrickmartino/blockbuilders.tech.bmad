@@ -82,22 +82,23 @@ If a risk exit and TP are both hit in the same candle:
 
 ---
 
-### 3) New Risk node: “Max Drawdown”
+### 3) New Risk node: "Max Drawdown"
 **Where:** Position & Risk palette (Risk section).
 
 **Properties panel fields**
 - **Max drawdown (%)** *(required)*
   - Numeric input in `(0, 100]`.
-  - Meaning: maximum allowed equity drawdown from peak equity.
+  - Meaning: maximum allowed loss from entry price, evaluated at candle close.
 
 **Node label**
 - Example: `Max DD 10%`
 
 **Behavior (simple)**
-- Engine tracks **peak equity** and **current equity** (mark-to-market).
-- Drawdown% = `(peak_equity - current_equity) / peak_equity * 100`.
-- If drawdown% >= threshold **and a position is open**, the engine **closes the position**.
-- No extra modes (no “pause trading”, no “stop strategy” in MVP).
+- Engine tracks **entry price** and **candle close price** for open positions.
+- Drawdown% = `(entry_price - close_price) / entry_price * 100` (for long positions).
+- If drawdown% >= threshold **and a position is open**, the engine **closes the position at candle close**.
+- **Key difference from Stop Loss**: Stop Loss triggers intra-candle on the low price; Max Drawdown evaluates at candle close.
+- No extra modes (no "pause trading", no "stop strategy" in MVP).
 
 ---
 
@@ -190,11 +191,11 @@ If both a risk exit (SL / MaxDrawdown) and one or more TP levels are hit in the 
 For candle index `t`:
 - `YesterdayClose(t) = Close(t-1)` if `t > 0`, else `null`.
 
-### C) Max Drawdown risk exit
-At each candle step (after marking-to-market equity):
-- Update `peak_equity = max(peak_equity, current_equity)`.
-- Compute drawdown%.
-- If `drawdown% >= max_drawdown_pct` and a position is open → exit the position using the same exit pricing rules as existing “market exit”/signal exits.
+### C) Max Drawdown risk exit (trade-based)
+At each candle step, for open positions:
+- Compute trade drawdown from entry: `drawdown% = (entry_price - close_price) / entry_price * 100`.
+- If `drawdown% >= max_drawdown_pct` → exit the position at candle close.
+- **Note**: This differs from Stop Loss which triggers on candle low. Max Drawdown evaluates at candle close, providing end-of-candle risk management.
 
 ---
 
