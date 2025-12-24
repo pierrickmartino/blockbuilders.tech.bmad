@@ -59,3 +59,27 @@ class ProfileResponse(BaseModel):
     email: str
     settings: SettingsResponse
     usage: UsageBundle
+
+
+# Password reset
+class PasswordResetRequest(BaseModel):
+    email: EmailStr
+
+
+class PasswordResetConfirm(BaseModel):
+    token: str
+    new_password: str = Field(min_length=8)
+
+
+class MessageResponse(BaseModel):
+    message: str
+
+
+# OAuth
+class OAuthStartResponse(BaseModel):
+    auth_url: str
+
+
+class OAuthCallbackRequest(BaseModel):
+    code: str
+    state: str

@@ -9,7 +9,7 @@ class User(SQLModel, table=True):
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     email: str = Field(unique=True, index=True)
-    password_hash: str
+    password_hash: Optional[str] = None  # Nullable for OAuth users
     default_fee_percent: Optional[float] = None
     default_slippage_percent: Optional[float] = None
     max_strategies: int = Field(default=10)
@@ -17,3 +17,11 @@ class User(SQLModel, table=True):
     timezone_preference: str = Field(default="local")
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+    # Password reset
+    reset_token: Optional[str] = None
+    reset_token_expires_at: Optional[datetime] = None
+
+    # OAuth
+    auth_provider: Optional[str] = None  # "google", "github", or None for email/password
+    provider_user_id: Optional[str] = None
