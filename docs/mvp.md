@@ -2,6 +2,10 @@
 
 ## 1. Product Overview
 
+**Status**
+
+Shipped (MVP baseline). Do not edit except for errata.
+
 **One-line pitch**
 
 Blockbuilders is a **web-based, no-code strategy lab** where retail crypto traders can visually build, backtest, and iterate on trading ideas **without writing code**.

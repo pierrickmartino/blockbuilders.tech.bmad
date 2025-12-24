@@ -1,4 +1,3 @@
-```markdown
 # CLAUDE.md
 
 Instructions for Claude Code when working in this repository.
@@ -7,9 +6,11 @@ Instructions for Claude Code when working in this repository.
 
 ## 1. Purpose of this repo
 
-You are helping build **Blockbuilders** – a web-based, no-code strategy lab where non-technical retail crypto traders can visually build and backtest simple strategies for a few major pairs. The MVP is small, focused, and deliberately constrained.
+You are helping build **Blockbuilders** – a web-based, no-code strategy lab where non-technical retail crypto traders can visually build and backtest simple strategies for a few major pairs.
 
-Your job is to **implement exactly the MVP** and **keep the codebase as small and simple as possible**.
+This repo started with a deliberately constrained MVP. The project is now **iterating beyond MVP**, but we still preserve the MVP’s simplicity-first intent.
+
+Your job is to **ship small, correct increments** while keeping the codebase **as small and simple as possible**.
 
 ---
 
@@ -23,7 +24,7 @@ When writing or editing code, **always** optimize for:
 
 2. **YAGNI – You Aren’t Gonna Need It**
    - Do **not** add abstractions, configs, or features “for later”.
-   - If it’s not clearly required by the current story or by `mvp.md`, don’t build it.
+   - If it’s not clearly required by the current story or current spec, don’t build it.
 
 3. **Minimal code**
    - The fewer lines of code, the better **as long as readability is OK**.
@@ -52,13 +53,39 @@ Whenever you face a trade-off, resolve it in this order:
 
 ---
 
-## 3. Product scope guardrails (MVP only)
+## 3. Phases & spec precedence (MVP vs post-MVP)
 
-Treat `mvp.md` as the **single source of truth** for product scope.
+This repo is **phase-aware**. The rules depend on which spec is active.
+
+### 3.1. Source of truth (highest priority first)
+
+When there is any conflict, follow this precedence order:
+
+1. `docs/product.md` — **current product truth** (if present)
+2. `docs/phase2.md` — **current iteration scope** (if present)
+3. `docs/mvp.md` — **MVP baseline + guardrails**
+4. `docs/mvp_plan.md` — **backlog/story seed** (helpful, not authoritative)
+
+### 3.2. Default behavior
+
+- If the user explicitly says **“MVP only”**, treat `docs/mvp.md` as the single source of truth.
+- Otherwise, assume **post-MVP iteration**, but:
+  - You **must not** silently expand scope beyond what the active spec allows.
+  - If a request clearly exceeds MVP but there is no Phase 2 spec yet, create/update `docs/phase2.md` **before** implementing large changes.
+
+> `docs/mvp.md` remains the baseline guardrail document even post-MVP: it anchors simplicity and protects against accidental overbuild.
+
+---
+
+## 4. Product scope guardrails
+
+### 4.1. MVP guardrails (still enforced unless a Phase 2 spec overrides them)
+
+Treat `docs/mvp.md` as the **single source of truth** for MVP scope.
 
 When the user asks for something, check mentally: *is this clearly in scope for the MVP?*
 
-### 3.1. In scope (what you *can* build)
+#### In scope (MVP)
 
 High-level, you are allowed to implement / extend:
 
@@ -92,9 +119,9 @@ High-level, you are allowed to implement / extend:
 - **Soft usage limits**
   - Simple numeric caps (max strategies, max backtests/day).
 
-### 3.2. Explicitly out of scope (don’t build)
+#### Explicitly out of scope (MVP)
 
-Even if it sounds cool or “easy”, **do not** introduce:
+Even if it sounds cool or “easy”, **do not** introduce in MVP:
 
 - Real-time trading or brokerage integration.
 - True live / tick-by-tick paper trading.
@@ -104,11 +131,21 @@ Even if it sounds cool or “easy”, **do not** introduce:
 - Microservices, Kubernetes, gRPC, event buses beyond the simple queue.
 - Advanced analytics (factor models, portfolio optimizers, etc.).
 
-If you’re tempted to add any of the above, **stop** and keep things within MVP scope.
+### 4.2. Post-MVP scope changes
+
+Post-MVP features are allowed **only if** they are explicitly defined in the active spec (`product.md` / `phase2.md`).
+
+If a user requests something that was MVP-out-of-scope:
+- You may implement it **only** when a Phase 2+ spec:
+  - explicitly includes it,
+  - defines the minimal version to build,
+  - and states what remains out of scope.
+
+If the spec is missing, add a small “delta spec” section to `docs/phase2.md` first (goal, non-goals, acceptance criteria), then implement the smallest slice.
 
 ---
 
-## 4. Tech stack expectations
+## 5. Tech stack expectations
 
 Use and respect the existing stack rather than introducing new tools:
 
@@ -124,7 +161,7 @@ Use and respect the existing stack rather than introducing new tools:
   - Redis for queue + simple caching.
   - S3-compatible storage for larger backtest artifacts.
 
-### 4.1. Architecture rules
+### 5.1. Architecture rules
 
 - Prefer **one simple module** over many micro-modules.
 - Keep routing, handlers, services, and models small and focused.
@@ -133,16 +170,16 @@ Use and respect the existing stack rather than introducing new tools:
 
 ---
 
-## 5. Coding style & patterns
+## 6. Coding style & patterns
 
-### 5.1. General
+### 6.1. General
 
 - Prefer **pure functions** where possible.
 - Keep functions and components short (<40–50 lines ideally).
 - Avoid clever one-liners if they harm clarity.
 - Use descriptive but concise names (`useBacktestRuns`, not `useBacktestRunsForUserAndMaybeMoreIfNeeded`).
 
-### 5.2. Frontend specifics
+### 6.2. Frontend specifics
 
 - Use existing **design patterns** and **components** in the repo rather than inventing new ones.
 - For responsiveness:
@@ -158,10 +195,10 @@ When asked to implement UI:
 2. Add only the minimal responsive tweaks needed for a sane mobile/desktop experience.
 3. Reuse existing utility classes and components.
 
-### 5.3. Backend specifics
+### 6.3. Backend specifics
 
 - Prefer explicit, flat **FastAPI routers** and simple dependency injection.
-- Keep models minimal: only fields needed for the current MVP.
+- Keep models minimal: only fields needed for the current spec.
 - Don’t over-abstract:
   - No generic “repository” layer just for the sake of it.
   - No domain-driven-design ceremony.
@@ -171,7 +208,7 @@ When asked to implement UI:
 
 ---
 
-## 6. ESLint, formatting, and tooling
+## 7. ESLint, formatting, and tooling
 
 - Always write code that passes:
   - `npm run lint` (or equivalent for the repo).
@@ -186,7 +223,7 @@ If a feature would require weakening linting or type safety, rethink the approac
 
 ---
 
-## 7. Tests
+## 8. Tests
 
 - Write tests that are:
   - Small.
@@ -199,31 +236,39 @@ If a feature would require weakening linting or type safety, rethink the approac
 
 ---
 
-## 8. How to respond to user requests (Claude Code behavior)
+## 9. How to respond to user requests (Claude Code behavior)
 
 When the user asks you to change or add something:
 
-1. **Clarify scope mentally**
-   - Is this clearly inside MVP and current architecture?
-   - If it pushes toward complex, multi-phase features, gently steer back to a simpler, MVP-aligned version.
+1. **Determine phase + spec**
+   - If the request says “MVP only”, follow `docs/mvp.md`.
+   - Otherwise follow spec precedence (product/phase2 → mvp baseline → mvp_plan seed).
 
-2. **Prefer patch-style changes**
+2. **If it exceeds the active spec**
+   - Don’t implement a large change “because it’s easy”.
+   - First update/create `docs/phase2.md` with:
+     - Goal
+     - Non-goals
+     - Acceptance criteria
+     - MVP deltas (what’s changing vs `docs/mvp.md`, if applicable)
+
+3. **Prefer patch-style changes**
    - Show **only the relevant diffs** or files when possible, not huge rewrites.
    - Reuse existing patterns instead of inventing new ones.
 
-3. **Keep answers short and focused**
+4. **Keep answers short and focused**
    - Prioritize code over prose.
    - Add brief comments only where they truly help understanding.
 
-4. **Offer the simplest solution first**
+5. **Offer the simplest solution first**
    - If there’s a “fancy” solution and a simple one, always show the simple one.
    - Mention possible future abstractions only briefly, and do **not** implement them now.
 
 ---
 
-## 9. Things you should almost never do
+## 10. Things you should almost never do
 
-Avoid these unless the user explicitly insists *and* it clearly fits MVP:
+Avoid these unless the user explicitly insists *and* it clearly fits the active spec:
 
 - Creating new global utilities or “core” abstractions.
 - Introducing a new major library or framework.
@@ -236,9 +281,7 @@ Avoid these unless the user explicitly insists *and* it clearly fits MVP:
 
 If you ever have to choose between:
 
-- **A small, slightly repetitive solution**, and  
+- **A small, slightly repetitive solution**, and
 - **A big, clever abstraction**,
 
 you must choose the **small, repetitive solution**.
-```
-
