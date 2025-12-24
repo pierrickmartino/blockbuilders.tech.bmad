@@ -1,3 +1,4 @@
+import logging
 import secrets
 from datetime import datetime, timedelta, timezone
 from urllib.parse import urlencode
@@ -5,6 +6,7 @@ from urllib.parse import urlencode
 import httpx
 import resend
 from fastapi import APIRouter, Depends, HTTPException, status
+from redis import Redis
 from sqlmodel import Session, select
 
 from app.core.config import settings
@@ -30,9 +32,12 @@ from app.schemas.auth import (
 )
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+logger = logging.getLogger(__name__)
 
-# In-memory OAuth state store (simple for MVP)
-_oauth_states: dict[str, str] = {}
+
+def _get_redis() -> Redis:
+    """Get Redis connection for OAuth state storage."""
+    return Redis.from_url(settings.redis_url)
 
 
 def _build_user_response(user: User) -> UserResponse:
@@ -41,7 +46,7 @@ def _build_user_response(user: User) -> UserResponse:
         email=user.email,
         default_fee_percent=user.default_fee_percent,
         default_slippage_percent=user.default_slippage_percent,
-        timezone_preference=user.timezone_preference,  # type: ignore
+        timezone_preference=user.timezone_preference,
     )
 
 
@@ -83,6 +88,8 @@ def login(data: LoginRequest, session: Session = Depends(get_session)) -> AuthRe
 def request_password_reset(
     data: PasswordResetRequest, session: Session = Depends(get_session)
 ) -> MessageResponse:
+    # TODO: Add rate limiting (e.g., max 3 requests per email per hour)
+    # to prevent email bombing and credential stuffing attacks
     user = session.exec(select(User).where(User.email == data.email)).first()
     if user and user.password_hash:  # Only for email/password users
         token = generate_reset_token()
@@ -111,8 +118,9 @@ def request_password_reset(
                         """,
                     }
                 )
-            except Exception:
-                pass  # Don't fail the request if email fails
+            except Exception as e:
+                # Log error but don't reveal to user (prevents email enumeration)
+                logger.error(f"Failed to send password reset email to {user.email}: {e}")
 
     # Always return success (don't reveal if email exists)
     return MessageResponse(
@@ -147,7 +155,10 @@ def oauth_start(provider: str) -> OAuthStartResponse:
         raise HTTPException(status_code=400, detail="Invalid provider")
 
     state = secrets.token_urlsafe(16)
-    _oauth_states[state] = provider
+
+    # Store state in Redis with 10-minute TTL
+    redis = _get_redis()
+    redis.setex(f"oauth_state:{state}", 600, provider)
 
     redirect_uri = f"{settings.frontend_url}/auth/callback"
 
@@ -180,10 +191,12 @@ def oauth_start(provider: str) -> OAuthStartResponse:
 async def oauth_callback(
     provider: str, data: OAuthCallbackRequest, session: Session = Depends(get_session)
 ) -> AuthResponse:
-    # Validate state
-    if data.state not in _oauth_states or _oauth_states[data.state] != provider:
+    # Validate state from Redis
+    redis = _get_redis()
+    stored_provider = redis.get(f"oauth_state:{data.state}")
+    if not stored_provider or stored_provider.decode() != provider:
         raise HTTPException(status_code=400, detail="Invalid state")
-    del _oauth_states[data.state]
+    redis.delete(f"oauth_state:{data.state}")
 
     redirect_uri = f"{settings.frontend_url}/auth/callback"
 
@@ -267,21 +280,22 @@ async def oauth_callback(
     ).first()
 
     if not user:
-        # Check if email already exists (account linking)
+        # Check if email already exists
         existing = session.exec(select(User).where(User.email == email)).first()
         if existing:
-            # Link OAuth to existing account
-            existing.auth_provider = provider
-            existing.provider_user_id = provider_user_id
-            user = existing
-        else:
-            # Create new user
-            user = User(
-                email=email,
-                auth_provider=provider,
-                provider_user_id=provider_user_id,
+            # Security: Don't auto-link OAuth to existing accounts
+            # This prevents account takeover via OAuth
+            raise HTTPException(
+                status_code=400,
+                detail="An account with this email already exists. Please sign in with email/password.",
             )
-            session.add(user)
+        # Create new user
+        user = User(
+            email=email,
+            auth_provider=provider,
+            provider_user_id=provider_user_id,
+        )
+        session.add(user)
         session.commit()
         session.refresh(user)
 

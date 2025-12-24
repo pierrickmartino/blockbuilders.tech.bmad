@@ -46,6 +46,10 @@ def is_reset_token_valid(user: "User", token: str) -> bool:
         return False
     if user.reset_token != token:
         return False
-    if datetime.now(timezone.utc) > user.reset_token_expires_at.replace(tzinfo=timezone.utc):
+    # Ensure timezone-aware comparison
+    expires_at = user.reset_token_expires_at
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    if datetime.now(timezone.utc) > expires_at:
         return False
     return True

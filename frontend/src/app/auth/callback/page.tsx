@@ -21,8 +21,12 @@ function OAuthCallbackHandler() {
       return;
     }
 
-    // Determine provider from state (stored in localStorage during OAuth start)
-    const provider = localStorage.getItem("oauth_provider") || "google";
+    // Get provider from localStorage (set during OAuth start)
+    const provider = localStorage.getItem("oauth_provider");
+    if (!provider) {
+      setError("OAuth session not found. Please try signing in again.");
+      return;
+    }
     localStorage.removeItem("oauth_provider");
 
     completeOAuth(provider, code, state)
