@@ -44,7 +44,14 @@ def upgrade() -> None:
 def downgrade() -> None:
     op.drop_index("ix_users_oauth_provider", table_name="users")
     op.drop_index("ix_users_reset_token", table_name="users")
-    # Note: This downgrade may fail if OAuth-only users exist with NULL password_hash
+
+    # Set placeholder password for OAuth-only users before making NOT NULL
+    # This ensures downgrade doesn't fail
+    op.execute(
+        "UPDATE users SET password_hash = '[oauth-only-user-removed]' "
+        "WHERE password_hash IS NULL"
+    )
+
     op.alter_column("users", "password_hash", existing_type=sa.String(), nullable=False)
     op.drop_column("users", "provider_user_id")
     op.drop_column("users", "auth_provider")

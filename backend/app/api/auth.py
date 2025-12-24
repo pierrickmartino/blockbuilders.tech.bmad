@@ -215,6 +215,9 @@ async def oauth_callback(
                 },
             )
             if token_resp.status_code != 200:
+                logger.error(
+                    f"Google OAuth token exchange failed: {token_resp.status_code} - {token_resp.text}"
+                )
                 raise HTTPException(status_code=400, detail="Failed to exchange code")
             token_data = token_resp.json()
             access_token = token_data["access_token"]
@@ -225,6 +228,9 @@ async def oauth_callback(
                 headers={"Authorization": f"Bearer {access_token}"},
             )
             if user_resp.status_code != 200:
+                logger.error(
+                    f"Google OAuth user info failed: {user_resp.status_code} - {user_resp.text}"
+                )
                 raise HTTPException(status_code=400, detail="Failed to get user info")
             user_info = user_resp.json()
             provider_user_id = user_info["id"]
@@ -242,6 +248,9 @@ async def oauth_callback(
                 },
             )
             if token_resp.status_code != 200:
+                logger.error(
+                    f"GitHub OAuth token exchange failed: {token_resp.status_code} - {token_resp.text}"
+                )
                 raise HTTPException(status_code=400, detail="Failed to exchange code")
             token_data = token_resp.json()
             access_token = token_data.get("access_token")
@@ -254,6 +263,9 @@ async def oauth_callback(
                 headers={"Authorization": f"Bearer {access_token}"},
             )
             if user_resp.status_code != 200:
+                logger.error(
+                    f"GitHub OAuth user info failed: {user_resp.status_code} - {user_resp.text}"
+                )
                 raise HTTPException(status_code=400, detail="Failed to get user info")
             user_info = user_resp.json()
             provider_user_id = str(user_info["id"])
