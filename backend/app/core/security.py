@@ -1,9 +1,14 @@
 from datetime import datetime, timedelta, timezone
+import secrets
+from typing import TYPE_CHECKING
 
 import bcrypt
 from jose import JWTError, jwt
 
 from app.core.config import settings
+
+if TYPE_CHECKING:
+    from app.models.user import User
 
 
 def hash_password(password: str) -> str:
@@ -28,3 +33,23 @@ def decode_access_token(token: str) -> str | None:
         return payload.get("sub")
     except JWTError:
         return None
+
+
+def generate_reset_token() -> str:
+    """Generate a secure random token for password reset."""
+    return secrets.token_urlsafe(32)
+
+
+def is_reset_token_valid(user: "User", token: str) -> bool:
+    """Check if the reset token is valid and not expired."""
+    if not user.reset_token or not user.reset_token_expires_at:
+        return False
+    if user.reset_token != token:
+        return False
+    # Ensure timezone-aware comparison
+    expires_at = user.reset_token_expires_at
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    if datetime.now(timezone.utc) > expires_at:
+        return False
+    return True

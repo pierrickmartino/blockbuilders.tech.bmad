@@ -1,17 +1,19 @@
-from typing import Optional, Literal
+from typing import Optional
 from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field
 
+from app.models.user import TimezonePreference
+
 
 class SignupRequest(BaseModel):
     email: EmailStr
-    password: str = Field(min_length=8)
+    password: str = Field(min_length=8, max_length=72)
 
 
 class LoginRequest(BaseModel):
     email: EmailStr
-    password: str
+    password: str = Field(max_length=72)
 
 
 class UserResponse(BaseModel):
@@ -19,7 +21,7 @@ class UserResponse(BaseModel):
     email: str
     default_fee_percent: Optional[float] = None
     default_slippage_percent: Optional[float] = None
-    timezone_preference: Literal["local", "utc"] = "local"
+    timezone_preference: TimezonePreference = TimezonePreference.LOCAL
 
 
 class AuthResponse(BaseModel):
@@ -30,7 +32,7 @@ class AuthResponse(BaseModel):
 class UserUpdateRequest(BaseModel):
     default_fee_percent: Optional[float] = Field(default=None, ge=0, le=5)
     default_slippage_percent: Optional[float] = Field(default=None, ge=0, le=5)
-    timezone_preference: Optional[Literal["local", "utc"]] = None
+    timezone_preference: Optional[TimezonePreference] = None
 
 
 # Profile page bundled response types
@@ -46,7 +48,7 @@ class BacktestUsageItem(UsageItem):
 class SettingsResponse(BaseModel):
     default_fee_percent: Optional[float] = None
     default_slippage_percent: Optional[float] = None
-    timezone_preference: Literal["local", "utc"] = "local"
+    timezone_preference: TimezonePreference = TimezonePreference.LOCAL
 
 
 class UsageBundle(BaseModel):
@@ -59,3 +61,27 @@ class ProfileResponse(BaseModel):
     email: str
     settings: SettingsResponse
     usage: UsageBundle
+
+
+# Password reset
+class PasswordResetRequest(BaseModel):
+    email: EmailStr
+
+
+class PasswordResetConfirm(BaseModel):
+    token: str
+    new_password: str = Field(min_length=8, max_length=72)
+
+
+class MessageResponse(BaseModel):
+    message: str
+
+
+# OAuth
+class OAuthStartResponse(BaseModel):
+    auth_url: str
+
+
+class OAuthCallbackRequest(BaseModel):
+    code: str
+    state: str

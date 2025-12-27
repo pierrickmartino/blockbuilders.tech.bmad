@@ -37,6 +37,19 @@ class Settings(BaseSettings):
 
     cors_origins: str = "http://localhost:3000"  # Override in production
 
+    # Password reset
+    resend_api_key: str = ""
+    reset_token_expire_hours: int = 1
+    frontend_url: str = "http://localhost:3000"
+
+    # OAuth - Google
+    google_client_id: str = ""
+    google_client_secret: str = ""
+
+    # OAuth - GitHub
+    github_client_id: str = ""
+    github_client_secret: str = ""
+
     class Config:
         env_file = ".env"
 

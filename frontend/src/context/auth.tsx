@@ -11,6 +11,14 @@ import {
 import { apiFetch, ApiError } from "@/lib/api";
 import { User, AuthResponse, Usage, ProfileResponse } from "@/types/auth";
 
+interface OAuthStartResponse {
+  auth_url: string;
+}
+
+interface MessageResponse {
+  message: string;
+}
+
 interface AuthContextType {
   user: User | null;
   usage: Usage | null;
@@ -20,6 +28,10 @@ interface AuthContextType {
   logout: () => void;
   refreshUser: () => Promise<void>;
   refreshUsage: () => Promise<void>;
+  requestPasswordReset: (email: string) => Promise<string>;
+  confirmPasswordReset: (token: string, newPassword: string) => Promise<string>;
+  startOAuth: (provider: "google" | "github") => Promise<void>;
+  completeOAuth: (provider: string, code: string, state: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -94,6 +106,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUsage(null);
   };
 
+  const requestPasswordReset = async (email: string): Promise<string> => {
+    const response = await apiFetch<MessageResponse>("/auth/password-reset-request", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    });
+    return response.message;
+  };
+
+  const confirmPasswordReset = async (token: string, newPassword: string): Promise<string> => {
+    const response = await apiFetch<MessageResponse>("/auth/password-reset-confirm", {
+      method: "POST",
+      body: JSON.stringify({ token, new_password: newPassword }),
+    });
+    return response.message;
+  };
+
+  const startOAuth = async (provider: "google" | "github"): Promise<void> => {
+    const response = await apiFetch<OAuthStartResponse>(`/auth/oauth/${provider}/start`);
+    localStorage.setItem("oauth_provider", provider);
+    window.location.href = response.auth_url;
+  };
+
+  const completeOAuth = async (provider: string, code: string, state: string): Promise<void> => {
+    const response = await apiFetch<AuthResponse>(`/auth/oauth/${provider}/callback`, {
+      method: "POST",
+      body: JSON.stringify({ code, state }),
+    });
+    localStorage.setItem("token", response.token);
+    setUser(response.user);
+    refreshUsage();
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -105,6 +149,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         logout,
         refreshUser,
         refreshUsage,
+        requestPasswordReset,
+        confirmPasswordReset,
+        startOAuth,
+        completeOAuth,
       }}
     >
       {children}

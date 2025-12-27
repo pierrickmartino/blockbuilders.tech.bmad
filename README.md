@@ -151,17 +151,45 @@ The backtest engine uses transparent, conservative assumptions:
 
 ## Environment Variables
 
+Create a `.env` at the repo root for local development:
+
+```bash
+cp .env.example .env
+```
+
+The backend loads `.env` automatically via `backend/app/core/config.py`. Docker Compose uses the values defined in `docker-compose.yml` by default; if you want Compose to read `.env`, pass `--env-file .env`.
+For production, use `.env.production` as a reference and replace all secrets with your own.
+
 Key configuration (see `backend/app/core/config.py`):
 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `DATABASE_URL` | - | PostgreSQL connection string |
 | `REDIS_URL` | - | Redis connection string |
-| `JWT_SECRET` | - | Secret key for JWT tokens |
-| `S3_ENDPOINT` | - | MinIO/S3 endpoint |
+| `JWT_SECRET_KEY` | - | Secret key for JWT tokens |
+| `S3_ENDPOINT_URL` | - | MinIO/S3 endpoint |
+| `S3_ACCESS_KEY` | - | MinIO/S3 access key |
+| `S3_SECRET_KEY` | - | MinIO/S3 secret key |
+| `S3_BUCKET_NAME` | `blockbuilders` | MinIO/S3 bucket name |
+| `S3_REGION` | `us-east-1` | MinIO/S3 region |
 | `CRYPTOCOMPARE_API_KEY` | - | API key for price data |
+| `CORS_ORIGINS` | `http://localhost:3000` | Comma-separated allowed origins |
 | `DEFAULT_MAX_STRATEGIES` | 10 | Max strategies per user |
 | `DEFAULT_MAX_BACKTESTS_PER_DAY` | 50 | Max backtests per day |
+| `RESEND_API_KEY` | - | Resend API key for password reset emails |
+| `RESET_TOKEN_EXPIRE_HOURS` | 1 | Password reset token TTL |
+| `FRONTEND_URL` | `http://localhost:3000` | Frontend URL for auth flows |
+| `GOOGLE_CLIENT_ID` | - | Google OAuth client ID |
+| `GOOGLE_CLIENT_SECRET` | - | Google OAuth client secret |
+| `GITHUB_CLIENT_ID` | - | GitHub OAuth client ID |
+| `GITHUB_CLIENT_SECRET` | - | GitHub OAuth client secret |
+
+MinIO root credentials for local storage (used by Docker Compose):
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `MINIO_ROOT_USER` | `minioadmin` | MinIO root user |
+| `MINIO_ROOT_PASSWORD` | `minioadmin` | MinIO root password |
 
 ## Production Deployment
 

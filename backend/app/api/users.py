@@ -50,7 +50,7 @@ def _build_profile_response(user: User, session: Session) -> ProfileResponse:
         settings=SettingsResponse(
             default_fee_percent=user.default_fee_percent,
             default_slippage_percent=user.default_slippage_percent,
-            timezone_preference=user.timezone_preference,  # type: ignore[arg-type]
+            timezone_preference=user.timezone_preference,
         ),
         usage=UsageBundle(
             strategies=UsageItem(used=strategies_count, limit=user.max_strategies),
