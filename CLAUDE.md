@@ -135,6 +135,10 @@ Even if it sounds cool or “easy”, **do not** introduce in MVP:
 
 Post-MVP features are allowed **only if** they are explicitly defined in the active spec (`product.md` / `phase2.md`).
 
+**Asset coverage note:**
+- Expanding supported crypto pairs beyond BTC/USDT and ETH/USDT is allowed only when it is explicitly listed in `docs/product.md` and the associated PRD.
+- The single-asset, single-timeframe-per-strategy rule still applies.
+
 If a user requests something that was MVP-out-of-scope:
 - You may implement it **only** when a Phase 2+ spec:
   - explicitly includes it,

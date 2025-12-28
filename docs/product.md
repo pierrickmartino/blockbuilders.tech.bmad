@@ -162,6 +162,32 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 **Assets:**
 - BTC/USDT
 - ETH/USDT
+- ADA/USDT
+- SOL/USDT
+- MATIC/USDT
+- LINK/USDT
+- DOT/USDT
+- XRP/USDT
+- DOGE/USDT
+- AVAX/USDT
+- LTC/USDT
+- BCH/USDT
+- ATOM/USDT
+- NEAR/USDT
+- FIL/USDT
+- APT/USDT
+- OP/USDT
+- ARB/USDT
+- INJ/USDT
+- UNI/USDT
+- AAVE/USDT
+- SUI/USDT
+- SEI/USDT
+- TIA/USDT
+
+**Notes:**
+- This is a curated list targeting the top 20–30 assets.
+- Additional pairs are added based on user requests and data vendor availability/cost.
 
 **Timeframes:**
 - 4h (4-hour)
@@ -1132,10 +1158,10 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Only long entry signals allowed
 - One position per strategy at a time
 
-**Limited Asset Coverage:**
-- Only BTC/USDT and ETH/USDT supported
-- Timeframes: 1h, 4h, 1d only
-- No support for other pairs or exotic timeframes
+**Limited Asset Coverage (Curated List):**
+- Supported pairs focus on the top 20–30 crypto assets (see Section 3.4)
+- Timeframes: 4h and 1d only
+- Additional pairs added based on user requests and data vendor availability/cost
 
 **OHLCV-Based Execution:**
 - No tick or order book data
