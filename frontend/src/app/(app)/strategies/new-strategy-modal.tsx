@@ -7,6 +7,7 @@ import {
   Strategy,
   ALLOWED_ASSETS,
   ALLOWED_TIMEFRAMES,
+  AllowedAsset,
 } from "@/types/strategy";
 
 interface Props {
@@ -26,6 +27,12 @@ export default function NewStrategyModal({ onClose, onCreated }: Props) {
     e.preventDefault();
     if (!name.trim()) {
       setError("Name is required");
+      return;
+    }
+
+    // Validate asset selection
+    if (!ALLOWED_ASSETS.includes(asset as AllowedAsset)) {
+      setError("Please select a valid asset from the list");
       return;
     }
 
@@ -83,18 +90,20 @@ export default function NewStrategyModal({ onClose, onCreated }: Props) {
             <label htmlFor="asset" className="mb-1 block text-sm font-medium text-gray-700">
               Asset
             </label>
-            <select
+            <input
               id="asset"
+              type="text"
+              list="asset-list"
               value={asset}
               onChange={(e) => setAsset(e.target.value)}
+              placeholder="Search or select asset (e.g., BTC/USDT)"
               className="w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            >
+            />
+            <datalist id="asset-list">
               {ALLOWED_ASSETS.map((a) => (
-                <option key={a} value={a}>
-                  {a}
-                </option>
+                <option key={a} value={a} />
               ))}
-            </select>
+            </datalist>
           </div>
 
           <div className="mb-6">

@@ -195,6 +195,12 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 
 **Note:** Each strategy supports **one asset** and **one timeframe** only (MVP constraint).
 
+**Implementation Notes:**
+- Asset selection UI uses HTML5 datalist for search/filter functionality
+- All assets validated against ALLOWED_ASSETS constant (backend: `app/schemas/strategy.py`, frontend: `types/strategy.ts`)
+- CryptoCompare API dynamically supports all listed pairs
+- No database schema changes required (asset stored as string)
+
 ---
 
 ## 4. Visual Strategy Builder
