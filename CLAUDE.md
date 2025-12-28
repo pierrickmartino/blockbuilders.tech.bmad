@@ -138,6 +138,7 @@ Post-MVP features are allowed **only if** they are explicitly defined in the act
 **Asset coverage note:**
 - Expanding supported crypto pairs beyond BTC/USDT and ETH/USDT is allowed only when it is explicitly listed in `docs/product.md` and the associated PRD.
 - The single-asset, single-timeframe-per-strategy rule still applies.
+- Multiple entry/exit conditions (entry OR exit rules) are allowed only when explicitly defined in the active spec/PRD.
 
 If a user requests something that was MVP-out-of-scope:
 - You may implement it **only** when a Phase 2+ spec:
