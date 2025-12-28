@@ -143,9 +143,10 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Returns errors or success status
 
 **Validation Rules:**
-- Must have entry_signal and exit_signal blocks
+- Must have **at least one** entry_signal block
+- Must have **at least one** exit condition block (exit_signal, time_exit, trailing_stop, stop_loss, take_profit, max_drawdown)
 - Entry/exit signals must have input connections
-- At most one of each risk block (position_size, take_profit, stop_loss, max_drawdown)
+- At most one of each risk/exit block (position_size, take_profit, stop_loss, trailing_stop, time_exit, max_drawdown)
 - All connections reference existing blocks
 - Block parameter ranges:
   - SMA/EMA period: 1-500
@@ -219,7 +220,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - `PropertiesPanel`: Parameter editing for selected block
 - `StrategyTabs`: Version switcher and metadata editor
 
-### 4.2. Block Types (18 Total)
+### 4.2. Block Types (20 Total)
 
 #### Input Blocks (4)
 
@@ -308,12 +309,22 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 **Entry Signal** (`entry_signal`)
 - Defines entry conditions
 - Input: boolean array
-- Required for valid strategy
+- At least one required for valid strategy (multiple allowed)
 
 **Exit Signal** (`exit_signal`)
 - Defines exit conditions
 - Input: boolean array
-- Required for valid strategy
+- Optional (multiple allowed when combined with other exit conditions)
+
+#### Exit Rule Blocks (2)
+
+**Time Exit** (`time_exit`)
+- Exits after N candles in a position
+- Parameter: bars (integer, >= 1)
+
+**Trailing Stop** (`trailing_stop`)
+- Exits when price falls by a trailing percentage from the highest close since entry
+- Parameter: trail_pct (0.1–100%)
 
 #### Risk Management Blocks (4)
 
@@ -426,6 +437,8 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Only long positions supported (no short selling)
 - One position per strategy at a time
 - Position ladder for multiple take profit levels
+- Entry is triggered when **any** entry_signal block is true
+- Exit can be triggered by **any** exit condition (exit_signal, time_exit, trailing_stop, stop_loss, take_profit, max_drawdown, end_of_data)
 
 **Stop Loss:**
 - Checked every candle
@@ -469,7 +482,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
   - pnl (USD), pnl_pct (%)
   - qty (quantity traded)
   - stop_loss_price, take_profit_price (at entry)
-  - exit_reason (tp, sl, signal, end_of_data)
+  - exit_reason (tp, sl, trailing_stop, time_exit, signal, max_drawdown, end_of_data)
   - mae (max adverse excursion in USD and %)
   - mfe (max favorable excursion in USD and %)
   - r_multiple (risk/reward ratio)
@@ -1135,7 +1148,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Authentication** | ✅ Complete | Email/password, OAuth (Google, GitHub), password reset |
 | **Account Management** | ✅ Complete | Profile, settings (fees, slippage, timezone), usage tracking |
 | **Strategy Management** | ✅ Complete | CRUD, versioning, validation, duplication, archiving |
-| **Visual Builder** | ✅ Complete | 18 block types, drag-drop, parameter editing, mobile-responsive |
+| **Visual Builder** | ✅ Complete | 20 block types, drag-drop, parameter editing, mobile-responsive |
 | **Backtesting** | ✅ Complete | Full engine with TP ladder, SL, max drawdown, equity curves, trade detail |
 | **Data Management** | ✅ Complete | Candle DB cache, CryptoCompare integration, S3/MinIO storage |
 | **Scheduled Updates** | ✅ Complete | Daily scheduler for auto-update strategies (paper trading) |
@@ -1412,7 +1425,7 @@ pytest --cov            # Coverage report
 
 **2025-12-28** - Initial product documentation
 - Documented all implemented features
-- 18 block types in visual builder
+- 20 block types in visual builder
 - OAuth integration (Google, GitHub)
 - Password reset flow
 - Timezone preference
