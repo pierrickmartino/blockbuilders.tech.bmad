@@ -164,7 +164,6 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - ETH/USDT
 
 **Timeframes:**
-- 1h (hourly)
 - 4h (4-hour)
 - 1d (daily)
 
@@ -316,15 +315,19 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
     {
       "id": "block_uuid",
       "type": "sma",
-      "parameters": {"period": 20}
+      "params": {"period": 20}
     }
   ],
   "connections": [
     {
-      "from_block": "block_uuid",
-      "from_output": "output_name",
-      "to_block": "target_uuid",
-      "to_input": "input_name"
+      "from": {
+        "block_id": "block_uuid",
+        "port": "output_name"
+      },
+      "to": {
+        "block_id": "target_uuid",
+        "port": "input_name"
+      }
     }
   ]
 }
