@@ -520,6 +520,28 @@ def _validate_block_params(block: Block) -> list[ValidationError]:
                 )
             )
 
+    elif block.type == "time_exit":
+        bars = params.get("bars", 0)
+        if not isinstance(bars, (int, float)) or bars < 1:
+            errors.append(
+                ValidationError(
+                    block_id=block.id,
+                    code="INVALID_BARS",
+                    message=f"Time Exit bars must be >= 1, got {bars}",
+                )
+            )
+
+    elif block.type == "trailing_stop":
+        trail_pct = params.get("trail_pct", 0)
+        if not isinstance(trail_pct, (int, float)) or not 0 < trail_pct <= 100:
+            errors.append(
+                ValidationError(
+                    block_id=block.id,
+                    code="INVALID_PERCENT",
+                    message=f"Trailing stop must be 0-100%, got {trail_pct}",
+                )
+            )
+
     return errors
 
 
@@ -538,19 +560,25 @@ def validate_strategy(
     block_types = [b.type for b in definition.blocks]
     block_ids = {b.id for b in definition.blocks}
 
-    # Rule 1: Must have entry and exit signals
-    if "entry_signal" not in block_types:
+    # Rule 1: Must have at least one entry signal and at least one exit condition
+    entry_count = block_types.count("entry_signal")
+    if entry_count == 0:
         errors.append(
             ValidationError(
                 code="MISSING_ENTRY",
-                message="Entry Signal block is required",
+                message="At least one Entry Signal block is required",
             )
         )
-    if "exit_signal" not in block_types:
+
+    # Count exit conditions (signal OR rule)
+    exit_signal_count = block_types.count("exit_signal")
+    exit_rule_types = ("time_exit", "trailing_stop", "stop_loss", "take_profit", "max_drawdown")
+    exit_rule_count = sum(1 for t in block_types if t in exit_rule_types)
+    if exit_signal_count == 0 and exit_rule_count == 0:
         errors.append(
             ValidationError(
                 code="MISSING_EXIT",
-                message="Exit Signal block is required",
+                message="At least one exit condition required (Exit Signal or Risk block)",
             )
         )
 
@@ -568,7 +596,14 @@ def validate_strategy(
                 )
 
     # Rule 3: At most one of each risk block type
-    risk_counts = {"position_size": 0, "take_profit": 0, "stop_loss": 0, "max_drawdown": 0}
+    risk_counts = {
+        "position_size": 0,
+        "take_profit": 0,
+        "stop_loss": 0,
+        "max_drawdown": 0,
+        "time_exit": 0,
+        "trailing_stop": 0,
+    }
     for block in definition.blocks:
         if block.type in risk_counts:
             risk_counts[block.type] += 1

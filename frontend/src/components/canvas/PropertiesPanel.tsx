@@ -436,6 +436,32 @@ function getParamConfigs(blockType: BlockType): ParamConfig[] {
           help: "Exit when equity drawdown exceeds this %",
         },
       ];
+    case "time_exit":
+      return [
+        {
+          key: "bars",
+          label: "Bars in Trade",
+          type: "number",
+          defaultValue: 10,
+          min: 1,
+          max: 1000,
+          step: 1,
+          help: "Exit after N bars in position",
+        },
+      ];
+    case "trailing_stop":
+      return [
+        {
+          key: "trail_pct",
+          label: "Trail (%)",
+          type: "number",
+          defaultValue: 5,
+          min: 0.1,
+          max: 100,
+          step: 0.1,
+          help: "Exit when price drops by % from highest close",
+        },
+      ];
     default:
       return [];
   }

@@ -6,7 +6,7 @@ export type InputBlockType = "price" | "volume" | "constant" | "yesterday_close"
 export type IndicatorBlockType = "sma" | "ema" | "rsi" | "macd" | "bollinger" | "atr";
 export type LogicBlockType = "compare" | "crossover" | "and" | "or" | "not";
 export type SignalBlockType = "entry_signal" | "exit_signal";
-export type RiskBlockType = "position_size" | "take_profit" | "stop_loss" | "max_drawdown";
+export type RiskBlockType = "position_size" | "take_profit" | "stop_loss" | "max_drawdown" | "time_exit" | "trailing_stop";
 
 export type BlockType =
   | InputBlockType
@@ -92,6 +92,14 @@ export interface MaxDrawdownParams {
   max_drawdown_pct: number;
 }
 
+export interface TimeExitParams {
+  bars: number;
+}
+
+export interface TrailingStopParams {
+  trail_pct: number;
+}
+
 // Union of all param types
 export type BlockParams =
   | PriceParams
@@ -114,7 +122,9 @@ export type BlockParams =
   | TakeProfitParams
   | StopLossParams
   | YesterdayCloseParams
-  | MaxDrawdownParams;
+  | MaxDrawdownParams
+  | TimeExitParams
+  | TrailingStopParams;
 
 // Block definition (stored in JSON)
 export interface Block {
@@ -356,6 +366,24 @@ export const BLOCK_REGISTRY: BlockMeta[] = [
     inputs: [],
     outputs: [],
     defaultParams: { max_drawdown_pct: 10 },
+  },
+  {
+    type: "time_exit",
+    category: "risk",
+    label: "Time Exit",
+    description: "Exit after N bars in position",
+    inputs: [],
+    outputs: [],
+    defaultParams: { bars: 10 },
+  },
+  {
+    type: "trailing_stop",
+    category: "risk",
+    label: "Trailing Stop",
+    description: "Exit when price drops by % from highest close",
+    inputs: [],
+    outputs: [],
+    defaultParams: { trail_pct: 5 },
   },
 ];
 

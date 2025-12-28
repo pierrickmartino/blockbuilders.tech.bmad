@@ -98,6 +98,12 @@ def run_backtest(
     sl_price: Optional[float] = None
     max_dd_threshold: Optional[float] = signals.max_drawdown_pct
 
+    # New: State tracking for time_exit and trailing_stop
+    bars_in_trade = 0
+    highest_close_since_entry = 0.0
+    time_exit_threshold: Optional[int] = signals.time_exit_bars
+    trailing_stop_threshold: Optional[float] = signals.trailing_stop_pct
+
     # Excursion tracking for current position
     peak_high: float = 0.0  # Highest high during position (for MFE in long)
     peak_high_ts: Optional[datetime] = None
@@ -179,6 +185,14 @@ def run_backtest(
         if position_open:
             # Avoid same-candle exits; wait at least one full candle after entry.
             can_exit = entry_index is None or i > entry_index
+
+            # Increment bars counter
+            bars_in_trade += 1
+
+            # Update highest close for trailing stop
+            if candle.close > highest_close_since_entry:
+                highest_close_since_entry = candle.close
+
             # Track excursions on this candle
             if candle.high > peak_high:
                 peak_high = candle.high
@@ -191,16 +205,42 @@ def run_backtest(
             exit_price_raw: Optional[float] = None
             exit_reason = ""
 
-            # Priority 1: Check Stop Loss (full exit)
+            # Priority 1: Stop Loss (full exit)
             if can_exit and sl_price is not None and candle.low <= sl_price:
                 exit_price_raw = sl_price
                 exit_reason = "sl"
                 full_exit = True
 
-            # Priority 2: Check Max Drawdown (full exit) - check after MTM
-            # We'll do this check after equity update section below
+            # Priority 2: Trailing Stop (full exit)
+            if can_exit and not full_exit and trailing_stop_threshold is not None:
+                trailing_stop_price = highest_close_since_entry * (1 - trailing_stop_threshold / 100)
+                if candle.low <= trailing_stop_price:
+                    exit_price_raw = trailing_stop_price
+                    exit_reason = "trailing_stop"
+                    full_exit = True
 
-            # Priority 3: Check TP levels (partial exits, in ascending order)
+            # Priority 3: Max Drawdown (full exit)
+            if can_exit and not full_exit and max_dd_threshold is not None:
+                trade_drawdown = (entry_price - candle.close) / entry_price * 100
+                if trade_drawdown >= max_dd_threshold:
+                    exit_price_raw = candle.close
+                    exit_reason = "max_dd"
+                    full_exit = True
+
+            # Priority 4: Time Exit (full exit)
+            if can_exit and not full_exit and time_exit_threshold is not None:
+                if bars_in_trade >= time_exit_threshold:
+                    exit_price_raw = candle.close
+                    exit_reason = "time_exit"
+                    full_exit = True
+
+            # Priority 5: Signal Exit (full exit of remaining)
+            if can_exit and not full_exit and exit_signal and position_size > 0:
+                exit_price_raw = candle.close
+                exit_reason = "signal"
+                full_exit = True
+
+            # Priority 6: Take Profit (partial exits, in ascending order)
             if can_exit and not full_exit and tp_levels:
                 # Sort by profit_pct ascending and process
                 for level in sorted(tp_levels, key=lambda x: x.profit_pct):
@@ -220,13 +260,7 @@ def run_backtest(
                             full_exit = True
                             break
 
-            # Priority 4: Check signal exit (full exit of remaining)
-            if can_exit and not full_exit and exit_signal and position_size > 0:
-                exit_price_raw = candle.close
-                exit_reason = "signal"
-                full_exit = True
-
-            # Execute full exit if triggered by SL or signal
+            # Execute full exit if triggered by SL, trailing stop, max DD, time exit, or signal
             if full_exit and position_size > 0 and exit_price_raw is not None:
                 record_trade(position_size, exit_price_raw, exit_reason)
                 position_size = 0.0
@@ -245,6 +279,8 @@ def run_backtest(
                 peak_high_ts = None
                 trough_low = float("inf")
                 trough_low_ts = None
+                bars_in_trade = 0
+                highest_close_since_entry = 0.0
 
         # If flat, check for entry on next candle
         # Entry signal on candle i means we enter at candle i+1 open
@@ -270,6 +306,10 @@ def run_backtest(
             peak_high_ts = next_candle.timestamp
             trough_low = next_candle.low
             trough_low_ts = next_candle.timestamp
+
+            # Initialize new state for time_exit and trailing_stop
+            bars_in_trade = 0
+            highest_close_since_entry = next_candle.close
 
             # Set up TP levels with prices
             tp_levels = []
@@ -307,32 +347,6 @@ def run_backtest(
         drawdown = (peak_equity - current_equity) / peak_equity * 100
         if drawdown > max_drawdown:
             max_drawdown = drawdown
-
-        # Max Drawdown exit check (trade-based, at candle close)
-        # Differs from SL: SL triggers on candle low, Max DD evaluates at close
-        if (
-            position_open
-            and position_size > 0
-            and max_dd_threshold is not None
-            and (entry_index is None or i > entry_index)
-        ):
-            # Trade-based drawdown: loss from entry price to close price
-            trade_drawdown = (entry_price - candle.close) / entry_price * 100
-            if trade_drawdown >= max_dd_threshold:
-                # Force close remaining position at candle close
-                record_trade(position_size, candle.close, "max_dd")
-                position_size = 0.0
-                position_open = False
-                initial_qty = 0.0
-                entry_price = 0.0
-                entry_time = None
-                entry_index = None
-                tp_levels = []
-                sl_price = None
-                peak_high = 0.0
-                peak_high_ts = None
-                trough_low = float("inf")
-                trough_low_ts = None
 
     # Close any open position at final candle close
     if position_open and position_size > 0 and candles:
