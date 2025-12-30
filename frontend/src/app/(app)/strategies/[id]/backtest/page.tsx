@@ -9,6 +9,7 @@ import {
   XAxis,
   YAxis,
   Tooltip,
+  Legend,
   ResponsiveContainer,
 } from "recharts";
 import { apiFetch, ApiError } from "@/lib/api";
@@ -84,6 +85,8 @@ export default function StrategyBacktestPage({ params }: Props) {
   const [equityCurve, setEquityCurve] = useState<EquityCurvePoint[]>([]);
   const [isLoadingEquityCurve, setIsLoadingEquityCurve] = useState(false);
   const [equityCurveError, setEquityCurveError] = useState<string | null>(null);
+
+  const [benchmarkCurve, setBenchmarkCurve] = useState<EquityCurvePoint[]>([]);
 
   // Trade drawer state
   const [selectedTradeIdx, setSelectedTradeIdx] = useState<number | null>(null);
@@ -181,18 +184,30 @@ export default function StrategyBacktestPage({ params }: Props) {
     }
   }, []);
 
+  const fetchBenchmarkCurve = useCallback(async (runId: string) => {
+    try {
+      const data = await apiFetch<EquityCurvePoint[]>(`/backtests/${runId}/benchmark-equity-curve`);
+      setBenchmarkCurve(data);
+    } catch (err) {
+      // Silently fail - benchmark is optional
+      setBenchmarkCurve([]);
+    }
+  }, []);
+
   useEffect(() => {
     if (selectedRun?.status === "completed" && selectedRunId) {
       fetchTrades(selectedRunId);
       fetchEquityCurve(selectedRunId);
+      fetchBenchmarkCurve(selectedRunId);
       setCurrentPage(1);
     } else {
       setTrades([]);
       setTradesError(null);
       setEquityCurve([]);
       setEquityCurveError(null);
+      setBenchmarkCurve([]);
     }
-  }, [selectedRun?.status, selectedRunId, fetchTrades, fetchEquityCurve]);
+  }, [selectedRun?.status, selectedRunId, fetchTrades, fetchEquityCurve, fetchBenchmarkCurve]);
 
   useEffect(() => {
     if (!selectedRunId) {
@@ -276,6 +291,21 @@ export default function StrategyBacktestPage({ params }: Props) {
     if (!selectedRun) return null;
     return `${formatDateTime(selectedRun.date_from, timezone).split(" ")[0]} → ${formatDateTime(selectedRun.date_to, timezone).split(" ")[0]}`;
   }, [selectedRun, timezone]);
+
+  // Merge equity curve and benchmark for chart
+  const chartData = useMemo(() => {
+    if (equityCurve.length === 0) return [];
+
+    const benchmarkMap = new Map(
+      benchmarkCurve.map((b) => [b.timestamp, b.equity])
+    );
+
+    return equityCurve.map((point) => ({
+      timestamp: point.timestamp,
+      equity: point.equity,
+      benchmark: benchmarkMap.get(point.timestamp) || null,
+    }));
+  }, [equityCurve, benchmarkCurve]);
 
   // Trades pagination
   const totalPages = Math.ceil(trades.length / pageSize);
@@ -517,6 +547,24 @@ export default function StrategyBacktestPage({ params }: Props) {
                       {formatPercent(selectedRun.summary.win_rate_pct)}
                     </div>
                   </div>
+                  <div className="rounded border border-gray-200 bg-gray-50 p-3">
+                    <div className="text-xs uppercase text-gray-500">Benchmark return</div>
+                    <div className="text-lg font-semibold text-gray-900">
+                      {formatPercent(selectedRun.summary.benchmark_return_pct)}
+                    </div>
+                  </div>
+                  <div className="rounded border border-gray-200 bg-gray-50 p-3">
+                    <div className="text-xs uppercase text-gray-500">Alpha</div>
+                    <div className="text-lg font-semibold text-gray-900">
+                      {formatPercent(selectedRun.summary.alpha)}
+                    </div>
+                  </div>
+                  <div className="rounded border border-gray-200 bg-gray-50 p-3">
+                    <div className="text-xs uppercase text-gray-500">Beta</div>
+                    <div className="text-lg font-semibold text-gray-900">
+                      {selectedRun.summary.beta.toFixed(2)}
+                    </div>
+                  </div>
                 </div>
               ) : (
                 <p className="text-sm text-gray-600">
@@ -563,7 +611,7 @@ export default function StrategyBacktestPage({ params }: Props) {
             ) : (
               <div className="h-64 sm:h-72 md:h-80">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={equityCurve} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                  <LineChart data={chartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
                     <XAxis
                       dataKey="timestamp"
                       tickFormatter={(v) => formatChartDate(v, timezone)}
@@ -588,6 +636,10 @@ export default function StrategyBacktestPage({ params }: Props) {
                         fontSize: "0.875rem",
                       }}
                     />
+                    <Legend
+                      wrapperStyle={{ fontSize: "0.875rem" }}
+                      iconType="line"
+                    />
                     <Line
                       type="monotone"
                       dataKey="equity"
@@ -595,6 +647,16 @@ export default function StrategyBacktestPage({ params }: Props) {
                       strokeWidth={2}
                       dot={false}
                       activeDot={{ r: 4, fill: "#2563eb" }}
+                      name="Strategy"
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="benchmark"
+                      stroke="#9ca3af"
+                      strokeWidth={2}
+                      dot={false}
+                      strokeDasharray="5 5"
+                      name="Buy & Hold"
                     />
                   </LineChart>
                 </ResponsiveContainer>

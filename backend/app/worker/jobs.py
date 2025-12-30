@@ -15,7 +15,7 @@ from app.models.strategy_version import StrategyVersion
 from app.models.user import User
 from app.backtest.candles import fetch_candles
 from app.backtest.interpreter import interpret_strategy
-from app.backtest.engine import run_backtest
+from app.backtest.engine import run_backtest, compute_benchmark_curve, compute_benchmark_metrics
 from app.backtest.storage import upload_json, generate_results_key
 from app.backtest.errors import BacktestError
 
@@ -118,6 +118,22 @@ def run_backtest_job(run_id: str) -> None:
             equity_curve_key = generate_results_key(run.id, "equity_curve.json")
             upload_json(equity_curve_key, result.equity_curve)
 
+            # Compute benchmark equity curve
+            benchmark_equity = compute_benchmark_curve(candles, run.initial_balance)
+            logger.info(f"Computed benchmark curve with {len(benchmark_equity)} points")
+
+            # Calculate benchmark metrics
+            benchmark_return_pct, alpha, beta = compute_benchmark_metrics(
+                result.equity_curve,
+                benchmark_equity,
+                run.initial_balance
+            )
+            logger.info(f"Benchmark metrics: return={benchmark_return_pct}%, alpha={alpha}, beta={beta}")
+
+            # Upload benchmark equity curve
+            benchmark_curve_key = generate_results_key(run.id, "benchmark_equity_curve.json")
+            upload_json(benchmark_curve_key, benchmark_equity)
+
             trades_data = []
             for t in result.trades:
                 entry_time = t.entry_time.isoformat()
@@ -157,7 +173,11 @@ def run_backtest_job(run_id: str) -> None:
             run.max_drawdown = result.max_drawdown_pct
             run.num_trades = result.num_trades
             run.win_rate = result.win_rate_pct
+            run.benchmark_return = benchmark_return_pct
+            run.alpha = alpha
+            run.beta = beta
             run.equity_curve_key = equity_curve_key
+            run.benchmark_equity_curve_key = benchmark_curve_key
             run.trades_key = trades_key
             run.updated_at = datetime.now(timezone.utc)
             session.add(run)

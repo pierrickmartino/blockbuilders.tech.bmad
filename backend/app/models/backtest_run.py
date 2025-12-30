@@ -28,8 +28,13 @@ class BacktestRun(SQLModel, table=True):
     max_drawdown: Optional[float] = None
     num_trades: Optional[int] = None
     win_rate: Optional[float] = None
+    # Benchmark metrics
+    benchmark_return: Optional[float] = None
+    alpha: Optional[float] = None
+    beta: Optional[float] = None
     # Storage keys for detailed results
     equity_curve_key: Optional[str] = None
+    benchmark_equity_curve_key: Optional[str] = None
     trades_key: Optional[str] = None
     error_message: Optional[str] = None
     triggered_by: str = Field(default="manual")  # "manual" or "auto"

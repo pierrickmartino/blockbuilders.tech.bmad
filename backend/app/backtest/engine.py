@@ -450,3 +450,81 @@ def run_backtest(
         equity_curve=equity_curve,
         trades=trades,
     )
+
+
+def compute_benchmark_curve(
+    candles: list[Candle],
+    initial_balance: float
+) -> list[dict]:
+    """
+    Compute buy-and-hold benchmark equity curve.
+    Buy at first candle open, hold until last candle close.
+    No fees, no slippage.
+    """
+    if not candles:
+        return []
+
+    first_open = candles[0].open
+    equity_curve = []
+
+    for candle in candles:
+        benchmark_equity = initial_balance * (candle.close / first_open)
+        equity_curve.append({
+            "timestamp": candle.timestamp.isoformat(),
+            "equity": round(benchmark_equity, 2),
+        })
+
+    return equity_curve
+
+
+def compute_benchmark_metrics(
+    strategy_equity: list[dict],
+    benchmark_equity: list[dict],
+    initial_balance: float
+) -> tuple[float, float, float]:
+    """
+    Calculate benchmark return %, alpha, and beta.
+    Returns: (benchmark_return_pct, alpha, beta)
+    """
+    if not benchmark_equity or not strategy_equity:
+        return 0.0, 0.0, 0.0
+
+    # Benchmark return
+    final_benchmark = benchmark_equity[-1]["equity"]
+    benchmark_return_pct = ((final_benchmark - initial_balance) / initial_balance) * 100
+
+    # Strategy return (from equity curve, not BacktestResult to be consistent)
+    final_strategy = strategy_equity[-1]["equity"]
+    strategy_return_pct = ((final_strategy - initial_balance) / initial_balance) * 100
+
+    # Alpha
+    alpha = strategy_return_pct - benchmark_return_pct
+
+    # Beta calculation
+    if len(strategy_equity) < 2 or len(benchmark_equity) < 2:
+        beta = 0.0
+    else:
+        # Compute returns series
+        strategy_returns = []
+        benchmark_returns = []
+
+        for i in range(1, min(len(strategy_equity), len(benchmark_equity))):
+            s_ret = (strategy_equity[i]["equity"] / strategy_equity[i-1]["equity"]) - 1
+            b_ret = (benchmark_equity[i]["equity"] / benchmark_equity[i-1]["equity"]) - 1
+            strategy_returns.append(s_ret)
+            benchmark_returns.append(b_ret)
+
+        # Calculate covariance and variance
+        n = len(strategy_returns)
+        if n > 0:
+            mean_s = sum(strategy_returns) / n
+            mean_b = sum(benchmark_returns) / n
+
+            covariance = sum((strategy_returns[i] - mean_s) * (benchmark_returns[i] - mean_b) for i in range(n)) / n
+            variance = sum((benchmark_returns[i] - mean_b) ** 2 for i in range(n)) / n
+
+            beta = covariance / variance if variance > 0 else 0.0
+        else:
+            beta = 0.0
+
+    return round(benchmark_return_pct, 2), round(alpha, 2), round(beta, 2)

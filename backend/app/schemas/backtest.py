@@ -55,6 +55,9 @@ class BacktestSummary(BaseModel):
     max_drawdown_pct: float
     num_trades: int
     win_rate_pct: float
+    benchmark_return_pct: float
+    alpha: float
+    beta: float
 
 
 class BacktestStatusResponse(BaseModel):
