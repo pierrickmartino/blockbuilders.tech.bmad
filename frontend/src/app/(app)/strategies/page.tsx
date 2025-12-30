@@ -5,8 +5,10 @@ import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
 import { useDisplay } from "@/context/display";
+import { useAuth } from "@/context/auth";
 import { Strategy } from "@/types/strategy";
 import NewStrategyModal from "./new-strategy-modal";
+import { StrategyWizard } from "./strategy-wizard";
 
 type SortField = "name" | "updated_at";
 type SortOrder = "asc" | "desc";
@@ -14,6 +16,7 @@ type SortOrder = "asc" | "desc";
 export default function StrategiesPage() {
   const router = useRouter();
   const { timezone } = useDisplay();
+  const { refreshUsage } = useAuth();
   const [strategies, setStrategies] = useState<Strategy[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -22,6 +25,7 @@ export default function StrategiesPage() {
   const [sortField, setSortField] = useState<SortField>("updated_at");
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
   const [showModal, setShowModal] = useState(false);
+  const [showWizard, setShowWizard] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   useEffect(() => {
@@ -281,6 +285,21 @@ export default function StrategiesPage() {
           onCreated={(strategy) => {
             setShowModal(false);
             router.push(`/strategies/${strategy.id}`);
+          }}
+          onOpenWizard={() => {
+            setShowModal(false);
+            setShowWizard(true);
+          }}
+        />
+      )}
+
+      {showWizard && (
+        <StrategyWizard
+          onClose={() => setShowWizard(false)}
+          onComplete={(strategyId) => {
+            setShowWizard(false);
+            router.push(`/strategies/${strategyId}`);
+            refreshUsage();
           }}
         />
       )}

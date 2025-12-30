@@ -13,9 +13,10 @@ import {
 interface Props {
   onClose: () => void;
   onCreated: (strategy: Strategy) => void;
+  onOpenWizard: () => void;
 }
 
-export default function NewStrategyModal({ onClose, onCreated }: Props) {
+export default function NewStrategyModal({ onClose, onCreated, onOpenWizard }: Props) {
   const { refreshUsage } = useAuth();
   const [name, setName] = useState("");
   const [asset, setAsset] = useState<string>(ALLOWED_ASSETS[0]);
@@ -141,6 +142,19 @@ export default function NewStrategyModal({ onClose, onCreated }: Props) {
             </button>
           </div>
         </form>
+
+        <div className="mt-4 border-t pt-4">
+          <button
+            type="button"
+            onClick={() => {
+              onClose();
+              onOpenWizard();
+            }}
+            className="w-full text-center text-sm text-blue-600 hover:text-blue-700"
+          >
+            Or use guided wizard to build your first strategy →
+          </button>
+        </div>
       </div>
     </div>
   );
