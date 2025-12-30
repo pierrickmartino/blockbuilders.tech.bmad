@@ -1,4 +1,6 @@
 import { ReactNode } from "react";
+import InfoIcon from "@/components/InfoIcon";
+import { blockToGlossaryId, getTooltip } from "@/lib/tooltip-content";
 
 interface BaseNodeProps {
   label: string;
@@ -6,6 +8,7 @@ interface BaseNodeProps {
   category: "input" | "indicator" | "logic" | "signal" | "risk";
   children?: ReactNode;
   hasError?: boolean;
+  blockType?: string;
 }
 
 const categoryStyles = {
@@ -47,19 +50,28 @@ export default function BaseNode({
   category,
   children,
   hasError,
+  blockType,
 }: BaseNodeProps) {
   const styles = categoryStyles[category];
   const borderClass = selected ? styles.borderSelected : styles.border;
   const errorBorder = hasError ? "border-red-500 ring-2 ring-red-200" : "";
+  const tooltip = blockType ? getTooltip(blockToGlossaryId(blockType)) : null;
 
   return (
     <div
       className={`min-w-[120px] rounded-lg border-2 shadow-sm ${borderClass} ${styles.bg} ${errorBorder}`}
     >
       <div
-        className={`rounded-t-md px-3 py-1.5 text-xs font-semibold ${styles.header}`}
+        className={`flex items-center justify-between gap-1 rounded-t-md px-3 py-1.5 text-xs font-semibold ${styles.header}`}
+        title={tooltip?.short}
       >
-        {label}
+        <span>{label}</span>
+        {blockType && (
+          <InfoIcon
+            glossaryId={blockToGlossaryId(blockType)}
+            className="flex-shrink-0"
+          />
+        )}
       </div>
       {children && <div className="px-3 py-2">{children}</div>}
     </div>

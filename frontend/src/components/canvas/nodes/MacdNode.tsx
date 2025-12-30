@@ -9,7 +9,7 @@ export default function MacdNode({ data, selected }: NodeProps) {
     signal_period?: number;
   };
   return (
-    <BaseNode label={label} selected={selected} category="indicator">
+    <BaseNode label={label} selected={selected} category="indicator" blockType="macd">
       <Handle
         type="target"
         position={Position.Left}

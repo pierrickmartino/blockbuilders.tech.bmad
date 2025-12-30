@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { BLOCK_REGISTRY, BlockCategory, BlockMeta } from "@/types/canvas";
+import InfoIcon from "@/components/InfoIcon";
+import { blockToGlossaryId, getTooltip } from "@/lib/tooltip-content";
 
 interface BlockPaletteProps {
   onDragStart: (
@@ -65,19 +67,29 @@ export default function BlockPalette({ onDragStart }: BlockPaletteProps) {
             </button>
             {expandedCategories.has(key) && (
               <div className="mt-1 space-y-1 pl-2">
-                {blocks.map((block) => (
-                  <div
-                    key={block.type}
-                    draggable
-                    onDragStart={(e) => onDragStart(e, block)}
-                    className={`cursor-grab rounded border px-3 py-2 text-xs font-medium transition-colors hover:opacity-80 ${categoryColors[block.category]}`}
-                  >
-                    <div>{block.label}</div>
-                    <div className="mt-0.5 text-[10px] opacity-70">
-                      {block.description}
+                {blocks.map((block) => {
+                  const tooltip = getTooltip(blockToGlossaryId(block.type));
+                  return (
+                    <div
+                      key={block.type}
+                      draggable
+                      onDragStart={(e) => onDragStart(e, block)}
+                      title={tooltip?.short || block.description}
+                      className={`cursor-grab rounded border px-3 py-2 text-xs font-medium transition-colors hover:opacity-80 ${categoryColors[block.category]}`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>{block.label}</div>
+                        <InfoIcon
+                          glossaryId={blockToGlossaryId(block.type)}
+                          className="ml-1 flex-shrink-0"
+                        />
+                      </div>
+                      <div className="mt-0.5 text-[10px] opacity-70">
+                        {block.description}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

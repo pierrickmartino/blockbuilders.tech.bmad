@@ -5,7 +5,7 @@ export default function PriceNode({ data, selected }: NodeProps) {
   const label = String(data?.label || "Price");
   const params = (data?.params || {}) as { source?: string };
   return (
-    <BaseNode label={label} selected={selected} category="input">
+    <BaseNode label={label} selected={selected} category="input" blockType="price">
       <div className="text-xs text-gray-600">
         Source: {params.source || "close"}
       </div>

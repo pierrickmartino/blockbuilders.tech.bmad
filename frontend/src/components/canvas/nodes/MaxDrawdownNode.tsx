@@ -5,7 +5,7 @@ export default function MaxDrawdownNode({ data, selected }: NodeProps) {
   const label = String(data?.label || "Max Drawdown");
   const params = (data?.params || {}) as { max_drawdown_pct?: number };
   return (
-    <BaseNode label={label} selected={selected} category="risk">
+    <BaseNode label={label} selected={selected} category="risk" blockType="max_drawdown">
       <div className="text-xs text-gray-600">
         Max DD: {params.max_drawdown_pct || 10}%
       </div>

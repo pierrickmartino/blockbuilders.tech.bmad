@@ -5,7 +5,7 @@ export default function StopLossNode({ data, selected }: NodeProps) {
   const label = String(data?.label || "Stop Loss");
   const params = (data?.params || {}) as { stop_loss_pct?: number };
   return (
-    <BaseNode label={label} selected={selected} category="risk">
+    <BaseNode label={label} selected={selected} category="risk" blockType="stop_loss">
       <div className="text-xs text-gray-600">
         Stop: -{params.stop_loss_pct || 5}%
       </div>

@@ -4,7 +4,7 @@ import BaseNode from "../BaseNode";
 export default function NotNode({ data, selected }: NodeProps) {
   const label = String(data?.label || "NOT");
   return (
-    <BaseNode label={label} selected={selected} category="logic">
+    <BaseNode label={label} selected={selected} category="logic" blockType="not">
       <Handle
         type="target"
         position={Position.Left}

@@ -4,7 +4,7 @@ import BaseNode from "../BaseNode";
 export default function AndNode({ data, selected }: NodeProps) {
   const label = String(data?.label || "AND");
   return (
-    <BaseNode label={label} selected={selected} category="logic">
+    <BaseNode label={label} selected={selected} category="logic" blockType="and">
       <Handle
         type="target"
         position={Position.Left}

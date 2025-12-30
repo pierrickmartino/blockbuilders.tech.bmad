@@ -5,7 +5,7 @@ export default function CompareNode({ data, selected }: NodeProps) {
   const label = String(data?.label || "Compare");
   const params = (data?.params || {}) as { operator?: string };
   return (
-    <BaseNode label={label} selected={selected} category="logic">
+    <BaseNode label={label} selected={selected} category="logic" blockType="compare">
       <Handle
         type="target"
         position={Position.Left}

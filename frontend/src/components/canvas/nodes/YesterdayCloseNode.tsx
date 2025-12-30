@@ -4,7 +4,7 @@ import BaseNode from "../BaseNode";
 export default function YesterdayCloseNode({ data, selected }: NodeProps) {
   const label = String(data?.label || "Yesterday Close");
   return (
-    <BaseNode label={label} selected={selected} category="input">
+    <BaseNode label={label} selected={selected} category="input" blockType="yesterday_close">
       <div className="text-xs text-gray-600">Previous candle close</div>
       <Handle
         type="source"

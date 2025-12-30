@@ -5,7 +5,7 @@ export default function RsiNode({ data, selected }: NodeProps) {
   const label = String(data?.label || "RSI");
   const params = (data?.params || {}) as { period?: number };
   return (
-    <BaseNode label={label} selected={selected} category="indicator">
+    <BaseNode label={label} selected={selected} category="indicator" blockType="rsi">
       <Handle
         type="target"
         position={Position.Left}

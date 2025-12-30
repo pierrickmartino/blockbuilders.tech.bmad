@@ -2,6 +2,8 @@
 
 import { Node } from "@xyflow/react";
 import { BlockType, getBlockMeta, ValidationError, TakeProfitLevel } from "@/types/canvas";
+import InfoIcon from "@/components/InfoIcon";
+import { paramToGlossaryId, getTooltip } from "@/lib/tooltip-content";
 
 interface PropertiesPanelProps {
   selectedNode: Node | null;
@@ -204,21 +206,28 @@ export default function PropertiesPanel({
         ) : paramConfigs.length > 0 ? (
           <div className="space-y-3">
             <div className="text-xs font-medium text-gray-500">Parameters</div>
-            {paramConfigs.map((config) => (
-              <div key={config.key}>
-                <label className="mb-1 block text-xs text-gray-600">
-                  {config.label}
-                </label>
-                {renderParamInput(
-                  config.key,
-                  params[config.key] ?? config.defaultValue,
-                  config
-                )}
-                {config.help && (
-                  <p className="mt-0.5 text-[10px] text-gray-400">{config.help}</p>
-                )}
-              </div>
-            ))}
+            {paramConfigs.map((config) => {
+              const tooltip = getTooltip(paramToGlossaryId(config.key));
+              return (
+                <div key={config.key}>
+                  <label className="mb-1 flex items-center gap-1 text-xs text-gray-600">
+                    <span title={tooltip?.short}>{config.label}</span>
+                    <InfoIcon
+                      glossaryId={paramToGlossaryId(config.key)}
+                      className="flex-shrink-0"
+                    />
+                  </label>
+                  {renderParamInput(
+                    config.key,
+                    params[config.key] ?? config.defaultValue,
+                    config
+                  )}
+                  {config.help && (
+                    <p className="mt-0.5 text-[10px] text-gray-400">{config.help}</p>
+                  )}
+                </div>
+              );
+            })}
           </div>
         ) : null}
 
