@@ -170,6 +170,9 @@ def get_backtest_status(
             max_drawdown_pct=run.max_drawdown or 0.0,
             num_trades=run.num_trades or 0,
             win_rate_pct=run.win_rate or 0.0,
+            benchmark_return_pct=run.benchmark_return or 0.0,
+            alpha=run.alpha or 0.0,
+            beta=run.beta or 0.0,
         )
 
     return BacktestStatusResponse(
@@ -280,6 +283,44 @@ def get_backtest_equity_curve(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to retrieve equity curve data",
+        )
+
+
+@router.get("/{run_id}/benchmark-equity-curve", response_model=list[EquityCurvePoint])
+def get_benchmark_equity_curve(
+    run_id: UUID,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> list[EquityCurvePoint]:
+    """Get benchmark equity curve for a completed backtest run."""
+    run = session.exec(
+        select(BacktestRun).where(
+            BacktestRun.id == run_id,
+            BacktestRun.user_id == user.id,
+        )
+    ).first()
+    if not run:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Backtest run not found",
+        )
+
+    if run.status != "completed":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Benchmark curve only available for completed runs",
+        )
+
+    if not run.benchmark_equity_curve_key:
+        return []
+
+    try:
+        data = download_json(run.benchmark_equity_curve_key)
+        return [EquityCurvePoint(**point) for point in data]
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve benchmark equity curve data",
         )
 
 

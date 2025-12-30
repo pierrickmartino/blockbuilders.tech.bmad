@@ -13,6 +13,9 @@ export interface BacktestSummary {
   max_drawdown_pct: number;
   num_trades: number;
   win_rate_pct: number;
+  benchmark_return_pct: number;
+  alpha: number;
+  beta: number;
 }
 
 export interface BacktestStatusResponse {
