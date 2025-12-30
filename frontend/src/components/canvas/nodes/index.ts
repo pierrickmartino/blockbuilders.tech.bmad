@@ -19,6 +19,8 @@ import PositionSizeNode from "./PositionSizeNode";
 import TakeProfitNode from "./TakeProfitNode";
 import StopLossNode from "./StopLossNode";
 import MaxDrawdownNode from "./MaxDrawdownNode";
+import TimeExitNode from "./TimeExitNode";
+import TrailingStopNode from "./TrailingStopNode";
 
 // Node types map for React Flow
 export const nodeTypes = {
@@ -43,6 +45,8 @@ export const nodeTypes = {
   take_profit: TakeProfitNode,
   stop_loss: StopLossNode,
   max_drawdown: MaxDrawdownNode,
+  time_exit: TimeExitNode,
+  trailing_stop: TrailingStopNode,
 };
 
 export {
@@ -67,4 +71,6 @@ export {
   TakeProfitNode,
   StopLossNode,
   MaxDrawdownNode,
+  TimeExitNode,
+  TrailingStopNode,
 };

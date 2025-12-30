@@ -24,6 +24,8 @@ class StrategySignals:
     take_profit_levels: Optional[list[TakeProfitLevel]]  # New: TP ladder
     stop_loss_pct: Optional[float]
     max_drawdown_pct: Optional[float]  # New: Max drawdown threshold
+    time_exit_bars: Optional[int] = None  # New: Time exit after N bars
+    trailing_stop_pct: Optional[float] = None  # New: Trailing stop percentage
 
 
 def interpret_strategy(
@@ -199,7 +201,7 @@ def interpret_strategy(
             result = [_to_bool(v) for v in signal_input]
             block_outputs[block_id]["output"] = result
 
-        elif block_type in ("position_size", "take_profit", "stop_loss", "max_drawdown"):
+        elif block_type in ("position_size", "take_profit", "stop_loss", "max_drawdown", "time_exit", "trailing_stop"):
             # Risk blocks don't produce time series output
             block_outputs[block_id]["output"] = [None] * n
 
@@ -211,22 +213,24 @@ def interpret_strategy(
 
         return block_outputs[block_id].get(port, block_outputs[block_id].get("output", [None] * n))
 
-    # Find entry and exit signal blocks
-    entry_block = None
-    exit_block = None
+    # Find entry and exit signal blocks (support multiple)
+    entry_blocks = []
+    exit_blocks = []
     position_size_pct = 100.0
     take_profit_levels: Optional[list[TakeProfitLevel]] = None
     stop_loss_pct = None
     max_drawdown_pct = None
+    time_exit_bars: Optional[int] = None
+    trailing_stop_pct: Optional[float] = None
 
     for block in blocks:
         block_type = block["type"]
         params = block.get("params", {})
 
         if block_type == "entry_signal":
-            entry_block = block["id"]
+            entry_blocks.append(block["id"])
         elif block_type == "exit_signal":
-            exit_block = block["id"]
+            exit_blocks.append(block["id"])
         elif block_type == "position_size":
             position_size_pct = float(params.get("value", 100))
         elif block_type == "take_profit":
@@ -254,23 +258,34 @@ def interpret_strategy(
             stop_loss_pct = float(params.get("stop_loss_pct", 5))
         elif block_type == "max_drawdown":
             max_drawdown_pct = float(params.get("max_drawdown_pct", 10))
+        elif block_type == "time_exit":
+            time_exit_bars = int(params.get("bars", 10))
+        elif block_type == "trailing_stop":
+            trailing_stop_pct = float(params.get("trail_pct", 5))
 
-    if not entry_block:
-        raise StrategyInvalidError("No entry signal block", "Invalid strategy: missing Entry Signal block.")
-    if not exit_block:
-        raise StrategyInvalidError("No exit signal block", "Invalid strategy: missing Exit Signal block.")
+    # Compute OR of all entry signals
+    entry_signals_list = [get_block_output(block_id) for block_id in entry_blocks]
+    entry_signals = [False] * n
+    if entry_signals_list:
+        for i in range(n):
+            entry_signals[i] = any(_to_bool(signals[i]) for signals in entry_signals_list)
 
-    # Compute entry and exit signals
-    entry_signals = get_block_output(entry_block)
-    exit_signals = get_block_output(exit_block)
+    # Compute OR of all exit signals
+    exit_signals_list = [get_block_output(block_id) for block_id in exit_blocks]
+    exit_signals = [False] * n
+    if exit_signals_list:
+        for i in range(n):
+            exit_signals[i] = any(_to_bool(signals[i]) for signals in exit_signals_list)
 
     return StrategySignals(
-        entry_long=[_to_bool(v) for v in entry_signals],
-        exit_long=[_to_bool(v) for v in exit_signals],
+        entry_long=entry_signals,
+        exit_long=exit_signals,
         position_size_pct=position_size_pct,
         take_profit_levels=take_profit_levels,
         stop_loss_pct=stop_loss_pct,
         max_drawdown_pct=max_drawdown_pct,
+        time_exit_bars=time_exit_bars,
+        trailing_stop_pct=trailing_stop_pct,
     )
 
 
