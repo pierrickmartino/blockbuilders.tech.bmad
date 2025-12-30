@@ -1,6 +1,6 @@
 # PRD: Additional Crypto Pairs (Top 20–30 Assets)
 
-**Status:** Draft
+**Status:** Done
 **Owner:** Product
 **Last Updated:** 2025-12-28
 

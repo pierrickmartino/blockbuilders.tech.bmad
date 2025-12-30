@@ -1,6 +1,6 @@
 # PRD – Benchmark Comparison (Buy-and-Hold)
 
-**Status:** Proposed
+**Status:** Done
 **Owner:** Product
 **Last Updated:** 2025-12-28
 
