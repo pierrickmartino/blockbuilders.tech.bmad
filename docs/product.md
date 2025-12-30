@@ -465,8 +465,11 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - **Max Drawdown %:** Peak-to-trough equity decline
 - **Number of Trades:** Total trades executed
 - **Win Rate %:** Profitable trades / total trades * 100
+- **Benchmark Return %:** Buy-and-hold return for the same asset and period
+- **Alpha:** Strategy return minus benchmark return
+- **Beta:** Strategy return sensitivity vs benchmark returns
 
-**Stored in:** `backtest_runs` table (total_return, cagr, max_drawdown, num_trades, win_rate)
+**Stored in:** `backtest_runs` table (total_return, cagr, max_drawdown, num_trades, win_rate, benchmark_return, alpha, beta)
 
 ### 5.5. Backtest Results
 
@@ -474,6 +477,10 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Array of {timestamp, equity} points
 - Stored in S3/MinIO as JSON
 - Retrieved via presigned URL or direct fetch
+
+**Benchmark Equity Curve** (`GET /backtests/{run_id}/benchmark-equity-curve`)
+- Array of {timestamp, equity} points for buy-and-hold
+- Stored alongside the strategy curve
 
 **Trades List** (`GET /backtests/{run_id}/trades`)
 - Array of trade objects with:
@@ -882,6 +889,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - POST /: Create and enqueue backtest
 - GET /{id}: Get backtest status/summary
 - GET /{id}/equity-curve: Get equity curve data
+- GET /{id}/benchmark-equity-curve: Get buy-and-hold equity curve data
 - GET /{id}/trades: Get trades list
 - GET /{id}/trades/{trade_idx}: Get trade detail
 
@@ -1000,6 +1008,9 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - fee_rate (FLOAT)
 - slippage_rate (FLOAT)
 - total_return (FLOAT, nullable)
+- benchmark_return (FLOAT, nullable)
+- alpha (FLOAT, nullable)
+- beta (FLOAT, nullable)
 - cagr (FLOAT, nullable)
 - max_drawdown (FLOAT, nullable)
 - num_trades (INT, nullable)
