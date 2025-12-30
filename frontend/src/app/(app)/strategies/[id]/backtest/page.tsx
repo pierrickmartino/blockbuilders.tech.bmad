@@ -32,6 +32,8 @@ import {
 } from "@/types/backtest";
 import { StrategyTabs } from "@/components/StrategyTabs";
 import TradeDrawer from "@/components/TradeDrawer";
+import InfoIcon from "@/components/InfoIcon";
+import { metricToGlossaryId, getTooltip } from "@/lib/tooltip-content";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -54,6 +56,30 @@ const statusStyles: Record<BacktestStatus, string> = {
   completed: "bg-green-100 text-green-700",
   failed: "bg-red-100 text-red-700",
 };
+
+function MetricCard({
+  metricKey,
+  label,
+  value,
+}: {
+  metricKey: string;
+  label: string;
+  value: string | number;
+}) {
+  const tooltip = getTooltip(metricToGlossaryId(metricKey));
+  return (
+    <div className="rounded border border-gray-200 bg-gray-50 p-3">
+      <div className="flex items-center gap-1 text-xs uppercase text-gray-500">
+        <span title={tooltip?.short}>{label}</span>
+        <InfoIcon
+          glossaryId={metricToGlossaryId(metricKey)}
+          className="flex-shrink-0"
+        />
+      </div>
+      <div className="text-lg font-semibold text-gray-900">{value}</div>
+    </div>
+  );
+}
 
 export default function StrategyBacktestPage({ params }: Props) {
   const { id } = use(params);
@@ -511,60 +537,51 @@ export default function StrategyBacktestPage({ params }: Props) {
                 </div>
               ) : selectedRun.summary ? (
                 <div className="grid gap-4 md:grid-cols-3">
-                  <div className="rounded border border-gray-200 bg-gray-50 p-3">
-                    <div className="text-xs uppercase text-gray-500">Final balance</div>
-                    <div className="text-lg font-semibold text-gray-900">
-                      {formatPrice(selectedRun.summary.final_balance)}
-                    </div>
-                  </div>
-                  <div className="rounded border border-gray-200 bg-gray-50 p-3">
-                    <div className="text-xs uppercase text-gray-500">Total return</div>
-                    <div className="text-lg font-semibold text-gray-900">
-                      {formatPercent(selectedRun.summary.total_return_pct)}
-                    </div>
-                  </div>
-                  <div className="rounded border border-gray-200 bg-gray-50 p-3">
-                    <div className="text-xs uppercase text-gray-500">Max drawdown</div>
-                    <div className="text-lg font-semibold text-gray-900">
-                      {formatPercent(selectedRun.summary.max_drawdown_pct)}
-                    </div>
-                  </div>
-                  <div className="rounded border border-gray-200 bg-gray-50 p-3">
-                    <div className="text-xs uppercase text-gray-500">CAGR</div>
-                    <div className="text-lg font-semibold text-gray-900">
-                      {formatPercent(selectedRun.summary.cagr_pct)}
-                    </div>
-                  </div>
-                  <div className="rounded border border-gray-200 bg-gray-50 p-3">
-                    <div className="text-xs uppercase text-gray-500">Trades</div>
-                    <div className="text-lg font-semibold text-gray-900">
-                      {selectedRun.summary.num_trades}
-                    </div>
-                  </div>
-                  <div className="rounded border border-gray-200 bg-gray-50 p-3">
-                    <div className="text-xs uppercase text-gray-500">Win rate</div>
-                    <div className="text-lg font-semibold text-gray-900">
-                      {formatPercent(selectedRun.summary.win_rate_pct)}
-                    </div>
-                  </div>
-                  <div className="rounded border border-gray-200 bg-gray-50 p-3">
-                    <div className="text-xs uppercase text-gray-500">Benchmark return</div>
-                    <div className="text-lg font-semibold text-gray-900">
-                      {formatPercent(selectedRun.summary.benchmark_return_pct)}
-                    </div>
-                  </div>
-                  <div className="rounded border border-gray-200 bg-gray-50 p-3">
-                    <div className="text-xs uppercase text-gray-500">Alpha</div>
-                    <div className="text-lg font-semibold text-gray-900">
-                      {formatPercent(selectedRun.summary.alpha)}
-                    </div>
-                  </div>
-                  <div className="rounded border border-gray-200 bg-gray-50 p-3">
-                    <div className="text-xs uppercase text-gray-500">Beta</div>
-                    <div className="text-lg font-semibold text-gray-900">
-                      {selectedRun.summary.beta.toFixed(2)}
-                    </div>
-                  </div>
+                  <MetricCard
+                    metricKey="final-balance"
+                    label="Final balance"
+                    value={formatPrice(selectedRun.summary.final_balance)}
+                  />
+                  <MetricCard
+                    metricKey="total-return"
+                    label="Total return"
+                    value={formatPercent(selectedRun.summary.total_return_pct)}
+                  />
+                  <MetricCard
+                    metricKey="max-drawdown"
+                    label="Max drawdown"
+                    value={formatPercent(selectedRun.summary.max_drawdown_pct)}
+                  />
+                  <MetricCard
+                    metricKey="cagr"
+                    label="CAGR"
+                    value={formatPercent(selectedRun.summary.cagr_pct)}
+                  />
+                  <MetricCard
+                    metricKey="trades"
+                    label="Trades"
+                    value={selectedRun.summary.num_trades}
+                  />
+                  <MetricCard
+                    metricKey="win-rate"
+                    label="Win rate"
+                    value={formatPercent(selectedRun.summary.win_rate_pct)}
+                  />
+                  <MetricCard
+                    metricKey="benchmark-return"
+                    label="Benchmark return"
+                    value={formatPercent(selectedRun.summary.benchmark_return_pct)}
+                  />
+                  <MetricCard
+                    metricKey="alpha"
+                    label="Alpha"
+                    value={formatPercent(selectedRun.summary.alpha)}
+                  />
+                  <MetricCard
+                    metricKey="beta"
+                    label="Beta"
+                    value={selectedRun.summary.beta.toFixed(2)}
+                  />
                 </div>
               ) : (
                 <p className="text-sm text-gray-600">

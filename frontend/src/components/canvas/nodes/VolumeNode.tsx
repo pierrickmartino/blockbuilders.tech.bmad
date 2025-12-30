@@ -4,7 +4,7 @@ import BaseNode from "../BaseNode";
 export default function VolumeNode({ data, selected }: NodeProps) {
   const label = String(data?.label || "Volume");
   return (
-    <BaseNode label={label} selected={selected} category="input">
+    <BaseNode label={label} selected={selected} category="input" blockType="volume">
       <div className="text-xs text-gray-600">Volume data</div>
       <Handle
         type="source"

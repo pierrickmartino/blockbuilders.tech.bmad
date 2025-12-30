@@ -7,7 +7,7 @@ export default function ConstantNode({ data, selected }: NodeProps) {
   const value = params.value ?? 0;
 
   return (
-    <BaseNode label={label} selected={selected} category="input">
+    <BaseNode label={label} selected={selected} category="input" blockType="constant">
       <div className="text-xs text-gray-600">Value: {value}</div>
       <Handle
         type="source"

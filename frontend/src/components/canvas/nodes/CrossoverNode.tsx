@@ -7,7 +7,7 @@ export default function CrossoverNode({ data, selected }: NodeProps) {
   const direction = params.direction || "crosses_above";
   const displayText = direction === "crosses_above" ? "Crosses Above" : "Crosses Below";
   return (
-    <BaseNode label={label} selected={selected} category="logic">
+    <BaseNode label={label} selected={selected} category="logic" blockType="crossover">
       <Handle
         type="target"
         position={Position.Left}

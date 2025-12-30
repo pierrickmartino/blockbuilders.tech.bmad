@@ -28,7 +28,7 @@ export default function TakeProfitNode({ data, selected }: NodeProps) {
       : `TP x${levels.length}: ${levels.map((l) => `${l.profit_pct}/${l.close_pct}`).join(", ")}`;
 
   return (
-    <BaseNode label={label} selected={selected} category="risk">
+    <BaseNode label={label} selected={selected} category="risk" blockType="take_profit">
       <div className="text-xs text-gray-600">{displayText}</div>
     </BaseNode>
   );

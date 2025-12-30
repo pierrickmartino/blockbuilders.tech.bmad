@@ -4,7 +4,7 @@ import BaseNode from "../BaseNode";
 export default function OrNode({ data, selected }: NodeProps) {
   const label = String(data?.label || "OR");
   return (
-    <BaseNode label={label} selected={selected} category="logic">
+    <BaseNode label={label} selected={selected} category="logic" blockType="or">
       <Handle
         type="target"
         position={Position.Left}

@@ -5,7 +5,7 @@ export default function BollingerNode({ data, selected }: NodeProps) {
   const label = String(data?.label || "Bollinger Bands");
   const params = (data?.params || {}) as { period?: number; stddev?: number };
   return (
-    <BaseNode label={label} selected={selected} category="indicator">
+    <BaseNode label={label} selected={selected} category="indicator" blockType="bollinger">
       <Handle
         type="target"
         position={Position.Left}
