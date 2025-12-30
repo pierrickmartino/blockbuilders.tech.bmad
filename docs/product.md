@@ -1456,7 +1456,7 @@ pytest --cov            # Coverage report
 
 ## 18. Changelog
 
-**2025-02-14** - Strategy building wizard
+**2025-12-30** - Strategy building wizard
 - Added beginner wizard to generate editable strategy JSON
 
 **2025-12-28** - Initial product documentation

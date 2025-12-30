@@ -2,8 +2,8 @@
 
 **File:** `prd-profile-page-settings-and-usage-limits.md`  
 **Product:** Blockbuilders  
-**Status:** Draft (implementation-ready)  
-**Owner:** Product / Engineering  
+**Status:** Done  
+**Owner:** Product  
 **Last updated:** 2025-12-23
 
 ---
