@@ -101,7 +101,7 @@ export function StrategyWizard({ onClose, onComplete }: Props) {
       // Save first version with generated definition
       await apiFetch(`/strategies/${strategy.id}/versions`, {
         method: "POST",
-        body: JSON.stringify({ definition_json: definition }),
+        body: JSON.stringify({ definition }),
       });
 
       onComplete(strategy.id);
