@@ -1,7 +1,7 @@
 # Blockbuilders – Product Documentation
 
 **Status:** Current Product Truth
-**Last Updated:** 2025-12-28
+**Last Updated:** 2025-02-14
 **Purpose:** Comprehensive documentation of all implemented features
 
 ---
@@ -10,7 +10,7 @@
 
 Blockbuilders is a **web-based, no-code strategy lab** where retail crypto traders can visually build, backtest, and iterate on trading strategies without writing code.
 
-**Current State:** Fully functional MVP with post-MVP enhancements (OAuth, scheduled updates, advanced risk management).
+**Current State:** Fully functional MVP with post-MVP enhancements (OAuth, scheduled updates, advanced risk management, strategy building wizard).
 
 **Architecture:**
 - **Frontend:** Next.js 15 + React 19 + TypeScript + Tailwind CSS
@@ -378,7 +378,26 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 
 **Implementation:** `frontend/src/types/canvas.ts`, `backend/app/backtest/interpreter.py`
 
----
+### 4.4. Strategy Building Wizard (Beginner Flow)
+
+**Purpose:** Guided, front-end-only wizard that asks simple questions and generates a starter strategy definition JSON. The generated strategy opens on the canvas and is fully editable.
+
+**Entry Points:**
+- Strategy list empty state (“Create with wizard”)
+- New strategy modal (“Use wizard”)
+
+**Wizard Characteristics:**
+- 4–6 questions max, single-column layout
+- Copy explains in plain language (no trading jargon when possible)
+- Uses existing block types (no new backend fields)
+- Produces the same definition JSON used by the canvas
+
+**Implementation Notes:**
+- Generates blocks + connections locally in the frontend
+- Uses existing canvas utilities for JSON conversion where possible
+- No API changes required
+
+--- 
 
 ## 5. Backtesting Engine
 
@@ -739,6 +758,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
   - Latest backtest metrics
   - Last run timestamp
   - Actions: Open, Duplicate, Archive
+- Empty state + create menu offer “Strategy Building Wizard” for guided creation
 
 **Strategy Editor** (`/strategies/[id]`)
 - Visual canvas with drag-drop blocks
@@ -1160,6 +1180,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Account Management** | ✅ Complete | Profile, settings (fees, slippage, timezone), usage tracking |
 | **Strategy Management** | ✅ Complete | CRUD, versioning, validation, duplication, archiving |
 | **Visual Builder** | ✅ Complete | 20 block types, drag-drop, parameter editing, mobile-responsive |
+| **Strategy Building Wizard** | ✅ Complete | Guided Q&A that generates editable strategy JSON |
 | **Backtesting** | ✅ Complete | Full engine with TP ladder, SL, max drawdown, equity curves, trade detail |
 | **Data Management** | ✅ Complete | Candle DB cache, CryptoCompare integration, S3/MinIO storage |
 | **Scheduled Updates** | ✅ Complete | Daily scheduler for auto-update strategies (paper trading) |
@@ -1170,7 +1191,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Database** | ✅ Complete | PostgreSQL with 7 migrations, indexed queries |
 | **Deployment** | ✅ Complete | Docker Compose stack (6 services) |
 
-**Current State:** Fully functional MVP with post-MVP enhancements (OAuth, scheduled updates, advanced risk management, timezone support).
+**Current State:** Fully functional MVP with post-MVP enhancements (OAuth, scheduled updates, advanced risk management, timezone support, strategy building wizard).
 
 ---
 
@@ -1387,6 +1408,7 @@ pytest --cov            # Coverage report
 **Internal Docs:**
 - `docs/mvp.md` - MVP specification (baseline)
 - `docs/phase2.md` - Auth UX improvements spec
+- `docs/prd-strategy-building-wizard.md` - Strategy building wizard PRD
 - `docs/product.md` - This document (current product truth)
 - `CLAUDE.md` - Instructions for Claude Code
 - `README.md` - Quick start guide
@@ -1433,6 +1455,9 @@ pytest --cov            # Coverage report
 ---
 
 ## 18. Changelog
+
+**2025-02-14** - Strategy building wizard
+- Added beginner wizard to generate editable strategy JSON
 
 **2025-12-28** - Initial product documentation
 - Documented all implemented features
