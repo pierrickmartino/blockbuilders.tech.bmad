@@ -67,6 +67,8 @@ When there is any conflict, follow this precedence order:
 4. `docs/mvp.md` — **MVP baseline + guardrails**
 5. `docs/mvp_plan.md` — **backlog/story seed** (helpful, not authoritative)
 
+**Doc hygiene:** When you add a new `docs/prd-*.md`, also list it in `docs/product.md` (Section 17.1).
+
 ### 3.2. Default behavior
 
 - If the user explicitly says **“MVP only”**, treat `docs/mvp.md` as the single source of truth.
