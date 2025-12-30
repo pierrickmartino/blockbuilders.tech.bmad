@@ -59,6 +59,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             >
               How It Works
             </Link>
+            <Link
+              href="/metrics-glossary"
+              className="text-sm text-gray-600 hover:text-gray-900"
+            >
+              Metrics
+            </Link>
           </div>
           <div className="flex items-center gap-4">
             <span className="text-sm text-gray-600">{user.email}</span>

@@ -519,7 +519,15 @@ export default function StrategyBacktestPage({ params }: Props) {
         <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-base font-semibold text-gray-900">Run details</h2>
-            {selectedRun && statusBadge(selectedRun.status)}
+            <div className="flex items-center gap-3">
+              <Link
+                href="/metrics-glossary"
+                className="text-sm text-blue-600 hover:text-blue-800"
+              >
+                View metrics glossary
+              </Link>
+              {selectedRun && statusBadge(selectedRun.status)}
+            </div>
           </div>
           {!selectedRunId && <p className="text-sm text-gray-500">Select a run to see details.</p>}
           {selectedRunId && !selectedRun && (
