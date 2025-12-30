@@ -73,6 +73,7 @@ When there is any conflict, follow this precedence order:
 - Otherwise, assume **post-MVP iteration**, but:
   - You **must not** silently expand scope beyond what the active spec allows.
   - If a request clearly exceeds MVP but there is no Phase 2 spec yet, create/update `docs/phase2.md` **before** implementing large changes.
+  - When adding a **new feature**, create/update a matching `docs/prd-<feature>.md` and reflect the change in `docs/product.md`.
 
 > `docs/mvp.md` remains the baseline guardrail document even post-MVP: it anchors simplicity and protects against accidental overbuild.
 
