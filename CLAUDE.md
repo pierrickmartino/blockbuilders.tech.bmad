@@ -195,6 +195,7 @@ Use and respect the existing stack rather than introducing new tools:
 - Avoid:
   - Heavy third-party UI libraries unless already adopted.
   - Overly dynamic layouts that are hard to maintain.
+  - New tooltip libraries; prefer native `title` or existing components for help text.
 
 When asked to implement UI:
 
