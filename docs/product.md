@@ -410,6 +410,19 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Prefer existing UI components or native tooltips (no new libraries).
 - No backend changes required.
   
+### 4.6. Metrics Glossary (Planned)
+
+**Purpose:** A dedicated, searchable reference page explaining every performance metric shown in backtests.
+
+**Planned Behavior:**
+- Simple static page with metric definitions, formulas, and plain-language interpretation.
+- “Good” vs “bad” ranges and example scenarios for each metric.
+- Client-side search input filters metrics in place.
+
+**Implementation Notes (Planned):**
+- No backend changes required.
+- Reuse existing typography/layout patterns.
+
 
 --- 
 
@@ -1201,6 +1214,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Usage Limits** | ✅ Complete | Soft caps (10 strategies, 50 backtests/day) with transparent tracking |
 | **Frontend UI** | ✅ Complete | Dashboard, strategy list/editor, backtest runner/results, profile |
 | **Contextual Help & Tooltips** | ⏳ Planned | Hover tooltips + glossary links for indicators, logic blocks, metrics |
+| **Metrics Glossary** | ⏳ Planned | Dedicated searchable page explaining backtest metrics |
 | **Worker Infrastructure** | ✅ Complete | RQ job queue, scheduler, background processing |
 | **API** | ✅ Complete | RESTful endpoints, JWT auth, OpenAPI docs |
 | **Database** | ✅ Complete | PostgreSQL with 7 migrations, indexed queries |
@@ -1290,6 +1304,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Advanced order types (limit, stop-limit)
 - Strategy templates and presets
 - Contextual help tooltips + glossary links
+- Metrics glossary page (searchable backtest metric reference)
 - Improved analytics (drawdown analysis, trade tagging)
 - Email notifications for auto-updates
 - Strategy sharing (read-only links)
@@ -1426,6 +1441,7 @@ pytest --cov            # Coverage report
 - `docs/phase2.md` - Auth UX improvements spec
 - `docs/prd-strategy-building-wizard.md` - Strategy building wizard PRD
 - `docs/prd-contextual-help-tooltips.md` - Contextual help & tooltips PRD
+- `docs/prd-metrics-glossary.md` - Metrics glossary PRD
 - `docs/product.md` - This document (current product truth)
 - `CLAUDE.md` - Instructions for Claude Code
 - `README.md` - Quick start guide
