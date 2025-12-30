@@ -397,6 +397,20 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Uses existing canvas utilities for JSON conversion where possible
 - No API changes required
 
+### 4.5. Contextual Help & Glossary Links (Planned)
+
+**Purpose:** Provide quick explanations for indicators, logic blocks, and metrics without leaving the app.
+
+**Planned Behavior:**
+- Hover tooltips on indicator cards, logic blocks, and performance metrics.
+- Info icons next to technical terms that link to a glossary page.
+- Copy is short (1–2 sentences), focused on plain-language meaning and usage.
+
+**Implementation Notes (Planned):**
+- Prefer existing UI components or native tooltips (no new libraries).
+- No backend changes required.
+  
+
 --- 
 
 ## 5. Backtesting Engine
@@ -1186,6 +1200,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Scheduled Updates** | ✅ Complete | Daily scheduler for auto-update strategies (paper trading) |
 | **Usage Limits** | ✅ Complete | Soft caps (10 strategies, 50 backtests/day) with transparent tracking |
 | **Frontend UI** | ✅ Complete | Dashboard, strategy list/editor, backtest runner/results, profile |
+| **Contextual Help & Tooltips** | ⏳ Planned | Hover tooltips + glossary links for indicators, logic blocks, metrics |
 | **Worker Infrastructure** | ✅ Complete | RQ job queue, scheduler, background processing |
 | **API** | ✅ Complete | RESTful endpoints, JWT auth, OpenAPI docs |
 | **Database** | ✅ Complete | PostgreSQL with 7 migrations, indexed queries |
@@ -1274,6 +1289,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Short selling support
 - Advanced order types (limit, stop-limit)
 - Strategy templates and presets
+- Contextual help tooltips + glossary links
 - Improved analytics (drawdown analysis, trade tagging)
 - Email notifications for auto-updates
 - Strategy sharing (read-only links)
@@ -1409,6 +1425,7 @@ pytest --cov            # Coverage report
 - `docs/mvp.md` - MVP specification (baseline)
 - `docs/phase2.md` - Auth UX improvements spec
 - `docs/prd-strategy-building-wizard.md` - Strategy building wizard PRD
+- `docs/prd-contextual-help-tooltips.md` - Contextual help & tooltips PRD
 - `docs/product.md` - This document (current product truth)
 - `CLAUDE.md` - Instructions for Claude Code
 - `README.md` - Quick start guide
