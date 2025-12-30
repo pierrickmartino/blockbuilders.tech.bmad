@@ -62,9 +62,10 @@ This repo is **phase-aware**. The rules depend on which spec is active.
 When there is any conflict, follow this precedence order:
 
 1. `docs/product.md` — **current product truth** (if present)
-2. `docs/phase2.md` — **current iteration scope** (if present)
-3. `docs/mvp.md` — **MVP baseline + guardrails**
-4. `docs/mvp_plan.md` — **backlog/story seed** (helpful, not authoritative)
+2. `docs/prd-*.md` — **feature-level PRDs** (if present)
+3. `docs/phase2.md` — **current iteration scope** (if present)
+4. `docs/mvp.md` — **MVP baseline + guardrails**
+5. `docs/mvp_plan.md` — **backlog/story seed** (helpful, not authoritative)
 
 ### 3.2. Default behavior
 
