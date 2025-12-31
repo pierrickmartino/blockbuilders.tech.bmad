@@ -47,6 +47,10 @@ When writing or editing code, **always** optimize for:
      - Compile in **TypeScript** with no `any` unless *absolutely* necessary.
    - If you introduce a pattern that would require weakening lint or TS rules, don’t do it. Simplify instead.
 
+6. **Data transparency**
+   - When a feature depends on market data quality, prefer explicit validation and stored metadata.
+   - Warn users about known issues rather than silently hiding or failing.
+
 Whenever you face a trade-off, resolve it in this order:
 
 > **Correctness → Simplicity → Fewer lines → Performance (only if actually needed)**
