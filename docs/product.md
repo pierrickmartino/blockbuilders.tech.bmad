@@ -397,12 +397,13 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Uses existing canvas utilities for JSON conversion where possible
 - No API changes required
 
-### 4.5. Contextual Help & Glossary Links (Planned)
+### 4.5. Contextual Help & Tooltips (Planned)
 
 **Purpose:** Provide quick explanations for indicators, logic blocks, and metrics without leaving the app.
 
 **Planned Behavior:**
 - Info icons next to technical terms with hover tooltips on indicator cards, logic blocks, and performance metrics.
+- Definitions appear directly in the tooltip (no links to a glossary page).
 - Copy is short (1–2 sentences), focused on plain-language meaning and usage.
 
 **Implementation Notes (Planned):**
