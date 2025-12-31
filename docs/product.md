@@ -402,8 +402,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 **Purpose:** Provide quick explanations for indicators, logic blocks, and metrics without leaving the app.
 
 **Planned Behavior:**
-- Hover tooltips on indicator cards, logic blocks, and performance metrics.
-- Info icons next to technical terms that link to a glossary page.
+- Info icons next to technical terms with hover tooltips on indicator cards, logic blocks, and performance metrics.
 - Copy is short (1–2 sentences), focused on plain-language meaning and usage.
 
 **Implementation Notes (Planned):**
@@ -1227,8 +1226,8 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Scheduled Updates** | ✅ Complete | Daily scheduler for auto-update strategies (paper trading) |
 | **Usage Limits** | ✅ Complete | Soft caps (10 strategies, 50 backtests/day) with transparent tracking |
 | **Frontend UI** | ✅ Complete | Dashboard, strategy list/editor, backtest runner/results, profile |
-| **Contextual Help & Tooltips** | ⏳ Planned | Hover tooltips + glossary links for indicators, logic blocks, metrics |
-| **Metrics Glossary** | ⏳ Planned | Dedicated searchable page explaining backtest metrics |
+| **Contextual Help & Tooltips** | ✅ Complete | Hover tooltips for indicators, logic blocks, metrics |
+| **Metrics Glossary** | ✅ Complete | Dedicated searchable page explaining backtest metrics |
 | **Worker Infrastructure** | ✅ Complete | RQ job queue, scheduler, background processing |
 | **API** | ✅ Complete | RESTful endpoints, JWT auth, OpenAPI docs |
 | **Database** | ✅ Complete | PostgreSQL with 7 migrations, indexed queries |
@@ -1318,7 +1317,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Short selling support
 - Advanced order types (limit, stop-limit)
 - Strategy templates and presets
-- Contextual help tooltips + glossary links
+- Contextual help tooltips
 - Metrics glossary page (searchable backtest metric reference)
 - Data quality indicators with backtest-period warnings
 - Improved analytics (drawdown analysis, trade tagging)

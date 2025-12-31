@@ -8,14 +8,14 @@
 
 ## 1. Summary
 
-Add lightweight, hover-based tooltips that explain indicators, logic blocks, and performance metrics across the app. Provide small info icons next to technical terms that link to a glossary page. The goal is to keep users in-app, reduce concept lookup friction, and build confidence for newer traders.
+Add lightweight, hover-based tooltips that explain indicators, logic blocks, and performance metrics across the app. Provide small info icons next to technical terms that reveal the definition directly in the tooltip. The goal is to keep users in-app, reduce concept lookup friction, and build confidence for newer traders.
 
 ---
 
 ## 2. Goals
 
 - Explain **every indicator**, **logic block**, and **metric** where it appears in the UI.
-- Provide **glossary links** for technical terms using info icons.
+- Provide **in-tooltip definitions** for technical terms using info icons.
 - Keep the UI **simple and unobtrusive**.
 - Require **no backend changes**.
 
@@ -33,7 +33,7 @@ Add lightweight, hover-based tooltips that explain indicators, logic blocks, and
 ## 4. User Stories
 
 1. **New trader:** “When I hover a block or metric, I can quickly see what it means without leaving the app.”
-2. **Intermediate trader:** “I can jump to a glossary definition when I see a term I don’t remember.”
+2. **Intermediate trader:** “I can get the definition right in the tooltip when I see a term I don’t remember.”
 3. **Power user:** “The UI stays clean; help content doesn’t block my workflow.”
 
 ---
@@ -65,11 +65,10 @@ Add lightweight, hover-based tooltips that explain indicators, logic blocks, and
 - Content length: **1–2 sentences** max.
 - Language: **plain and concise** (avoid heavy jargon where possible).
 
-### 5.4. Glossary Links (Must Have)
+### 5.4. In-Tooltip Definitions (Must Have)
 
-- Technical terms display a small **info icon** that links to a glossary entry.
-- Links use anchor format: `/glossary#<term-id>`.
-- Glossary page is a **simple static page** with term definitions.
+- Technical terms display a small **info icon** that reveals the definition directly in the tooltip.
+- Tooltip text should contain the term definition without linking out.
 
 ---
 
@@ -81,7 +80,7 @@ Add lightweight, hover-based tooltips that explain indicators, logic blocks, and
 - **Actionable**: explain what it measures or signals.
 - **Consistent**: same definition across all UI locations.
 
-### 6.2. Glossary Terms (Initial Set)
+### 6.2. Terms to Define (Initial Set)
 
 Include entries for at least:
 - Moving Average, EMA, RSI, MACD, Bollinger Bands, ATR
@@ -93,7 +92,7 @@ Include entries for at least:
 ## 7. Acceptance Criteria
 
 - Every indicator, logic block, and metric listed in **5.1** has a tooltip in all listed locations.
-- Info icons are visible and link to the correct glossary anchors.
+- Info icons are visible and show the correct in-tooltip definitions.
 - No new backend endpoints or database changes are introduced.
 - UI remains clean and readable on desktop and mobile.
 - Tooltip copy is consistent across the app.
@@ -112,7 +111,7 @@ Include entries for at least:
 
 - Reuse existing UI components when possible.
 - Centralize tooltip copy in a small, static map to avoid duplication.
-- Add a simple glossary page in the app (no CMS, no API).
+- Keep tooltip definitions in a simple, static map (no CMS, no API).
 
 ---
 
@@ -126,8 +125,7 @@ Include entries for at least:
 
 ## 11. Open Questions
 
-- Should glossary links open in a new tab or same tab? (Default: same tab.)
-- Where should the glossary be linked in the main navigation (if at all)?
+- Should the info icon always be visible, or only on hover/focus?
 
 ---
 
