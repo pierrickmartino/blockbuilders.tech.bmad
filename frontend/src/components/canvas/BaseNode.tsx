@@ -68,7 +68,7 @@ export default function BaseNode({
         <span>{label}</span>
         {blockType && (
           <InfoIcon
-            glossaryId={blockToGlossaryId(blockType)}
+            tooltip={tooltip || undefined}
             className="flex-shrink-0"
           />
         )}

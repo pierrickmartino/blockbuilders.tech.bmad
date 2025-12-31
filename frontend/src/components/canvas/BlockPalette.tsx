@@ -80,7 +80,7 @@ export default function BlockPalette({ onDragStart }: BlockPaletteProps) {
                       <div className="flex items-center justify-between">
                         <div>{block.label}</div>
                         <InfoIcon
-                          glossaryId={blockToGlossaryId(block.type)}
+                          tooltip={tooltip}
                           className="ml-1 flex-shrink-0"
                         />
                       </div>
