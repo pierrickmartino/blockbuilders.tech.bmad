@@ -606,6 +606,19 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 
 **Implementation:** `backend/app/backtest/storage.py`
 
+### 6.4. Data Quality Indicators (Planned)
+
+**Purpose:** Surface data quality metrics (gap %, outlier count, volume consistency) per asset/timeframe and warn users when a backtest period overlaps known issues.
+
+**Planned Behavior:**
+- Daily validation job computes metrics for each asset/timeframe and stores quality metadata.
+- Backtest UI shows a compact quality summary for the selected asset/timeframe.
+- Backtest date range selector warns if the period overlaps known data issues.
+
+**Implementation Notes (Planned):**
+- Use existing candle data (no extra vendor calls).
+- Store quality metadata in a simple table keyed by asset, timeframe, and date range.
+
 ---
 
 ## 7. Scheduled Re-Backtests (Paper Trading)
@@ -1210,6 +1223,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Strategy Building Wizard** | ✅ Complete | Guided Q&A that generates editable strategy JSON |
 | **Backtesting** | ✅ Complete | Full engine with TP ladder, SL, max drawdown, equity curves, trade detail |
 | **Data Management** | ✅ Complete | Candle DB cache, CryptoCompare integration, S3/MinIO storage |
+| **Data Quality Indicators** | ⏳ Planned | Gap %, outlier count, volume consistency, backtest warnings |
 | **Scheduled Updates** | ✅ Complete | Daily scheduler for auto-update strategies (paper trading) |
 | **Usage Limits** | ✅ Complete | Soft caps (10 strategies, 50 backtests/day) with transparent tracking |
 | **Frontend UI** | ✅ Complete | Dashboard, strategy list/editor, backtest runner/results, profile |
@@ -1272,6 +1286,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Dependent on CryptoCompare API uptime
 - Historical data gaps may cause backtest failures
 - No fallback vendor if CryptoCompare unavailable
+- No explicit data quality indicators or warnings in UI (planned)
 
 **Scalability:**
 - Single PostgreSQL instance (no sharding)
@@ -1305,6 +1320,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Strategy templates and presets
 - Contextual help tooltips + glossary links
 - Metrics glossary page (searchable backtest metric reference)
+- Data quality indicators with backtest-period warnings
 - Improved analytics (drawdown analysis, trade tagging)
 - Email notifications for auto-updates
 - Strategy sharing (read-only links)
@@ -1441,6 +1457,7 @@ pytest --cov            # Coverage report
 - `docs/phase2.md` - Auth UX improvements spec
 - `docs/prd-strategy-building-wizard.md` - Strategy building wizard PRD
 - `docs/prd-contextual-help-tooltips.md` - Contextual help & tooltips PRD
+- `docs/prd-data-quality-indicators.md` - Data quality indicators PRD
 - `docs/prd-metrics-glossary.md` - Metrics glossary PRD
 - `docs/product.md` - This document (current product truth)
 - `CLAUDE.md` - Instructions for Claude Code
