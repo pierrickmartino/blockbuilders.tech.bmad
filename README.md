@@ -167,12 +167,27 @@ Key configuration (see `backend/app/core/config.py`):
 | `DATABASE_URL` | - | PostgreSQL connection string |
 | `REDIS_URL` | - | Redis connection string |
 | `JWT_SECRET_KEY` | - | Secret key for JWT tokens |
+| `JWT_ALGORITHM` | `HS256` | JWT signing algorithm |
+| `JWT_EXPIRE_DAYS` | 7 | JWT expiration window in days |
 | `S3_ENDPOINT_URL` | - | MinIO/S3 endpoint |
 | `S3_ACCESS_KEY` | - | MinIO/S3 access key |
 | `S3_SECRET_KEY` | - | MinIO/S3 secret key |
 | `S3_BUCKET_NAME` | `blockbuilders` | MinIO/S3 bucket name |
 | `S3_REGION` | `us-east-1` | MinIO/S3 region |
+| `CRYPTOCOMPARE_API_URL` | `https://min-api.cryptocompare.com/data/v2` | CryptoCompare API base URL |
 | `CRYPTOCOMPARE_API_KEY` | - | API key for price data |
+| `DEFAULT_INITIAL_BALANCE` | 10000 | Default backtest starting balance |
+| `DEFAULT_FEE_RATE` | 0.001 | Default fee rate per trade |
+| `DEFAULT_SLIPPAGE_RATE` | 0.0005 | Default slippage rate per trade |
+| `MAX_GAP_CANDLES` | 5 | Max gap candles allowed when fetching data |
+| `DEFAULT_MAX_STRATEGIES` | 10 | Max strategies per user |
+| `DEFAULT_MAX_BACKTESTS_PER_DAY` | 50 | Max backtests per day |
+| `DATA_QUALITY_LOOKBACK_DAYS` | 90 | Days to recompute data quality metrics |
+| `DATA_QUALITY_GAP_THRESHOLD` | 2.0 | Max allowed missing-candle percentage |
+| `DATA_QUALITY_OUTLIER_THRESHOLD` | 0.25 | Price-move outlier threshold (ratio) |
+| `DATA_QUALITY_VOLUME_THRESHOLD` | 95.0 | Minimum % of candles with non-zero volume |
+| `SCHEDULER_ENABLED` | true | Enable/disable scheduled jobs |
+| `SCHEDULER_HOUR_UTC` | 2 | Hour (UTC) for daily scheduler run |
 | `CORS_ORIGINS` | `http://localhost:3000` | Comma-separated allowed origins |
 | `DEFAULT_MAX_STRATEGIES` | 10 | Max strategies per user |
 | `DEFAULT_MAX_BACKTESTS_PER_DAY` | 50 | Max backtests per day |

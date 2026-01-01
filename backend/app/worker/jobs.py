@@ -394,7 +394,12 @@ def validate_data_quality_daily() -> None:
 
                 if existing_metric:
                     # Skip if metric was computed recently (within last hour)
-                    if existing_metric.created_at > datetime.now(timezone.utc) - timedelta(hours=1):
+                    created_at = existing_metric.created_at
+                    if created_at.tzinfo is None:
+                        created_at = created_at.replace(tzinfo=timezone.utc)
+                    else:
+                        created_at = created_at.astimezone(timezone.utc)
+                    if created_at > datetime.now(timezone.utc) - timedelta(hours=1):
                         skipped += 1
                         current_date += timedelta(days=1)
                         continue

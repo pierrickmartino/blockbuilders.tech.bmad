@@ -5,22 +5,18 @@ import logging
 from sqlmodel import Session, select
 
 from app.backtest.candles import TIMEFRAME_SECONDS
+from app.core.config import settings
 from app.models.candle import Candle
 from app.models.data_quality_metric import DataQualityMetric
 
 logger = logging.getLogger(__name__)
-
-# Thresholds
-OUTLIER_THRESHOLD = 0.25  # 25% price move
-GAP_THRESHOLD_PERCENT = 2.0
-VOLUME_THRESHOLD_PERCENT = 95.0
-
 
 def compute_daily_metrics(
     asset: str,
     timeframe: str,
     date: datetime,
     session: Session,
+    outlier_threshold: float | None = None,
 ) -> dict:
     """
     Compute quality metrics for one day.
@@ -34,6 +30,9 @@ def compute_daily_metrics(
     Returns:
         Dict with gap_percent, outlier_count, volume_consistency
     """
+    if outlier_threshold is None:
+        outlier_threshold = settings.data_quality_outlier_threshold
+
     # Ensure date is UTC midnight
     if date.tzinfo is None:
         date = date.replace(tzinfo=timezone.utc)
@@ -65,12 +64,12 @@ def compute_daily_metrics(
     else:
         gap_percent = 0.0
 
-    # Calculate outlier_count (candles with >25% price move)
+    # Calculate outlier_count (candles with price move above threshold)
     outlier_count = 0
     for candle in candles:
         if candle.open > 0:
             price_change = abs(candle.close / candle.open - 1)
-            if price_change > OUTLIER_THRESHOLD:
+            if price_change > outlier_threshold:
                 outlier_count += 1
 
     # Calculate volume_consistency (% of candles with non-zero volume)
@@ -87,16 +86,27 @@ def compute_daily_metrics(
     }
 
 
-def check_has_issues(gap_percent: float, outlier_count: int, volume_consistency: float) -> bool:
+def check_has_issues(
+    gap_percent: float,
+    outlier_count: int,
+    volume_consistency: float,
+    gap_threshold: float | None = None,
+    volume_threshold: float | None = None,
+) -> bool:
     """
     Check if metrics breach quality thresholds.
 
     Returns True if any threshold is breached.
     """
+    if gap_threshold is None:
+        gap_threshold = settings.data_quality_gap_threshold
+    if volume_threshold is None:
+        volume_threshold = settings.data_quality_volume_threshold
+
     return (
-        gap_percent > GAP_THRESHOLD_PERCENT
+        gap_percent > gap_threshold
         or outlier_count > 0
-        or volume_consistency < VOLUME_THRESHOLD_PERCENT
+        or volume_consistency < volume_threshold
     )
 
 

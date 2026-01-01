@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
 from sqlalchemy import UniqueConstraint
@@ -19,4 +19,4 @@ class DataQualityMetric(SQLModel, table=True):
     outlier_count: int
     volume_consistency: float
     has_issues: bool
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
