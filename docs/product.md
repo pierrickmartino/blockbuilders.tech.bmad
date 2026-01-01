@@ -423,6 +423,19 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - No backend changes required.
 - Reuse existing typography/layout patterns.
 
+### 4.7. Strategy Notes & Annotations (Planned)
+
+**Purpose:** Let users add text notes directly on the canvas to document intent or mark specific blocks.
+
+**Planned Behavior:**
+- Notes can be **attached to a block** or **float freely** on the canvas.
+- Notes are plain text (no rich formatting).
+- Notes are stored in the strategy version JSON as metadata.
+
+**Implementation Notes (Planned):**
+- Keep notes separate from execution logic (metadata only).
+- No new block types needed.
+
 
 --- 
 
@@ -1229,6 +1242,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Frontend UI** | ✅ Complete | Dashboard, strategy list/editor, backtest runner/results, profile |
 | **Contextual Help & Tooltips** | ✅ Complete | Hover tooltips for indicators, logic blocks, metrics |
 | **Metrics Glossary** | ✅ Complete | Dedicated searchable page explaining backtest metrics |
+| **Strategy Notes & Annotations** | ⏳ Planned | Text notes on the canvas, stored in strategy metadata |
 | **Worker Infrastructure** | ✅ Complete | RQ job queue, scheduler, background processing |
 | **API** | ✅ Complete | RESTful endpoints, JWT auth, OpenAPI docs |
 | **Database** | ✅ Complete | PostgreSQL with 7 migrations, indexed queries |
@@ -1321,6 +1335,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Contextual help tooltips
 - Metrics glossary page (searchable backtest metric reference)
 - Data quality indicators with backtest-period warnings
+- Strategy notes & annotations on the canvas
 - Improved analytics (drawdown analysis, trade tagging)
 - Email notifications for auto-updates
 - Strategy sharing (read-only links)
@@ -1459,6 +1474,7 @@ pytest --cov            # Coverage report
 - `docs/prd-contextual-help-tooltips.md` - Contextual help & tooltips PRD
 - `docs/prd-data-quality-indicators.md` - Data quality indicators PRD
 - `docs/prd-metrics-glossary.md` - Metrics glossary PRD
+- `docs/prd-strategy-notes-annotations.md` - Strategy notes & annotations PRD
 - `docs/product.md` - This document (current product truth)
 - `CLAUDE.md` - Instructions for Claude Code
 - `README.md` - Quick start guide
