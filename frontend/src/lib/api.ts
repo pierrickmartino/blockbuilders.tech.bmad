@@ -44,3 +44,14 @@ export async function apiFetch<T>(
 
   return response.json();
 }
+
+export async function fetchDataQuality(
+  asset: string,
+  timeframe: string,
+  dateFrom: string,
+  dateTo: string
+) {
+  return apiFetch(
+    `/backtests/data-quality?asset=${encodeURIComponent(asset)}&timeframe=${timeframe}&date_from=${dateFrom}&date_to=${dateTo}`
+  );
+}

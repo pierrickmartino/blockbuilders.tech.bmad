@@ -60,6 +60,20 @@ class BacktestSummary(BaseModel):
     beta: float
 
 
+class DataQualityMetrics(BaseModel):
+    """Response model for data quality metrics."""
+
+    asset: str
+    timeframe: str
+    date_from: datetime
+    date_to: datetime
+    gap_percent: float
+    outlier_count: int
+    volume_consistency: float
+    has_issues: bool
+    issues_description: str
+
+
 class BacktestStatusResponse(BaseModel):
     """Response for backtest status endpoint."""
 
@@ -73,6 +87,7 @@ class BacktestStatusResponse(BaseModel):
     triggered_by: str = "manual"
     summary: Optional[BacktestSummary] = None
     error_message: Optional[str] = None
+    data_quality: Optional[DataQualityMetrics] = None
 
 
 class BacktestListItem(BaseModel):
