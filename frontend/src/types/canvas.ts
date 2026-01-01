@@ -13,7 +13,8 @@ export type BlockType =
   | IndicatorBlockType
   | LogicBlockType
   | SignalBlockType
-  | RiskBlockType;
+  | RiskBlockType
+  | "note";
 
 // Parameter types for each block
 export interface PriceParams {
@@ -141,11 +142,23 @@ export interface Connection {
   to_port: { block_id: string; port: string };
 }
 
+// Note definition (stored in metadata)
+export interface Note {
+  id: string;
+  text: string;
+  position: { x: number; y: number };
+  attached_block_id?: string;
+  offset?: { x: number; y: number };
+}
+
 // Full strategy definition (stored in strategy_versions.definition_json)
 export interface StrategyDefinition {
   blocks: Block[];
   connections: Connection[];
   meta: { version: number };
+  metadata?: {
+    notes?: Note[];
+  };
 }
 
 // Validation types

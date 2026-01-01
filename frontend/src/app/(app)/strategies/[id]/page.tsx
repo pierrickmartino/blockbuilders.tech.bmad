@@ -20,6 +20,7 @@ import {
   definitionToReactFlow,
   reactFlowToDefinition,
   createDefaultDefinition,
+  generateBlockId,
 } from "@/lib/canvas-utils";
 import StrategyCanvas from "@/components/canvas/StrategyCanvas";
 import BlockPalette from "@/components/canvas/BlockPalette";
@@ -249,6 +250,26 @@ export default function StrategyEditorPage({ params }: Props) {
     setSelectedNodeId(null);
     setValidationErrors([]);
     setError(null);
+  };
+
+  // Handle adding a floating note
+  const handleAddNote = () => {
+    const noteId = generateBlockId();
+    const newNote: Node = {
+      id: noteId,
+      type: "note",
+      position: { x: 400, y: 300 }, // Center-ish position
+      data: {
+        text: "",
+      },
+    };
+    setNodes((currentNodes) => [...currentNodes, newNote]);
+    setSelectedNodeId(noteId);
+  };
+
+  // Handle nodes change
+  const handleNodesChange = (newNodes: Node[]) => {
+    setNodes(newNodes);
   };
 
   const handleAutoUpdateToggle = async (enabled: boolean) => {
@@ -503,9 +524,10 @@ export default function StrategyEditorPage({ params }: Props) {
           <StrategyCanvas
             nodes={nodes}
             edges={edges}
-            onNodesChange={setNodes}
+            onNodesChange={handleNodesChange}
             onEdgesChange={setEdges}
             onNodeSelect={(node) => setSelectedNodeId(node?.id ?? null)}
+            onAddNote={handleAddNote}
           />
         </div>
 
