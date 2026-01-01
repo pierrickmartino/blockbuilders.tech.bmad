@@ -1,6 +1,6 @@
 # PRD: Metrics Glossary Page
 
-**Status:** Proposed
+**Status:** Done
 **Owner:** Product
 **Last Updated:** 2025-02-14
 
