@@ -16,7 +16,7 @@ export default function EntrySignalNode({ data, selected }: NodeProps) {
         title={tooltip?.short}
       >
         <span>{label}</span>
-        <InfoIcon glossaryId={blockToGlossaryId("entry_signal")} className="flex-shrink-0" />
+        <InfoIcon tooltip={tooltip} className="flex-shrink-0" />
       </div>
       <div className="px-3 py-2">
         <Handle

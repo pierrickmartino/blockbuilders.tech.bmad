@@ -213,7 +213,7 @@ export default function PropertiesPanel({
                   <label className="mb-1 flex items-center gap-1 text-xs text-gray-600">
                     <span title={tooltip?.short}>{config.label}</span>
                     <InfoIcon
-                      glossaryId={paramToGlossaryId(config.key)}
+                      tooltip={tooltip}
                       className="flex-shrink-0"
                     />
                   </label>

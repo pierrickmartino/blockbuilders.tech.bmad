@@ -1,19 +1,21 @@
-import Link from "next/link";
+import { TooltipContent } from "@/lib/tooltip-content";
 
 interface InfoIconProps {
-  glossaryId: string;
+  tooltip?: TooltipContent;
   className?: string;
 }
 
 export default function InfoIcon({
-  glossaryId,
+  tooltip,
   className = "",
 }: InfoIconProps) {
+  const tooltipText = tooltip?.long || tooltip?.short || "More information";
+
   return (
-    <Link
-      href={`/glossary#${glossaryId}`}
+    <span
       className={`inline-flex items-center justify-center text-gray-400 transition-colors hover:text-blue-500 ${className}`}
-      title="View in glossary"
+      title={tooltipText}
+      aria-label={tooltipText}
     >
       <svg
         className="h-4 w-4"
@@ -24,6 +26,6 @@ export default function InfoIcon({
         <circle cx="12" cy="12" r="10" strokeWidth="2" />
         <path strokeWidth="2" d="M12 16v-4M12 8h.01" strokeLinecap="round" />
       </svg>
-    </Link>
+    </span>
   );
 }

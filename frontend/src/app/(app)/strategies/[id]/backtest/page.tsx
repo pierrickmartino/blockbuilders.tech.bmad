@@ -72,7 +72,7 @@ function MetricCard({
       <div className="flex items-center gap-1 text-xs uppercase text-gray-500">
         <span title={tooltip?.short}>{label}</span>
         <InfoIcon
-          glossaryId={metricToGlossaryId(metricKey)}
+          tooltip={tooltip}
           className="flex-shrink-0"
         />
       </div>
