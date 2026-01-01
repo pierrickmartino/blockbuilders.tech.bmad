@@ -161,6 +161,11 @@ If the spec is missing, add a small “delta spec” section to `docs/phase2.md`
 
 ## 5. Tech stack expectations
 
+### 5.2. Notification guidance
+
+- Prefer **in-app notifications** over email for time-sensitive updates.
+- Keep notification payloads minimal (just enough to render text + a deep link).
+
 Use and respect the existing stack rather than introducing new tools:
 
 - **Frontend**
