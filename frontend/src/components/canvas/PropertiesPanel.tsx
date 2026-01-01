@@ -9,6 +9,7 @@ interface PropertiesPanelProps {
   selectedNode: Node | null;
   onParamsChange: (nodeId: string, params: Record<string, unknown>) => void;
   onDeleteNode: (nodeId: string) => void;
+  onAddNoteToBlock: (blockId: string) => void;
   validationErrors: ValidationError[];
 }
 
@@ -16,6 +17,7 @@ export default function PropertiesPanel({
   selectedNode,
   onParamsChange,
   onDeleteNode,
+  onAddNoteToBlock,
   validationErrors,
 }: PropertiesPanelProps) {
   if (!selectedNode) {
@@ -241,6 +243,18 @@ export default function PropertiesPanel({
                 <p>Outputs: {blockMeta.outputs.join(", ")}</p>
               )}
             </div>
+          </div>
+        )}
+
+        {/* Add Note to Block button (only for non-note blocks) */}
+        {blockType !== "note" && (
+          <div className="border-t pt-3">
+            <button
+              onClick={() => onAddNoteToBlock(selectedNode.id)}
+              className="w-full rounded border border-dashed border-gray-300 py-2 text-xs text-gray-600 hover:border-gray-400 hover:bg-gray-50 hover:text-gray-800"
+            >
+              + Add Note to Block
+            </button>
           </div>
         )}
       </div>

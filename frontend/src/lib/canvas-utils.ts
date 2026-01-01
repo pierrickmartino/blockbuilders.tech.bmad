@@ -1,5 +1,5 @@
 import type { Node, Edge } from "@xyflow/react";
-import type { Block, Connection, StrategyDefinition, BlockType } from "@/types/canvas";
+import type { Block, Connection, StrategyDefinition, BlockType, Note } from "@/types/canvas";
 
 // Generate a unique block ID
 export function generateBlockId(): string {
@@ -14,7 +14,8 @@ export function definitionToReactFlow(
     return { nodes: [], edges: [] };
   }
 
-  const nodes: Node[] = definition.blocks.map((block) => ({
+  // Convert blocks to nodes
+  const blockNodes: Node[] = definition.blocks.map((block) => ({
     id: block.id,
     type: block.type,
     position: block.position,
@@ -24,6 +25,20 @@ export function definitionToReactFlow(
       blockType: block.type,
     },
   }));
+
+  // Convert notes to nodes (if any)
+  const noteNodes: Node[] = (definition.metadata?.notes || []).map((note) => ({
+    id: note.id,
+    type: "note" as const,
+    position: note.position,
+    data: {
+      text: note.text,
+      attached_block_id: note.attached_block_id,
+      offset: note.offset,
+    },
+  }));
+
+  const nodes = [...blockNodes, ...noteNodes];
 
   const edges: Edge[] = definition.connections.map((conn, index) => {
     // Handle both old format (from/to) and new format (from_port/to_port)
@@ -46,7 +61,11 @@ export function reactFlowToDefinition(
   nodes: Node[],
   edges: Edge[]
 ): StrategyDefinition {
-  const blocks: Block[] = nodes.map((node) => ({
+  // Separate blocks from notes
+  const blockNodes = nodes.filter((node) => node.type !== "note");
+  const noteNodes = nodes.filter((node) => node.type === "note");
+
+  const blocks: Block[] = blockNodes.map((node) => ({
     id: node.id,
     type: node.type as BlockType,
     label: String(node.data?.label || node.type || "Block"),
@@ -65,11 +84,27 @@ export function reactFlowToDefinition(
     },
   }));
 
-  return {
+  // Convert note nodes to Note format
+  const notes: Note[] = noteNodes.map((node) => ({
+    id: node.id,
+    text: String(node.data?.text || ""),
+    position: { x: node.position.x, y: node.position.y },
+    attached_block_id: node.data?.attached_block_id as string | undefined,
+    offset: node.data?.offset as { x: number; y: number } | undefined,
+  }));
+
+  const definition: StrategyDefinition = {
     blocks,
     connections,
     meta: { version: 1 },
   };
+
+  // Only add metadata if there are notes
+  if (notes.length > 0) {
+    definition.metadata = { notes };
+  }
+
+  return definition;
 }
 
 // Create a default empty strategy definition with pre-placed blocks
