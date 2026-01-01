@@ -423,18 +423,21 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - No backend changes required.
 - Reuse existing typography/layout patterns.
 
-### 4.7. Strategy Notes & Annotations (Planned)
+### 4.7. Strategy Notes & Annotations
 
-**Purpose:** Let users add text notes directly on the canvas to document intent or mark specific blocks.
+**Purpose:** Let users add text notes directly on the canvas to document intent or add reminders.
 
-**Planned Behavior:**
-- Notes can be **attached to a block** or **float freely** on the canvas.
+**Behavior:**
+- Notes **float freely** on the canvas and can be dragged to any position.
 - Notes are plain text (no rich formatting).
-- Notes are stored in the strategy version JSON as metadata.
+- Notes have a 280 character limit with visual feedback.
+- Notes are stored as React Flow nodes (type "note") in the strategy definition.
 
-**Implementation Notes (Planned):**
-- Keep notes separate from execution logic (metadata only).
-- No new block types needed.
+**Implementation:**
+- Notes are stored alongside blocks in the strategy version JSON.
+- Validation and backtest interpreter ignore note nodes entirely.
+- No new backend endpoints or block types needed.
+- Simple yellow sticky note UI with inline editing.
 
 
 --- 
@@ -1242,7 +1245,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Frontend UI** | ✅ Complete | Dashboard, strategy list/editor, backtest runner/results, profile |
 | **Contextual Help & Tooltips** | ✅ Complete | Hover tooltips for indicators, logic blocks, metrics |
 | **Metrics Glossary** | ✅ Complete | Dedicated searchable page explaining backtest metrics |
-| **Strategy Notes & Annotations** | ⏳ Planned | Text notes on the canvas, stored in strategy metadata |
+| **Strategy Notes & Annotations** | ✅ Complete | Floating text notes on canvas (280 char limit), drag to position |
 | **Worker Infrastructure** | ✅ Complete | RQ job queue, scheduler, background processing |
 | **API** | ✅ Complete | RESTful endpoints, JWT auth, OpenAPI docs |
 | **Database** | ✅ Complete | PostgreSQL with 7 migrations, indexed queries |
@@ -1332,10 +1335,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Short selling support
 - Advanced order types (limit, stop-limit)
 - Strategy templates and presets
-- Contextual help tooltips
-- Metrics glossary page (searchable backtest metric reference)
 - Data quality indicators with backtest-period warnings
-- Strategy notes & annotations on the canvas
 - Improved analytics (drawdown analysis, trade tagging)
 - Email notifications for auto-updates
 - Strategy sharing (read-only links)

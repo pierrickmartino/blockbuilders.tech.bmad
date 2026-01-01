@@ -243,24 +243,7 @@ export default function StrategyEditorPage({ params }: Props) {
 
   // Handle node deletion from properties panel
   const handleDeleteNode = (nodeId: string) => {
-    setNodes((currentNodes) => {
-      // When deleting a block, convert attached notes to floating notes
-      const updatedNodes = currentNodes.map((node) => {
-        if (node.type === "note" && node.data?.attached_block_id === nodeId) {
-          return {
-            ...node,
-            data: {
-              ...node.data,
-              attached_block_id: undefined,
-              offset: undefined,
-            },
-          };
-        }
-        return node;
-      });
-      // Remove the deleted node
-      return updatedNodes.filter((node) => node.id !== nodeId);
-    });
+    setNodes((currentNodes) => currentNodes.filter((node) => node.id !== nodeId));
     setEdges((currentEdges) =>
       currentEdges.filter((edge) => edge.source !== nodeId && edge.target !== nodeId)
     );
@@ -284,59 +267,9 @@ export default function StrategyEditorPage({ params }: Props) {
     setSelectedNodeId(noteId);
   };
 
-  // Handle adding a note attached to a block
-  const handleAddNoteToBlock = (blockId: string) => {
-    const block = nodes.find((node) => node.id === blockId);
-    if (!block) return;
-
-    const noteId = generateBlockId();
-    const offset = { x: 180, y: -10 };
-    const newNote: Node = {
-      id: noteId,
-      type: "note",
-      position: {
-        x: block.position.x + offset.x,
-        y: block.position.y + offset.y,
-      },
-      data: {
-        text: "",
-        attached_block_id: blockId,
-        offset,
-      },
-    };
-    setNodes((currentNodes) => [...currentNodes, newNote]);
-    setSelectedNodeId(noteId);
-  };
-
-  // Enhanced nodes change handler to update attached notes
+  // Handle nodes change
   const handleNodesChange = (newNodes: Node[]) => {
-    // Detect position changes
-    const updatedNodes = newNodes.map((node) => {
-      if (node.type === "note") return node;
-
-      // Find attached notes for this block
-      const attachedNotes = newNodes.filter(
-        (n) => n.type === "note" && n.data?.attached_block_id === node.id
-      );
-
-      if (attachedNotes.length === 0) return node;
-
-      // Update attached note positions
-      attachedNotes.forEach((note) => {
-        const noteInArray = newNodes.find((n) => n.id === note.id);
-        const offset = note.data?.offset as { x: number; y: number } | undefined;
-        if (noteInArray && offset) {
-          noteInArray.position = {
-            x: node.position.x + offset.x,
-            y: node.position.y + offset.y,
-          };
-        }
-      });
-
-      return node;
-    });
-
-    setNodes(updatedNodes);
+    setNodes(newNodes);
   };
 
   const handleAutoUpdateToggle = async (enabled: boolean) => {
@@ -604,7 +537,6 @@ export default function StrategyEditorPage({ params }: Props) {
             selectedNode={selectedNode}
             onParamsChange={handleParamsChange}
             onDeleteNode={handleDeleteNode}
-            onAddNoteToBlock={handleAddNoteToBlock}
             validationErrors={validationErrors}
           />
         </div>
@@ -626,7 +558,6 @@ export default function StrategyEditorPage({ params }: Props) {
                 selectedNode={selectedNode}
                 onParamsChange={handleParamsChange}
                 onDeleteNode={handleDeleteNode}
-                onAddNoteToBlock={handleAddNoteToBlock}
                 validationErrors={validationErrors}
               />
             </div>
