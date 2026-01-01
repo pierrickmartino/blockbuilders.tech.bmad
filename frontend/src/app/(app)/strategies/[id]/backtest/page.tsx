@@ -12,7 +12,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import { apiFetch, ApiError } from "@/lib/api";
+import { apiFetch, ApiError, fetchDataQuality } from "@/lib/api";
 import {
   formatDateTime,
   formatPercent,
@@ -27,6 +27,7 @@ import {
   BacktestListItem,
   BacktestStatus,
   BacktestStatusResponse,
+  DataQualityMetrics,
   EquityCurvePoint,
   Trade,
 } from "@/types/backtest";
@@ -113,6 +114,10 @@ export default function StrategyBacktestPage({ params }: Props) {
   const [equityCurveError, setEquityCurveError] = useState<string | null>(null);
 
   const [benchmarkCurve, setBenchmarkCurve] = useState<EquityCurvePoint[]>([]);
+
+  // Data quality state
+  const [dataQuality, setDataQuality] = useState<DataQualityMetrics | null>(null);
+  const [loadingQuality, setLoadingQuality] = useState(false);
 
   // Trade drawer state
   const [selectedTradeIdx, setSelectedTradeIdx] = useState<number | null>(null);
@@ -261,6 +266,20 @@ export default function StrategyBacktestPage({ params }: Props) {
     };
   }, [selectedRunId, fetchRunDetail]);
 
+  // Fetch data quality metrics when dates or strategy change
+  useEffect(() => {
+    if (!strategy || !dateFrom || !dateTo) {
+      setDataQuality(null);
+      return;
+    }
+
+    setLoadingQuality(true);
+    fetchDataQuality(strategy.asset, strategy.timeframe, dateFrom, dateTo)
+      .then((data) => setDataQuality(data as DataQualityMetrics))
+      .catch(() => setDataQuality(null))
+      .finally(() => setLoadingQuality(false));
+  }, [strategy, dateFrom, dateTo]);
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setStatusMessage(null);
@@ -393,6 +412,11 @@ export default function StrategyBacktestPage({ params }: Props) {
         {statusMessage && (
           <div className="mt-2 rounded border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-600">
             {statusMessage}
+          </div>
+        )}
+        {dataQuality?.has_issues && (
+          <div className="mt-2 rounded border border-yellow-200 bg-yellow-50 px-3 py-2 text-sm text-yellow-700">
+            ⚠️ Data quality warning: {dataQuality.issues_description}. Results may be less reliable.
           </div>
         )}
       </div>
@@ -595,6 +619,38 @@ export default function StrategyBacktestPage({ params }: Props) {
                 <p className="text-sm text-gray-600">
                   Backtest is {selectedRun.status}. We&apos;ll keep polling for results.
                 </p>
+              )}
+
+              {/* Data Quality Metrics */}
+              {selectedRun.data_quality && (
+                <div className="mt-4">
+                  <h3 className="mb-2 text-sm font-medium text-gray-700">Data Quality</h3>
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                    <div className="rounded border border-gray-200 bg-gray-50 p-3">
+                      <div className="text-xs text-gray-500">Gap %</div>
+                      <div className="text-lg font-semibold">
+                        {selectedRun.data_quality.gap_percent.toFixed(2)}%
+                      </div>
+                    </div>
+                    <div className="rounded border border-gray-200 bg-gray-50 p-3">
+                      <div className="text-xs text-gray-500">Outliers</div>
+                      <div className="text-lg font-semibold">
+                        {selectedRun.data_quality.outlier_count}
+                      </div>
+                    </div>
+                    <div className="rounded border border-gray-200 bg-gray-50 p-3">
+                      <div className="text-xs text-gray-500">Volume Consistency</div>
+                      <div className="text-lg font-semibold">
+                        {selectedRun.data_quality.volume_consistency.toFixed(1)}%
+                      </div>
+                    </div>
+                  </div>
+                  {selectedRun.data_quality.has_issues && (
+                    <div className="mt-2 text-xs text-yellow-600">
+                      ⚠️ {selectedRun.data_quality.issues_description}
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           )}

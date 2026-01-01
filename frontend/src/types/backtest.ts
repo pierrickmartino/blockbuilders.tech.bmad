@@ -18,6 +18,18 @@ export interface BacktestSummary {
   beta: number;
 }
 
+export interface DataQualityMetrics {
+  asset: string;
+  timeframe: string;
+  date_from: string;
+  date_to: string;
+  gap_percent: number;
+  outlier_count: number;
+  volume_consistency: number;
+  has_issues: boolean;
+  issues_description: string;
+}
+
 export interface BacktestStatusResponse {
   run_id: string;
   strategy_id: string;
@@ -29,6 +41,7 @@ export interface BacktestStatusResponse {
   triggered_by: string;
   summary?: BacktestSummary | null;
   error_message?: string | null;
+  data_quality?: DataQualityMetrics | null;
 }
 
 export interface BacktestListItem {

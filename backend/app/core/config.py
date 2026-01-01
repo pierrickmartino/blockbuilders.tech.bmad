@@ -31,6 +31,12 @@ class Settings(BaseSettings):
     scheduler_hour_utc: int = 2  # 02:00 UTC default
     scheduler_enabled: bool = True
 
+    # Data quality validation
+    data_quality_lookback_days: int = 90
+    data_quality_gap_threshold: float = 2.0
+    data_quality_outlier_threshold: float = 0.25
+    data_quality_volume_threshold: float = 95.0
+
     # Usage limits (soft caps for beta)
     default_max_strategies: int = 10
     default_max_backtests_per_day: int = 50

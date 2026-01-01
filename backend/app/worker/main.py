@@ -27,7 +27,14 @@ def run_scheduler():
         queue_name="default",
     )
 
-    print(f"Scheduler started. Daily auto-update job scheduled at {settings.scheduler_hour_utc}:00 UTC")
+    # Schedule daily data quality validation job at 03:00 UTC (after auto-update)
+    scheduler.cron(
+        "0 3 * * *",  # Cron expression: 03:00 UTC daily
+        func="app.worker.jobs.validate_data_quality_daily",
+        queue_name="default",
+    )
+
+    print(f"Scheduler started. Daily auto-update job scheduled at {settings.scheduler_hour_utc}:00 UTC, data quality validation at 03:00 UTC")
     scheduler.run()
 
 

@@ -1,6 +1,6 @@
 # PRD – Data Quality Indicators
 
-**Status:** Draft
+**Status:** Done
 **Owner:** Product
 **Last Updated:** 2025-02-14
 

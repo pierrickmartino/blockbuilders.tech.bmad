@@ -10,10 +10,13 @@ from sqlmodel import Session, select, func
 from app.core.config import settings
 from app.core.database import engine
 from app.models.backtest_run import BacktestRun
+from app.models.candle import Candle
+from app.models.data_quality_metric import DataQualityMetric
 from app.models.strategy import Strategy
 from app.models.strategy_version import StrategyVersion
 from app.models.user import User
 from app.backtest.candles import fetch_candles
+from app.backtest.data_quality import compute_daily_metrics, check_has_issues
 from app.backtest.interpreter import interpret_strategy
 from app.backtest.engine import run_backtest, compute_benchmark_curve, compute_benchmark_metrics
 from app.backtest.storage import upload_json, generate_results_key
@@ -348,3 +351,92 @@ def auto_update_strategies_daily() -> None:
                 session.commit()
 
     logger.info(f"auto_update_strategies_daily completed: {enqueued} enqueued, {skipped_limit} skipped (limit), {skipped_existing} skipped (existing)")
+
+
+def validate_data_quality_daily() -> None:
+    """
+    Daily scheduler job: Compute data quality metrics for all asset/timeframe/day combinations.
+    Processes the last N days (configurable via settings.data_quality_lookback_days).
+    """
+    if not settings.scheduler_enabled:
+        logger.info("Scheduler is disabled, skipping validate_data_quality_daily")
+        return
+
+    logger.info("Starting validate_data_quality_daily job")
+
+    with Session(engine) as session:
+        # Get distinct asset/timeframe pairs from candles table
+        stmt = select(Candle.asset, Candle.timeframe).distinct()
+        asset_timeframe_pairs = session.exec(stmt).all()
+
+        logger.info(f"Found {len(asset_timeframe_pairs)} asset/timeframe combinations")
+
+        # Calculate date range (last N days)
+        today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+        lookback_days = settings.data_quality_lookback_days
+        start_date = today - timedelta(days=lookback_days)
+
+        processed = 0
+        skipped = 0
+
+        for asset, timeframe in asset_timeframe_pairs:
+            # Process each day in the lookback window
+            current_date = start_date
+            while current_date <= today:
+                # Check if metric already exists for this day (idempotency)
+                existing_metric = session.exec(
+                    select(DataQualityMetric).where(
+                        DataQualityMetric.asset == asset,
+                        DataQualityMetric.timeframe == timeframe,
+                        DataQualityMetric.date == current_date,
+                    )
+                ).first()
+
+                if existing_metric:
+                    # Skip if metric was computed recently (within last hour)
+                    created_at = existing_metric.created_at
+                    if created_at.tzinfo is None:
+                        created_at = created_at.replace(tzinfo=timezone.utc)
+                    else:
+                        created_at = created_at.astimezone(timezone.utc)
+                    if created_at > datetime.now(timezone.utc) - timedelta(hours=1):
+                        skipped += 1
+                        current_date += timedelta(days=1)
+                        continue
+
+                    # Delete old metric to replace with fresh computation
+                    session.delete(existing_metric)
+
+                # Compute metrics for this day
+                try:
+                    metrics = compute_daily_metrics(asset, timeframe, current_date, session)
+
+                    # Check if metrics breach thresholds
+                    has_issues = check_has_issues(
+                        metrics["gap_percent"],
+                        metrics["outlier_count"],
+                        metrics["volume_consistency"],
+                    )
+
+                    # Create and store metric
+                    quality_metric = DataQualityMetric(
+                        asset=asset,
+                        timeframe=timeframe,
+                        date=current_date,
+                        gap_percent=metrics["gap_percent"],
+                        outlier_count=metrics["outlier_count"],
+                        volume_consistency=metrics["volume_consistency"],
+                        has_issues=has_issues,
+                    )
+                    session.add(quality_metric)
+                    processed += 1
+
+                except Exception as e:
+                    logger.error(f"Error computing metrics for {asset}/{timeframe} on {current_date}: {e}")
+
+                current_date += timedelta(days=1)
+
+        # Commit all metrics
+        session.commit()
+
+    logger.info(f"validate_data_quality_daily completed: {processed} metrics computed, {skipped} skipped (recent)")

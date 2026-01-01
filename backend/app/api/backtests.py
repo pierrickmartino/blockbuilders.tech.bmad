@@ -2,7 +2,7 @@
 from datetime import datetime, timezone, timedelta
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from redis import Redis
 from rq import Queue
 from sqlmodel import Session, select, func
@@ -15,6 +15,7 @@ from app.models.candle import Candle
 from app.models.strategy import Strategy
 from app.models.strategy_version import StrategyVersion
 from app.models.user import User
+from app.backtest.data_quality import query_metrics_for_range
 from app.backtest.storage import download_json
 from app.schemas.backtest import (
     BacktestCreateRequest,
@@ -23,6 +24,7 @@ from app.schemas.backtest import (
     BacktestStatusResponse,
     BacktestSummary,
     CandleResponse,
+    DataQualityMetrics,
     EquityCurvePoint,
     Trade,
     TradeDetail,
@@ -175,6 +177,48 @@ def get_backtest_status(
             beta=run.beta or 0.0,
         )
 
+    # Query data quality metrics for the run's period
+    data_quality = None
+    try:
+        metrics_list = query_metrics_for_range(
+            run.asset,
+            run.timeframe,
+            run.date_from,
+            run.date_to,
+            session,
+        )
+        if metrics_list:
+            # Aggregate metrics across days
+            gap_percent_avg = sum(m.gap_percent for m in metrics_list) / len(metrics_list)
+            outlier_count_total = sum(m.outlier_count for m in metrics_list)
+            volume_consistency_avg = sum(m.volume_consistency for m in metrics_list) / len(metrics_list)
+            has_issues = any(m.has_issues for m in metrics_list)
+
+            # Generate issues description
+            issues_parts = []
+            if gap_percent_avg > settings.data_quality_gap_threshold:
+                issues_parts.append(f"{gap_percent_avg:.1f}% missing candles")
+            if outlier_count_total > 0:
+                issues_parts.append(f"{outlier_count_total} price outliers")
+            if volume_consistency_avg < settings.data_quality_volume_threshold:
+                issues_parts.append(f"{volume_consistency_avg:.1f}% volume consistency")
+
+            issues_description = ", ".join(issues_parts) if issues_parts else "Data quality OK"
+
+            data_quality = DataQualityMetrics(
+                asset=run.asset,
+                timeframe=run.timeframe,
+                date_from=run.date_from,
+                date_to=run.date_to,
+                gap_percent=gap_percent_avg,
+                outlier_count=outlier_count_total,
+                volume_consistency=volume_consistency_avg,
+                has_issues=has_issues,
+                issues_description=issues_description,
+            )
+    except Exception:
+        pass  # Data quality is optional, don't fail if unavailable
+
     return BacktestStatusResponse(
         run_id=run.id,
         strategy_id=run.strategy_id,
@@ -186,6 +230,7 @@ def get_backtest_status(
         triggered_by=run.triggered_by,
         summary=summary,
         error_message=run.error_message,
+        data_quality=data_quality,
     )
 
 
@@ -479,4 +524,77 @@ def get_trade_detail(
         candles=candles_response,
         asset=run.asset,
         timeframe=run.timeframe,
+    )
+
+
+@router.get("/data-quality", response_model=DataQualityMetrics)
+def get_data_quality(
+    asset: str = Query(..., description="Asset pair e.g. BTC/USDT"),
+    timeframe: str = Query(..., description="Timeframe e.g. 1d or 4h"),
+    date_from: datetime = Query(..., description="Start date"),
+    date_to: datetime = Query(..., description="End date"),
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> DataQualityMetrics:
+    """
+    Get data quality metrics for specified asset/timeframe/date range.
+    Aggregates daily metrics over the period.
+    """
+    # Validate date range
+    if date_to <= date_from:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="date_to must be after date_from",
+        )
+
+    # Query metrics for the date range
+    metrics_list = query_metrics_for_range(
+        asset,
+        timeframe,
+        date_from,
+        date_to,
+        session,
+    )
+
+    if not metrics_list:
+        # No stored metrics available, return default values
+        return DataQualityMetrics(
+            asset=asset,
+            timeframe=timeframe,
+            date_from=date_from,
+            date_to=date_to,
+            gap_percent=0.0,
+            outlier_count=0,
+            volume_consistency=100.0,
+            has_issues=False,
+            issues_description="No quality data available yet",
+        )
+
+    # Aggregate metrics across days
+    gap_percent_avg = sum(m.gap_percent for m in metrics_list) / len(metrics_list)
+    outlier_count_total = sum(m.outlier_count for m in metrics_list)
+    volume_consistency_avg = sum(m.volume_consistency for m in metrics_list) / len(metrics_list)
+    has_issues = any(m.has_issues for m in metrics_list)
+
+    # Generate issues description
+    issues_parts = []
+    if gap_percent_avg > settings.data_quality_gap_threshold:
+        issues_parts.append(f"{gap_percent_avg:.1f}% missing candles")
+    if outlier_count_total > 0:
+        issues_parts.append(f"{outlier_count_total} price outliers")
+    if volume_consistency_avg < settings.data_quality_volume_threshold:
+        issues_parts.append(f"{volume_consistency_avg:.1f}% volume consistency")
+
+    issues_description = ", ".join(issues_parts) if issues_parts else "Data quality OK"
+
+    return DataQualityMetrics(
+        asset=asset,
+        timeframe=timeframe,
+        date_from=date_from,
+        date_to=date_to,
+        gap_percent=gap_percent_avg,
+        outlier_count=outlier_count_total,
+        volume_consistency=volume_consistency_avg,
+        has_issues=has_issues,
+        issues_description=issues_description,
     )
