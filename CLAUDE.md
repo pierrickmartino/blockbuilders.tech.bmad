@@ -72,6 +72,7 @@ When there is any conflict, follow this precedence order:
 5. `docs/mvp_plan.md` — **backlog/story seed** (helpful, not authoritative)
 
 **Doc hygiene:** When you add a new `docs/prd-*.md`, also list it in `docs/product.md` (Section 17.1).
+**Strategy metadata:** If you need to store non-execution data in a strategy version JSON (e.g., notes), keep it under a top-level `metadata` key so the interpreter can ignore it safely.
 
 ### 3.2. Default behavior
 
