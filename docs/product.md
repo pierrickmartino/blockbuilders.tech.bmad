@@ -10,7 +10,7 @@
 
 Blockbuilders is a **web-based, no-code strategy lab** where retail crypto traders can visually build, backtest, and iterate on trading strategies without writing code.
 
-**Current State:** Fully functional MVP with post-MVP enhancements (OAuth, scheduled updates, advanced risk management, strategy building wizard).
+**Current State:** Fully functional MVP with post-MVP enhancements (OAuth, scheduled updates, advanced risk management, strategy building wizard, in-app notifications).
 
 **Architecture:**
 - **Frontend:** Next.js 15 + React 19 + TypeScript + Tailwind CSS
@@ -909,6 +909,25 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - recharts (charting)
 - date-fns (date formatting)
 
+### 9.8. In-App Notifications
+
+**Header UI:**
+- Bell icon in the main app header
+- Unread count badge (hidden when 0)
+- Dropdown panel listing newest notifications first
+
+**Notification Events:**
+- Backtest completed
+- Usage limit reached (daily backtests or strategy cap)
+- New follower
+- Strategy commented on
+- Other important system events (as needed)
+
+**Behavior:**
+- Notifications persist until acknowledged (user clicks “mark read” or opens detail)
+- Each item includes a short message, timestamp, and optional deep link
+- Simple empty state when no notifications
+
 ---
 
 ## 10. Backend API Reference
@@ -949,6 +968,11 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 **Usage Router** (`/usage`)
 - GET /me: Get usage limits and counts
 
+**Notifications Router** (`/notifications`)
+- GET /: List notifications (default: unread first)
+- POST /{id}/acknowledge: Mark notification as read
+- POST /acknowledge-all: Mark all notifications as read
+
 **Strategies Router** (`/strategies`)
 - GET /: List strategies (search, include_archived)
 - POST /: Create strategy
@@ -981,6 +1005,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Strategy schemas: StrategyCreate, StrategyUpdate, StrategyResponse
 - Backtest schemas: BacktestCreate, BacktestResponse, TradeResponse
 - Auth schemas: LoginRequest, TokenResponse, PasswordResetRequest
+- Notification schemas: NotificationResponse, NotificationListResponse
 
 **Validation:**
 - Automatic via Pydantic
@@ -994,6 +1019,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Strategy: id, user_id, name, asset, timeframe, auto_update settings
 - StrategyVersion: id, strategy_id, version_number, definition_json
 - BacktestRun: id, user_id, strategy_id, status, metrics, storage keys
+- Notification: id, user_id, type, title, body, link_url, is_read, created_at, acknowledged_at
 - Candle: id, asset, timeframe, timestamp, ohlcv
 
 **Foreign Keys:**
@@ -1002,11 +1028,13 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - backtest_run.user_id → user.id
 - backtest_run.strategy_id → strategy.id
 - backtest_run.strategy_version_id → strategy_version.id
+- notification.user_id → user.id
 
 **Indexes:**
 - users.email (unique)
 - strategies.user_id
 - backtest_runs.user_id, strategy_id
+- notifications.user_id, is_read, created_at
 - candles.asset, timeframe, timestamp
 - candles unique constraint: (asset, timeframe, timestamp)
 
@@ -1097,6 +1125,18 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - triggered_by (ENUM: manual/auto, default manual)
 - created_at, updated_at (TIMESTAMP)
 
+**notifications**
+- id (UUID, PK)
+- user_id (UUID, FK to users)
+- type (VARCHAR)
+- title (VARCHAR)
+- body (TEXT)
+- link_url (VARCHAR, nullable)
+- is_read (BOOLEAN, default false)
+- created_at (TIMESTAMP)
+- acknowledged_at (TIMESTAMP, nullable)
+- Indexes: user_id, is_read, created_at
+
 **candles**
 - id (UUID, PK)
 - asset (VARCHAR)
@@ -1117,6 +1157,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 5. `005_usage_limits` - Usage limit fields on users
 6. `006_add_timezone_preference` - Timezone preference on users
 7. `007_add_auth_fields` - OAuth and password reset fields
+8. `008_add_notifications` - Notifications table
 
 **Migration Commands:**
 - `alembic upgrade head` - Apply all pending migrations
@@ -1242,16 +1283,17 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Data Quality Indicators** | ⏳ Planned | Gap %, outlier count, volume consistency, backtest warnings |
 | **Scheduled Updates** | ✅ Complete | Daily scheduler for auto-update strategies (paper trading) |
 | **Usage Limits** | ✅ Complete | Soft caps (10 strategies, 50 backtests/day) with transparent tracking |
+| **In-App Notifications** | ✅ Complete | Bell icon with unread count, notifications for key events |
 | **Frontend UI** | ✅ Complete | Dashboard, strategy list/editor, backtest runner/results, profile |
 | **Contextual Help & Tooltips** | ✅ Complete | Hover tooltips for indicators, logic blocks, metrics |
 | **Metrics Glossary** | ✅ Complete | Dedicated searchable page explaining backtest metrics |
 | **Strategy Notes & Annotations** | ✅ Complete | Floating text notes on canvas (280 char limit), drag to position |
 | **Worker Infrastructure** | ✅ Complete | RQ job queue, scheduler, background processing |
 | **API** | ✅ Complete | RESTful endpoints, JWT auth, OpenAPI docs |
-| **Database** | ✅ Complete | PostgreSQL with 7 migrations, indexed queries |
+| **Database** | ✅ Complete | PostgreSQL with 8 migrations, indexed queries |
 | **Deployment** | ✅ Complete | Docker Compose stack (6 services) |
 
-**Current State:** Fully functional MVP with post-MVP enhancements (OAuth, scheduled updates, advanced risk management, timezone support, strategy building wizard).
+**Current State:** Fully functional MVP with post-MVP enhancements (OAuth, scheduled updates, advanced risk management, timezone support, strategy building wizard, in-app notifications).
 
 ---
 
@@ -1285,8 +1327,8 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Real-time trading or brokerage integration
 - Strategy marketplace or sharing (beyond OAuth login)
 - Billing/subscription system (soft limits only)
-- User notifications/alerts (no email/SMS alerts)
-- Social features (comments, followers, likes)
+- Email/SMS alerts (only in-app notifications supported)
+- Full social feeds or discovery features
 - Advanced analytics (factor models, Monte Carlo, walk-forward)
 - Webhooks or external integrations
 - Mobile native apps
@@ -1328,6 +1370,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - ✅ Take profit ladder (multiple levels)
 - ✅ Max drawdown risk management
 - ✅ Scheduled re-backtests (paper trading)
+- ✅ In-app notifications
 
 **Proposed (Not Yet Implemented):**
 - Multi-timeframe strategies (Phase 2+)
@@ -1475,6 +1518,7 @@ pytest --cov            # Coverage report
 - `docs/prd-data-quality-indicators.md` - Data quality indicators PRD
 - `docs/prd-metrics-glossary.md` - Metrics glossary PRD
 - `docs/prd-strategy-notes-annotations.md` - Strategy notes & annotations PRD
+- `docs/prd-in-app-notifications.md` - In-app notifications PRD
 - `docs/product.md` - This document (current product truth)
 - `CLAUDE.md` - Instructions for Claude Code
 - `README.md` - Quick start guide
