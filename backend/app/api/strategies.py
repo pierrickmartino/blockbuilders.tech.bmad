@@ -90,14 +90,28 @@ def list_strategies(
     session: Session = Depends(get_session),
 ) -> list[StrategyWithMetricsResponse]:
     """List all strategies for the current user with latest backtest metrics."""
-    # Subquery to get latest completed backtest per strategy
+    # Subquery to get a deterministic latest completed backtest per strategy.
+    # Break ties on identical created_at using the highest id.
     latest_run_subquery = (
         select(
+            BacktestRun.id.label("latest_run_id"),
             BacktestRun.strategy_id,
-            func.max(BacktestRun.created_at).label("latest_created_at"),
+            func.row_number()
+            .over(
+                partition_by=BacktestRun.strategy_id,
+                order_by=(BacktestRun.created_at.desc(), BacktestRun.id.desc()),
+            )
+            .label("row_number"),
         )
         .where(BacktestRun.status == "completed")
-        .group_by(BacktestRun.strategy_id)
+        .subquery()
+    )
+    latest_run_subquery = (
+        select(
+            latest_run_subquery.c.latest_run_id,
+            latest_run_subquery.c.strategy_id,
+        )
+        .where(latest_run_subquery.c.row_number == 1)
         .subquery()
     )
 
@@ -111,9 +125,7 @@ def list_strategies(
         .outerjoin(
             BacktestRun,
             and_(
-                BacktestRun.strategy_id == Strategy.id,
-                BacktestRun.created_at == latest_run_subquery.c.latest_created_at,
-                BacktestRun.status == "completed",
+                BacktestRun.id == latest_run_subquery.c.latest_run_id,
             ),
         )
         .where(Strategy.user_id == user.id)
