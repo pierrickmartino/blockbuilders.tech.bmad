@@ -766,7 +766,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 /reset-password?token=...  → Password reset confirm (public)
 /auth/callback             → OAuth callback handler (public)
 
-/dashboard                 → Welcome page (protected)
+/dashboard                 → Multi-strategy dashboard (protected)
 /strategies                → Strategy list (protected)
 /strategies/[id]           → Strategy editor (protected)
 /strategies/[id]/backtest  → Backtest runner (protected)
@@ -802,16 +802,18 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 ### 9.3. Strategy Management Pages
 
 **Dashboard** (`/dashboard`)
-- Welcome message
-- Recent strategies list (max 5)
-- Quick access to create new strategy
+- Multi-Strategy Dashboard with all strategies in a table/grid
+- Latest performance metrics per strategy (preview)
+- Sort and filter by performance, last run date, asset
+- Quick actions: Open, Duplicate, Archive, Create new strategy
 
 **Strategy List** (`/strategies`)
+- Enhanced version of the dashboard list for full management
 - Search bar (filter by name)
-- Sort options
-- Strategy cards with:
+- Sort and filter by performance, last run date, asset
+- Table/grid rows with:
   - Name, asset, timeframe
-  - Latest backtest metrics
+  - Latest backtest metrics preview
   - Last run timestamp
   - Actions: Open, Duplicate, Archive
 - Empty state + create menu offer “Strategy Building Wizard” for guided creation
@@ -1286,7 +1288,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Scheduled Updates** | ✅ Complete | Daily scheduler for auto-update strategies (paper trading) |
 | **Usage Limits** | ✅ Complete | Soft caps (10 strategies, 50 backtests/day) with transparent tracking |
 | **In-App Notifications** | ✅ Complete | Bell icon with unread count, notifications for key events |
-| **Frontend UI** | ✅ Complete | Dashboard, strategy list/editor, backtest runner/results, profile |
+| **Frontend UI** | ✅ Complete | Multi-strategy dashboard, strategy list/editor, backtest runner/results, profile |
 | **Contextual Help & Tooltips** | ✅ Complete | Hover tooltips for indicators, logic blocks, metrics |
 | **Metrics Glossary** | ✅ Complete | Dedicated searchable page explaining backtest metrics |
 | **Strategy Notes & Annotations** | ✅ Complete | Floating text notes on canvas (280 char limit), drag to position |
@@ -1521,6 +1523,7 @@ pytest --cov            # Coverage report
 - `docs/prd-metrics-glossary.md` - Metrics glossary PRD
 - `docs/prd-strategy-notes-annotations.md` - Strategy notes & annotations PRD
 - `docs/prd-in-app-notifications.md` - In-app notifications PRD
+- `docs/prd-multi-strategy-dashboard.md` - Multi-strategy dashboard PRD
 - `docs/product.md` - This document (current product truth)
 - `CLAUDE.md` - Instructions for Claude Code
 - `README.md` - Quick start guide
