@@ -1157,7 +1157,9 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 5. `005_usage_limits` - Usage limit fields on users
 6. `006_add_timezone_preference` - Timezone preference on users
 7. `007_add_auth_fields` - OAuth and password reset fields
-8. `008_add_notifications` - Notifications table
+8. `008_add_benchmark_metrics` - Benchmark metrics on backtest runs
+9. `009_add_data_quality_metrics_table` - Data quality metrics table
+10. `010_add_notifications_table` - Notifications table
 
 **Migration Commands:**
 - `alembic upgrade head` - Apply all pending migrations

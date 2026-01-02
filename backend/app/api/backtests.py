@@ -12,6 +12,7 @@ from app.core.config import settings
 from app.core.database import get_session
 from app.models.backtest_run import BacktestRun
 from app.models.candle import Candle
+from app.models.notification import Notification
 from app.models.strategy import Strategy
 from app.models.strategy_version import StrategyVersion
 from app.models.user import User
@@ -71,6 +72,27 @@ def create_backtest(
         )
     ).one()
     if today_count >= user.max_backtests_per_day:
+        # Check if notification already exists today to avoid duplicates
+        existing_notification = session.exec(
+            select(Notification).where(
+                Notification.user_id == user.id,
+                Notification.type == "usage_limit_reached",
+                Notification.is_read == False,  # noqa: E712
+                Notification.created_at >= today_start,
+            )
+        ).first()
+
+        # Create notification if it doesn't exist
+        if not existing_notification:
+            notification = Notification(
+                user_id=user.id,
+                type="usage_limit_reached",
+                title="Daily backtest limit reached",
+                body=f"You've reached your daily limit of {user.max_backtests_per_day} backtests.",
+            )
+            session.add(notification)
+            session.commit()
+
         tomorrow = today_start + timedelta(days=1)
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
