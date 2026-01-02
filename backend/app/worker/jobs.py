@@ -12,6 +12,7 @@ from app.core.database import engine
 from app.models.backtest_run import BacktestRun
 from app.models.candle import Candle
 from app.models.data_quality_metric import DataQualityMetric
+from app.models.notification import Notification
 from app.models.strategy import Strategy
 from app.models.strategy_version import StrategyVersion
 from app.models.user import User
@@ -184,6 +185,16 @@ def run_backtest_job(run_id: str) -> None:
             run.trades_key = trades_key
             run.updated_at = datetime.now(timezone.utc)
             session.add(run)
+
+            # Create notification for backtest completion
+            notification = Notification(
+                user_id=run.user_id,
+                type="backtest_completed",
+                title="Backtest completed",
+                body=f"{run.asset}/{run.timeframe} backtest finished.",
+                link_url=f"/strategies/{run.strategy_id}/backtest?run={run.id}",
+            )
+            session.add(notification)
 
             # If this was an auto-run, update the strategy's last_auto_run_at
             if run.triggered_by == "auto":
