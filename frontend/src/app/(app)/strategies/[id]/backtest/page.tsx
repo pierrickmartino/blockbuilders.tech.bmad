@@ -21,6 +21,7 @@ import {
   formatChartDate,
 } from "@/lib/format";
 import { useDisplay } from "@/context/display";
+import { useBacktestResults } from "@/hooks/useBacktestResults";
 import { Strategy } from "@/types/strategy";
 import {
   BacktestCreateResponse,
@@ -28,8 +29,6 @@ import {
   BacktestStatus,
   BacktestStatusResponse,
   DataQualityMetrics,
-  EquityCurvePoint,
-  Trade,
 } from "@/types/backtest";
 import { StrategyTabs } from "@/components/StrategyTabs";
 import TradeDrawer from "@/components/TradeDrawer";
@@ -101,26 +100,52 @@ export default function StrategyBacktestPage({ params }: Props) {
   const [backtests, setBacktests] = useState<BacktestListItem[]>([]);
   const [isLoadingBacktests, setIsLoadingBacktests] = useState(false);
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
-  const [selectedRun, setSelectedRun] = useState<BacktestStatusResponse | null>(null);
 
-  const [trades, setTrades] = useState<Trade[]>([]);
-  const [isLoadingTrades, setIsLoadingTrades] = useState(false);
-  const [tradesError, setTradesError] = useState<string | null>(null);
+  // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
 
-  const [equityCurve, setEquityCurve] = useState<EquityCurvePoint[]>([]);
-  const [isLoadingEquityCurve, setIsLoadingEquityCurve] = useState(false);
-  const [equityCurveError, setEquityCurveError] = useState<string | null>(null);
-
-  const [benchmarkCurve, setBenchmarkCurve] = useState<EquityCurvePoint[]>([]);
-
   // Data quality state
   const [dataQuality, setDataQuality] = useState<DataQualityMetrics | null>(null);
-  const [loadingQuality, setLoadingQuality] = useState(false);
 
   // Trade drawer state
   const [selectedTradeIdx, setSelectedTradeIdx] = useState<number | null>(null);
+
+  // Use custom hook for backtest results (trades, equity curve, benchmark, polling)
+  const handleRunDetailFetched = useCallback((detail: BacktestStatusResponse) => {
+    setError(null);
+    setBacktests((current) =>
+      current.map((run) =>
+        run.run_id === detail.run_id
+          ? {
+              ...run,
+              status: detail.status,
+              total_return: detail.summary?.total_return_pct ?? run.total_return,
+            }
+          : run
+      )
+    );
+  }, []);
+
+  const {
+    selectedRun,
+    trades,
+    equityCurve,
+    benchmarkCurve,
+    isLoadingTrades,
+    isLoadingEquityCurve,
+    tradesError,
+    equityCurveError,
+    refetchTrades,
+    refetchEquityCurve,
+  } = useBacktestResults(selectedRunId, handleRunDetailFetched);
+
+  // Reset pagination when run changes
+  useEffect(() => {
+    if (selectedRun?.status === "completed") {
+      setCurrentPage(1);
+    }
+  }, [selectedRun?.status]);
 
   const loadStrategy = useCallback(async () => {
     setIsLoadingStrategy(true);
@@ -161,111 +186,6 @@ export default function StrategyBacktestPage({ params }: Props) {
     loadBacktests();
   }, [loadStrategy, loadBacktests]);
 
-  const fetchRunDetail = useCallback(
-    async (runId: string) => {
-      try {
-        const detail = await apiFetch<BacktestStatusResponse>(`/backtests/${runId}`);
-        setSelectedRun(detail);
-        setError(null);
-        setBacktests((current) =>
-          current.map((run) =>
-            run.run_id === runId
-              ? {
-                  ...run,
-                  status: detail.status,
-                  total_return: detail.summary?.total_return_pct ?? run.total_return,
-                }
-              : run
-          )
-        );
-        return detail;
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load backtest details");
-        return null;
-      }
-    },
-    []
-  );
-
-  const fetchTrades = useCallback(async (runId: string) => {
-    setIsLoadingTrades(true);
-    setTradesError(null);
-    try {
-      const data = await apiFetch<Trade[]>(`/backtests/${runId}/trades`);
-      setTrades(data);
-    } catch (err) {
-      setTradesError(err instanceof Error ? err.message : "Failed to load trades");
-      setTrades([]);
-    } finally {
-      setIsLoadingTrades(false);
-    }
-  }, []);
-
-  const fetchEquityCurve = useCallback(async (runId: string) => {
-    setIsLoadingEquityCurve(true);
-    setEquityCurveError(null);
-    try {
-      const data = await apiFetch<EquityCurvePoint[]>(`/backtests/${runId}/equity-curve`);
-      setEquityCurve(data);
-    } catch (err) {
-      setEquityCurveError(err instanceof Error ? err.message : "Failed to load equity curve");
-      setEquityCurve([]);
-    } finally {
-      setIsLoadingEquityCurve(false);
-    }
-  }, []);
-
-  const fetchBenchmarkCurve = useCallback(async (runId: string) => {
-    try {
-      const data = await apiFetch<EquityCurvePoint[]>(`/backtests/${runId}/benchmark-equity-curve`);
-      setBenchmarkCurve(data);
-    } catch (err) {
-      // Silently fail - benchmark is optional
-      setBenchmarkCurve([]);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (selectedRun?.status === "completed" && selectedRunId) {
-      fetchTrades(selectedRunId);
-      fetchEquityCurve(selectedRunId);
-      fetchBenchmarkCurve(selectedRunId);
-      setCurrentPage(1);
-    } else {
-      setTrades([]);
-      setTradesError(null);
-      setEquityCurve([]);
-      setEquityCurveError(null);
-      setBenchmarkCurve([]);
-    }
-  }, [selectedRun?.status, selectedRunId, fetchTrades, fetchEquityCurve, fetchBenchmarkCurve]);
-
-  useEffect(() => {
-    if (!selectedRunId) {
-      setSelectedRun(null);
-      return;
-    }
-
-    let isActive = true;
-    let timer: ReturnType<typeof setTimeout> | null = null;
-
-    const poll = async () => {
-      const detail = await fetchRunDetail(selectedRunId);
-      if (!detail || !isActive) return;
-
-      if (detail.status === "pending" || detail.status === "running") {
-        timer = setTimeout(poll, 5000);
-      }
-    };
-
-    poll();
-
-    return () => {
-      isActive = false;
-      if (timer) clearTimeout(timer);
-    };
-  }, [selectedRunId, fetchRunDetail]);
-
   // Fetch data quality metrics when dates or strategy change
   useEffect(() => {
     if (!strategy || !dateFrom || !dateTo) {
@@ -273,11 +193,9 @@ export default function StrategyBacktestPage({ params }: Props) {
       return;
     }
 
-    setLoadingQuality(true);
     fetchDataQuality(strategy.asset, strategy.timeframe, dateFrom, dateTo)
       .then((data) => setDataQuality(data as DataQualityMetrics))
-      .catch(() => setDataQuality(null))
-      .finally(() => setLoadingQuality(false));
+      .catch(() => setDataQuality(null));
   }, [strategy, dateFrom, dateTo]);
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -670,7 +588,7 @@ export default function StrategyBacktestPage({ params }: Props) {
                 <div className="text-center">
                   <p className="text-sm text-red-600">{equityCurveError}</p>
                   <button
-                    onClick={() => selectedRunId && fetchEquityCurve(selectedRunId)}
+                    onClick={refetchEquityCurve}
                     className="mt-2 text-sm text-blue-600 hover:text-blue-800"
                   >
                     Retry
@@ -682,7 +600,7 @@ export default function StrategyBacktestPage({ params }: Props) {
                 <div className="text-center">
                   <p className="text-sm text-gray-500">No equity data available for this run.</p>
                   <button
-                    onClick={() => selectedRunId && fetchEquityCurve(selectedRunId)}
+                    onClick={refetchEquityCurve}
                     className="mt-2 text-sm text-blue-600 hover:text-blue-800"
                   >
                     Retry
@@ -776,7 +694,7 @@ export default function StrategyBacktestPage({ params }: Props) {
               <div className="flex items-center gap-2">
                 <p className="text-sm text-red-600">{tradesError}</p>
                 <button
-                  onClick={() => selectedRunId && fetchTrades(selectedRunId)}
+                  onClick={refetchTrades}
                   className="text-sm text-blue-600 hover:text-blue-800"
                 >
                   Retry

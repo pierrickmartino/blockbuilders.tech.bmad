@@ -1,6 +1,9 @@
 """API endpoints for backtest runs."""
+import logging
 from datetime import datetime, timezone, timedelta
 from uuid import UUID
+
+logger = logging.getLogger(__name__)
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from redis import Redis
@@ -115,14 +118,10 @@ def create_backtest(
     fee_rate = data.fee_rate
     if fee_rate is None:
         fee_rate = user.default_fee_percent if user.default_fee_percent else settings.default_fee_rate
-    else:
-        fee_rate = fee_rate
 
     slippage_rate = data.slippage_rate
     if slippage_rate is None:
         slippage_rate = user.default_slippage_percent if user.default_slippage_percent else settings.default_slippage_rate
-    else:
-        slippage_rate = slippage_rate
 
     # Create backtest run record
     run = BacktestRun(
@@ -238,8 +237,9 @@ def get_backtest_status(
                 has_issues=has_issues,
                 issues_description=issues_description,
             )
-    except Exception:
-        pass  # Data quality is optional, don't fail if unavailable
+    except Exception as e:
+        # Data quality is optional, don't fail if unavailable
+        logger.debug("Failed to fetch data quality metrics: %s", e)
 
     return BacktestStatusResponse(
         run_id=run.id,

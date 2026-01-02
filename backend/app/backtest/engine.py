@@ -61,6 +61,79 @@ class BacktestResult:
     trades: list[Trade]
 
 
+def _create_trade(
+    qty: float,
+    exit_price_raw: float,
+    exit_reason: str,
+    entry_price: float,
+    entry_time: datetime,
+    exit_timestamp: datetime,
+    sl_price: Optional[float],
+    tp_levels: list[TPLevelState],
+    peak_high: float,
+    peak_high_ts: Optional[datetime],
+    trough_low: float,
+    trough_low_ts: Optional[datetime],
+    slippage_rate: float,
+    fee_rate: float,
+) -> tuple[Trade, float]:
+    """
+    Create a Trade record and compute PnL.
+    Returns (Trade, pnl) tuple.
+    """
+    effective_exit = exit_price_raw * (1 - slippage_rate) * (1 - fee_rate)
+    pnl = (effective_exit - entry_price) * qty
+    pnl_pct = ((effective_exit - entry_price) / entry_price) * 100
+
+    # Compute excursion metrics
+    mfe_pct = (peak_high - entry_price) / entry_price * 100
+    mfe_usd = (peak_high - entry_price) * qty
+    mae_pct = (trough_low - entry_price) / entry_price * 100
+    mae_usd = (trough_low - entry_price) * qty
+
+    # Compute R-multiple
+    initial_risk_usd: Optional[float] = None
+    r_multiple: Optional[float] = None
+    if sl_price is not None and sl_price != entry_price:
+        risk_per_unit = abs(entry_price - sl_price)
+        initial_risk_usd = risk_per_unit * qty
+        if initial_risk_usd > 0:
+            r_multiple = pnl / initial_risk_usd
+
+    duration_seconds = int((exit_timestamp - entry_time).total_seconds())
+
+    # TP price for record: first level's price if available
+    tp_price_record = tp_levels[0].price if tp_levels else None
+
+    trade = Trade(
+        entry_time=entry_time,
+        entry_price=entry_price,
+        exit_time=exit_timestamp,
+        exit_price=effective_exit,
+        side="long",
+        pnl=pnl,
+        pnl_pct=pnl_pct,
+        qty=qty,
+        sl_price_at_entry=sl_price,
+        tp_price_at_entry=tp_price_record,
+        exit_reason=exit_reason,
+        mae_usd=round(mae_usd, 2),
+        mae_pct=round(mae_pct, 4),
+        mfe_usd=round(mfe_usd, 2),
+        mfe_pct=round(mfe_pct, 4),
+        initial_risk_usd=(
+            round(initial_risk_usd, 2) if initial_risk_usd else None
+        ),
+        r_multiple=round(r_multiple, 2) if r_multiple else None,
+        peak_price=peak_high,
+        peak_ts=peak_high_ts,
+        trough_price=trough_low,
+        trough_ts=trough_low_ts,
+        duration_seconds=duration_seconds,
+    )
+    return trade, pnl
+
+
 def run_backtest(
     candles: list[Candle],
     signals: StrategySignals,
@@ -121,65 +194,6 @@ def run_backtest(
         candle = candles[i]
         entry_signal = signals.entry_long[i] if i < len(signals.entry_long) else False
         exit_signal = signals.exit_long[i] if i < len(signals.exit_long) else False
-
-        # Helper to record a trade (full or partial exit)
-        def record_trade(qty: float, exit_price_raw: float, exit_reason: str) -> float:
-            """Record a trade and return the PnL."""
-            nonlocal equity
-            effective_exit = exit_price_raw * (1 - slippage_rate) * (1 - fee_rate)
-            pnl = (effective_exit - entry_price) * qty
-            pnl_pct = ((effective_exit - entry_price) / entry_price) * 100
-            equity += pnl
-
-            # Compute excursion metrics
-            mfe_pct = (peak_high - entry_price) / entry_price * 100
-            mfe_usd = (peak_high - entry_price) * qty
-            mae_pct = (trough_low - entry_price) / entry_price * 100
-            mae_usd = (trough_low - entry_price) * qty
-
-            # Compute R-multiple
-            initial_risk_usd: Optional[float] = None
-            r_multiple: Optional[float] = None
-            if sl_price is not None and sl_price != entry_price:
-                risk_per_unit = abs(entry_price - sl_price)
-                initial_risk_usd = risk_per_unit * qty
-                if initial_risk_usd > 0:
-                    r_multiple = pnl / initial_risk_usd
-
-            duration_seconds = int((candle.timestamp - entry_time).total_seconds())
-
-            # TP price for record: first level's price if available
-            tp_price_record = tp_levels[0].price if tp_levels else None
-
-            trades.append(
-                Trade(
-                    entry_time=entry_time,
-                    entry_price=entry_price,
-                    exit_time=candle.timestamp,
-                    exit_price=effective_exit,
-                    side="long",
-                    pnl=pnl,
-                    pnl_pct=pnl_pct,
-                    qty=qty,
-                    sl_price_at_entry=sl_price,
-                    tp_price_at_entry=tp_price_record,
-                    exit_reason=exit_reason,
-                    mae_usd=round(mae_usd, 2),
-                    mae_pct=round(mae_pct, 4),
-                    mfe_usd=round(mfe_usd, 2),
-                    mfe_pct=round(mfe_pct, 4),
-                    initial_risk_usd=(
-                        round(initial_risk_usd, 2) if initial_risk_usd else None
-                    ),
-                    r_multiple=round(r_multiple, 2) if r_multiple else None,
-                    peak_price=peak_high,
-                    peak_ts=peak_high_ts,
-                    trough_price=trough_low,
-                    trough_ts=trough_low_ts,
-                    duration_seconds=duration_seconds,
-                )
-            )
-            return pnl
 
         # If in position, check for exits
         if position_open:
@@ -251,7 +265,24 @@ def run_backtest(
                             position_size
                         )
                         if qty_to_close > 0:
-                            record_trade(qty_to_close, level.price, "tp")
+                            trade, pnl = _create_trade(
+                                qty=qty_to_close,
+                                exit_price_raw=level.price,
+                                exit_reason="tp",
+                                entry_price=entry_price,
+                                entry_time=entry_time,
+                                exit_timestamp=candle.timestamp,
+                                sl_price=sl_price,
+                                tp_levels=tp_levels,
+                                peak_high=peak_high,
+                                peak_high_ts=peak_high_ts,
+                                trough_low=trough_low,
+                                trough_low_ts=trough_low_ts,
+                                slippage_rate=slippage_rate,
+                                fee_rate=fee_rate,
+                            )
+                            trades.append(trade)
+                            equity += pnl
                             position_size -= qty_to_close
                             level.triggered = True
 
@@ -262,7 +293,24 @@ def run_backtest(
 
             # Execute full exit if triggered by SL, trailing stop, max DD, time exit, or signal
             if full_exit and position_size > 0 and exit_price_raw is not None:
-                record_trade(position_size, exit_price_raw, exit_reason)
+                trade, pnl = _create_trade(
+                    qty=position_size,
+                    exit_price_raw=exit_price_raw,
+                    exit_reason=exit_reason,
+                    entry_price=entry_price,
+                    entry_time=entry_time,
+                    exit_timestamp=candle.timestamp,
+                    sl_price=sl_price,
+                    tp_levels=tp_levels,
+                    peak_high=peak_high,
+                    peak_high_ts=peak_high_ts,
+                    trough_low=trough_low,
+                    trough_low_ts=trough_low_ts,
+                    slippage_rate=slippage_rate,
+                    fee_rate=fee_rate,
+                )
+                trades.append(trade)
+                equity += pnl
                 position_size = 0.0
 
             # Reset position if fully closed
@@ -360,60 +408,24 @@ def run_backtest(
             trough_low = final_candle.low
             trough_low_ts = final_candle.timestamp
 
-        effective_exit = final_candle.close * (1 - slippage_rate) * (1 - fee_rate)
-        pnl = (effective_exit - entry_price) * position_size
-        pnl_pct = ((effective_exit - entry_price) / entry_price) * 100
-        equity += pnl
-
-        # Compute excursion metrics
-        mfe_pct = (peak_high - entry_price) / entry_price * 100
-        mfe_usd = (peak_high - entry_price) * position_size
-        mae_pct = (trough_low - entry_price) / entry_price * 100
-        mae_usd = (trough_low - entry_price) * position_size
-
-        # Compute R-multiple
-        eod_initial_risk_usd: Optional[float] = None
-        eod_r_multiple: Optional[float] = None
-        if sl_price is not None and sl_price != entry_price:
-            risk_per_unit = abs(entry_price - sl_price)
-            eod_initial_risk_usd = risk_per_unit * position_size
-            if eod_initial_risk_usd > 0:
-                eod_r_multiple = pnl / eod_initial_risk_usd
-
-        # Duration
-        duration_seconds = int((final_candle.timestamp - entry_time).total_seconds())
-
-        # TP price for record
-        tp_price_record = tp_levels[0].price if tp_levels else None
-
-        trades.append(
-            Trade(
-                entry_time=entry_time,
-                entry_price=entry_price,
-                exit_time=final_candle.timestamp,
-                exit_price=effective_exit,
-                side="long",
-                pnl=pnl,
-                pnl_pct=pnl_pct,
-                qty=position_size,
-                sl_price_at_entry=sl_price,
-                tp_price_at_entry=tp_price_record,
-                exit_reason="end_of_data",
-                mae_usd=round(mae_usd, 2),
-                mae_pct=round(mae_pct, 4),
-                mfe_usd=round(mfe_usd, 2),
-                mfe_pct=round(mfe_pct, 4),
-                initial_risk_usd=(
-                    round(eod_initial_risk_usd, 2) if eod_initial_risk_usd else None
-                ),
-                r_multiple=round(eod_r_multiple, 2) if eod_r_multiple else None,
-                peak_price=peak_high,
-                peak_ts=peak_high_ts,
-                trough_price=trough_low,
-                trough_ts=trough_low_ts,
-                duration_seconds=duration_seconds,
-            )
+        trade, pnl = _create_trade(
+            qty=position_size,
+            exit_price_raw=final_candle.close,
+            exit_reason="end_of_data",
+            entry_price=entry_price,
+            entry_time=entry_time,
+            exit_timestamp=final_candle.timestamp,
+            sl_price=sl_price,
+            tp_levels=tp_levels,
+            peak_high=peak_high,
+            peak_high_ts=peak_high_ts,
+            trough_low=trough_low,
+            trough_low_ts=trough_low_ts,
+            slippage_rate=slippage_rate,
+            fee_rate=fee_rate,
         )
+        trades.append(trade)
+        equity += pnl
 
         # Update final equity in curve
         if equity_curve:

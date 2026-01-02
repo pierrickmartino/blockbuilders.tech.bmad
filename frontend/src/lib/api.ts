@@ -10,10 +10,10 @@ export class ApiError extends Error {
   }
 }
 
-export async function apiFetch<T>(
+async function fetchWithAuth(
   endpoint: string,
   options: RequestInit = {}
-): Promise<T> {
+): Promise<Response> {
   const token =
     typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
@@ -42,11 +42,35 @@ export async function apiFetch<T>(
     throw new ApiError(response.status, message);
   }
 
+  return response;
+}
+
+/**
+ * Fetch JSON data from the API. Use for GET, POST, PUT requests that return data.
+ */
+export async function apiFetch<T>(
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<T> {
+  const response = await fetchWithAuth(endpoint, options);
+
   if (response.status === 204) {
-    return undefined as T;
+    // No content - this is unexpected for apiFetch, use apiFetchVoid instead
+    throw new Error("Unexpected 204 response. Use apiFetchVoid for no-content requests.");
   }
 
   return response.json();
+}
+
+/**
+ * Fetch from the API for requests that return no content (204).
+ * Use for DELETE or other void operations.
+ */
+export async function apiFetchVoid(
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<void> {
+  await fetchWithAuth(endpoint, options);
 }
 
 export async function fetchDataQuality(
