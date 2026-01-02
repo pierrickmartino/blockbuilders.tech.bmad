@@ -14,7 +14,7 @@ export function useNotifications() {
     try {
       setIsLoading(true);
       const response = await apiFetch<NotificationListResponse>(
-        "/notifications"
+        "/notifications/"
       );
       setNotifications(response.items);
       setUnreadCount(response.unread_count);
