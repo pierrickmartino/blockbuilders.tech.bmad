@@ -42,6 +42,10 @@ export async function apiFetch<T>(
     throw new ApiError(response.status, message);
   }
 
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
   return response.json();
 }
 
