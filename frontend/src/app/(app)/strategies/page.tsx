@@ -2,11 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, ApiError } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
 import { useDisplay } from "@/context/display";
 import { useAuth } from "@/context/auth";
-import { ALLOWED_ASSETS, Strategy } from "@/types/strategy";
+import { ALLOWED_ASSETS, Strategy, StrategyExportFile, StrategyVersion, StrategyVersionDetail } from "@/types/strategy";
+import type { ValidationResponse } from "@/types/canvas";
 import NewStrategyModal from "./new-strategy-modal";
 import { StrategyWizard } from "./strategy-wizard";
 
@@ -29,6 +30,10 @@ export default function StrategiesPage() {
   const [showModal, setShowModal] = useState(false);
   const [showWizard, setShowWizard] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importData, setImportData] = useState<StrategyExportFile | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
 
   // New filter states
   const [assetFilter, setAssetFilter] = useState<string>("all");
@@ -182,6 +187,156 @@ export default function StrategiesPage() {
     }
   };
 
+  const handleExport = async (id: string) => {
+    setActionLoading(id);
+    try {
+      // Fetch strategy + versions
+      const strategy = await apiFetch<Strategy>(`/strategies/${id}`);
+      const versions = await apiFetch<StrategyVersion[]>(`/strategies/${id}/versions`);
+
+      if (versions.length === 0) {
+        setError("Cannot export strategy without a saved version");
+        return;
+      }
+
+      // Fetch latest version detail
+      const versionDetail = await apiFetch<StrategyVersionDetail>(
+        `/strategies/${id}/versions/${versions[0].version_number}`
+      );
+
+      // Build export file per PRD format
+      const exportFile: StrategyExportFile = {
+        schema_version: 1,
+        exported_at: new Date().toISOString(),
+        strategy: {
+          name: strategy.name,
+          asset: strategy.asset,
+          timeframe: strategy.timeframe,
+        },
+        definition_json: versionDetail.definition_json,
+      };
+
+      // Trigger browser download
+      const blob = new Blob([JSON.stringify(exportFile, null, 2)], {
+        type: "application/json",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `strategy-${strategy.name.replace(/[^a-z0-9]/gi, "-").toLowerCase()}-${new Date().toISOString().split("T")[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to export strategy");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleImportFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setImportError(null);
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const text = event.target?.result as string;
+        const data = JSON.parse(text);
+
+        // Frontend validation (fast checks per PRD)
+        if (!data.schema_version || data.schema_version !== 1) {
+          setImportError("Unsupported schema version");
+          return;
+        }
+
+        if (!data.strategy?.name || !data.strategy?.asset || !data.strategy?.timeframe) {
+          setImportError("Invalid file: missing strategy fields");
+          return;
+        }
+
+        if (!data.definition_json) {
+          setImportError("Invalid file: missing definition");
+          return;
+        }
+
+        setImportData(data);
+      } catch (err) {
+        setImportError(err instanceof Error ? err.message : "Invalid JSON file");
+      }
+    };
+    reader.onerror = () => setImportError("Failed to read file");
+    reader.readAsText(file);
+  };
+
+  const handleImportConfirm = async () => {
+    if (!importData) return;
+
+    setIsImporting(true);
+    setImportError(null);
+
+    try {
+      // Step 1: Create strategy (backend validates asset/timeframe)
+      const newStrategy = await apiFetch<Strategy>("/strategies/", {
+        method: "POST",
+        body: JSON.stringify({
+          name: importData.strategy.name,
+          asset: importData.strategy.asset,
+          timeframe: importData.strategy.timeframe,
+        }),
+      });
+
+      // Step 2: Validate definition
+      const validation = await apiFetch<ValidationResponse>(
+        `/strategies/${newStrategy.id}/validate`,
+        {
+          method: "POST",
+          body: JSON.stringify(importData.definition_json),
+        }
+      );
+
+      if (validation.status === "invalid") {
+        const messages = validation.errors.map((error) => error.message).filter(Boolean);
+        setImportError(
+          messages.length > 0
+            ? `Validation failed: ${messages.join(" ")}`
+            : "Validation failed. Please fix the strategy and try again."
+        );
+        return;
+      }
+
+      // Step 3: Create version (backend validates definition)
+      await apiFetch(`/strategies/${newStrategy.id}/versions`, {
+        method: "POST",
+        body: JSON.stringify({
+          definition: importData.definition_json,
+        }),
+      });
+
+      // Success - navigate to new strategy
+      setShowImportModal(false);
+      router.push(`/strategies/${newStrategy.id}`);
+      await refreshUsage();
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 422) {
+        setImportError("Invalid strategy definition. Please export a strategy from the app and try again.");
+      } else {
+        setImportError(err instanceof Error ? err.message : "Failed to import strategy");
+      }
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  const handleImportCancel = () => {
+    setShowImportModal(false);
+    setImportData(null);
+    setImportError(null);
+  };
+
   // Helper functions for metric formatting
   const formatMetric = (value: number | null | undefined, suffix = ""): string => {
     if (value === null || value === undefined) return "—";
@@ -215,12 +370,20 @@ export default function StrategiesPage() {
     <div>
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Strategies</h1>
-        <button
-          onClick={() => setShowModal(true)}
-          className="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-        >
-          New Strategy
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowImportModal(true)}
+            className="rounded-md border border-gray-300 bg-white px-4 py-2 text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          >
+            Import
+          </button>
+          <button
+            onClick={() => setShowModal(true)}
+            className="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          >
+            New Strategy
+          </button>
+        </div>
       </div>
 
       {error && (
@@ -404,6 +567,13 @@ export default function StrategiesPage() {
                           Duplicate
                         </button>
                         <button
+                          onClick={() => handleExport(strategy.id)}
+                          disabled={actionLoading === strategy.id}
+                          className="text-gray-600 hover:text-gray-900 disabled:opacity-50"
+                        >
+                          Export
+                        </button>
+                        <button
                           onClick={() => handleArchive(strategy.id, !strategy.is_archived)}
                           disabled={actionLoading === strategy.id}
                           className="text-gray-600 hover:text-gray-900 disabled:opacity-50"
@@ -493,6 +663,14 @@ export default function StrategiesPage() {
                   </button>
                   <span className="text-gray-300">•</span>
                   <button
+                    onClick={() => handleExport(strategy.id)}
+                    disabled={actionLoading === strategy.id}
+                    className="text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50"
+                  >
+                    Export
+                  </button>
+                  <span className="text-gray-300">•</span>
+                  <button
                     onClick={() => handleArchive(strategy.id, !strategy.is_archived)}
                     disabled={actionLoading === strategy.id}
                     className="text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50"
@@ -529,6 +707,82 @@ export default function StrategiesPage() {
             refreshUsage();
           }}
         />
+      )}
+
+      {showImportModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+            <h2 className="mb-4 text-lg font-semibold">Import Strategy</h2>
+
+            {!importData ? (
+              <div>
+                <label className="block">
+                  <span className="mb-2 block text-sm text-gray-600">
+                    Select a strategy JSON file
+                  </span>
+                  <input
+                    type="file"
+                    accept=".json,application/json"
+                    onChange={handleImportFileSelect}
+                    className="block w-full text-sm text-gray-500 file:mr-4 file:rounded file:border-0 file:bg-blue-50 file:px-4 file:py-2 file:text-sm file:font-medium file:text-blue-700 hover:file:bg-blue-100"
+                  />
+                </label>
+
+                {importError && (
+                  <div className="mt-3 rounded border border-red-200 bg-red-50 p-3 text-sm text-red-600">
+                    {importError}
+                  </div>
+                )}
+
+                <div className="mt-4 flex justify-end">
+                  <button
+                    onClick={handleImportCancel}
+                    className="rounded border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <div className="mb-4 rounded border border-gray-200 bg-gray-50 p-3">
+                  <div className="mb-2 text-sm font-medium text-gray-700">
+                    {importData.strategy.name}
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    {importData.strategy.asset} • {importData.strategy.timeframe}
+                  </div>
+                  <div className="mt-2 text-xs text-gray-500">
+                    Exported: {new Date(importData.exported_at).toLocaleDateString()}
+                  </div>
+                </div>
+
+                {importError && (
+                  <div className="mb-3 rounded border border-red-200 bg-red-50 p-3 text-sm text-red-600">
+                    {importError}
+                  </div>
+                )}
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleImportConfirm}
+                    disabled={isImporting}
+                    className="flex-1 rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    {isImporting ? "Importing..." : "Import"}
+                  </button>
+                  <button
+                    onClick={handleImportCancel}
+                    disabled={isImporting}
+                    className="flex-1 rounded border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );

@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import ValidationError as PydanticValidationError
 from sqlmodel import Session, select, func, and_
 
 from app.api.deps import get_current_user
@@ -298,6 +299,24 @@ def create_version(
 ) -> StrategyVersionResponse:
     """Create a new version of a strategy."""
     strategy = get_user_strategy(strategy_id, user, session)
+
+    try:
+        definition = StrategyDefinitionValidate.model_validate(data.definition)
+    except PydanticValidationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=exc.errors(),
+        ) from exc
+
+    errors = _collect_validation_errors(definition)
+    if errors:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "message": "Strategy definition failed validation",
+                "errors": [error.model_dump() for error in errors],
+            },
+        )
 
     # Get max version number
     max_version = session.exec(
@@ -602,6 +621,15 @@ def validate_strategy(
     # Verify user owns the strategy
     get_user_strategy(strategy_id, user, session)
 
+    errors = _collect_validation_errors(definition)
+
+    return ValidationResponse(
+        status="valid" if not errors else "invalid",
+        errors=errors,
+    )
+
+
+def _collect_validation_errors(definition: StrategyDefinitionValidate) -> list[ValidationError]:
     errors: list[ValidationError] = []
     block_types = [b.type for b in definition.blocks]
     block_ids = {b.id for b in definition.blocks}
@@ -686,7 +714,4 @@ def validate_strategy(
         param_errors = _validate_block_params(block)
         errors.extend(param_errors)
 
-    return ValidationResponse(
-        status="valid" if not errors else "invalid",
-        errors=errors,
-    )
+    return errors

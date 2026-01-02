@@ -1,6 +1,6 @@
 # PRD: Auth UX/UI Improvements (Sign-in / Sign-up)
 
-**Status:** Done  
+**Status:** Implemented  
 **Owner:** Product  
 **Area:** Frontend (Auth pages/components) + backend auth enablement  
 **Primary users:** New and returning users signing into Blockbuilders  

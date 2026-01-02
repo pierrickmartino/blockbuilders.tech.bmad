@@ -7,7 +7,7 @@ import { Node, Edge } from "@xyflow/react";
 import { apiFetch } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
 import { useDisplay } from "@/context/display";
-import { Strategy, StrategyVersion, StrategyVersionDetail } from "@/types/strategy";
+import { Strategy, StrategyVersion, StrategyVersionDetail, StrategyExportFile } from "@/types/strategy";
 import {
   StrategyDefinition,
   ValidationError,
@@ -304,6 +304,54 @@ export default function StrategyEditorPage({ params }: Props) {
     }
   };
 
+  const handleExport = async () => {
+    if (!strategy) return;
+    setError(null);
+
+    try {
+      const versionsData = await apiFetch<StrategyVersion[]>(`/strategies/${id}/versions`);
+
+      if (versionsData.length === 0) {
+        setError("Cannot export strategy without a saved version");
+        return;
+      }
+
+      // Reuse selectedVersion if it's the latest, otherwise fetch
+      let versionDetail = selectedVersion;
+      if (!versionDetail || versionDetail.version_number !== versionsData[0].version_number) {
+        versionDetail = await apiFetch<StrategyVersionDetail>(
+          `/strategies/${id}/versions/${versionsData[0].version_number}`
+        );
+      }
+
+      const exportFile: StrategyExportFile = {
+        schema_version: 1,
+        exported_at: new Date().toISOString(),
+        strategy: {
+          name: strategy.name,
+          asset: strategy.asset,
+          timeframe: strategy.timeframe,
+        },
+        definition_json: versionDetail.definition_json,
+      };
+
+      // Trigger download
+      const blob = new Blob([JSON.stringify(exportFile, null, 2)], {
+        type: "application/json",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `strategy-${strategy.name.replace(/[^a-z0-9]/gi, "-").toLowerCase()}-${new Date().toISOString().split("T")[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to export strategy");
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -435,6 +483,12 @@ export default function StrategyEditorPage({ params }: Props) {
               className="rounded bg-blue-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
             >
               {isSavingVersion ? "Saving..." : "Save"}
+            </button>
+            <button
+              onClick={handleExport}
+              className="rounded border border-gray-300 px-4 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              Export
             </button>
           </div>
         </div>
