@@ -2,10 +2,11 @@ from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlmodel import Session, select, func
+from sqlmodel import Session, select, func, and_
 
 from app.api.deps import get_current_user
 from app.core.database import get_session
+from app.models.backtest_run import BacktestRun
 from app.models.strategy import Strategy
 from app.models.strategy_version import StrategyVersion
 from app.models.user import User
@@ -18,6 +19,7 @@ from app.schemas.strategy import (
     StrategyVersionCreateRequest,
     StrategyVersionDetailResponse,
     StrategyVersionResponse,
+    StrategyWithMetricsResponse,
     ValidationError,
     ValidationResponse,
 )
@@ -80,15 +82,54 @@ def create_strategy(
     )
 
 
-@router.get("/", response_model=list[StrategyResponse])
+@router.get("/", response_model=list[StrategyWithMetricsResponse])
 def list_strategies(
     search: str = Query(default="", description="Filter by name (case-insensitive)"),
     include_archived: bool = Query(default=False, description="Include archived strategies"),
     user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
-) -> list[StrategyResponse]:
-    """List all strategies for the current user."""
-    query = select(Strategy).where(Strategy.user_id == user.id)
+) -> list[StrategyWithMetricsResponse]:
+    """List all strategies for the current user with latest backtest metrics."""
+    # Subquery to get a deterministic latest completed backtest per strategy.
+    # Break ties on identical created_at using the highest id.
+    latest_run_subquery = (
+        select(
+            BacktestRun.id.label("latest_run_id"),
+            BacktestRun.strategy_id,
+            func.row_number()
+            .over(
+                partition_by=BacktestRun.strategy_id,
+                order_by=(BacktestRun.created_at.desc(), BacktestRun.id.desc()),
+            )
+            .label("row_number"),
+        )
+        .where(BacktestRun.status == "completed")
+        .subquery()
+    )
+    latest_run_subquery = (
+        select(
+            latest_run_subquery.c.latest_run_id,
+            latest_run_subquery.c.strategy_id,
+        )
+        .where(latest_run_subquery.c.row_number == 1)
+        .subquery()
+    )
+
+    # Main query with LEFT JOIN to include metrics
+    query = (
+        select(Strategy, BacktestRun)
+        .outerjoin(
+            latest_run_subquery,
+            Strategy.id == latest_run_subquery.c.strategy_id,
+        )
+        .outerjoin(
+            BacktestRun,
+            and_(
+                BacktestRun.id == latest_run_subquery.c.latest_run_id,
+            ),
+        )
+        .where(Strategy.user_id == user.id)
+    )
 
     if not include_archived:
         query = query.where(Strategy.is_archived == False)  # noqa: E712
@@ -97,10 +138,10 @@ def list_strategies(
         query = query.where(Strategy.name.ilike(f"%{search}%"))
 
     query = query.order_by(Strategy.updated_at.desc())
-    strategies = session.exec(query).all()
+    results = session.exec(query).all()
 
     return [
-        StrategyResponse(
+        StrategyWithMetricsResponse(
             id=s.id,
             name=s.name,
             asset=s.asset,
@@ -111,8 +152,13 @@ def list_strategies(
             last_auto_run_at=s.last_auto_run_at,
             created_at=s.created_at,
             updated_at=s.updated_at,
+            latest_total_return_pct=backtest.total_return if backtest else None,
+            latest_max_drawdown_pct=backtest.max_drawdown if backtest else None,
+            latest_win_rate_pct=backtest.win_rate if backtest else None,
+            latest_num_trades=backtest.num_trades if backtest else None,
+            last_run_at=backtest.created_at if backtest else None,
         )
-        for s in strategies
+        for s, backtest in results
     ]
 
 
