@@ -448,6 +448,20 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - No new backend endpoints or block types needed.
 - Simple yellow sticky note UI with inline editing.
 
+### 4.8. Strategy Explanation Generator (Planned)
+
+**Purpose:** Auto-generate a plain-English explanation of what a strategy does based on its canvas blocks.
+
+**Planned Behavior:**
+- Generates a readable summary such as: “This strategy enters long when price crosses above the 20-day SMA and RSI is below 30…”
+- Uses deterministic, template-based text generation from the strategy JSON.
+- Helps users document and share strategies without manually writing descriptions.
+
+**Implementation Notes:**
+- Explanation is derived from block definitions + connections (no AI).
+- Output is read-only and can be regenerated at any time.
+- If stored, explanation lives under `metadata.explanation` in the strategy version JSON.
+
 
 --- 
 
@@ -1301,6 +1315,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Contextual Help & Tooltips** | ✅ Complete | Hover tooltips for indicators, logic blocks, metrics |
 | **Metrics Glossary** | ✅ Complete | Dedicated searchable page explaining backtest metrics |
 | **Strategy Notes & Annotations** | ✅ Complete | Floating text notes on canvas (280 char limit), drag to position |
+| **Strategy Explanation Generator** | ⏳ Planned | Template-based plain-English explanation from strategy JSON |
 | **Strategy Import/Export** | ⏳ Planned | JSON export/download + import/upload with validation |
 | **Worker Infrastructure** | ✅ Complete | RQ job queue, scheduler, background processing |
 | **API** | ✅ Complete | RESTful endpoints, JWT auth, OpenAPI docs |
@@ -1532,6 +1547,7 @@ pytest --cov            # Coverage report
 - `docs/prd-data-quality-indicators.md` - Data quality indicators PRD
 - `docs/prd-metrics-glossary.md` - Metrics glossary PRD
 - `docs/prd-strategy-notes-annotations.md` - Strategy notes & annotations PRD
+- `docs/prd-strategy-explanation-generator.md` - Strategy explanation generator PRD
 - `docs/prd-strategy-import-export.md` - Strategy import/export PRD
 - `docs/prd-in-app-notifications.md` - In-app notifications PRD
 - `docs/prd-multi-strategy-dashboard.md` - Multi-strategy dashboard PRD
