@@ -406,7 +406,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Uses existing canvas utilities for JSON conversion where possible
 - No API changes required
 
-### 4.5. Contextual Help & Tooltips (Planned)
+### 4.5. Contextual Help & Tooltips
 
 **Purpose:** Provide quick explanations for indicators, logic blocks, and metrics without leaving the app.
 
@@ -415,11 +415,11 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Definitions appear directly in the tooltip (no links to a glossary page).
 - Copy is short (1–2 sentences), focused on plain-language meaning and usage.
 
-**Implementation Notes (Planned):**
+**Implementation Notes:**
 - Prefer existing UI components or native tooltips (no new libraries).
 - No backend changes required.
   
-### 4.6. Metrics Glossary (Planned)
+### 4.6. Metrics Glossary
 
 **Purpose:** A dedicated, searchable reference page explaining every performance metric shown in backtests.
 
@@ -428,7 +428,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - “Good” vs “bad” ranges and example scenarios for each metric.
 - Client-side search input filters metrics in place.
 
-**Implementation Notes (Planned):**
+**Implementation Notes:**
 - No backend changes required.
 - Reuse existing typography/layout patterns.
 
@@ -631,7 +631,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 
 **Implementation:** `backend/app/backtest/storage.py`
 
-### 6.4. Data Quality Indicators (Planned)
+### 6.4. Data Quality Indicators
 
 **Purpose:** Surface data quality metrics (gap %, outlier count, volume consistency) per asset/timeframe and warn users when a backtest period overlaps known issues.
 
@@ -640,7 +640,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Backtest UI shows a compact quality summary for the selected asset/timeframe.
 - Backtest date range selector warns if the period overlaps known data issues.
 
-**Implementation Notes (Planned):**
+**Implementation Notes:**
 - Use existing candle data (no extra vendor calls).
 - Store quality metadata in a simple table keyed by asset, timeframe, and date range.
 
@@ -1293,7 +1293,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Strategy Building Wizard** | ✅ Complete | Guided Q&A that generates editable strategy JSON |
 | **Backtesting** | ✅ Complete | Full engine with TP ladder, SL, max drawdown, equity curves, trade detail |
 | **Data Management** | ✅ Complete | Candle DB cache, CryptoCompare integration, S3/MinIO storage |
-| **Data Quality Indicators** | ⏳ Planned | Gap %, outlier count, volume consistency, backtest warnings |
+| **Data Quality Indicators** | ✅ Complete | Gap %, outlier count, volume consistency, backtest warnings |
 | **Scheduled Updates** | ✅ Complete | Daily scheduler for auto-update strategies (paper trading) |
 | **Usage Limits** | ✅ Complete | Soft caps (10 strategies, 50 backtests/day) with transparent tracking |
 | **In-App Notifications** | ✅ Complete | Bell icon with unread count, notifications for key events |

@@ -1,6 +1,6 @@
 # PRD: Contextual Help & Tooltips
 
-**Status:** Done
+**Status:** Implemented
 **Owner:** Product
 **Last Updated:** 2025-12-30
 

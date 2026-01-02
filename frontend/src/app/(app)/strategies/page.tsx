@@ -2,11 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, ApiError } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
 import { useDisplay } from "@/context/display";
 import { useAuth } from "@/context/auth";
 import { ALLOWED_ASSETS, Strategy, StrategyExportFile, StrategyVersion, StrategyVersionDetail } from "@/types/strategy";
+import type { ValidationResponse } from "@/types/canvas";
 import NewStrategyModal from "./new-strategy-modal";
 import { StrategyWizard } from "./strategy-wizard";
 
@@ -288,7 +289,26 @@ export default function StrategiesPage() {
         }),
       });
 
-      // Step 2: Create version (backend validates definition)
+      // Step 2: Validate definition
+      const validation = await apiFetch<ValidationResponse>(
+        `/strategies/${newStrategy.id}/validate`,
+        {
+          method: "POST",
+          body: JSON.stringify(importData.definition_json),
+        }
+      );
+
+      if (validation.status === "invalid") {
+        const messages = validation.errors.map((error) => error.message).filter(Boolean);
+        setImportError(
+          messages.length > 0
+            ? `Validation failed: ${messages.join(" ")}`
+            : "Validation failed. Please fix the strategy and try again."
+        );
+        return;
+      }
+
+      // Step 3: Create version (backend validates definition)
       await apiFetch(`/strategies/${newStrategy.id}/versions`, {
         method: "POST",
         body: JSON.stringify({
@@ -301,7 +321,11 @@ export default function StrategiesPage() {
       router.push(`/strategies/${newStrategy.id}`);
       await refreshUsage();
     } catch (err) {
-      setImportError(err instanceof Error ? err.message : "Failed to import strategy");
+      if (err instanceof ApiError && err.status === 422) {
+        setImportError("Invalid strategy definition. Please export a strategy from the app and try again.");
+      } else {
+        setImportError(err instanceof Error ? err.message : "Failed to import strategy");
+      }
     } finally {
       setIsImporting(false);
     }
