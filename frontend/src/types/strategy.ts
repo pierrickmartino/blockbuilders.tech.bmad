@@ -80,3 +80,14 @@ export const ALLOWED_TIMEFRAMES = ["1d", "4h"] as const;
 
 export type AllowedAsset = (typeof ALLOWED_ASSETS)[number];
 export type AllowedTimeframe = (typeof ALLOWED_TIMEFRAMES)[number];
+
+export interface StrategyExportFile {
+  schema_version: 1;
+  exported_at: string; // ISO timestamp
+  strategy: {
+    name: string;
+    asset: string;
+    timeframe: string;
+  };
+  definition_json: Record<string, unknown>;
+}
