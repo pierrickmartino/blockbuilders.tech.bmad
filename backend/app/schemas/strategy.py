@@ -98,6 +98,15 @@ class StrategyResponse(BaseModel):
     updated_at: datetime
 
 
+class StrategyWithMetricsResponse(StrategyResponse):
+    """Strategy response with latest backtest metrics."""
+    latest_total_return_pct: Optional[float] = None
+    latest_max_drawdown_pct: Optional[float] = None
+    latest_win_rate_pct: Optional[float] = None
+    latest_num_trades: Optional[int] = None
+    last_run_at: Optional[datetime] = None
+
+
 class StrategyVersionResponse(BaseModel):
     id: UUID
     version_number: int

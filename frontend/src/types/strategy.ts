@@ -9,6 +9,11 @@ export interface Strategy {
   last_auto_run_at: string | null;
   created_at: string;
   updated_at: string;
+  latest_total_return_pct?: number | null;
+  latest_max_drawdown_pct?: number | null;
+  latest_win_rate_pct?: number | null;
+  latest_num_trades?: number | null;
+  last_run_at?: string | null;
 }
 
 export interface StrategyVersion {
