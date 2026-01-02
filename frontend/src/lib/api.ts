@@ -1,10 +1,14 @@
 const RAW_API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-const API_BASE =
-  typeof window === "undefined"
-    ? RAW_API_BASE
-    : window.location.protocol === "https:" && RAW_API_BASE.startsWith("http://")
-    ? `https://${RAW_API_BASE.slice("http://".length)}`
-    : RAW_API_BASE;
+
+function getApiBase(): string {
+  if (typeof window === "undefined") {
+    return RAW_API_BASE;
+  }
+  if (window.location.protocol === "https:" && RAW_API_BASE.startsWith("http://")) {
+    return `https://${RAW_API_BASE.slice("http://".length)}`;
+  }
+  return RAW_API_BASE;
+}
 
 export class ApiError extends Error {
   constructor(
@@ -32,7 +36,7 @@ async function fetchWithAuth(
     (headers as Record<string, string>)["Authorization"] = `Bearer ${token}`;
   }
 
-  const response = await fetch(`${API_BASE}${endpoint}`, {
+  const response = await fetch(`${getApiBase()}${endpoint}`, {
     ...options,
     headers,
   });
