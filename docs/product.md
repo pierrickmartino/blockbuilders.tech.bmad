@@ -1,7 +1,7 @@
 # Blockbuilders – Product Documentation
 
 **Status:** Current Product Truth
-**Last Updated:** 2025-02-14
+**Last Updated:** 2026-01-01
 **Purpose:** Comprehensive documentation of all implemented features
 
 ---
@@ -201,6 +201,15 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - All assets validated against ALLOWED_ASSETS constant (backend: `app/schemas/strategy.py`, frontend: `types/strategy.ts`)
 - CryptoCompare API dynamically supports all listed pairs
 - No database schema changes required (asset stored as string)
+
+### 3.5. Strategy Import/Export (Planned)
+
+**Purpose:** Allow users to export a strategy as a JSON file and import it later to create a new strategy. This supports backup, sharing outside the platform, and account migration.
+
+**Planned Behavior:**
+- Export downloads a JSON file containing strategy metadata + latest definition JSON.
+- Import accepts a JSON file, validates it, and creates a new strategy + version.
+- Imported strategies always create a new record (never overwrite).
 
 ---
 
@@ -1292,6 +1301,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Contextual Help & Tooltips** | ✅ Complete | Hover tooltips for indicators, logic blocks, metrics |
 | **Metrics Glossary** | ✅ Complete | Dedicated searchable page explaining backtest metrics |
 | **Strategy Notes & Annotations** | ✅ Complete | Floating text notes on canvas (280 char limit), drag to position |
+| **Strategy Import/Export** | ⏳ Planned | JSON export/download + import/upload with validation |
 | **Worker Infrastructure** | ✅ Complete | RQ job queue, scheduler, background processing |
 | **API** | ✅ Complete | RESTful endpoints, JWT auth, OpenAPI docs |
 | **Database** | ✅ Complete | PostgreSQL with 8 migrations, indexed queries |
@@ -1329,7 +1339,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 
 **Not Implemented (Intentionally):**
 - Real-time trading or brokerage integration
-- Strategy marketplace or sharing (beyond OAuth login)
+- Strategy marketplace or public sharing links (manual file export/import is allowed)
 - Billing/subscription system (soft limits only)
 - Email/SMS alerts (only in-app notifications supported)
 - Full social feeds or discovery features
@@ -1522,6 +1532,7 @@ pytest --cov            # Coverage report
 - `docs/prd-data-quality-indicators.md` - Data quality indicators PRD
 - `docs/prd-metrics-glossary.md` - Metrics glossary PRD
 - `docs/prd-strategy-notes-annotations.md` - Strategy notes & annotations PRD
+- `docs/prd-strategy-import-export.md` - Strategy import/export PRD
 - `docs/prd-in-app-notifications.md` - In-app notifications PRD
 - `docs/prd-multi-strategy-dashboard.md` - Multi-strategy dashboard PRD
 - `docs/product.md` - This document (current product truth)
