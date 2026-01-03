@@ -155,6 +155,11 @@ export default function StrategyEditorPage({ params }: Props) {
     [nodes, selectedNodeId]
   );
 
+  const globalValidationErrors = useMemo(
+    () => validationErrors.filter((e) => !e.block_id),
+    [validationErrors]
+  );
+
   useEffect(() => {
     if (selectedNodeId && !nodes.some((node) => node.id === selectedNodeId)) {
       setSelectedNodeId(null);
@@ -167,6 +172,37 @@ export default function StrategyEditorPage({ params }: Props) {
     const result = generateExplanation(definition);
     setExplanation(result);
   }, [nodes, edges]);
+
+  // Map validation errors to node data
+  useEffect(() => {
+    if (validationErrors.length > 0) {
+      setNodes((nodes) =>
+        nodes.map((node) => {
+          const nodeErrors = validationErrors.filter((e) => e.block_id === node.id);
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              hasError: nodeErrors.length > 0,
+              validationMessage: nodeErrors[0]?.message,
+            },
+          };
+        })
+      );
+    } else {
+      // Clear validation state when no errors
+      setNodes((nodes) =>
+        nodes.map((node) => ({
+          ...node,
+          data: {
+            ...node.data,
+            hasError: false,
+            validationMessage: undefined,
+          },
+        }))
+      );
+    }
+  }, [validationErrors, setNodes]);
 
   const handleNameSave = async () => {
     if (!nameInput.trim() || nameInput === strategy?.name) {
@@ -637,6 +673,7 @@ export default function StrategyEditorPage({ params }: Props) {
             onEdgesChange={setEdges}
             onNodeSelect={(node) => setSelectedNodeId(node?.id ?? null)}
             onAddNote={handleAddNote}
+            globalValidationErrors={globalValidationErrors}
           />
         </div>
 
