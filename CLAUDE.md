@@ -71,7 +71,7 @@ When there is any conflict, follow this precedence order:
 4. `docs/mvp.md` — **MVP baseline + guardrails**
 5. `docs/mvp_plan.md` — **backlog/story seed** (helpful, not authoritative)
 
-**Doc hygiene:** When you add a new `docs/prd-*.md`, also list it in `docs/product.md` (Section 17.1). If you change dashboard or strategy list behavior, update the UI notes in `docs/product.md` Section 9.3 and the feature summary in Section 13.
+**Doc hygiene:** When you add a new `docs/prd-*.md`, also list it in `docs/product.md` (Section 17.1). If you change dashboard or strategy list behavior, update the UI notes in `docs/product.md` Section 9.3 and the feature summary in Section 13. If you add or change backtest visualizations, update `docs/product.md` Section 5.5 and the feature summary in Section 13.
 **Strategy metadata:** If you need to store non-execution data in a strategy version JSON (e.g., notes), keep it under a top-level `metadata` key so the interpreter can ignore it safely.
 **Strategy portability:** Keep import/export formats minimal and stable (JSON only), favoring explicit validation over clever transforms.
 **Strategy explanations:** Keep explanation generation deterministic and derived from block JSON; store any generated text under `metadata.explanation` if persistence is required.

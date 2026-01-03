@@ -580,6 +580,11 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Array of {timestamp, equity} points for buy-and-hold
 - Stored alongside the strategy curve
 
+**Drawdown Chart** (Planned)
+- Dedicated underwater equity percentage chart
+- Generated from equity curve data (peak-to-trough drawdown % over time)
+- Highlights max drawdown period and duration
+
 **Trades List** (`GET /backtests/{run_id}/trades`)
 - Array of trade objects with:
   - entry_time, entry_price, exit_time, exit_price
@@ -1319,6 +1324,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Visual Builder** | ✅ Complete | 20 block types, drag-drop, parameter editing, mobile-responsive |
 | **Strategy Building Wizard** | ✅ Complete | Guided Q&A that generates editable strategy JSON |
 | **Backtesting** | ✅ Complete | Full engine with TP ladder, SL, max drawdown, equity curves, trade detail |
+| **Drawdown Chart** | ⏳ Planned | Underwater equity % chart highlighting max drawdown period |
 | **Data Management** | ✅ Complete | Candle DB cache, CryptoCompare integration, S3/MinIO storage |
 | **Data Quality Indicators** | ✅ Complete | Gap %, outlier count, volume consistency, backtest warnings |
 | **Scheduled Updates** | ✅ Complete | Daily scheduler for auto-update strategies (paper trading) |
@@ -1566,6 +1572,7 @@ pytest --cov            # Coverage report
 - `docs/prd-visual-strategy-validation-feedback.md` - Visual validation feedback PRD
 - `docs/prd-in-app-notifications.md` - In-app notifications PRD
 - `docs/prd-multi-strategy-dashboard.md` - Multi-strategy dashboard PRD
+- `docs/prd-drawdown-chart.md` - Drawdown chart PRD
 - `docs/product.md` - This document (current product truth)
 - `CLAUDE.md` - Instructions for Claude Code
 - `README.md` - Quick start guide
