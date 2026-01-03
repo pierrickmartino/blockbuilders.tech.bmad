@@ -15,6 +15,7 @@ import {
   BlockMeta,
   BlockType,
   getBlockMeta,
+  ExplanationResult,
 } from "@/types/canvas";
 import {
   definitionToReactFlow,
@@ -22,6 +23,7 @@ import {
   createDefaultDefinition,
   generateBlockId,
 } from "@/lib/canvas-utils";
+import { generateExplanation } from "@/lib/explanation-generator";
 import StrategyCanvas from "@/components/canvas/StrategyCanvas";
 import BlockPalette from "@/components/canvas/BlockPalette";
 import PropertiesPanel from "@/components/canvas/PropertiesPanel";
@@ -61,6 +63,9 @@ export default function StrategyEditorPage({ params }: Props) {
   const [isSavingVersion, setIsSavingVersion] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
+  // Explanation state
+  const [explanation, setExplanation] = useState<ExplanationResult | null>(null);
+
   // Auto-update state
   const [isUpdatingAutoUpdate, setIsUpdatingAutoUpdate] = useState(false);
 
@@ -78,12 +83,20 @@ export default function StrategyEditorPage({ params }: Props) {
           const { nodes: newNodes, edges: newEdges } = definitionToReactFlow(definition);
           setNodes(newNodes);
           setEdges(newEdges);
+
+          // Generate explanation
+          const result = generateExplanation(definition);
+          setExplanation(result);
         } else {
           // Create default canvas with pre-placed blocks
           const defaultDef = createDefaultDefinition();
           const { nodes: newNodes, edges: newEdges } = definitionToReactFlow(defaultDef);
           setNodes(newNodes);
           setEdges(newEdges);
+
+          // Generate explanation for default definition
+          const result = generateExplanation(defaultDef);
+          setExplanation(result);
         }
         setValidationErrors([]);
       } catch {
@@ -147,6 +160,13 @@ export default function StrategyEditorPage({ params }: Props) {
       setSelectedNodeId(null);
     }
   }, [nodes, selectedNodeId]);
+
+  // Regenerate explanation when canvas changes
+  useEffect(() => {
+    const definition = reactFlowToDefinition(nodes, edges);
+    const result = generateExplanation(definition);
+    setExplanation(result);
+  }, [nodes, edges]);
 
   const handleNameSave = async () => {
     if (!nameInput.trim() || nameInput === strategy?.name) {
@@ -302,6 +322,16 @@ export default function StrategyEditorPage({ params }: Props) {
     } finally {
       setIsUpdatingAutoUpdate(false);
     }
+  };
+
+  const handleCopyExplanation = () => {
+    if (!explanation) return;
+    const text = [explanation.entry, explanation.exit, explanation.risk]
+      .filter(Boolean)
+      .join(" ");
+    navigator.clipboard.writeText(text);
+    setSaveMessage("Explanation copied to clipboard");
+    setTimeout(() => setSaveMessage(null), 2000);
   };
 
   const handleExport = async () => {
@@ -520,6 +550,31 @@ export default function StrategyEditorPage({ params }: Props) {
         {saveMessage && (
           <div className="mt-2 rounded border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-600">
             {saveMessage}
+          </div>
+        )}
+
+        {/* Strategy Explanation */}
+        {explanation && explanation.status === "valid" && (
+          <div className="mt-2 rounded border border-blue-100 bg-blue-50 px-3 py-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-blue-700">Strategy Summary</span>
+              <button
+                onClick={handleCopyExplanation}
+                className="text-xs text-blue-600 hover:text-blue-800 hover:underline"
+              >
+                Copy
+              </button>
+            </div>
+            <div className="mt-1 space-y-1 text-sm text-gray-700">
+              <p>{explanation.entry}</p>
+              <p>{explanation.exit}</p>
+              {explanation.risk && <p>{explanation.risk}</p>}
+            </div>
+          </div>
+        )}
+        {explanation && explanation.status === "fallback" && (
+          <div className="mt-2 rounded border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600">
+            {explanation.entry}
           </div>
         )}
       </div>

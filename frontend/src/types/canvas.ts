@@ -409,3 +409,11 @@ export function getBlockMeta(type: BlockType): BlockMeta | undefined {
 export function getBlocksByCategory(category: BlockCategory): BlockMeta[] {
   return BLOCK_REGISTRY.filter((b) => b.category === category);
 }
+
+// Strategy explanation result
+export interface ExplanationResult {
+  status: "valid" | "fallback";
+  entry: string;
+  exit: string;
+  risk?: string;
+}
