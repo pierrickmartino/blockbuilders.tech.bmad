@@ -3,11 +3,23 @@ import BaseNode from "../BaseNode";
 
 export default function CrossoverNode({ data, selected }: NodeProps) {
   const label = String(data?.label || "Crossover");
+  const hasError = typeof data?.hasError === "boolean" ? data.hasError : false;
+  const validationMessage =
+    typeof data?.validationMessage === "string"
+      ? data.validationMessage
+      : undefined;
   const params = (data?.params || {}) as { direction?: string };
   const direction = params.direction || "crosses_above";
   const displayText = direction === "crosses_above" ? "Crosses Above" : "Crosses Below";
   return (
-    <BaseNode label={label} selected={selected} category="logic" blockType="crossover">
+    <BaseNode
+      label={label}
+      selected={selected}
+      category="logic"
+      blockType="crossover"
+      hasError={hasError}
+      validationMessage={validationMessage}
+    >
       <Handle
         type="target"
         position={Position.Left}

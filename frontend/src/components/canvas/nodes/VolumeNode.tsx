@@ -3,8 +3,20 @@ import BaseNode from "../BaseNode";
 
 export default function VolumeNode({ data, selected }: NodeProps) {
   const label = String(data?.label || "Volume");
+  const hasError = typeof data?.hasError === "boolean" ? data.hasError : false;
+  const validationMessage =
+    typeof data?.validationMessage === "string"
+      ? data.validationMessage
+      : undefined;
   return (
-    <BaseNode label={label} selected={selected} category="input" blockType="volume">
+    <BaseNode
+      label={label}
+      selected={selected}
+      category="input"
+      blockType="volume"
+      hasError={hasError}
+      validationMessage={validationMessage}
+    >
       <div className="text-xs text-gray-600">Volume data</div>
       <Handle
         type="source"

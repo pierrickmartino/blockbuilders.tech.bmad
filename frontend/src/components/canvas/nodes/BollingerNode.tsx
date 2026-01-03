@@ -3,9 +3,21 @@ import BaseNode from "../BaseNode";
 
 export default function BollingerNode({ data, selected }: NodeProps) {
   const label = String(data?.label || "Bollinger Bands");
+  const hasError = typeof data?.hasError === "boolean" ? data.hasError : false;
+  const validationMessage =
+    typeof data?.validationMessage === "string"
+      ? data.validationMessage
+      : undefined;
   const params = (data?.params || {}) as { period?: number; stddev?: number };
   return (
-    <BaseNode label={label} selected={selected} category="indicator" blockType="bollinger">
+    <BaseNode
+      label={label}
+      selected={selected}
+      category="indicator"
+      blockType="bollinger"
+      hasError={hasError}
+      validationMessage={validationMessage}
+    >
       <Handle
         type="target"
         position={Position.Left}

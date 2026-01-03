@@ -18,7 +18,7 @@ import {
 import "@xyflow/react/dist/style.css";
 
 import { nodeTypes } from "./nodes";
-import { BlockMeta, BlockType, getBlockMeta } from "@/types/canvas";
+import { BlockMeta, BlockType, getBlockMeta, ValidationError } from "@/types/canvas";
 import { generateBlockId } from "@/lib/canvas-utils";
 
 interface StrategyCanvasProps {
@@ -28,6 +28,7 @@ interface StrategyCanvasProps {
   onEdgesChange: (edges: Edge[]) => void;
   onNodeSelect: (node: Node | null) => void;
   onAddNote: () => void;
+  globalValidationErrors?: ValidationError[];
 }
 
 function CanvasInner({
@@ -37,6 +38,7 @@ function CanvasInner({
   onEdgesChange,
   onNodeSelect,
   onAddNote,
+  globalValidationErrors,
 }: StrategyCanvasProps) {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const reactFlowInstance = useRef<ReactFlowInstance | null>(null);
@@ -112,8 +114,19 @@ function CanvasInner({
   );
 
   return (
-    <div ref={reactFlowWrapper} className="h-full w-full">
-      <ReactFlow
+    <div ref={reactFlowWrapper} className="flex h-full w-full flex-col">
+      {globalValidationErrors && globalValidationErrors.length > 0 && (
+        <div className="mb-2 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+          <p className="font-medium">Strategy Issues:</p>
+          <ul className="mt-1 list-disc pl-5 text-xs">
+            {globalValidationErrors.map((err, i) => (
+              <li key={i}>{err.message}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+      <div className="flex-1">
+        <ReactFlow
         nodes={nodes}
         edges={edges}
         onNodesChange={handleNodesChange}
@@ -151,6 +164,7 @@ function CanvasInner({
           </ControlButton>
         </Controls>
       </ReactFlow>
+      </div>
     </div>
   );
 }

@@ -552,35 +552,41 @@ export default function StrategiesPage() {
                       {formatDate(strategy.last_run_at)}
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-right text-sm">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => router.push(`/strategies/${strategy.id}`)}
-                          className="text-gray-600 hover:text-gray-900"
-                        >
-                          Open
-                        </button>
-                        <button
-                          onClick={() => handleDuplicate(strategy.id)}
-                          disabled={actionLoading === strategy.id}
-                          className="text-gray-600 hover:text-gray-900 disabled:opacity-50"
-                        >
-                          Duplicate
-                        </button>
-                        <button
-                          onClick={() => handleExport(strategy.id)}
-                          disabled={actionLoading === strategy.id}
-                          className="text-gray-600 hover:text-gray-900 disabled:opacity-50"
-                        >
-                          Export
-                        </button>
-                        <button
-                          onClick={() => handleArchive(strategy.id, !strategy.is_archived)}
-                          disabled={actionLoading === strategy.id}
-                          className="text-gray-600 hover:text-gray-900 disabled:opacity-50"
-                        >
-                          {strategy.is_archived ? "Unarchive" : "Archive"}
-                        </button>
-                      </div>
+                      <details className="relative inline-block text-left">
+                        <summary className="flex h-8 w-8 cursor-pointer list-none items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-700">
+                          <span className="sr-only">Open actions</span>
+                          <span aria-hidden>•••</span>
+                        </summary>
+                        <div className="absolute right-0 z-10 mt-2 w-40 rounded-md border border-gray-200 bg-white py-1 text-left text-sm shadow-lg">
+                          <button
+                            onClick={() => router.push(`/strategies/${strategy.id}`)}
+                            className="block w-full px-3 py-2 text-left text-gray-700 hover:bg-gray-50"
+                          >
+                            Open
+                          </button>
+                          <button
+                            onClick={() => handleDuplicate(strategy.id)}
+                            disabled={actionLoading === strategy.id}
+                            className="block w-full px-3 py-2 text-left text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                          >
+                            Duplicate
+                          </button>
+                          <button
+                            onClick={() => handleExport(strategy.id)}
+                            disabled={actionLoading === strategy.id}
+                            className="block w-full px-3 py-2 text-left text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                          >
+                            Export
+                          </button>
+                          <button
+                            onClick={() => handleArchive(strategy.id, !strategy.is_archived)}
+                            disabled={actionLoading === strategy.id}
+                            className="block w-full px-3 py-2 text-left text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                          >
+                            {strategy.is_archived ? "Unarchive" : "Archive"}
+                          </button>
+                        </div>
+                      </details>
                     </td>
                   </tr>
                 ))}

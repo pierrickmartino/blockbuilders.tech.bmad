@@ -9,6 +9,7 @@ interface BaseNodeProps {
   children?: ReactNode;
   hasError?: boolean;
   blockType?: string;
+  validationMessage?: string;
 }
 
 const categoryStyles = {
@@ -51,6 +52,7 @@ export default function BaseNode({
   children,
   hasError,
   blockType,
+  validationMessage,
 }: BaseNodeProps) {
   const styles = categoryStyles[category];
   const borderClass = selected ? styles.borderSelected : styles.border;
@@ -59,13 +61,28 @@ export default function BaseNode({
 
   return (
     <div
-      className={`min-w-[120px] rounded-lg border-2 shadow-sm ${borderClass} ${styles.bg} ${errorBorder}`}
+      className={`relative min-w-[120px] rounded-lg border-2 shadow-sm ${borderClass} ${styles.bg} ${errorBorder}`}
     >
       <div
         className={`flex items-center justify-between gap-1 rounded-t-md px-3 py-1.5 text-xs font-semibold ${styles.header}`}
         title={tooltip?.short}
       >
-        <span>{label}</span>
+        <div className="flex items-center gap-1.5">
+          {hasError && (
+            <svg
+              className="h-4 w-4 flex-shrink-0 text-red-500"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z"
+                clipRule="evenodd"
+              />
+            </svg>
+          )}
+          <span>{label}</span>
+        </div>
         {blockType && (
           <InfoIcon
             tooltip={tooltip || undefined}
@@ -73,7 +90,14 @@ export default function BaseNode({
           />
         )}
       </div>
-      {children && <div className="px-3 py-2">{children}</div>}
+      {(children || validationMessage) && (
+        <div className="px-3 py-2">
+          {children}
+          {validationMessage && (
+            <div className="mt-1 text-xs text-red-600">{validationMessage}</div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
