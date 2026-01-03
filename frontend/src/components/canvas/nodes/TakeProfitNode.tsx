@@ -9,6 +9,11 @@ interface TakeProfitNodeParams {
 
 export default function TakeProfitNode({ data, selected }: NodeProps) {
   const label = String(data?.label || "Take Profit");
+  const hasError = typeof data?.hasError === "boolean" ? data.hasError : false;
+  const validationMessage =
+    typeof data?.validationMessage === "string"
+      ? data.validationMessage
+      : undefined;
   const params = (data?.params || {}) as TakeProfitNodeParams;
 
   // Support both legacy (take_profit_pct) and new (levels) format
@@ -28,7 +33,14 @@ export default function TakeProfitNode({ data, selected }: NodeProps) {
       : `TP x${levels.length}: ${levels.map((l) => `${l.profit_pct}/${l.close_pct}`).join(", ")}`;
 
   return (
-    <BaseNode label={label} selected={selected} category="risk" blockType="take_profit">
+    <BaseNode
+      label={label}
+      selected={selected}
+      category="risk"
+      blockType="take_profit"
+      hasError={hasError}
+      validationMessage={validationMessage}
+    >
       <div className="text-xs text-gray-600">{displayText}</div>
     </BaseNode>
   );

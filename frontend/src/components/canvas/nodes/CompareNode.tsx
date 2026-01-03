@@ -3,9 +3,21 @@ import BaseNode from "../BaseNode";
 
 export default function CompareNode({ data, selected }: NodeProps) {
   const label = String(data?.label || "Compare");
+  const hasError = typeof data?.hasError === "boolean" ? data.hasError : false;
+  const validationMessage =
+    typeof data?.validationMessage === "string"
+      ? data.validationMessage
+      : undefined;
   const params = (data?.params || {}) as { operator?: string };
   return (
-    <BaseNode label={label} selected={selected} category="logic" blockType="compare">
+    <BaseNode
+      label={label}
+      selected={selected}
+      category="logic"
+      blockType="compare"
+      hasError={hasError}
+      validationMessage={validationMessage}
+    >
       <Handle
         type="target"
         position={Position.Left}

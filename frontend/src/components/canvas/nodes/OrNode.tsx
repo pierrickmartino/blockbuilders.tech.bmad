@@ -3,8 +3,20 @@ import BaseNode from "../BaseNode";
 
 export default function OrNode({ data, selected }: NodeProps) {
   const label = String(data?.label || "OR");
+  const hasError = typeof data?.hasError === "boolean" ? data.hasError : false;
+  const validationMessage =
+    typeof data?.validationMessage === "string"
+      ? data.validationMessage
+      : undefined;
   return (
-    <BaseNode label={label} selected={selected} category="logic" blockType="or">
+    <BaseNode
+      label={label}
+      selected={selected}
+      category="logic"
+      blockType="or"
+      hasError={hasError}
+      validationMessage={validationMessage}
+    >
       <Handle
         type="target"
         position={Position.Left}

@@ -3,13 +3,25 @@ import BaseNode from "../BaseNode";
 
 export default function MacdNode({ data, selected }: NodeProps) {
   const label = String(data?.label || "MACD");
+  const hasError = typeof data?.hasError === "boolean" ? data.hasError : false;
+  const validationMessage =
+    typeof data?.validationMessage === "string"
+      ? data.validationMessage
+      : undefined;
   const params = (data?.params || {}) as {
     fast_period?: number;
     slow_period?: number;
     signal_period?: number;
   };
   return (
-    <BaseNode label={label} selected={selected} category="indicator" blockType="macd">
+    <BaseNode
+      label={label}
+      selected={selected}
+      category="indicator"
+      blockType="macd"
+      hasError={hasError}
+      validationMessage={validationMessage}
+    >
       <Handle
         type="target"
         position={Position.Left}

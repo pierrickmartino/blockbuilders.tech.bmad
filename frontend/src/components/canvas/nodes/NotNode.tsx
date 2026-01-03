@@ -3,8 +3,20 @@ import BaseNode from "../BaseNode";
 
 export default function NotNode({ data, selected }: NodeProps) {
   const label = String(data?.label || "NOT");
+  const hasError = typeof data?.hasError === "boolean" ? data.hasError : false;
+  const validationMessage =
+    typeof data?.validationMessage === "string"
+      ? data.validationMessage
+      : undefined;
   return (
-    <BaseNode label={label} selected={selected} category="logic" blockType="not">
+    <BaseNode
+      label={label}
+      selected={selected}
+      category="logic"
+      blockType="not"
+      hasError={hasError}
+      validationMessage={validationMessage}
+    >
       <Handle
         type="target"
         position={Position.Left}

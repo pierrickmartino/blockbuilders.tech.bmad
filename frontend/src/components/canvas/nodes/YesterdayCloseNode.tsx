@@ -3,8 +3,20 @@ import BaseNode from "../BaseNode";
 
 export default function YesterdayCloseNode({ data, selected }: NodeProps) {
   const label = String(data?.label || "Yesterday Close");
+  const hasError = typeof data?.hasError === "boolean" ? data.hasError : false;
+  const validationMessage =
+    typeof data?.validationMessage === "string"
+      ? data.validationMessage
+      : undefined;
   return (
-    <BaseNode label={label} selected={selected} category="input" blockType="yesterday_close">
+    <BaseNode
+      label={label}
+      selected={selected}
+      category="input"
+      blockType="yesterday_close"
+      hasError={hasError}
+      validationMessage={validationMessage}
+    >
       <div className="text-xs text-gray-600">Previous candle close</div>
       <Handle
         type="source"

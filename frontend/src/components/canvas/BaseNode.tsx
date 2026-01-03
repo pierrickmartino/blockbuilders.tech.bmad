@@ -52,6 +52,7 @@ export default function BaseNode({
   children,
   hasError,
   blockType,
+  validationMessage,
 }: BaseNodeProps) {
   const styles = categoryStyles[category];
   const borderClass = selected ? styles.borderSelected : styles.border;
@@ -89,7 +90,14 @@ export default function BaseNode({
           />
         )}
       </div>
-      {children && <div className="px-3 py-2">{children}</div>}
+      {(children || validationMessage) && (
+        <div className="px-3 py-2">
+          {children}
+          {validationMessage && (
+            <div className="mt-1 text-xs text-red-600">{validationMessage}</div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
