@@ -141,6 +141,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 **Validate Endpoint** (`POST /strategies/{id}/validate`)
 - Validates definition without saving
 - Returns errors or success status
+ - UI surfaces validation results on the canvas with inline messages and visual block highlighting
 
 **Validation Rules:**
 - Must have **at least one** entry_signal block
@@ -462,6 +463,18 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Output is read-only and can be regenerated at any time.
 - If stored, explanation lives under `metadata.explanation` in the strategy version JSON.
 
+### 4.9. Visual Strategy Validation Feedback (Planned)
+
+**Purpose:** Make validation errors obvious and actionable directly on the canvas.
+
+**Planned Behavior:**
+- Blocks with errors or missing connections show **colored borders + icons** on the canvas.
+- Validation messages appear **inline near the affected blocks** (not only in the side panel).
+- Uses the existing validation endpoint; no new validation rules required.
+
+**Implementation Notes:**
+- UI-only enhancement layered on top of current validation response.
+- Keep visuals lightweight (no new dependencies).
 
 --- 
 
@@ -1315,6 +1328,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Contextual Help & Tooltips** | ✅ Complete | Hover tooltips for indicators, logic blocks, metrics |
 | **Metrics Glossary** | ✅ Complete | Dedicated searchable page explaining backtest metrics |
 | **Strategy Notes & Annotations** | ✅ Complete | Floating text notes on canvas (280 char limit), drag to position |
+| **Visual Validation Feedback** | ⏳ Planned | Inline canvas highlights and messages for validation errors |
 | **Strategy Explanation Generator** | ⏳ Planned | Template-based plain-English explanation from strategy JSON |
 | **Strategy Import/Export** | ⏳ Planned | JSON export/download + import/upload with validation |
 | **Worker Infrastructure** | ✅ Complete | RQ job queue, scheduler, background processing |
@@ -1549,6 +1563,7 @@ pytest --cov            # Coverage report
 - `docs/prd-strategy-notes-annotations.md` - Strategy notes & annotations PRD
 - `docs/prd-strategy-explanation-generator.md` - Strategy explanation generator PRD
 - `docs/prd-strategy-import-export.md` - Strategy import/export PRD
+- `docs/prd-visual-strategy-validation-feedback.md` - Visual validation feedback PRD
 - `docs/prd-in-app-notifications.md` - In-app notifications PRD
 - `docs/prd-multi-strategy-dashboard.md` - Multi-strategy dashboard PRD
 - `docs/product.md` - This document (current product truth)

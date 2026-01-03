@@ -210,6 +210,7 @@ Use and respect the existing stack rather than introducing new tools:
   - Heavy third-party UI libraries unless already adopted.
   - Overly dynamic layouts that are hard to maintain.
   - New tooltip libraries; prefer native `title` or existing components for help text.
+- Prefer **inline, contextual validation feedback** (e.g., on-canvas cues) over hidden or panel-only errors.
 
 When asked to implement UI:
 
