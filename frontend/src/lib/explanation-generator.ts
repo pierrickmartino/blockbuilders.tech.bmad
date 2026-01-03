@@ -181,55 +181,59 @@ function resolveBlockPhrase(
   }
   visited.add(block.id);
 
-  switch (block.type) {
-    // Input blocks
-    case "price":
-      return formatPriceBlock(block.params as unknown as PriceParams);
-    case "volume":
-      return "volume";
-    case "constant":
-      return String((block.params as unknown as ConstantParams).value);
-    case "yesterday_close":
-      return "yesterday's close";
+  try {
+    switch (block.type) {
+      // Input blocks
+      case "price":
+        return formatPriceBlock(block.params as unknown as PriceParams);
+      case "volume":
+        return "volume";
+      case "constant":
+        return String((block.params as unknown as ConstantParams).value);
+      case "yesterday_close":
+        return "yesterday's close";
 
-    // Indicator blocks
-    case "sma":
-      return formatSmaBlock(block.params as unknown as SmaParams);
-    case "ema":
-      return formatEmaBlock(block.params as unknown as EmaParams);
-    case "rsi":
-      return formatRsiBlock(block.params as unknown as RsiParams);
-    case "macd":
-      return formatMacdBlock(block.params as unknown as MacdParams, portName);
-    case "bollinger":
-      return formatBollingerBlock(block.params as unknown as BollingerParams, portName);
-    case "atr":
-      return formatAtrBlock(block.params as unknown as AtrParams);
+      // Indicator blocks
+      case "sma":
+        return formatSmaBlock(block.params as unknown as SmaParams);
+      case "ema":
+        return formatEmaBlock(block.params as unknown as EmaParams);
+      case "rsi":
+        return formatRsiBlock(block.params as unknown as RsiParams);
+      case "macd":
+        return formatMacdBlock(block.params as unknown as MacdParams, portName);
+      case "bollinger":
+        return formatBollingerBlock(block.params as unknown as BollingerParams, portName);
+      case "atr":
+        return formatAtrBlock(block.params as unknown as AtrParams);
 
-    // Logic blocks
-    case "compare":
-      return formatCompareBlock(
-        block,
-        incomingConnections,
-        blocksMap,
-        visited
-      );
-    case "crossover":
-      return formatCrossoverBlock(
-        block,
-        incomingConnections,
-        blocksMap,
-        visited
-      );
-    case "and":
-      return formatAndBlock(block, incomingConnections, blocksMap, visited);
-    case "or":
-      return formatOrBlock(block, incomingConnections, blocksMap, visited);
-    case "not":
-      return formatNotBlock(block, incomingConnections, blocksMap, visited);
+      // Logic blocks
+      case "compare":
+        return formatCompareBlock(
+          block,
+          incomingConnections,
+          blocksMap,
+          visited
+        );
+      case "crossover":
+        return formatCrossoverBlock(
+          block,
+          incomingConnections,
+          blocksMap,
+          visited
+        );
+      case "and":
+        return formatAndBlock(block, incomingConnections, blocksMap, visited);
+      case "or":
+        return formatOrBlock(block, incomingConnections, blocksMap, visited);
+      case "not":
+        return formatNotBlock(block, incomingConnections, blocksMap, visited);
 
-    default:
-      return "an unspecified condition";
+      default:
+        return "an unspecified condition";
+    }
+  } finally {
+    visited.delete(block.id);
   }
 }
 
