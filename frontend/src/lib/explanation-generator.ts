@@ -387,12 +387,22 @@ function formatNotBlock(
 function formatRiskBlock(type: RiskBlockType, params: Record<string, unknown>): string {
   switch (type) {
     case "take_profit": {
-      const tpParams = params as unknown as TakeProfitParams;
-      if (tpParams.levels.length === 1) {
-        return `take profit at ${tpParams.levels[0].profit_pct}%`;
+      const tpParams = params as unknown as TakeProfitParams & {
+        take_profit_pct?: number;
+      };
+      const levels = Array.isArray(tpParams.levels)
+        ? tpParams.levels
+        : typeof tpParams.take_profit_pct === "number"
+          ? [{ profit_pct: tpParams.take_profit_pct, close_pct: 100 }]
+          : [];
+      if (levels.length === 0) {
+        return "take profit at a target";
       }
-      const pcts = tpParams.levels.map((l) => l.profit_pct).join(", ");
-      return `take profit in ${tpParams.levels.length}-step ladder at ${pcts}%`;
+      if (levels.length === 1) {
+        return `take profit at ${levels[0].profit_pct}%`;
+      }
+      const pcts = levels.map((l) => l.profit_pct).join(", ");
+      return `take profit in ${levels.length}-step ladder at ${pcts}%`;
     }
     case "stop_loss": {
       const slParams = params as unknown as StopLossParams;
