@@ -962,7 +962,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 **Notification Events:**
 - Backtest completed
 - Usage limit reached (daily backtests or strategy cap)
-- Performance alert triggered (drawdown threshold on auto-updated strategies)
+- Performance alert triggered (drawdown threshold or entry/exit on auto-updated strategies)
 - New follower
 - Strategy commented on
 - Other important system events (as needed)
@@ -977,18 +977,21 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 **Purpose:** Let users monitor auto-updated strategies without checking manually.
 
 **Alert Rule (v1):**
-- Condition: "Notify me if strategy **max drawdown % exceeds X**" on scheduled re-backtests.
-- Scope: One rule per strategy (drawdown only).
+- Conditions (any selected):
+  - "Notify me if strategy **max drawdown % exceeds X**"
+  - "Notify me when strategy generates an **entry**"
+  - "Notify me when strategy generates an **exit**"
+- Scope: One rule per strategy.
 - Channels: In-app notification (default). Optional email if enabled on the rule.
 
 **Behavior:**
 - Evaluated after each **scheduled** re-backtest completes.
-- If the backtest `max_drawdown` ≥ threshold, trigger notification(s).
+- If any selected condition is met (drawdown threshold, entry, exit), trigger notification(s).
 - Manual backtests do **not** trigger alerts.
 
 **UI Placement (simple):**
 - Strategy detail page → "Alerts" card.
-- Toggle on/off, set drawdown threshold %, choose email or in-app.
+- Toggle on/off, set drawdown threshold %, choose entry/exit, choose email or in-app.
 - Shows last triggered timestamp (if any).
 
 ---
@@ -1217,6 +1220,8 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - strategy_id (UUID, FK to strategies)
 - metric (VARCHAR, default "max_drawdown_pct")
 - threshold_pct (FLOAT)
+- alert_on_entry (BOOLEAN, default false)
+- alert_on_exit (BOOLEAN, default false)
 - notify_in_app (BOOLEAN, default true)
 - notify_email (BOOLEAN, default false)
 - is_active (BOOLEAN, default true)
