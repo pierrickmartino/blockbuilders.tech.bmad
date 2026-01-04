@@ -175,7 +175,7 @@ export default function StrategyEditorPage({ params }: Props) {
   useEffect(() => {
     const fetchAlert = async () => {
       try {
-        const alerts = await apiFetch<AlertRule[]>("/alerts");
+        const alerts = await apiFetch<AlertRule[]>("/alerts/");
         const rule = alerts.find((a) => a.strategy_id === id);
         if (rule) {
           setAlertRule(rule);
@@ -326,7 +326,7 @@ export default function StrategyEditorPage({ params }: Props) {
     try {
       if (!alertRule) {
         // Create
-        const created = await apiFetch<AlertRule>("/alerts", {
+        const created = await apiFetch<AlertRule>("/alerts/", {
           method: "POST",
           body: JSON.stringify({
             strategy_id: id,
