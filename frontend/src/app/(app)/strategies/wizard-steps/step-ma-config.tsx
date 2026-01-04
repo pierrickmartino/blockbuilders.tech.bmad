@@ -1,3 +1,12 @@
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
 interface Props {
   values: {
     maType?: "sma" | "ema";
@@ -15,7 +24,7 @@ export function StepMAConfig({ values, onChange }: Props) {
   return (
     <div>
       <h3 className="mb-2 text-lg font-medium">Configure moving averages</h3>
-      <p className="mb-4 text-sm text-gray-600">
+      <p className="mb-4 text-sm text-muted-foreground">
         Choose MA type and periods for fast/slow averages.
       </p>
 
@@ -24,17 +33,20 @@ export function StepMAConfig({ values, onChange }: Props) {
           <label htmlFor="maType" className="mb-2 block text-sm font-medium">
             MA Type
           </label>
-          <select
-            id="maType"
+          <Select
             value={maType}
-            onChange={(e) =>
-              onChange({ maType: e.target.value as "sma" | "ema" })
+            onValueChange={(value) =>
+              onChange({ maType: value as "sma" | "ema" })
             }
-            className="w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
           >
-            <option value="sma">SMA (Simple Moving Average)</option>
-            <option value="ema">EMA (Exponential Moving Average)</option>
-          </select>
+            <SelectTrigger>
+              <SelectValue placeholder="Select MA type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="sma">SMA (Simple Moving Average)</SelectItem>
+              <SelectItem value="ema">EMA (Exponential Moving Average)</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <div>
@@ -44,15 +56,14 @@ export function StepMAConfig({ values, onChange }: Props) {
           >
             Fast Period
           </label>
-          <input
+          <Input
             id="fastPeriod"
             type="number"
             value={fastPeriod}
             onChange={(e) =>
               onChange({ maFastPeriod: parseInt(e.target.value, 10) })
             }
-            min="2"
-            className="w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            min={2}
           />
         </div>
 
@@ -63,15 +74,14 @@ export function StepMAConfig({ values, onChange }: Props) {
           >
             Slow Period
           </label>
-          <input
+          <Input
             id="slowPeriod"
             type="number"
             value={slowPeriod}
             onChange={(e) =>
               onChange({ maSlowPeriod: parseInt(e.target.value, 10) })
             }
-            min="2"
-            className="w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            min={2}
           />
         </div>
       </div>

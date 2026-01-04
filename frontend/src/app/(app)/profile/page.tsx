@@ -4,6 +4,17 @@ import { useState, useEffect } from "react";
 import { useDisplay } from "@/context/display";
 import { apiFetch, ApiError } from "@/lib/api";
 import { ProfileResponse, UserUpdateRequest } from "@/types/auth";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 export default function ProfilePage() {
   const { timezone, setTimezone } = useDisplay();
@@ -90,174 +101,171 @@ export default function ProfilePage() {
   if (isLoading) {
     return (
       <div className="flex min-h-[200px] items-center justify-center">
-        <p className="text-gray-500">Loading...</p>
+        <p className="text-muted-foreground">Loading...</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="rounded-lg bg-red-50 p-4 text-red-600">
+      <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-600">
         {error}
-        <button
+        <Button
+          variant="link"
           onClick={() => window.location.reload()}
-          className="ml-4 text-sm underline hover:no-underline"
+          className="ml-2 h-auto p-0 text-red-600 underline"
         >
           Retry
-        </button>
+        </Button>
       </div>
     );
   }
 
   return (
     <div>
-      <h1 className="mb-2 text-2xl font-bold text-gray-900">Profile</h1>
-      <p className="mb-6 text-gray-600">
+      <h1 className="mb-2 text-2xl font-bold">Profile</h1>
+      <p className="mb-6 text-muted-foreground">
         Manage your preferences and see your current usage.
       </p>
 
       <div className="space-y-6">
         {/* Section A: Account */}
-        <section className="rounded-lg bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-gray-900">Account</h2>
-          <p className="mt-1 text-sm text-gray-600">Email: {profile?.email}</p>
-        </section>
+        <Card>
+          <CardHeader>
+            <CardTitle>Account</CardTitle>
+            <CardDescription>Email: {profile?.email}</CardDescription>
+          </CardHeader>
+        </Card>
 
         {/* Section B: Backtest Defaults */}
-        <section className="rounded-lg bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-gray-900">Backtest Defaults</h2>
-          <p className="mt-1 text-sm text-gray-600">
-            These values will be pre-filled when creating new backtests.
-          </p>
+        <Card>
+          <CardHeader>
+            <CardTitle>Backtest Defaults</CardTitle>
+            <CardDescription>
+              These values will be pre-filled when creating new backtests.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSaveDefaults} className="max-w-md space-y-4">
+              {message && (
+                <div
+                  className={cn(
+                    "rounded border p-3 text-sm",
+                    message.type === "success"
+                      ? "border-green-200 bg-green-50 text-green-600"
+                      : "border-red-200 bg-red-50 text-red-600"
+                  )}
+                >
+                  {message.text}
+                </div>
+              )}
 
-          <form onSubmit={handleSaveDefaults} className="mt-4 max-w-md space-y-4">
-            {message && (
-              <div
-                className={`rounded border p-3 text-sm ${
-                  message.type === "success"
-                    ? "border-green-200 bg-green-50 text-green-600"
-                    : "border-red-200 bg-red-50 text-red-600"
-                }`}
-              >
-                {message.text}
+              <div>
+                <label
+                  htmlFor="fee"
+                  className="mb-2 block text-sm font-medium"
+                >
+                  Default Trading Fee (%)
+                </label>
+                <Input
+                  id="fee"
+                  type="number"
+                  step={0.01}
+                  min={0}
+                  max={5}
+                  value={feePercent}
+                  onChange={(e) => setFeePercent(e.target.value)}
+                  placeholder="e.g. 0.1"
+                />
               </div>
-            )}
 
-            <div>
-              <label
-                htmlFor="fee"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Default Trading Fee (%)
-              </label>
-              <input
-                id="fee"
-                type="number"
-                step="0.01"
-                min="0"
-                max="5"
-                value={feePercent}
-                onChange={(e) => setFeePercent(e.target.value)}
-                placeholder="e.g. 0.1"
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              />
-            </div>
+              <div>
+                <label
+                  htmlFor="slippage"
+                  className="mb-2 block text-sm font-medium"
+                >
+                  Default Slippage (%)
+                </label>
+                <Input
+                  id="slippage"
+                  type="number"
+                  step={0.01}
+                  min={0}
+                  max={5}
+                  value={slippagePercent}
+                  onChange={(e) => setSlippagePercent(e.target.value)}
+                  placeholder="e.g. 0.05"
+                />
+              </div>
 
-            <div>
-              <label
-                htmlFor="slippage"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Default Slippage (%)
-              </label>
-              <input
-                id="slippage"
-                type="number"
-                step="0.01"
-                min="0"
-                max="5"
-                value={slippagePercent}
-                onChange={(e) => setSlippagePercent(e.target.value)}
-                placeholder="e.g. 0.05"
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={isSaving}
-              className="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
-            >
-              {isSaving ? "Saving..." : "Save"}
-            </button>
-          </form>
-        </section>
+              <Button type="submit" disabled={isSaving}>
+                {isSaving ? "Saving..." : "Save"}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
 
         {/* Section C: Display Preferences */}
-        <section className="rounded-lg bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-gray-900">Display Preferences</h2>
-          <p className="mt-1 text-sm text-gray-600">
-            All timestamps will be displayed in your selected timezone.
-          </p>
-
-          <div className="mt-4">
-            <label className="block text-sm font-medium text-gray-700">
+        <Card>
+          <CardHeader>
+            <CardTitle>Display Preferences</CardTitle>
+            <CardDescription>
+              All timestamps will be displayed in your selected timezone.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <label className="mb-2 block text-sm font-medium">
               Timezone
             </label>
-            <div className="mt-2 flex gap-2">
-              <button
+            <div className="flex gap-2">
+              <Button
                 type="button"
+                variant={timezone === "local" ? "default" : "secondary"}
                 onClick={() => handleTimezoneChange("local")}
-                className={`rounded-md px-4 py-2 text-sm font-medium ${
-                  timezone === "local"
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
               >
                 Local
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                variant={timezone === "utc" ? "default" : "secondary"}
                 onClick={() => handleTimezoneChange("utc")}
-                className={`rounded-md px-4 py-2 text-sm font-medium ${
-                  timezone === "utc"
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
               >
                 UTC
-              </button>
+              </Button>
             </div>
-          </div>
-        </section>
+          </CardContent>
+        </Card>
 
         {/* Section D: Usage */}
-        <section className="rounded-lg bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-gray-900">Usage</h2>
-          <p className="mt-1 text-sm text-gray-600">
-            Your current usage against account limits.
-          </p>
-
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            {profile && (
-              <>
-                <UsageCard
-                  title="Strategies"
-                  used={profile.usage.strategies.used}
-                  limit={profile.usage.strategies.limit}
-                  helper="Maximum saved strategies."
-                />
-                <UsageCard
-                  title="Backtests (today)"
-                  used={profile.usage.backtests_today.used}
-                  limit={profile.usage.backtests_today.limit}
-                  helper="Resets daily at 00:00 UTC."
-                  resetsAt={profile.usage.backtests_today.resets_at_utc}
-                />
-              </>
-            )}
-          </div>
-        </section>
+        <Card>
+          <CardHeader>
+            <CardTitle>Usage</CardTitle>
+            <CardDescription>
+              Your current usage against account limits.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {profile && (
+                <>
+                  <UsageCard
+                    title="Strategies"
+                    used={profile.usage.strategies.used}
+                    limit={profile.usage.strategies.limit}
+                    helper="Maximum saved strategies."
+                  />
+                  <UsageCard
+                    title="Backtests (today)"
+                    used={profile.usage.backtests_today.used}
+                    limit={profile.usage.backtests_today.limit}
+                    helper="Resets daily at 00:00 UTC."
+                    resetsAt={profile.usage.backtests_today.resets_at_utc}
+                  />
+                </>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
@@ -284,45 +292,47 @@ function UsageCard({
       ? "bg-red-500"
       : state === "near"
         ? "bg-yellow-500"
-        : "bg-blue-500";
+        : "bg-primary";
 
-  const badgeColor =
+  const badgeVariant: "destructive" | "secondary" | "default" =
     state === "reached"
-      ? "bg-red-100 text-red-700"
+      ? "destructive"
       : state === "near"
-        ? "bg-yellow-100 text-yellow-700"
-        : "bg-gray-100 text-gray-600";
+        ? "secondary"
+        : "default";
 
   return (
-    <div className="rounded-lg border border-gray-200 p-4">
-      <div className="flex items-center justify-between">
-        <h3 className="font-medium text-gray-900">{title}</h3>
-        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${badgeColor}`}>
-          {used} / {limit}
-        </span>
-      </div>
+    <Card>
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between">
+          <h3 className="font-medium">{title}</h3>
+          <Badge variant={badgeVariant}>
+            {used} / {limit}
+          </Badge>
+        </div>
 
-      {/* Progress bar */}
-      <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-gray-200">
-        <div
-          className={`h-2 rounded-full transition-all ${barColor}`}
-          style={{ width: `${Math.min(percent, 100)}%` }}
-        />
-      </div>
+        {/* Progress bar */}
+        <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-muted">
+          <div
+            className={cn("h-2 rounded-full transition-all", barColor)}
+            style={{ width: `${Math.min(percent, 100)}%` }}
+          />
+        </div>
 
-      <p className="mt-2 text-xs text-gray-500">{helper}</p>
+        <p className="mt-2 text-xs text-muted-foreground">{helper}</p>
 
-      {state === "reached" && (
-        <p className="mt-2 text-sm text-red-600">
-          You&apos;ve reached your limit. Try again after the daily reset.
-        </p>
-      )}
+        {state === "reached" && (
+          <p className="mt-2 text-sm text-red-600">
+            You&apos;ve reached your limit. Try again after the daily reset.
+          </p>
+        )}
 
-      {resetsAt && state !== "reached" && (
-        <p className="mt-1 text-xs text-gray-400">
-          Resets at {new Date(resetsAt).toLocaleString()}
-        </p>
-      )}
-    </div>
+        {resetsAt && state !== "reached" && (
+          <p className="mt-1 text-xs text-muted-foreground">
+            Resets at {new Date(resetsAt).toLocaleString()}
+          </p>
+        )}
+      </CardContent>
+    </Card>
   );
 }

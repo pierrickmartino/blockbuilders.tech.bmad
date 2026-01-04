@@ -11,6 +11,14 @@ import { StepMAConfig } from "./wizard-steps/step-ma-config";
 import { StepRSIConfig } from "./wizard-steps/step-rsi-config";
 import { StepExit } from "./wizard-steps/step-exit";
 import { StepRisk } from "./wizard-steps/step-risk";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 interface Props {
   onClose: () => void;
@@ -187,66 +195,55 @@ export function StrategyWizard({ onClose, onComplete }: Props) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="mx-4 w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-lg bg-white shadow-xl">
-        {/* Header with progress */}
-        <div className="border-b px-6 py-4">
-          <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-xl font-semibold">Strategy Wizard</h2>
-            <button
-              onClick={onClose}
-              className="text-2xl text-gray-400 hover:text-gray-600"
-            >
-              ×
-            </button>
-          </div>
-          <div className="flex gap-1">
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Strategy Wizard</DialogTitle>
+          <div className="flex gap-1 pt-2">
             {Array.from({ length: totalSteps }).map((_, i) => (
               <div
                 key={i}
                 className={`h-1 flex-1 rounded ${
-                  i < state.step ? "bg-blue-600" : "bg-gray-200"
+                  i < state.step ? "bg-primary" : "bg-muted"
                 }`}
               />
             ))}
           </div>
-          <div className="mt-1 text-xs text-gray-500">
+          <div className="text-xs text-muted-foreground">
             Step {state.step} of {totalSteps}
           </div>
-        </div>
+        </DialogHeader>
 
         {/* Error message */}
         {error && (
-          <div className="mx-6 mt-4 rounded border border-red-200 bg-red-50 p-3 text-sm text-red-600">
+          <div className="rounded border border-red-200 bg-red-50 p-3 text-sm text-red-600">
             {error}
           </div>
         )}
 
         {/* Step content */}
-        <div className="px-6 py-6">{renderStep()}</div>
+        <div className="py-4">{renderStep()}</div>
 
-        {/* Navigation buttons */}
-        <div className="flex justify-between border-t px-6 py-4">
-          <button
+        <DialogFooter className="flex justify-between sm:justify-between">
+          <Button
+            variant="ghost"
             onClick={handleBack}
             disabled={state.step === 1}
-            className="rounded-md px-4 py-2 text-gray-600 hover:text-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Back
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={handleNext}
             disabled={!isStepValid || isSubmitting}
-            className="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isSubmitting
               ? "Creating..."
               : state.step === totalSteps
                 ? "Create Strategy"
                 : "Next"}
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

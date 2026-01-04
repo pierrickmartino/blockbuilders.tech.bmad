@@ -1,3 +1,5 @@
+import { Input } from "@/components/ui/input";
+
 interface Props {
   values: {
     useStopLoss: boolean;
@@ -12,7 +14,7 @@ export function StepRisk({ values, onChange }: Props) {
   return (
     <div>
       <h3 className="mb-2 text-lg font-medium">Risk controls (optional)</h3>
-      <p className="mb-4 text-sm text-gray-600">
+      <p className="mb-4 text-sm text-muted-foreground">
         Add stop loss and take profit levels to manage risk.
       </p>
 
@@ -32,17 +34,17 @@ export function StepRisk({ values, onChange }: Props) {
             <label htmlFor="stopLoss" className="mb-2 block text-sm">
               Stop Loss %
             </label>
-            <input
+            <Input
               id="stopLoss"
               type="number"
               value={values.stopLossPercent || 5}
               onChange={(e) =>
                 onChange({ stopLossPercent: parseFloat(e.target.value) })
               }
-              step="0.5"
-              min="0.1"
-              max="100"
-              className="w-32 rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              step={0.5}
+              min={0.1}
+              max={100}
+              className="w-32"
             />
           </div>
         )}
@@ -62,17 +64,17 @@ export function StepRisk({ values, onChange }: Props) {
             <label htmlFor="takeProfit" className="mb-2 block text-sm">
               Take Profit %
             </label>
-            <input
+            <Input
               id="takeProfit"
               type="number"
               value={values.takeProfitPercent || 10}
               onChange={(e) =>
                 onChange({ takeProfitPercent: parseFloat(e.target.value) })
               }
-              step="0.5"
-              min="0.1"
-              max="1000"
-              className="w-32 rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              step={0.5}
+              min={0.1}
+              max={1000}
+              className="w-32"
             />
           </div>
         )}

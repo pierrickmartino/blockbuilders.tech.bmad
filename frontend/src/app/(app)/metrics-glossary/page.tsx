@@ -5,6 +5,13 @@ import {
   METRICS_GLOSSARY,
   MetricGlossaryEntry,
 } from "@/lib/metrics-glossary-content";
+import { Input } from "@/components/ui/input";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 export default function MetricsGlossaryPage() {
   const [search, setSearch] = useState("");
@@ -21,26 +28,28 @@ export default function MetricsGlossaryPage() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
-      <h1 className="mb-2 text-3xl font-bold text-gray-900">
+      <h1 className="mb-2 text-3xl font-bold">
         Metrics Glossary
       </h1>
-      <p className="mb-6 text-gray-600">
+      <p className="mb-6 text-muted-foreground">
         Understand every performance metric shown in backtests. Search below to
         find definitions, formulas, and interpretation guidance.
       </p>
 
-      <input
+      <Input
         type="text"
         placeholder="Search metrics..."
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        className="mb-8 w-full rounded-md border border-gray-300 px-4 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+        className="mb-8"
       />
 
       {filteredMetrics.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-8 text-center">
-          <p className="text-gray-500">No metrics match your search.</p>
-        </div>
+        <Card className="border-dashed">
+          <CardContent className="p-8 text-center">
+            <p className="text-muted-foreground">No metrics match your search.</p>
+          </CardContent>
+        </Card>
       ) : (
         <div className="space-y-6">
           {filteredMetrics.map((metric) => (
@@ -54,60 +63,56 @@ export default function MetricsGlossaryPage() {
 
 function MetricCard({ metric }: { metric: MetricGlossaryEntry }) {
   return (
-    <div
-      id={metric.id}
-      className="scroll-mt-4 rounded-lg border border-gray-200 bg-white p-6 shadow-sm"
-    >
-      <h2 className="mb-4 text-xl font-semibold text-gray-900">
-        {metric.name}
-      </h2>
-
-      <div className="space-y-4 text-sm text-gray-700">
+    <Card id={metric.id} className="scroll-mt-4">
+      <CardHeader>
+        <CardTitle>{metric.name}</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4 text-sm">
         <div>
-          <h3 className="mb-1 font-medium text-gray-900">Definition</h3>
-          <p>{metric.definition}</p>
+          <h3 className="mb-1 font-medium">Definition</h3>
+          <p className="text-muted-foreground">{metric.definition}</p>
         </div>
 
         <div>
-          <h3 className="mb-1 font-medium text-gray-900">Formula</h3>
-          <p className="rounded bg-gray-50 p-3 font-mono text-xs">
+          <h3 className="mb-1 font-medium">Formula</h3>
+          <p className="rounded bg-muted p-3 font-mono text-xs">
             {metric.formula}
           </p>
         </div>
 
         <div>
-          <h3 className="mb-1 font-medium text-gray-900">Interpretation</h3>
-          <p>{metric.interpretation}</p>
+          <h3 className="mb-1 font-medium">Interpretation</h3>
+          <p className="text-muted-foreground">{metric.interpretation}</p>
         </div>
 
         <div>
-          <h3 className="mb-1 font-medium text-gray-900">
+          <h3 className="mb-1 font-medium">
             Good vs Bad Ranges
           </h3>
-          <ul className="mt-2 space-y-1">
+          <ul className="mt-2 space-y-1 text-muted-foreground">
             <li>
-              <span className="font-medium">Good:</span> {metric.ranges.good}
+              <span className="font-medium text-foreground">Good:</span> {metric.ranges.good}
             </li>
             {metric.ranges.acceptable && (
               <li>
-                <span className="font-medium">Acceptable:</span>{" "}
+                <span className="font-medium text-foreground">Acceptable:</span>{" "}
                 {metric.ranges.acceptable}
               </li>
             )}
             <li>
-              <span className="font-medium">Poor:</span> {metric.ranges.poor}
+              <span className="font-medium text-foreground">Poor:</span> {metric.ranges.poor}
             </li>
-            <li className="italic text-gray-600">
+            <li className="italic">
               Note: {metric.ranges.caveat}
             </li>
           </ul>
         </div>
 
         <div>
-          <h3 className="mb-1 font-medium text-gray-900">Example</h3>
-          <p>{metric.example}</p>
+          <h3 className="mb-1 font-medium">Example</h3>
+          <p className="text-muted-foreground">{metric.example}</p>
         </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }
