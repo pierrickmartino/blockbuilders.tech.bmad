@@ -13,7 +13,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 **Current State:** Fully functional MVP with post-MVP enhancements (OAuth, scheduled updates, advanced risk management, strategy building wizard, in-app notifications).
 
 **Architecture:**
-- **Frontend:** Next.js 15 + React 19 + TypeScript + Tailwind CSS
+- **Frontend:** Next.js 15 + React 19 + TypeScript + Tailwind CSS + shadcn/ui
 - **Backend:** FastAPI (Python) monolith
 - **Database:** PostgreSQL
 - **Queue:** Redis + RQ
@@ -948,6 +948,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - next, react, react-dom
 - typescript, @types/node, @types/react
 - tailwindcss, autoprefixer, postcss
+- shadcn/ui (Button, Input, Select, Dialog, Card, Tabs, Badge, DropdownMenu)
 - xyflow/react (React Flow)
 - recharts (charting)
 - date-fns (date formatting)

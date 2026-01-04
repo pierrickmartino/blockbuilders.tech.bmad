@@ -10,6 +10,23 @@ import { ALLOWED_ASSETS, Strategy, StrategyExportFile, StrategyVersion, Strategy
 import type { ValidationResponse } from "@/types/canvas";
 import NewStrategyModal from "./new-strategy-modal";
 import { StrategyWizard } from "./strategy-wizard";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 type SortField = "name" | "updated_at" | "total_return" | "last_run" | "asset";
 type SortOrder = "asc" | "desc";
@@ -369,43 +386,35 @@ export default function StrategiesPage() {
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Strategies</h1>
+        <h1 className="text-2xl font-bold">Strategies</h1>
         <div className="flex gap-2">
-          <button
-            onClick={() => setShowImportModal(true)}
-            className="rounded-md border border-gray-300 bg-white px-4 py-2 text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-          >
+          <Button variant="outline" onClick={() => setShowImportModal(true)}>
             Import
-          </button>
-          <button
-            onClick={() => setShowModal(true)}
-            className="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-          >
-            New Strategy
-          </button>
+          </Button>
+          <Button onClick={() => setShowModal(true)}>New Strategy</Button>
         </div>
       </div>
 
       {error && (
-        <div className="mb-4 rounded border border-red-200 bg-red-50 p-3 text-sm text-red-600">
+        <div className="mb-4 rounded border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
           {error}
         </div>
       )}
 
       <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <input
+        <Input
           type="text"
           placeholder="Search strategies..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 sm:w-64"
+          className="sm:w-64"
         />
-        <label className="flex items-center gap-2 text-sm text-gray-600">
+        <label className="flex items-center gap-2 text-sm text-muted-foreground">
           <input
             type="checkbox"
             checked={showArchived}
             onChange={(e) => setShowArchived(e.target.checked)}
-            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            className="rounded border-input"
           />
           Show archived
         </label>
@@ -413,39 +422,42 @@ export default function StrategiesPage() {
 
       {/* Filter Controls */}
       <div className="mb-4 flex flex-col gap-3 sm:flex-row">
-        <select
-          value={assetFilter}
-          onChange={(e) => setAssetFilter(e.target.value)}
-          className="rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-        >
-          <option value="all">All Assets</option>
-          {ALLOWED_ASSETS.map((asset) => (
-            <option key={asset} value={asset}>
-              {asset}
-            </option>
-          ))}
-        </select>
+        <Select value={assetFilter} onValueChange={setAssetFilter}>
+          <SelectTrigger className="w-[150px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Assets</SelectItem>
+            {ALLOWED_ASSETS.map((asset) => (
+              <SelectItem key={asset} value={asset}>
+                {asset}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-        <select
-          value={performanceFilter}
-          onChange={(e) => setPerformanceFilter(e.target.value as PerformanceFilter)}
-          className="rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-        >
-          <option value="all">All Performance</option>
-          <option value="positive">Positive</option>
-          <option value="negative">Negative</option>
-        </select>
+        <Select value={performanceFilter} onValueChange={(v) => setPerformanceFilter(v as PerformanceFilter)}>
+          <SelectTrigger className="w-[150px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Performance</SelectItem>
+            <SelectItem value="positive">Positive</SelectItem>
+            <SelectItem value="negative">Negative</SelectItem>
+          </SelectContent>
+        </Select>
 
-        <select
-          value={lastRunFilter}
-          onChange={(e) => setLastRunFilter(e.target.value as LastRunFilter)}
-          className="rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-        >
-          <option value="all">All Runs</option>
-          <option value="7days">Last 7 Days</option>
-          <option value="30days">Last 30 Days</option>
-          <option value="never">Never Run</option>
-        </select>
+        <Select value={lastRunFilter} onValueChange={(v) => setLastRunFilter(v as LastRunFilter)}>
+          <SelectTrigger className="w-[150px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Runs</SelectItem>
+            <SelectItem value="7days">Last 7 Days</SelectItem>
+            <SelectItem value="30days">Last 30 Days</SelectItem>
+            <SelectItem value="never">Never Run</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {filteredAndSortedStrategies.length === 0 ? (
@@ -519,14 +531,10 @@ export default function StrategiesPage() {
                           {strategy.name}
                         </button>
                         {strategy.is_archived && (
-                          <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-500">
-                            Archived
-                          </span>
+                          <Badge variant="secondary">Archived</Badge>
                         )}
                         {strategy.auto_update_enabled && (
-                          <span className="rounded bg-blue-100 px-2 py-0.5 text-xs text-blue-600">
-                            Auto: On
-                          </span>
+                          <Badge variant="outline" className="bg-blue-50 text-blue-700">Auto: On</Badge>
                         )}
                       </div>
                     </td>
@@ -609,14 +617,10 @@ export default function StrategiesPage() {
                     </p>
                     <div className="mt-1 flex flex-wrap gap-1">
                       {strategy.is_archived && (
-                        <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-500">
-                          Archived
-                        </span>
+                        <Badge variant="secondary">Archived</Badge>
                       )}
                       {strategy.auto_update_enabled && (
-                        <span className="rounded bg-blue-100 px-2 py-0.5 text-xs text-blue-600">
-                          Auto: On
-                        </span>
+                        <Badge variant="outline" className="bg-blue-50 text-blue-700">Auto: On</Badge>
                       )}
                     </div>
                   </div>
@@ -690,19 +694,16 @@ export default function StrategiesPage() {
         </>
       )}
 
-      {showModal && (
-        <NewStrategyModal
-          onClose={() => setShowModal(false)}
-          onCreated={(strategy) => {
-            setShowModal(false);
-            router.push(`/strategies/${strategy.id}`);
-          }}
-          onOpenWizard={() => {
-            setShowModal(false);
-            setShowWizard(true);
-          }}
-        />
-      )}
+      <NewStrategyModal
+        open={showModal}
+        onOpenChange={setShowModal}
+        onCreated={(strategy) => {
+          router.push(`/strategies/${strategy.id}`);
+        }}
+        onOpenWizard={() => {
+          setShowWizard(true);
+        }}
+      />
 
       {showWizard && (
         <StrategyWizard
@@ -715,81 +716,70 @@ export default function StrategiesPage() {
         />
       )}
 
-      {showImportModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
-            <h2 className="mb-4 text-lg font-semibold">Import Strategy</h2>
+      <Dialog open={showImportModal} onOpenChange={(open) => { if (!open) handleImportCancel(); else setShowImportModal(true); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Import Strategy</DialogTitle>
+          </DialogHeader>
 
-            {!importData ? (
-              <div>
-                <label className="block">
-                  <span className="mb-2 block text-sm text-gray-600">
-                    Select a strategy JSON file
-                  </span>
-                  <input
-                    type="file"
-                    accept=".json,application/json"
-                    onChange={handleImportFileSelect}
-                    className="block w-full text-sm text-gray-500 file:mr-4 file:rounded file:border-0 file:bg-blue-50 file:px-4 file:py-2 file:text-sm file:font-medium file:text-blue-700 hover:file:bg-blue-100"
-                  />
-                </label>
+          {!importData ? (
+            <div>
+              <label className="block">
+                <span className="mb-2 block text-sm text-muted-foreground">
+                  Select a strategy JSON file
+                </span>
+                <input
+                  type="file"
+                  accept=".json,application/json"
+                  onChange={handleImportFileSelect}
+                  className="block w-full text-sm text-muted-foreground file:mr-4 file:rounded file:border-0 file:bg-primary/10 file:px-4 file:py-2 file:text-sm file:font-medium file:text-primary hover:file:bg-primary/20"
+                />
+              </label>
 
-                {importError && (
-                  <div className="mt-3 rounded border border-red-200 bg-red-50 p-3 text-sm text-red-600">
-                    {importError}
-                  </div>
-                )}
+              {importError && (
+                <div className="mt-3 rounded border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+                  {importError}
+                </div>
+              )}
 
-                <div className="mt-4 flex justify-end">
-                  <button
-                    onClick={handleImportCancel}
-                    className="rounded border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                  >
-                    Cancel
-                  </button>
+              <DialogFooter className="mt-4">
+                <Button variant="outline" onClick={handleImportCancel}>
+                  Cancel
+                </Button>
+              </DialogFooter>
+            </div>
+          ) : (
+            <div>
+              <div className="mb-4 rounded border bg-muted p-3">
+                <div className="mb-2 text-sm font-medium">
+                  {importData.strategy.name}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {importData.strategy.asset} • {importData.strategy.timeframe}
+                </div>
+                <div className="mt-2 text-xs text-muted-foreground">
+                  Exported: {new Date(importData.exported_at).toLocaleDateString()}
                 </div>
               </div>
-            ) : (
-              <div>
-                <div className="mb-4 rounded border border-gray-200 bg-gray-50 p-3">
-                  <div className="mb-2 text-sm font-medium text-gray-700">
-                    {importData.strategy.name}
-                  </div>
-                  <div className="text-sm text-gray-600">
-                    {importData.strategy.asset} • {importData.strategy.timeframe}
-                  </div>
-                  <div className="mt-2 text-xs text-gray-500">
-                    Exported: {new Date(importData.exported_at).toLocaleDateString()}
-                  </div>
-                </div>
 
-                {importError && (
-                  <div className="mb-3 rounded border border-red-200 bg-red-50 p-3 text-sm text-red-600">
-                    {importError}
-                  </div>
-                )}
-
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleImportConfirm}
-                    disabled={isImporting}
-                    className="flex-1 rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
-                  >
-                    {isImporting ? "Importing..." : "Import"}
-                  </button>
-                  <button
-                    onClick={handleImportCancel}
-                    disabled={isImporting}
-                    className="flex-1 rounded border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-                  >
-                    Cancel
-                  </button>
+              {importError && (
+                <div className="mb-3 rounded border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+                  {importError}
                 </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+              )}
+
+              <DialogFooter>
+                <Button variant="outline" onClick={handleImportCancel} disabled={isImporting}>
+                  Cancel
+                </Button>
+                <Button onClick={handleImportConfirm} disabled={isImporting}>
+                  {isImporting ? "Importing..." : "Import"}
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

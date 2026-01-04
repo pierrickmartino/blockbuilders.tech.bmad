@@ -206,9 +206,8 @@ Use and respect the existing stack rather than introducing new tools:
 - Use existing **design patterns** and **components** in the repo rather than inventing new ones.
 - For responsiveness:
   - Mobile-first layouts (vertical stacking).
-  - Use Tailwind’s spacing, flex/grid, and typography utilities.
+  - Use Tailwind's spacing, flex/grid, and typography utilities.
 - Avoid:
-  - Heavy third-party UI libraries unless already adopted.
   - Overly dynamic layouts that are hard to maintain.
   - New tooltip libraries; prefer native `title` or existing components for help text.
 - Prefer **inline, contextual validation feedback** (e.g., on-canvas cues) over hidden or panel-only errors.
@@ -218,6 +217,22 @@ When asked to implement UI:
 1. Start with **the simplest working layout**.
 2. Add only the minimal responsive tweaks needed for a sane mobile/desktop experience.
 3. Reuse existing utility classes and components.
+
+#### 6.2.1. shadcn/ui Components
+
+Use **shadcn/ui** for common UI elements. Components are in `frontend/src/components/ui/`.
+
+**Installed components:** Button, Input, Select, Dialog, Card, Tabs, Badge, DropdownMenu
+
+**Usage rules:**
+- Use shadcn/ui for buttons, forms, modals, dropdowns, cards, badges
+- Canvas nodes (`components/canvas/`) use custom Tailwind — do NOT use shadcn/ui there
+- Import from `@/components/ui/[component]`
+- Use `cn()` from `@/lib/utils` for conditional class names
+
+**Do NOT migrate to shadcn/ui:**
+- Canvas nodes (BaseNode.tsx, all node types) — specialized color-coded category system
+- Components with complex internal state where migration adds no value
 
 ### 6.3. Backend specifics
 

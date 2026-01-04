@@ -5,6 +5,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/auth";
 import { ApiError } from "@/lib/api";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 function ResetPasswordForm() {
   const router = useRouter();
@@ -21,22 +24,21 @@ function ResetPasswordForm() {
 
   if (!token) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
+      <div className="flex min-h-screen items-center justify-center bg-background p-4">
         <div className="w-full max-w-md">
-          <div className="rounded-lg bg-white p-8 shadow-md">
-            <h1 className="mb-4 text-center text-2xl font-bold text-gray-900">
-              Invalid reset link
-            </h1>
-            <p className="mb-6 text-center text-sm text-gray-600">
-              This password reset link is invalid or has expired.
-            </p>
-            <Link
-              href="/forgot-password"
-              className="block w-full rounded-md bg-blue-600 px-4 py-2 text-center text-white hover:bg-blue-700"
-            >
-              Request a new reset link
-            </Link>
-          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-center text-2xl">Invalid reset link</CardTitle>
+              <CardDescription className="text-center">
+                This password reset link is invalid or has expired.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button asChild className="w-full">
+                <Link href="/forgot-password">Request a new reset link</Link>
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </div>
     );
@@ -77,111 +79,83 @@ function ResetPasswordForm() {
 
   if (success) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
+      <div className="flex min-h-screen items-center justify-center bg-background p-4">
         <div className="w-full max-w-md">
-          <div className="rounded-lg bg-white p-8 shadow-md">
+          <Card className="p-8">
             <div className="rounded border border-green-200 bg-green-50 p-3 text-sm text-green-700">
               {success}
             </div>
-          </div>
+          </Card>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
+    <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <div className="w-full max-w-md">
-        <div className="rounded-lg bg-white p-8 shadow-md">
-          <h1 className="mb-2 text-center text-2xl font-bold text-gray-900">
-            Set new password
-          </h1>
-          <p className="mb-6 text-center text-sm text-gray-600">
-            Enter your new password below.
-          </p>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-center text-2xl">Set new password</CardTitle>
+            <CardDescription className="text-center">
+              Enter your new password below.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {error && (
+                <div className="rounded border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+                  {error}
+                </div>
+              )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {error && (
-              <div className="rounded border border-red-200 bg-red-50 p-3 text-sm text-red-600">
-                {error}
+              <div className="space-y-2">
+                <label htmlFor="password" className="text-sm font-medium">
+                  New password
+                </label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onFocus={() => setPasswordFocused(true)}
+                  onBlur={() => setPasswordFocused(false)}
+                  autoComplete="new-password"
+                  required
+                  minLength={8}
+                />
+                {passwordFocused && (
+                  <p className="text-xs text-muted-foreground">Use at least 8 characters</p>
+                )}
               </div>
-            )}
 
-            <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-gray-700"
-              >
-                New password
-              </label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                onFocus={() => setPasswordFocused(true)}
-                onBlur={() => setPasswordFocused(false)}
-                autoComplete="new-password"
-                required
-                minLength={8}
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              />
-              {passwordFocused && (
-                <p className="mt-1 text-xs text-gray-500">
-                  Use at least 8 characters
-                </p>
-              )}
-            </div>
+              <div className="space-y-2">
+                <label htmlFor="confirmPassword" className="text-sm font-medium">
+                  Confirm password
+                </label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  autoComplete="new-password"
+                  required
+                  minLength={8}
+                />
+              </div>
 
-            <div>
-              <label
-                htmlFor="confirmPassword"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Confirm password
-              </label>
-              <input
-                id="confirmPassword"
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                autoComplete="new-password"
-                required
-                minLength={8}
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="flex w-full items-center justify-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
-            >
-              {isSubmitting && (
-                <svg
-                  className="h-4 w-4 animate-spin"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                  />
-                </svg>
-              )}
-              {isSubmitting ? "Updating..." : "Update password"}
-            </button>
-          </form>
-        </div>
+              <Button type="submit" disabled={isSubmitting} className="w-full">
+                {isSubmitting && (
+                  <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                )}
+                {isSubmitting ? "Updating..." : "Update password"}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
@@ -191,18 +165,18 @@ export default function ResetPasswordPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
+        <div className="flex min-h-screen items-center justify-center bg-background p-4">
           <div className="w-full max-w-md">
-            <div className="rounded-lg bg-white p-8 shadow-md">
+            <Card className="p-8">
               <div className="animate-pulse">
-                <div className="mx-auto mb-6 h-8 w-48 rounded bg-gray-200" />
+                <div className="mx-auto mb-6 h-8 w-48 rounded bg-muted" />
                 <div className="space-y-4">
-                  <div className="h-10 rounded bg-gray-200" />
-                  <div className="h-10 rounded bg-gray-200" />
-                  <div className="h-10 rounded bg-gray-200" />
+                  <div className="h-10 rounded bg-muted" />
+                  <div className="h-10 rounded bg-muted" />
+                  <div className="h-10 rounded bg-muted" />
                 </div>
               </div>
-            </div>
+            </Card>
           </div>
         </div>
       }
