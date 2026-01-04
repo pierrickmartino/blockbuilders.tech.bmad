@@ -3,20 +3,32 @@
 import { useState } from "react";
 import { apiFetch, ApiError } from "@/lib/api";
 import { useAuth } from "@/context/auth";
+import { Strategy, ALLOWED_ASSETS, ALLOWED_TIMEFRAMES, AllowedAsset } from "@/types/strategy";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
-  Strategy,
-  ALLOWED_ASSETS,
-  ALLOWED_TIMEFRAMES,
-  AllowedAsset,
-} from "@/types/strategy";
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface Props {
-  onClose: () => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   onCreated: (strategy: Strategy) => void;
   onOpenWizard: () => void;
 }
 
-export default function NewStrategyModal({ onClose, onCreated, onOpenWizard }: Props) {
+export default function NewStrategyModal({ open, onOpenChange, onCreated, onOpenWizard }: Props) {
   const { refreshUsage } = useAuth();
   const [name, setName] = useState("");
   const [asset, setAsset] = useState<string>(ALLOWED_ASSETS[0]);
@@ -31,7 +43,6 @@ export default function NewStrategyModal({ onClose, onCreated, onOpenWizard }: P
       return;
     }
 
-    // Validate asset selection
     if (!ALLOWED_ASSETS.includes(asset as AllowedAsset)) {
       setError("Please select a valid asset from the list");
       return;
@@ -47,6 +58,7 @@ export default function NewStrategyModal({ onClose, onCreated, onOpenWizard }: P
       });
       refreshUsage();
       onCreated(strategy);
+      onOpenChange(false);
     } catch (err) {
       if (err instanceof ApiError && err.status === 403) {
         setError(
@@ -60,45 +72,50 @@ export default function NewStrategyModal({ onClose, onCreated, onOpenWizard }: P
     }
   };
 
+  const handleOpenWizard = () => {
+    onOpenChange(false);
+    onOpenWizard();
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="mx-4 w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
-        <h2 className="mb-4 text-lg font-semibold text-gray-900">New Strategy</h2>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>New Strategy</DialogTitle>
+        </DialogHeader>
 
         {error && (
-          <div className="mb-4 rounded border border-red-200 bg-red-50 p-3 text-sm text-red-600">
+          <div className="rounded border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label htmlFor="name" className="mb-1 block text-sm font-medium text-gray-700">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <label htmlFor="name" className="text-sm font-medium">
               Name
             </label>
-            <input
+            <Input
               id="name"
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="My Strategy"
-              className="w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               autoFocus
             />
           </div>
 
-          <div className="mb-4">
-            <label htmlFor="asset" className="mb-1 block text-sm font-medium text-gray-700">
+          <div className="space-y-2">
+            <label htmlFor="asset" className="text-sm font-medium">
               Asset
             </label>
-            <input
+            <Input
               id="asset"
               type="text"
               list="asset-list"
               value={asset}
               onChange={(e) => setAsset(e.target.value)}
               placeholder="Search or select asset (e.g., BTC/USDT)"
-              className="w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
             <datalist id="asset-list">
               {ALLOWED_ASSETS.map((a) => (
@@ -107,55 +124,40 @@ export default function NewStrategyModal({ onClose, onCreated, onOpenWizard }: P
             </datalist>
           </div>
 
-          <div className="mb-6">
-            <label htmlFor="timeframe" className="mb-1 block text-sm font-medium text-gray-700">
+          <div className="space-y-2">
+            <label htmlFor="timeframe" className="text-sm font-medium">
               Timeframe
             </label>
-            <select
-              id="timeframe"
-              value={timeframe}
-              onChange={(e) => setTimeframe(e.target.value)}
-              className="w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            >
-              {ALLOWED_TIMEFRAMES.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
+            <Select value={timeframe} onValueChange={setTimeframe}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {ALLOWED_TIMEFRAMES.map((t) => (
+                  <SelectItem key={t} value={t}>
+                    {t}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
-          <div className="flex justify-end gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-md border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-            >
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
-            >
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
               {isSubmitting ? "Creating..." : "Create"}
-            </button>
-          </div>
+            </Button>
+          </DialogFooter>
         </form>
 
-        <div className="mt-4 border-t pt-4">
-          <button
-            type="button"
-            onClick={() => {
-              onClose();
-              onOpenWizard();
-            }}
-            className="w-full text-center text-sm text-blue-600 hover:text-blue-700"
-          >
+        <div className="border-t pt-4">
+          <Button type="button" variant="link" className="w-full" onClick={handleOpenWizard}>
             Or use guided wizard to build your first strategy →
-          </button>
+          </Button>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

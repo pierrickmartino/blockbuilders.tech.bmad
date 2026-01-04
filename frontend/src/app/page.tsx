@@ -4,6 +4,9 @@ import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/auth";
 import { ApiError } from "@/lib/api";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 type AuthMode = "login" | "signup";
 
@@ -73,9 +76,9 @@ function AuthForm() {
   // Don't render form if logged in
   if (user) {
     return (
-      <div className="rounded-lg bg-white p-8 shadow-md">
-        <p className="text-center text-gray-500">Redirecting...</p>
-      </div>
+      <Card className="p-8">
+        <p className="text-center text-muted-foreground">Redirecting...</p>
+      </Card>
     );
   }
 
@@ -150,180 +153,133 @@ function AuthForm() {
   const submittingText = isLogin ? "Signing in..." : "Creating account...";
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
+    <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <div className="w-full max-w-md">
-        <div className="rounded-lg bg-white p-8 shadow-md">
-          <h1 className="mb-6 text-center text-2xl font-bold text-gray-900">
-            {title}
-          </h1>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-center text-2xl">{title}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {error && (
+                <div className="rounded border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+                  {error}
+                </div>
+              )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {error && (
-              <div className="rounded border border-red-200 bg-red-50 p-3 text-sm text-red-600">
-                {error}
+              <div className="space-y-2">
+                <label htmlFor="email" className="text-sm font-medium">
+                  Email
+                </label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  onBlur={() => handleBlur("email")}
+                  autoComplete="email"
+                  required
+                  className={touched.email && fieldErrors.email ? "border-destructive" : ""}
+                />
+                {touched.email && fieldErrors.email && (
+                  <p className="text-xs text-destructive">{fieldErrors.email}</p>
+                )}
               </div>
-            )}
 
-            <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                onBlur={() => handleBlur("email")}
-                autoComplete="email"
-                required
-                className={`mt-1 block w-full rounded-md border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 ${
-                  touched.email && fieldErrors.email
-                    ? "border-red-300"
-                    : "border-gray-300"
-                }`}
-              />
-              {touched.email && fieldErrors.email && (
-                <p className="mt-1 text-xs text-red-600">{fieldErrors.email}</p>
-              )}
-            </div>
-
-            <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                onFocus={() => setPasswordFocused(true)}
-                onBlur={() => handleBlur("password")}
-                autoComplete={isLogin ? "current-password" : "new-password"}
-                required
-                minLength={mode === "signup" ? 8 : undefined}
-                className={`mt-1 block w-full rounded-md border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 ${
-                  touched.password && fieldErrors.password
-                    ? "border-red-300"
-                    : "border-gray-300"
-                }`}
-              />
-              {touched.password && fieldErrors.password && (
-                <p className="mt-1 text-xs text-red-600">{fieldErrors.password}</p>
-              )}
-              {mode === "signup" && passwordFocused && !fieldErrors.password && (
-                <p className="mt-1 text-xs text-gray-500">
-                  Use at least 8 characters
-                </p>
-              )}
-            </div>
-
-            {isLogin && (
-              <div className="text-right">
-                <button
-                  type="button"
-                  onClick={() => router.push("/forgot-password")}
-                  className="text-sm text-blue-600 hover:underline"
-                >
-                  Forgot password?
-                </button>
+              <div className="space-y-2">
+                <label htmlFor="password" className="text-sm font-medium">
+                  Password
+                </label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onFocus={() => setPasswordFocused(true)}
+                  onBlur={() => handleBlur("password")}
+                  autoComplete={isLogin ? "current-password" : "new-password"}
+                  required
+                  minLength={mode === "signup" ? 8 : undefined}
+                  className={touched.password && fieldErrors.password ? "border-destructive" : ""}
+                />
+                {touched.password && fieldErrors.password && (
+                  <p className="text-xs text-destructive">{fieldErrors.password}</p>
+                )}
+                {mode === "signup" && passwordFocused && !fieldErrors.password && (
+                  <p className="text-xs text-muted-foreground">Use at least 8 characters</p>
+                )}
               </div>
-            )}
 
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="flex w-full items-center justify-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
-            >
-              {isSubmitting && (
-                <svg
-                  className="h-4 w-4 animate-spin"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                  />
-                </svg>
+              {isLogin && (
+                <div className="text-right">
+                  <Button
+                    type="button"
+                    variant="link"
+                    className="h-auto p-0 text-sm"
+                    onClick={() => router.push("/forgot-password")}
+                  >
+                    Forgot password?
+                  </Button>
+                </div>
               )}
-              {isSubmitting ? submittingText : submitText}
-            </button>
-          </form>
 
-          <p className="mt-4 text-center text-xs text-gray-500">
-            No credit card required. We never share your data.
-          </p>
+              <Button type="submit" disabled={isSubmitting} className="w-full">
+                {isSubmitting && (
+                  <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                )}
+                {isSubmitting ? submittingText : submitText}
+              </Button>
+            </form>
 
-          {/* OAuth buttons */}
-          <div className="mt-6">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-200" />
+            <p className="mt-4 text-center text-xs text-muted-foreground">
+              No credit card required. We never share your data.
+            </p>
+
+            {/* OAuth buttons */}
+            <div className="mt-6">
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
+                </div>
               </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="bg-white px-2 text-gray-500">Or continue with</span>
+
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                <Button type="button" variant="outline" onClick={() => startOAuth("google")}>
+                  <GoogleIcon />
+                  Google
+                </Button>
+                <Button type="button" variant="outline" onClick={() => startOAuth("github")}>
+                  <GitHubIcon />
+                  GitHub
+                </Button>
               </div>
             </div>
 
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => startOAuth("google")}
-                className="flex w-full items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-              >
-                <GoogleIcon />
-                Google
-              </button>
-              <button
-                type="button"
-                onClick={() => startOAuth("github")}
-                className="flex w-full items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-              >
-                <GitHubIcon />
-                GitHub
-              </button>
-            </div>
-          </div>
-
-          <p className="mt-6 text-center text-sm text-gray-600">
-            {isLogin ? (
-              <>
-                Don&apos;t have an account?{" "}
-                <button
-                  onClick={() => switchMode("signup")}
-                  className="text-blue-600 hover:underline"
-                >
-                  Create one
-                </button>
-              </>
-            ) : (
-              <>
-                Already have an account?{" "}
-                <button
-                  onClick={() => switchMode("login")}
-                  className="text-blue-600 hover:underline"
-                >
-                  Sign in
-                </button>
-              </>
-            )}
-          </p>
-        </div>
+            <p className="mt-6 text-center text-sm text-muted-foreground">
+              {isLogin ? (
+                <>
+                  Don&apos;t have an account?{" "}
+                  <Button variant="link" className="h-auto p-0" onClick={() => switchMode("signup")}>
+                    Create one
+                  </Button>
+                </>
+              ) : (
+                <>
+                  Already have an account?{" "}
+                  <Button variant="link" className="h-auto p-0" onClick={() => switchMode("login")}>
+                    Sign in
+                  </Button>
+                </>
+              )}
+            </p>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
@@ -333,18 +289,18 @@ export default function Home() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
+        <div className="flex min-h-screen items-center justify-center bg-background p-4">
           <div className="w-full max-w-md">
-            <div className="rounded-lg bg-white p-8 shadow-md">
+            <Card className="p-8">
               <div className="animate-pulse">
-                <div className="mx-auto mb-6 h-8 w-48 rounded bg-gray-200" />
+                <div className="mx-auto mb-6 h-8 w-48 rounded bg-muted" />
                 <div className="space-y-4">
-                  <div className="h-10 rounded bg-gray-200" />
-                  <div className="h-10 rounded bg-gray-200" />
-                  <div className="h-10 rounded bg-gray-200" />
+                  <div className="h-10 rounded bg-muted" />
+                  <div className="h-10 rounded bg-muted" />
+                  <div className="h-10 rounded bg-muted" />
                 </div>
               </div>
-            </div>
+            </Card>
           </div>
         </div>
       }
