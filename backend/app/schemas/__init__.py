@@ -15,6 +15,11 @@ from app.schemas.strategy import (
     StrategyVersionDetailResponse,
     StrategyVersionResponse,
 )
+from app.schemas.alert import (
+    AlertRuleCreate,
+    AlertRuleUpdate,
+    AlertRuleResponse,
+)
 
 __all__ = [
     "SignupRequest",
@@ -30,4 +35,7 @@ __all__ = [
     "StrategyVersionCreateRequest",
     "StrategyVersionDetailResponse",
     "StrategyVersionResponse",
+    "AlertRuleCreate",
+    "AlertRuleUpdate",
+    "AlertRuleResponse",
 ]

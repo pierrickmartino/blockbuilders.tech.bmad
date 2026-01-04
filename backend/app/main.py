@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 
+from app.api.alerts import router as alerts_router
 from app.api.auth import router as auth_router
 from app.api.backtests import router as backtests_router
 from app.api.health import router as health_router
@@ -27,3 +28,4 @@ app.include_router(usage_router)
 app.include_router(strategies_router)
 app.include_router(backtests_router)
 app.include_router(notifications_router)
+app.include_router(alerts_router)

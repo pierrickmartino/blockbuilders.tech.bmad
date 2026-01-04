@@ -1,6 +1,7 @@
 export type NotificationType =
   | "backtest_completed"
   | "usage_limit_reached"
+  | "performance_alert"
   | "new_follower"
   | "strategy_commented"
   | "system";

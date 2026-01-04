@@ -8,6 +8,7 @@ import { apiFetch } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
 import { useDisplay } from "@/context/display";
 import { Strategy, StrategyVersion, StrategyVersionDetail, StrategyExportFile } from "@/types/strategy";
+import { AlertRule } from "@/types/alert";
 import {
   StrategyDefinition,
   ValidationError,
@@ -68,6 +69,17 @@ export default function StrategyEditorPage({ params }: Props) {
 
   // Auto-update state
   const [isUpdatingAutoUpdate, setIsUpdatingAutoUpdate] = useState(false);
+
+  // Alert state
+  const [alertRule, setAlertRule] = useState<AlertRule | null>(null);
+  const [isLoadingAlert, setIsLoadingAlert] = useState(true);
+  const [alertEnabled, setAlertEnabled] = useState(false);
+  const [alertThreshold, setAlertThreshold] = useState<number>(20);
+  const [alertOnEntry, setAlertOnEntry] = useState(false);
+  const [alertOnExit, setAlertOnExit] = useState(false);
+  const [notifyEmail, setNotifyEmail] = useState(false);
+  const [isSavingAlert, setIsSavingAlert] = useState(false);
+  const [alertError, setAlertError] = useState<string | null>(null);
 
   const loadVersionDetail = useCallback(
     async (versionNumber: number) => {
@@ -149,6 +161,30 @@ export default function StrategyEditorPage({ params }: Props) {
     loadStrategy();
     loadVersions();
   }, [loadStrategy, loadVersions]);
+
+  // Load alert rule for this strategy
+  useEffect(() => {
+    const fetchAlert = async () => {
+      try {
+        const alerts = await apiFetch<AlertRule[]>("/alerts");
+        const rule = alerts.find((a) => a.strategy_id === id);
+        if (rule) {
+          setAlertRule(rule);
+          setAlertEnabled(rule.is_active);
+          setAlertThreshold(rule.threshold_pct || 20);
+          setAlertOnEntry(rule.alert_on_entry);
+          setAlertOnExit(rule.alert_on_exit);
+          setNotifyEmail(rule.notify_email);
+        }
+      } catch (err) {
+        console.error("Failed to load alert", err);
+        setIsLoadingAlert(false);
+      } finally {
+        setIsLoadingAlert(false);
+      }
+    };
+    fetchAlert();
+  }, [id]);
 
   const selectedNode = useMemo(
     () => nodes.find((node) => node.id === selectedNodeId) || null,
@@ -265,6 +301,55 @@ export default function StrategyEditorPage({ params }: Props) {
       setError(err instanceof Error ? err.message : "Failed to save version");
     } finally {
       setIsSavingVersion(false);
+    }
+  };
+
+  const handleAlertSave = async () => {
+    // Client-side validation
+    if (alertThreshold < 0.1 || alertThreshold > 100) {
+      setAlertError("Threshold must be between 0.1 and 100");
+      return;
+    }
+    if (!alertOnEntry && !alertOnExit && !alertThreshold) {
+      setAlertError("Enable at least one alert condition");
+      return;
+    }
+
+    setIsSavingAlert(true);
+    setAlertError(null);
+    try {
+      if (!alertRule) {
+        // Create
+        const created = await apiFetch<AlertRule>("/alerts", {
+          method: "POST",
+          body: JSON.stringify({
+            strategy_id: id,
+            threshold_pct: alertThreshold,
+            alert_on_entry: alertOnEntry,
+            alert_on_exit: alertOnExit,
+            notify_email: notifyEmail,
+            is_active: alertEnabled,
+          }),
+        });
+        setAlertRule(created);
+      } else {
+        // Update
+        const updated = await apiFetch<AlertRule>(`/alerts/${alertRule.id}`, {
+          method: "PATCH",
+          body: JSON.stringify({
+            threshold_pct: alertThreshold,
+            alert_on_entry: alertOnEntry,
+            alert_on_exit: alertOnExit,
+            notify_email: notifyEmail,
+            is_active: alertEnabled,
+          }),
+        });
+        setAlertRule(updated);
+      }
+    } catch (err) {
+      setAlertError(err instanceof Error ? err.message : "Failed to save alert");
+    } finally {
+      setIsSavingAlert(false);
     }
   };
 
@@ -560,6 +645,104 @@ export default function StrategyEditorPage({ params }: Props) {
         </div>
 
         <StrategyTabs strategyId={id} activeTab="build" />
+
+        {/* Performance Alerts Card */}
+        <section className="mt-2 rounded-lg bg-white p-4 shadow-sm sm:p-6">
+          <h3 className="text-sm font-semibold text-gray-900 sm:text-base">Performance Alerts</h3>
+          <p className="text-xs text-gray-500">
+            Get notified when scheduled re-backtests meet conditions
+          </p>
+
+          {isLoadingAlert ? (
+            <div className="mt-2 text-sm text-gray-500">Loading...</div>
+          ) : (
+            <div className="mt-3 space-y-3">
+              {/* Enable toggle */}
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={alertEnabled}
+                  onChange={(e) => setAlertEnabled(e.target.checked)}
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                Enable alerts
+              </label>
+
+              {alertEnabled && (
+                <>
+                  {/* Drawdown threshold */}
+                  <div>
+                    <label className="block text-xs text-gray-600">
+                      Alert when drawdown exceeds (%)
+                    </label>
+                    <input
+                      type="number"
+                      min="0.1"
+                      max="100"
+                      step="0.1"
+                      value={alertThreshold}
+                      onChange={(e) => setAlertThreshold(Number(e.target.value))}
+                      className="mt-1 w-24 rounded border border-gray-300 px-2 py-1 text-sm"
+                    />
+                  </div>
+
+                  {/* Entry/Exit checkboxes */}
+                  <label className="flex items-center gap-2 text-sm text-gray-700">
+                    <input
+                      type="checkbox"
+                      checked={alertOnEntry}
+                      onChange={(e) => setAlertOnEntry(e.target.checked)}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    Alert on entry signal
+                  </label>
+
+                  <label className="flex items-center gap-2 text-sm text-gray-700">
+                    <input
+                      type="checkbox"
+                      checked={alertOnExit}
+                      onChange={(e) => setAlertOnExit(e.target.checked)}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    Alert on exit signal
+                  </label>
+
+                  {/* Email notification */}
+                  <label className="flex items-center gap-2 text-sm text-gray-700">
+                    <input
+                      type="checkbox"
+                      checked={notifyEmail}
+                      onChange={(e) => setNotifyEmail(e.target.checked)}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    Also email me
+                  </label>
+                </>
+              )}
+
+              {/* Last triggered */}
+              {alertRule?.last_triggered_at && (
+                <div className="text-xs text-gray-500">
+                  Last triggered: {new Date(alertRule.last_triggered_at).toLocaleString()}
+                </div>
+              )}
+
+              {/* Save button */}
+              <button
+                onClick={handleAlertSave}
+                disabled={isSavingAlert}
+                className="rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+              >
+                {isSavingAlert ? "Saving..." : "Save Alert"}
+              </button>
+
+              {/* Error message */}
+              {alertError && (
+                <div className="text-sm text-red-600">{alertError}</div>
+              )}
+            </div>
+          )}
+        </section>
 
         {/* Error/Success Messages */}
         {error && (
