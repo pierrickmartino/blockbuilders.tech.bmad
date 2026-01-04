@@ -79,7 +79,16 @@ export default function StrategyEditorPage({ params }: Props) {
   const [alertOnExit, setAlertOnExit] = useState(false);
   const [notifyEmail, setNotifyEmail] = useState(false);
   const [isSavingAlert, setIsSavingAlert] = useState(false);
+  const [isEditingAlert, setIsEditingAlert] = useState(false);
   const [alertError, setAlertError] = useState<string | null>(null);
+
+  const resetAlertForm = useCallback((rule: AlertRule | null) => {
+    setAlertEnabled(rule?.is_active ?? false);
+    setAlertThreshold(rule?.threshold_pct ?? null);
+    setAlertOnEntry(rule?.alert_on_entry ?? false);
+    setAlertOnExit(rule?.alert_on_exit ?? false);
+    setNotifyEmail(rule?.notify_email ?? false);
+  }, []);
 
   const loadVersionDetail = useCallback(
     async (versionNumber: number) => {
@@ -170,12 +179,9 @@ export default function StrategyEditorPage({ params }: Props) {
         const rule = alerts.find((a) => a.strategy_id === id);
         if (rule) {
           setAlertRule(rule);
-          setAlertEnabled(rule.is_active);
-          setAlertThreshold(rule.threshold_pct ?? null);
-          setAlertOnEntry(rule.alert_on_entry);
-          setAlertOnExit(rule.alert_on_exit);
-          setNotifyEmail(rule.notify_email);
+          resetAlertForm(rule);
         }
+        setIsEditingAlert(!rule);
       } catch (err) {
         console.error("Failed to load alert", err);
         setIsLoadingAlert(false);
@@ -332,6 +338,7 @@ export default function StrategyEditorPage({ params }: Props) {
           }),
         });
         setAlertRule(created);
+        resetAlertForm(created);
       } else {
         // Update
         const updated = await apiFetch<AlertRule>(`/alerts/${alertRule.id}`, {
@@ -345,7 +352,9 @@ export default function StrategyEditorPage({ params }: Props) {
           }),
         });
         setAlertRule(updated);
+        resetAlertForm(updated);
       }
+      setIsEditingAlert(false);
     } catch (err) {
       setAlertError(err instanceof Error ? err.message : "Failed to save alert");
     } finally {
@@ -657,93 +666,134 @@ export default function StrategyEditorPage({ params }: Props) {
             <div className="mt-2 text-sm text-gray-500">Loading...</div>
           ) : (
             <div className="mt-3 space-y-3">
-              {/* Enable toggle */}
-              <label className="flex items-center gap-2 text-sm text-gray-700">
-                <input
-                  type="checkbox"
-                  checked={alertEnabled}
-                  onChange={(e) => setAlertEnabled(e.target.checked)}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                Enable alerts
-              </label>
-
-              {alertEnabled && (
+              {isEditingAlert ? (
                 <>
-                  {/* Drawdown threshold */}
-                  <div>
-                    <label className="block text-xs text-gray-600">
-                      Alert when drawdown exceeds (%)
-                    </label>
+                  {/* Enable toggle */}
+                  <label className="flex items-center gap-2 text-sm text-gray-700">
                     <input
-                      type="number"
-                      min="0.1"
-                      max="100"
-                      step="0.1"
-                      placeholder="Optional"
-                      value={alertThreshold ?? ""}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        setAlertThreshold(value === "" ? null : Number(value));
-                      }}
-                      className="mt-1 w-24 rounded border border-gray-300 px-2 py-1 text-sm"
+                      type="checkbox"
+                      checked={alertEnabled}
+                      onChange={(e) => setAlertEnabled(e.target.checked)}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
+                    Enable alerts
+                  </label>
+
+                  {alertEnabled && (
+                    <>
+                      {/* Drawdown threshold */}
+                      <div>
+                        <label className="block text-xs text-gray-600">
+                          Alert when drawdown exceeds (%)
+                        </label>
+                        <input
+                          type="number"
+                          min="0.1"
+                          max="100"
+                          step="0.1"
+                          placeholder="Optional"
+                          value={alertThreshold ?? ""}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setAlertThreshold(value === "" ? null : Number(value));
+                          }}
+                          className="mt-1 w-24 rounded border border-gray-300 px-2 py-1 text-sm"
+                        />
+                      </div>
+
+                      {/* Entry/Exit checkboxes */}
+                      <label className="flex items-center gap-2 text-sm text-gray-700">
+                        <input
+                          type="checkbox"
+                          checked={alertOnEntry}
+                          onChange={(e) => setAlertOnEntry(e.target.checked)}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        Alert on entry signal
+                      </label>
+
+                      <label className="flex items-center gap-2 text-sm text-gray-700">
+                        <input
+                          type="checkbox"
+                          checked={alertOnExit}
+                          onChange={(e) => setAlertOnExit(e.target.checked)}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        Alert on exit signal
+                      </label>
+
+                      {/* Email notification */}
+                      <label className="flex items-center gap-2 text-sm text-gray-700">
+                        <input
+                          type="checkbox"
+                          checked={notifyEmail}
+                          onChange={(e) => setNotifyEmail(e.target.checked)}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        Also email me
+                      </label>
+                    </>
+                  )}
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleAlertSave}
+                      disabled={isSavingAlert}
+                      className="rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                    >
+                      {isSavingAlert ? "Saving..." : "Save Alert"}
+                    </button>
+                    {alertRule && (
+                      <button
+                        onClick={() => {
+                          resetAlertForm(alertRule);
+                          setAlertError(null);
+                          setIsEditingAlert(false);
+                        }}
+                        className="rounded border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                      >
+                        Cancel
+                      </button>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm font-medium text-gray-700">
+                      {alertRule ? (alertRule.is_active ? "Alerts enabled" : "Alerts disabled") : "No alert configured"}
+                    </div>
+                    <button
+                      onClick={() => setIsEditingAlert(true)}
+                      className="rounded border border-gray-300 px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                    >
+                      {alertRule ? "Edit" : "Create"}
+                    </button>
                   </div>
 
-                  {/* Entry/Exit checkboxes */}
-                  <label className="flex items-center gap-2 text-sm text-gray-700">
-                    <input
-                      type="checkbox"
-                      checked={alertOnEntry}
-                      onChange={(e) => setAlertOnEntry(e.target.checked)}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    Alert on entry signal
-                  </label>
+                  {alertRule && (
+                    <div className="grid gap-1 text-sm text-gray-600">
+                      <div>
+                        Drawdown threshold:{" "}
+                        {alertRule.threshold_pct ? `${alertRule.threshold_pct}%` : "Not set"}
+                      </div>
+                      <div>Entry signal: {alertRule.alert_on_entry ? "On" : "Off"}</div>
+                      <div>Exit signal: {alertRule.alert_on_exit ? "On" : "Off"}</div>
+                      <div>Email notification: {alertRule.notify_email ? "On" : "Off"}</div>
+                    </div>
+                  )}
 
-                  <label className="flex items-center gap-2 text-sm text-gray-700">
-                    <input
-                      type="checkbox"
-                      checked={alertOnExit}
-                      onChange={(e) => setAlertOnExit(e.target.checked)}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    Alert on exit signal
-                  </label>
-
-                  {/* Email notification */}
-                  <label className="flex items-center gap-2 text-sm text-gray-700">
-                    <input
-                      type="checkbox"
-                      checked={notifyEmail}
-                      onChange={(e) => setNotifyEmail(e.target.checked)}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    Also email me
-                  </label>
+                  {/* Last triggered */}
+                  {alertRule?.last_triggered_at && (
+                    <div className="text-xs text-gray-500">
+                      Last triggered: {new Date(alertRule.last_triggered_at).toLocaleString()}
+                    </div>
+                  )}
                 </>
               )}
 
-              {/* Last triggered */}
-              {alertRule?.last_triggered_at && (
-                <div className="text-xs text-gray-500">
-                  Last triggered: {new Date(alertRule.last_triggered_at).toLocaleString()}
-                </div>
-              )}
-
-              {/* Save button */}
-              <button
-                onClick={handleAlertSave}
-                disabled={isSavingAlert}
-                className="rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-              >
-                {isSavingAlert ? "Saving..." : "Save Alert"}
-              </button>
-
               {/* Error message */}
-              {alertError && (
-                <div className="text-sm text-red-600">{alertError}</div>
-              )}
+              {alertError && <div className="text-sm text-red-600">{alertError}</div>}
             </div>
           )}
         </section>
