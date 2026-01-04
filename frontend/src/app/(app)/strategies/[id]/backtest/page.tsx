@@ -6,11 +6,15 @@ import { useRouter } from "next/navigation";
 import {
   LineChart,
   Line,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   Tooltip,
   Legend,
   ResponsiveContainer,
+  ReferenceArea,
+  ReferenceLine,
 } from "recharts";
 import { apiFetch, ApiError, fetchDataQuality } from "@/lib/api";
 import {
@@ -269,6 +273,62 @@ export default function StrategyBacktestPage({ params }: Props) {
       benchmark: benchmarkMap.get(point.timestamp) || null,
     }));
   }, [equityCurve, benchmarkCurve]);
+
+  // Calculate drawdown data for drawdown chart
+  const drawdownData = useMemo(() => {
+    if (equityCurve.length < 2) return [];
+
+    let peak = equityCurve[0].equity;
+    let maxDrawdown = 0;
+    let maxDrawdownStartIdx = 0;
+    let maxDrawdownEndIdx = 0;
+    let currentDrawdownStartIdx = 0;
+
+    // First pass: calculate drawdowns and find max drawdown period
+    const points = equityCurve.map((point, idx) => {
+      if (point.equity > peak) {
+        peak = point.equity;
+        currentDrawdownStartIdx = idx;
+      }
+
+      // Guard against division by zero
+      const drawdown = peak > 0 ? ((point.equity - peak) / peak) * 100 : 0;
+
+      // Track max drawdown
+      if (drawdown < maxDrawdown) {
+        maxDrawdown = drawdown;
+        maxDrawdownStartIdx = currentDrawdownStartIdx;
+        maxDrawdownEndIdx = idx;
+      }
+
+      return {
+        timestamp: point.timestamp,
+        drawdown,
+        equity: point.equity,
+        peak,
+      };
+    });
+
+    // Second pass: find recovery point (when equity returns to peak after max drawdown)
+    let recovered = false;
+    for (let i = maxDrawdownEndIdx + 1; i < points.length; i++) {
+      if (points[i].equity >= points[maxDrawdownEndIdx].peak) {
+        maxDrawdownEndIdx = i;
+        recovered = true;
+        break;
+      }
+    }
+    if (!recovered) {
+      maxDrawdownEndIdx = points.length - 1;
+    }
+
+    // Mark max drawdown period
+    return points.map((point, idx) => ({
+      timestamp: point.timestamp,
+      drawdown: point.drawdown,
+      isMaxDrawdown: idx >= maxDrawdownStartIdx && idx <= maxDrawdownEndIdx,
+    }));
+  }, [equityCurve]);
 
   // Trades pagination
   const totalPages = Math.ceil(trades.length / pageSize);
@@ -658,6 +718,91 @@ export default function StrategyBacktestPage({ params }: Props) {
                       name="Buy & Hold"
                     />
                   </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* Drawdown Chart - only show for completed runs */}
+        {selectedRun?.status === "completed" && (
+          <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+            <h2 className="mb-3 text-base font-semibold text-gray-900">Drawdown (%)</h2>
+
+            {isLoadingEquityCurve ? (
+              <div className="flex h-64 items-center justify-center">
+                <p className="text-sm text-gray-500">Loading drawdown data...</p>
+              </div>
+            ) : equityCurveError ? (
+              <div className="flex h-64 items-center justify-center rounded border border-red-200 bg-red-50">
+                <div className="text-center">
+                  <p className="text-sm text-red-600">{equityCurveError}</p>
+                  <button
+                    onClick={refetchEquityCurve}
+                    className="mt-2 text-sm text-blue-600 hover:text-blue-800"
+                  >
+                    Retry
+                  </button>
+                </div>
+              </div>
+            ) : drawdownData.length < 2 ? (
+              <div className="flex h-64 items-center justify-center">
+                <p className="text-sm text-gray-500">Not enough data to display drawdown chart</p>
+              </div>
+            ) : (
+              <div className="h-64 sm:h-72 md:h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={drawdownData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                    <defs>
+                      <linearGradient id="drawdownGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#ef4444" stopOpacity={0.1} />
+                        <stop offset="100%" stopColor="#ef4444" stopOpacity={0.3} />
+                      </linearGradient>
+                    </defs>
+                    <XAxis
+                      dataKey="timestamp"
+                      tickFormatter={(v) => formatChartDate(v, timezone)}
+                      tick={{ fontSize: 12 }}
+                      tickLine={false}
+                      axisLine={{ stroke: "#e5e7eb" }}
+                    />
+                    <YAxis
+                      tickFormatter={(v) => `${v.toFixed(1)}%`}
+                      tick={{ fontSize: 12 }}
+                      tickLine={false}
+                      axisLine={{ stroke: "#e5e7eb" }}
+                      width={60}
+                    />
+                    <Tooltip
+                      formatter={(value) => [`${Number(value).toFixed(2)}%`, "Drawdown"]}
+                      labelFormatter={(label) => formatDateTime(label as string, timezone)}
+                      contentStyle={{
+                        backgroundColor: "white",
+                        border: "1px solid #e5e7eb",
+                        borderRadius: "0.375rem",
+                        fontSize: "0.875rem",
+                      }}
+                    />
+                    <ReferenceLine y={0} stroke="#9ca3af" strokeDasharray="3 3" />
+                    {drawdownData.some((d) => d.isMaxDrawdown) && (
+                      <ReferenceArea
+                        x1={drawdownData.find((d) => d.isMaxDrawdown)?.timestamp}
+                        x2={drawdownData.filter((d) => d.isMaxDrawdown).pop()?.timestamp}
+                        fill="#fca5a5"
+                        fillOpacity={0.2}
+                        strokeOpacity={0}
+                      />
+                    )}
+                    <Area
+                      type="monotone"
+                      dataKey="drawdown"
+                      stroke="#ef4444"
+                      strokeWidth={2}
+                      fill="url(#drawdownGradient)"
+                      dot={false}
+                      activeDot={{ r: 4, fill: "#ef4444" }}
+                    />
+                  </AreaChart>
                 </ResponsiveContainer>
               </div>
             )}
