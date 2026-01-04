@@ -310,11 +310,16 @@ export default function StrategyBacktestPage({ params }: Props) {
     });
 
     // Second pass: find recovery point (when equity returns to peak after max drawdown)
+    let recovered = false;
     for (let i = maxDrawdownEndIdx + 1; i < points.length; i++) {
       if (points[i].equity >= points[maxDrawdownEndIdx].peak) {
         maxDrawdownEndIdx = i;
+        recovered = true;
         break;
       }
+    }
+    if (!recovered) {
+      maxDrawdownEndIdx = points.length - 1;
     }
 
     // Mark max drawdown period
