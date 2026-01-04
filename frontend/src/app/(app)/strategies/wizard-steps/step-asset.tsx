@@ -1,4 +1,11 @@
 import { ALLOWED_ASSETS, ALLOWED_TIMEFRAMES } from "@/types/strategy";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface Props {
   values: { asset: string; timeframe: string };
@@ -9,7 +16,7 @@ export function StepAsset({ values, onChange }: Props) {
   return (
     <div>
       <h3 className="mb-2 text-lg font-medium">Select asset and timeframe</h3>
-      <p className="mb-4 text-sm text-gray-600">
+      <p className="mb-4 text-sm text-muted-foreground">
         Choose which asset to trade and the candle timeframe for analysis.
       </p>
 
@@ -18,18 +25,21 @@ export function StepAsset({ values, onChange }: Props) {
           <label htmlFor="asset" className="mb-2 block text-sm font-medium">
             Asset
           </label>
-          <select
-            id="asset"
+          <Select
             value={values.asset}
-            onChange={(e) => onChange({ asset: e.target.value })}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            onValueChange={(value) => onChange({ asset: value })}
           >
-            {ALLOWED_ASSETS.map((a) => (
-              <option key={a} value={a}>
-                {a}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger>
+              <SelectValue placeholder="Select asset" />
+            </SelectTrigger>
+            <SelectContent>
+              {ALLOWED_ASSETS.map((a) => (
+                <SelectItem key={a} value={a}>
+                  {a}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <div>
@@ -39,18 +49,21 @@ export function StepAsset({ values, onChange }: Props) {
           >
             Timeframe
           </label>
-          <select
-            id="timeframe"
+          <Select
             value={values.timeframe}
-            onChange={(e) => onChange({ timeframe: e.target.value })}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            onValueChange={(value) => onChange({ timeframe: value })}
           >
-            {ALLOWED_TIMEFRAMES.map((tf) => (
-              <option key={tf} value={tf}>
-                {tf}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger>
+              <SelectValue placeholder="Select timeframe" />
+            </SelectTrigger>
+            <SelectContent>
+              {ALLOWED_TIMEFRAMES.map((tf) => (
+                <SelectItem key={tf} value={tf}>
+                  {tf}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
     </div>
