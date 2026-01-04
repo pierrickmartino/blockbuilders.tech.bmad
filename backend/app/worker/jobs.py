@@ -22,6 +22,7 @@ from app.backtest.interpreter import interpret_strategy
 from app.backtest.engine import run_backtest, compute_benchmark_curve, compute_benchmark_metrics
 from app.backtest.storage import upload_json, generate_results_key
 from app.backtest.errors import BacktestError
+from app.services.alert_evaluator import evaluate_alerts_for_run
 
 logger = logging.getLogger(__name__)
 
@@ -204,6 +205,9 @@ def run_backtest_job(run_id: str) -> None:
                 if strategy:
                     strategy.last_auto_run_at = datetime.now(timezone.utc)
                     session.add(strategy)
+
+                # Evaluate performance alerts
+                evaluate_alerts_for_run(run, session)
 
             session.commit()
 
