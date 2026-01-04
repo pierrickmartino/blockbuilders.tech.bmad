@@ -74,7 +74,7 @@ export default function StrategyEditorPage({ params }: Props) {
   const [alertRule, setAlertRule] = useState<AlertRule | null>(null);
   const [isLoadingAlert, setIsLoadingAlert] = useState(true);
   const [alertEnabled, setAlertEnabled] = useState(false);
-  const [alertThreshold, setAlertThreshold] = useState<number>(20);
+  const [alertThreshold, setAlertThreshold] = useState<number | null>(null);
   const [alertOnEntry, setAlertOnEntry] = useState(false);
   const [alertOnExit, setAlertOnExit] = useState(false);
   const [notifyEmail, setNotifyEmail] = useState(false);
@@ -171,7 +171,7 @@ export default function StrategyEditorPage({ params }: Props) {
         if (rule) {
           setAlertRule(rule);
           setAlertEnabled(rule.is_active);
-          setAlertThreshold(rule.threshold_pct || 20);
+          setAlertThreshold(rule.threshold_pct ?? null);
           setAlertOnEntry(rule.alert_on_entry);
           setAlertOnExit(rule.alert_on_exit);
           setNotifyEmail(rule.notify_email);
@@ -306,11 +306,11 @@ export default function StrategyEditorPage({ params }: Props) {
 
   const handleAlertSave = async () => {
     // Client-side validation
-    if (alertThreshold < 0.1 || alertThreshold > 100) {
+    if (alertThreshold !== null && (alertThreshold < 0.1 || alertThreshold > 100)) {
       setAlertError("Threshold must be between 0.1 and 100");
       return;
     }
-    if (!alertOnEntry && !alertOnExit && !alertThreshold) {
+    if (alertEnabled && !alertOnEntry && !alertOnExit && alertThreshold === null) {
       setAlertError("Enable at least one alert condition");
       return;
     }
@@ -324,7 +324,7 @@ export default function StrategyEditorPage({ params }: Props) {
           method: "POST",
           body: JSON.stringify({
             strategy_id: id,
-            threshold_pct: alertThreshold,
+            threshold_pct: alertThreshold ?? null,
             alert_on_entry: alertOnEntry,
             alert_on_exit: alertOnExit,
             notify_email: notifyEmail,
@@ -337,7 +337,7 @@ export default function StrategyEditorPage({ params }: Props) {
         const updated = await apiFetch<AlertRule>(`/alerts/${alertRule.id}`, {
           method: "PATCH",
           body: JSON.stringify({
-            threshold_pct: alertThreshold,
+            threshold_pct: alertThreshold ?? null,
             alert_on_entry: alertOnEntry,
             alert_on_exit: alertOnExit,
             notify_email: notifyEmail,
@@ -650,7 +650,7 @@ export default function StrategyEditorPage({ params }: Props) {
         <section className="mt-2 rounded-lg bg-white p-4 shadow-sm sm:p-6">
           <h3 className="text-sm font-semibold text-gray-900 sm:text-base">Performance Alerts</h3>
           <p className="text-xs text-gray-500">
-            Get notified when scheduled re-backtests meet conditions
+            Get notified when scheduled re-backtests meet conditions. Drawdown threshold is optional.
           </p>
 
           {isLoadingAlert ? (
@@ -680,8 +680,12 @@ export default function StrategyEditorPage({ params }: Props) {
                       min="0.1"
                       max="100"
                       step="0.1"
-                      value={alertThreshold}
-                      onChange={(e) => setAlertThreshold(Number(e.target.value))}
+                      placeholder="Optional"
+                      value={alertThreshold ?? ""}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setAlertThreshold(value === "" ? null : Number(value));
+                      }}
                       className="mt-1 w-24 rounded border border-gray-300 px-2 py-1 text-sm"
                     />
                   </div>

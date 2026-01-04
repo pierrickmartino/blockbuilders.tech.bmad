@@ -101,7 +101,7 @@ def evaluate_alerts_for_run(run: BacktestRun, session: Session) -> None:
                 html_body = f"""
                 <p>Your strategy <strong>{strategy.name}</strong> triggered a performance alert:</p>
                 <ul>
-                    {"".join(f"<li>{reason}</li>" for reason in reasons.split(", "))}
+                    {"".join(f"<li>{reason}</li>" for reason in reasons)}
                 </ul>
                 <p><a href="{strategy_url}">View backtest results</a></p>
                 """
