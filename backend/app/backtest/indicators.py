@@ -15,7 +15,11 @@ def sma(closes: list[float], period: int) -> list[Optional[float]]:
             result.append(None)
         else:
             window = closes[i - period + 1 : i + 1]
-            result.append(sum(window) / period)
+            # Handle None values in window
+            if any(v is None for v in window):
+                result.append(None)
+            else:
+                result.append(sum(window) / period)
     return result
 
 
@@ -28,13 +32,19 @@ def ema(closes: list[float], period: int) -> list[Optional[float]]:
     for i, close in enumerate(closes):
         if i < period - 1:
             result.append(None)
-        elif i == period - 1:
-            # First EMA is SMA of first `period` values
-            ema_value = sum(closes[: period]) / period
-            result.append(ema_value)
+        elif close is None:
+            # If current value is None, we can't compute EMA
+            result.append(None)
+        elif ema_value is None:
+            # First EMA: need SMA of first `period` valid values
+            window = closes[i - period + 1 : i + 1]
+            if any(v is None for v in window):
+                result.append(None)
+            else:
+                ema_value = sum(window) / period
+                result.append(ema_value)
         else:
-            if ema_value is not None:
-                ema_value = (close - ema_value) * multiplier + ema_value
+            ema_value = (close - ema_value) * multiplier + ema_value
             result.append(ema_value)
 
     return result
@@ -47,33 +57,33 @@ def rsi(closes: list[float], period: int) -> list[Optional[float]]:
 
     result: list[Optional[float]] = [None]  # First value has no change
 
-    gains = []
-    losses = []
+    gains: list[Optional[float]] = []
+    losses: list[Optional[float]] = []
 
     for i in range(1, len(closes)):
+        # Handle None values in input
+        if closes[i] is None or closes[i - 1] is None:
+            gains.append(None)
+            losses.append(None)
+            result.append(None)
+            continue
+
         change = closes[i] - closes[i - 1]
         gains.append(max(0, change))
         losses.append(max(0, -change))
 
         if i < period:
             result.append(None)
-        elif i == period:
-            avg_gain = sum(gains[:period]) / period
-            avg_loss = sum(losses[:period]) / period
-            if avg_loss == 0:
-                result.append(100.0)
-            else:
-                rs = avg_gain / avg_loss
-                result.append(100 - (100 / (1 + rs)))
         else:
-            # Smoothed averages
-            prev_result_idx = i - 1
-            prev_avg_gain = sum(gains[prev_result_idx - period + 1 : prev_result_idx + 1]) / period
-            prev_avg_loss = sum(losses[prev_result_idx - period + 1 : prev_result_idx + 1]) / period
+            # Check if we have enough valid values
+            window_gains = gains[i - period : i]
+            window_losses = losses[i - period : i]
+            if any(v is None for v in window_gains) or any(v is None for v in window_losses):
+                result.append(None)
+                continue
 
-            avg_gain = (prev_avg_gain * (period - 1) + gains[-1]) / period
-            avg_loss = (prev_avg_loss * (period - 1) + losses[-1]) / period
-
+            avg_gain = sum(window_gains) / period
+            avg_loss = sum(window_losses) / period
             if avg_loss == 0:
                 result.append(100.0)
             else:
@@ -147,11 +157,16 @@ def bollinger(
             lower.append(None)
         else:
             window = closes[i - period + 1 : i + 1]
-            mean = middle[i]
-            variance = sum((x - mean) ** 2 for x in window) / period
-            std = math.sqrt(variance)
-            upper.append(mean + std_dev * std)
-            lower.append(mean - std_dev * std)
+            # Handle None values in window (extra safety)
+            if any(v is None for v in window):
+                upper.append(None)
+                lower.append(None)
+            else:
+                mean = middle[i]
+                variance = sum((x - mean) ** 2 for x in window) / period
+                std = math.sqrt(variance)
+                upper.append(mean + std_dev * std)
+                lower.append(mean - std_dev * std)
 
     return upper, middle, lower
 
