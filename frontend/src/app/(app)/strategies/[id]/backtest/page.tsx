@@ -38,6 +38,7 @@ import { StrategyTabs } from "@/components/StrategyTabs";
 import TradeDrawer from "@/components/TradeDrawer";
 import InfoIcon from "@/components/InfoIcon";
 import { metricToGlossaryId, getTooltip } from "@/lib/tooltip-content";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -85,6 +86,64 @@ function MetricCard({
   );
 }
 
+type PeriodType = "month" | "quarter" | "weekday";
+
+interface SeasonalityBucket {
+  label: string;
+  avgReturn: number;
+  count: number;
+}
+
+const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const QUARTER_LABELS = ["Q1", "Q2", "Q3", "Q4"];
+const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+function getColorClass(avgReturn: number): string {
+  if (avgReturn > 2) return "bg-green-100 text-green-700 border-green-200";
+  if (avgReturn > 0.5) return "bg-green-50 text-green-600 border-green-100";
+  if (avgReturn > -0.5) return "bg-gray-50 text-gray-600 border-gray-200";
+  if (avgReturn > -2) return "bg-red-50 text-red-600 border-red-100";
+  return "bg-red-100 text-red-700 border-red-200";
+}
+
+function computeSeasonality(
+  trades: Array<{ exit_time: string; pnl_pct: number }>,
+  periodType: PeriodType
+): SeasonalityBucket[] {
+  const buckets = new Map<number, { sum: number; count: number }>();
+  const numBuckets = periodType === "month" ? 12 : periodType === "quarter" ? 4 : 7;
+
+  for (const trade of trades) {
+    const date = new Date(trade.exit_time);
+    let bucket: number;
+
+    if (periodType === "month") {
+      bucket = date.getUTCMonth();
+    } else if (periodType === "quarter") {
+      bucket = Math.floor(date.getUTCMonth() / 3);
+    } else {
+      bucket = (date.getUTCDay() + 6) % 7;
+    }
+
+    const current = buckets.get(bucket) || { sum: 0, count: 0 };
+    buckets.set(bucket, { sum: current.sum + trade.pnl_pct, count: current.count + 1 });
+  }
+
+  const labels = periodType === "month" ? MONTH_LABELS : periodType === "quarter" ? QUARTER_LABELS : WEEKDAY_LABELS;
+  const result: SeasonalityBucket[] = [];
+
+  for (let i = 0; i < numBuckets; i++) {
+    const data = buckets.get(i);
+    result.push({
+      label: labels[i],
+      avgReturn: data ? data.sum / data.count : 0,
+      count: data?.count || 0,
+    });
+  }
+
+  return result;
+}
+
 export default function StrategyBacktestPage({ params }: Props) {
   const { id } = use(params);
   const router = useRouter();
@@ -115,6 +174,9 @@ export default function StrategyBacktestPage({ params }: Props) {
   // Trade drawer state
   const [selectedTradeIdx, setSelectedTradeIdx] = useState<number | null>(null);
 
+  // Seasonality state
+  const [periodType, setPeriodType] = useState<PeriodType>("month");
+
   // Use custom hook for backtest results (trades, equity curve, benchmark, polling)
   const handleRunDetailFetched = useCallback((detail: BacktestStatusResponse) => {
     setError(null);
@@ -143,6 +205,12 @@ export default function StrategyBacktestPage({ params }: Props) {
     refetchTrades,
     refetchEquityCurve,
   } = useBacktestResults(selectedRunId, handleRunDetailFetched);
+
+  // Compute seasonality data
+  const seasonalityData = useMemo(
+    () => computeSeasonality(trades, periodType),
+    [trades, periodType]
+  );
 
   // Reset pagination when run changes
   useEffect(() => {
@@ -804,6 +872,60 @@ export default function StrategyBacktestPage({ params }: Props) {
                     />
                   </AreaChart>
                 </ResponsiveContainer>
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* Seasonality Analysis - only show for completed runs */}
+        {selectedRun?.status === "completed" && (
+          <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+            <h2 className="mb-3 text-base font-semibold text-gray-900">
+              Seasonality Analysis
+            </h2>
+
+            {trades.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-8 text-center">
+                <p className="text-sm text-gray-500">
+                  No trades available for seasonality analysis.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <Tabs value={periodType} onValueChange={(value) => setPeriodType(value as PeriodType)}>
+                  <TabsList>
+                    <TabsTrigger value="month">Month</TabsTrigger>
+                    <TabsTrigger value="quarter">Quarter</TabsTrigger>
+                    <TabsTrigger value="weekday">Weekday</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value={periodType} className="mt-4">
+                    <div
+                      className={`grid gap-2 ${
+                        periodType === "month"
+                          ? "grid-cols-4 sm:grid-cols-6 md:grid-cols-12"
+                          : periodType === "quarter"
+                          ? "grid-cols-4"
+                          : "grid-cols-7"
+                      }`}
+                    >
+                      {seasonalityData.map((bucket, idx) => (
+                        <div
+                          key={idx}
+                          className={`rounded border p-3 text-center ${getColorClass(bucket.avgReturn)}`}
+                          title={`${bucket.label}: ${formatPercent(bucket.avgReturn)} avg return, ${bucket.count} trades`}
+                        >
+                          <div className="text-xs font-medium">{bucket.label}</div>
+                          <div className="mt-1 text-sm font-semibold">
+                            {bucket.count > 0 ? formatPercent(bucket.avgReturn) : "—"}
+                          </div>
+                          <div className="mt-0.5 text-xs opacity-75">
+                            {bucket.count} {bucket.count === 1 ? "trade" : "trades"}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </TabsContent>
+                </Tabs>
               </div>
             )}
           </section>
