@@ -604,6 +604,11 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Surrounding candles (90-day minimum window)
 - Used for detailed trade analysis
 
+**Seasonality Analysis** (Planned)
+- Simple aggregation of trade results by time period (month, quarter, weekday)
+- Heatmap of average return per bucket to reveal calendar effects
+- Uses trades list as source data
+
 **Implementation:** `backend/app/backtest/engine.py`, `backend/app/backtest/indicators.py`, `backend/app/backtest/interpreter.py`
 
 ---
@@ -889,6 +894,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Equity curve chart (Recharts line chart)
 - Trades table with sorting and pagination
 - Trade detail drawer with surrounding candles
+- Seasonality analysis heatmap (month, quarter, weekday) (planned)
 
 **Components:**
 - `frontend/src/app/(app)/strategies/[id]/backtest/page.tsx`
@@ -1377,6 +1383,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Visual Builder** | ✅ Complete | 20 block types, drag-drop, parameter editing, mobile-responsive |
 | **Strategy Building Wizard** | ✅ Complete | Guided Q&A that generates editable strategy JSON |
 | **Backtesting** | ✅ Complete | Full engine with TP ladder, SL, max drawdown, equity curves, trade detail |
+| **Seasonality Analysis** | ⏳ Planned | Heatmap of average trade return by month, quarter, weekday |
 | **Drawdown Chart** | ⏳ Planned | Underwater equity % chart highlighting max drawdown period |
 | **Data Management** | ✅ Complete | Candle DB cache, CryptoCompare integration, S3/MinIO storage |
 | **Data Quality Indicators** | ✅ Complete | Gap %, outlier count, volume consistency, backtest warnings |
@@ -1627,6 +1634,7 @@ pytest --cov            # Coverage report
 - `docs/prd-in-app-notifications.md` - In-app notifications PRD
 - `docs/prd-multi-strategy-dashboard.md` - Multi-strategy dashboard PRD
 - `docs/prd-drawdown-chart.md` - Drawdown chart PRD
+- `docs/prd-seasonality-analysis.md` - Seasonality analysis PRD
 - `docs/prd-performance-alerts-simple.md` - Performance alerts (simple) PRD
 - `docs/product.md` - This document (current product truth)
 - `CLAUDE.md` - Instructions for Claude Code
