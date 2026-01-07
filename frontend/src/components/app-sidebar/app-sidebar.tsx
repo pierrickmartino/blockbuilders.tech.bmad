@@ -45,11 +45,6 @@ const navItems = [
     url: "/strategies",
     icon: Layers,
   },
-  {
-    title: "Profile",
-    url: "/profile",
-    icon: User,
-  },
 ]
 
 const resourceItems = [
