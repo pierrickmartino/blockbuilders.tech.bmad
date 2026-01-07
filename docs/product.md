@@ -91,21 +91,21 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 
 **Create Strategy** (`POST /strategies`)
 - Required: name, asset, timeframe
-- Optional: is_archived, auto_update settings
+- Optional: is_archived, auto_update settings, tag_ids
 - Returns strategy with generated UUID
 
 **List Strategies** (`GET /strategies`)
 - Query parameters:
   - `search`: filter by name (case-insensitive)
   - `include_archived`: show archived strategies (default: false)
-- Returns array of strategies with latest run metrics
+- Returns array of strategies with latest run metrics and tags
 
 **Get Strategy** (`GET /strategies/{id}`)
 - Returns full strategy metadata
 - Includes latest version definition
 
 **Update Strategy** (`PATCH /strategies/{id}`)
-- Editable fields: name, asset, timeframe, archive status, auto_update settings
+- Editable fields: name, asset, timeframe, archive status, auto_update settings, tag_ids
 - Partial updates supported
 
 **Duplicate Strategy** (`POST /strategies/{id}/duplicate`)
@@ -211,6 +211,16 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Export downloads a JSON file containing strategy metadata + latest definition JSON.
 - Import accepts a JSON file, validates it, and creates a new strategy + version.
 - Imported strategies always create a new record (never overwrite).
+
+### 3.6. Strategy Tags & Groups
+
+**Purpose:** Let users organize strategies with reusable tags (e.g., “Scalping,” “Swing,” “Experimental”) and filter lists by tag.
+
+**Behavior:**
+- Tags are user-scoped and can be assigned to multiple strategies.
+- Strategies can have multiple tags.
+- Tag filtering uses OR logic (match any selected tag).
+- Tagging is purely organizational and does not affect backtests or execution.
 
 ---
 
@@ -873,15 +883,17 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 **Dashboard** (`/dashboard`)
 - Multi-Strategy Dashboard with all strategies in a table/grid
 - Latest performance metrics per strategy (preview)
-- Sort and filter by performance, last run date, asset
+- Sort and filter by performance, last run date, asset, tags
 - Quick actions: Open, Duplicate, Archive, Create new strategy
+- Tag chips displayed alongside strategy names
 
 **Strategy List** (`/strategies`)
 - Enhanced version of the dashboard list for full management
 - Search bar (filter by name)
-- Sort and filter by performance, last run date, asset
+- Sort and filter by performance, last run date, asset, tags
 - Table/grid rows with:
   - Name, asset, timeframe
+  - Tags (chip list)
   - Latest backtest metrics preview
   - Last run timestamp
   - Actions: Open, Duplicate, Archive
@@ -1198,6 +1210,19 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - last_auto_run_at (TIMESTAMP, nullable)
 - created_at, updated_at (TIMESTAMP)
 
+**strategy_tags**
+- id (UUID, PK)
+- user_id (UUID, FK to users)
+- name (VARCHAR)
+- created_at, updated_at (TIMESTAMP)
+- Unique constraint: (user_id, lower(name))
+
+**strategy_tag_links**
+- strategy_id (UUID, FK to strategies)
+- tag_id (UUID, FK to strategy_tags)
+- created_at (TIMESTAMP)
+- Unique constraint: (strategy_id, tag_id)
+
 **strategy_versions**
 - id (UUID, PK)
 - strategy_id (UUID, FK to strategies)
@@ -1403,6 +1428,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Authentication** | ✅ Complete | Email/password, OAuth (Google, GitHub), password reset |
 | **Account Management** | ✅ Complete | Profile, settings (fees, slippage, timezone), usage tracking |
 | **Strategy Management** | ✅ Complete | CRUD, versioning, validation, duplication, archiving |
+| **Strategy Groups/Tags** | 🚧 Planned | Custom tags, tag filtering, many-to-many strategy organization |
 | **Visual Builder** | ✅ Complete | 20 block types, drag-drop, parameter editing, mobile-responsive |
 | **Copy/Paste Blocks & Subgraphs** | ✅ Complete | Multi-select blocks and copy/paste within or across strategies |
 | **Strategy Building Wizard** | ✅ Complete | Guided Q&A that generates editable strategy JSON |
@@ -1664,6 +1690,7 @@ pytest --cov            # Coverage report
 - `docs/prd-performance-alerts-simple.md` - Performance alerts (simple) PRD
 - `docs/prd-copy-paste-blocks-subgraphs.md` - Copy/paste blocks & subgraphs PRD
 - `docs/product.md` - This document (current product truth)
+- `docs/prd-strategy-tags-groups.md` - Strategy groups & tags PRD
 - `CLAUDE.md` - Instructions for Claude Code
 - `README.md` - Quick start guide
 
