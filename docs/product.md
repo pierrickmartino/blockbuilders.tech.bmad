@@ -476,6 +476,23 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - UI-only enhancement layered on top of current validation response.
 - Keep visuals lightweight (no new dependencies).
 
+### 4.10. Copy/Paste Blocks & Subgraphs (Planned)
+
+**Purpose:** Speed up strategy iteration by allowing users to copy selected blocks (and their internal connections) and paste them within the same strategy or into another strategy.
+
+**Planned Behavior:**
+- Multi-select blocks on the canvas (drag marquee or shift-click).
+- Copy stores selected blocks + any connections where **both endpoints** are in the selection.
+- Paste creates new blocks with **new IDs** and offsets the position slightly for visibility.
+- Works across strategies by keeping a local, front-end-only clipboard (no backend changes).
+- Standard shortcuts: `Cmd/Ctrl+C`, `Cmd/Ctrl+V`; menu option optional if already present.
+
+**Implementation Notes:**
+- Clipboard payload is JSON stored in localStorage for cross-strategy paste.
+- Connections to non-selected blocks are dropped on copy.
+- Notes (annotation nodes) are treated like normal nodes and can be copied too.
+- No API, schema, or backend changes required.
+
 --- 
 
 ## 5. Backtesting Engine
@@ -1381,6 +1398,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Account Management** | ✅ Complete | Profile, settings (fees, slippage, timezone), usage tracking |
 | **Strategy Management** | ✅ Complete | CRUD, versioning, validation, duplication, archiving |
 | **Visual Builder** | ✅ Complete | 20 block types, drag-drop, parameter editing, mobile-responsive |
+| **Copy/Paste Blocks & Subgraphs** | ⏳ Planned | Multi-select blocks and copy/paste within or across strategies |
 | **Strategy Building Wizard** | ✅ Complete | Guided Q&A that generates editable strategy JSON |
 | **Backtesting** | ✅ Complete | Full engine with TP ladder, SL, max drawdown, equity curves, trade detail |
 | **Seasonality Analysis** | ⏳ Planned | Heatmap of average trade return by month, quarter, weekday |
@@ -1636,6 +1654,7 @@ pytest --cov            # Coverage report
 - `docs/prd-drawdown-chart.md` - Drawdown chart PRD
 - `docs/prd-seasonality-analysis.md` - Seasonality analysis PRD
 - `docs/prd-performance-alerts-simple.md` - Performance alerts (simple) PRD
+- `docs/prd-copy-paste-blocks-subgraphs.md` - Copy/paste blocks & subgraphs PRD
 - `docs/product.md` - This document (current product truth)
 - `CLAUDE.md` - Instructions for Claude Code
 - `README.md` - Quick start guide
