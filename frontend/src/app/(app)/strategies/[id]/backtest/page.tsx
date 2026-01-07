@@ -8,6 +8,8 @@ import {
   Line,
   AreaChart,
   Area,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
   Tooltip,
@@ -94,6 +96,12 @@ interface SeasonalityBucket {
   count: number;
 }
 
+interface DistributionBucket {
+  label: string;
+  count: number;
+  percentage: number; // 0-100
+}
+
 const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const QUARTER_LABELS = ["Q1", "Q2", "Q3", "Q4"];
 const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -142,6 +150,125 @@ function computeSeasonality(
   }
 
   return result;
+}
+
+function timeframeToSeconds(timeframe: string): number {
+  const match = timeframe.match(/^(\d+)([mhdw])$/);
+  if (!match) return 86400; // default to 1 day
+
+  const value = parseInt(match[1], 10);
+  const unit = match[2];
+
+  switch (unit) {
+    case 'm': return value * 60;
+    case 'h': return value * 3600;
+    case 'd': return value * 86400;
+    case 'w': return value * 604800;
+    default: return 86400;
+  }
+}
+
+function computeReturnDistribution(
+  trades: Array<{ pnl_pct: number }>
+): DistributionBucket[] {
+  const buckets = [
+    { label: '>20%', min: 20, max: Infinity, count: 0 },
+    { label: '10-20%', min: 10, max: 20, count: 0 },
+    { label: '5-10%', min: 5, max: 10, count: 0 },
+    { label: '0-5%', min: 0, max: 5, count: 0 },
+    { label: '0 to -5%', min: -5, max: 0, count: 0 },
+    { label: '-5 to -10%', min: -10, max: -5, count: 0 },
+    { label: '-10 to -20%', min: -20, max: -10, count: 0 },
+    { label: '<-20%', min: -Infinity, max: -20, count: 0 },
+  ];
+
+  for (const trade of trades) {
+    const pnl = trade.pnl_pct;
+    for (const bucket of buckets) {
+      if (pnl >= bucket.min && pnl < bucket.max) {
+        bucket.count++;
+        break;
+      }
+    }
+  }
+
+  const total = trades.length;
+  return buckets.map(b => ({
+    label: b.label,
+    count: b.count,
+    percentage: total > 0 ? (b.count / total) * 100 : 0,
+  }));
+}
+
+function computeDurationDistribution(
+  trades: Array<{ entry_time: string; exit_time: string }>,
+  timeframeSeconds: number
+): DistributionBucket[] | null {
+  const buckets = [
+    { label: '1', min: 0, max: 2, count: 0 },
+    { label: '2-3', min: 2, max: 4, count: 0 },
+    { label: '4-7', min: 4, max: 8, count: 0 },
+    { label: '8-14', min: 8, max: 15, count: 0 },
+    { label: '15-30', min: 15, max: 31, count: 0 },
+    { label: '>30', min: 31, max: Infinity, count: 0 },
+  ];
+
+  let hasValidTimestamps = false;
+
+  for (const trade of trades) {
+    try {
+      const entryMs = new Date(trade.entry_time).getTime();
+      const exitMs = new Date(trade.exit_time).getTime();
+
+      if (isNaN(entryMs) || isNaN(exitMs)) continue;
+
+      hasValidTimestamps = true;
+      const durationSeconds = (exitMs - entryMs) / 1000;
+      const durationBars = Math.round(durationSeconds / timeframeSeconds);
+
+      for (const bucket of buckets) {
+        if (durationBars >= bucket.min && durationBars < bucket.max) {
+          bucket.count++;
+          break;
+        }
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  if (!hasValidTimestamps) return null;
+
+  const total = trades.length;
+  return buckets.map(b => ({
+    label: b.label,
+    count: b.count,
+    percentage: total > 0 ? (b.count / total) * 100 : 0,
+  }));
+}
+
+function computeSkewCallout(returnBuckets: DistributionBucket[]): string {
+  // Find largest win bucket (indices 0-3 are wins, 4-7 are losses)
+  const winBuckets = returnBuckets.slice(0, 4);
+  const lossBuckets = returnBuckets.slice(4, 8);
+
+  const largestWinBucket = winBuckets.reduce((max, b) =>
+    b.count > max.count ? b : max, winBuckets[0]
+  );
+
+  const largestLossBucket = lossBuckets.reduce((max, b) =>
+    b.count > max.count ? b : max, lossBuckets[0]
+  );
+
+  // Check if largest win is 0-5% AND largest loss is -10% or worse
+  const isSmallWinBucket = largestWinBucket.label === '0-5%';
+  const isLargeLossBucket = ['<-20%', '-10 to -20%'].includes(largestLossBucket.label);
+
+  if (isSmallWinBucket && isLargeLossBucket) {
+    return "Distribution skews to small wins and larger losses. Review risk controls.";
+  }
+
+  return "Distribution looks balanced across buckets.";
 }
 
 export default function StrategyBacktestPage({ params }: Props) {
@@ -211,6 +338,23 @@ export default function StrategyBacktestPage({ params }: Props) {
     () => computeSeasonality(trades, periodType),
     [trades, periodType]
   );
+
+  // Compute trade distribution data
+  const returnDistribution = useMemo(() => {
+    if (trades.length < 3) return [];
+    return computeReturnDistribution(trades);
+  }, [trades]);
+
+  const durationDistribution = useMemo(() => {
+    if (trades.length < 3 || !selectedRun?.timeframe) return null;
+    const timeframeSeconds = timeframeToSeconds(selectedRun.timeframe);
+    return computeDurationDistribution(trades, timeframeSeconds);
+  }, [trades, selectedRun?.timeframe]);
+
+  const skewCallout = useMemo(() => {
+    if (trades.length < 3) return "";
+    return computeSkewCallout(returnDistribution);
+  }, [returnDistribution, trades.length]);
 
   // Reset pagination when run changes
   useEffect(() => {
@@ -926,6 +1070,124 @@ export default function StrategyBacktestPage({ params }: Props) {
                     </div>
                   </TabsContent>
                 </Tabs>
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* Trade Distribution Analysis - only show for completed runs */}
+        {selectedRun?.status === "completed" && (
+          <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+            <h2 className="mb-3 text-base font-semibold text-gray-900">
+              Trade Distribution Analysis
+            </h2>
+
+            {trades.length < 3 ? (
+              <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-8 text-center">
+                <p className="text-sm text-gray-500">
+                  Not enough trades to analyze. Need at least 3 trades.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {/* Return Distribution Histogram */}
+                <div>
+                  <h3 className="mb-2 text-sm font-medium text-gray-700">Return Distribution</h3>
+                  <div className="h-64 sm:h-72 md:h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={returnDistribution}
+                        margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
+                      >
+                        <XAxis
+                          dataKey="label"
+                          tick={{ fontSize: 12 }}
+                          tickLine={false}
+                          axisLine={{ stroke: "#e5e7eb" }}
+                        />
+                        <YAxis
+                          label={{ value: 'Count', angle: -90, position: 'insideLeft', style: { fontSize: 12 } }}
+                          tick={{ fontSize: 12 }}
+                          tickLine={false}
+                          axisLine={{ stroke: "#e5e7eb" }}
+                        />
+                        <Tooltip
+                          formatter={(value) => [
+                            `${value} trades (${formatPercent((value as number / trades.length) * 100)})`,
+                            'Count'
+                          ]}
+                          contentStyle={{
+                            backgroundColor: "white",
+                            border: "1px solid #e5e7eb",
+                            borderRadius: "0.375rem",
+                            fontSize: "0.875rem",
+                          }}
+                        />
+                        <Bar
+                          dataKey="count"
+                          fill="#2563eb"
+                          radius={[4, 4, 0, 0]}
+                        />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+
+                {/* Duration Distribution (bars) */}
+                {durationDistribution && (
+                  <div>
+                    <h3 className="mb-2 text-sm font-medium text-gray-700">
+                      Duration Distribution (bars)
+                    </h3>
+                    <div className="h-64 sm:h-72 md:h-80">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                          data={durationDistribution}
+                          margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
+                        >
+                          <XAxis
+                            dataKey="label"
+                            tick={{ fontSize: 12 }}
+                            tickLine={false}
+                            axisLine={{ stroke: "#e5e7eb" }}
+                          />
+                          <YAxis
+                            label={{ value: 'Count', angle: -90, position: 'insideLeft', style: { fontSize: 12 } }}
+                            tick={{ fontSize: 12 }}
+                            tickLine={false}
+                            axisLine={{ stroke: "#e5e7eb" }}
+                          />
+                          <Tooltip
+                            formatter={(value) => [
+                              `${value} trades (${formatPercent((value as number / trades.length) * 100)})`,
+                              'Count'
+                            ]}
+                            contentStyle={{
+                              backgroundColor: "white",
+                              border: "1px solid #e5e7eb",
+                              borderRadius: "0.375rem",
+                              fontSize: "0.875rem",
+                            }}
+                          />
+                          <Bar
+                            dataKey="count"
+                            fill="#2563eb"
+                            radius={[4, 4, 0, 0]}
+                          />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                )}
+
+                {/* Skew Callout */}
+                <div className={`rounded-lg border p-3 text-sm ${
+                  skewCallout.includes('Review risk')
+                    ? 'border-amber-200 bg-amber-50 text-amber-800'
+                    : 'border-gray-200 bg-gray-50 text-gray-700'
+                }`}>
+                  {skewCallout}
+                </div>
               </div>
             )}
           </section>
