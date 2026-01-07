@@ -626,6 +626,12 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Heatmap of average return per bucket to reveal calendar effects
 - Uses trades list as source data
 
+**Trade Distribution Analysis**
+- Histogram of trade return buckets (wins and losses) to show distribution shape
+- Duration distribution (trade length in bars) to show typical holding time
+- Simple skew callout (e.g., many small wins vs few large losses) based on bucket counts
+- Uses trades list as source data
+
 **Implementation:** `backend/app/backtest/engine.py`, `backend/app/backtest/indicators.py`, `backend/app/backtest/interpreter.py`
 
 ---
@@ -1402,6 +1408,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Strategy Building Wizard** | ✅ Complete | Guided Q&A that generates editable strategy JSON |
 | **Backtesting** | ✅ Complete | Full engine with TP ladder, SL, max drawdown, equity curves, trade detail |
 | **Seasonality Analysis** | ✅ Complete | Heatmap of average trade return by month, quarter, weekday |
+| **Trade Distribution Analysis** | ✅ Complete | Histograms of trade return buckets and duration distribution for risk insight |
 | **Drawdown Chart** | ✅ Complete | Underwater equity % chart highlighting max drawdown period |
 | **Data Management** | ✅ Complete | Candle DB cache, CryptoCompare integration, S3/MinIO storage |
 | **Data Quality Indicators** | ✅ Complete | Gap %, outlier count, volume consistency, backtest warnings |
@@ -1653,6 +1660,7 @@ pytest --cov            # Coverage report
 - `docs/prd-multi-strategy-dashboard.md` - Multi-strategy dashboard PRD
 - `docs/prd-drawdown-chart.md` - Drawdown chart PRD
 - `docs/prd-seasonality-analysis.md` - Seasonality analysis PRD
+- `docs/prd-trade-distribution-analysis.md` - Trade distribution analysis PRD
 - `docs/prd-performance-alerts-simple.md` - Performance alerts (simple) PRD
 - `docs/prd-copy-paste-blocks-subgraphs.md` - Copy/paste blocks & subgraphs PRD
 - `docs/product.md` - This document (current product truth)
