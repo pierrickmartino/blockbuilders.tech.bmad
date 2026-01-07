@@ -24,6 +24,7 @@ import {
   createDefaultDefinition,
   generateBlockId,
 } from "@/lib/canvas-utils";
+import { copyToClipboard, pasteFromClipboard } from "@/lib/clipboard-utils";
 import { generateExplanation } from "@/lib/explanation-generator";
 import StrategyCanvas from "@/components/canvas/StrategyCanvas";
 import BlockPalette from "@/components/canvas/BlockPalette";
@@ -48,6 +49,7 @@ export default function StrategyEditorPage({ params }: Props) {
   // Canvas state
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
+  const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(new Set());
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
 
@@ -214,6 +216,44 @@ export default function StrategyEditorPage({ params }: Props) {
     const result = generateExplanation(definition);
     setExplanation(result);
   }, [nodes, edges]);
+
+  // Handle copy/paste keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if user is typing in an input field
+      const target = e.target as HTMLElement;
+      if (
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.isContentEditable
+      ) {
+        return;
+      }
+
+      const isMod = e.metaKey || e.ctrlKey;
+
+      // Copy: Cmd/Ctrl+C
+      if (isMod && e.key === "c") {
+        e.preventDefault();
+        copyToClipboard(selectedNodeIds, nodes, edges);
+      }
+
+      // Paste: Cmd/Ctrl+V
+      if (isMod && e.key === "v") {
+        e.preventDefault();
+        const result = pasteFromClipboard(nodes, edges);
+        if (result) {
+          setNodes(result.nodes);
+          setEdges(result.edges);
+          setValidationErrors([]);
+          setError(null);
+        }
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [selectedNodeIds, nodes, edges]);
 
   // Map validation errors to node data
   useEffect(() => {
@@ -401,6 +441,18 @@ export default function StrategyEditorPage({ params }: Props) {
     setValidationErrors([]);
     setError(null);
   };
+
+  // Handle selection changes (multi-select and single-select)
+  const handleSelectionChange = useCallback(
+    (selectedNodes: Node[]) => {
+      // Track all selected nodes for copy/paste
+      setSelectedNodeIds(new Set(selectedNodes.map((n) => n.id)));
+
+      // Properties panel still gets single selection only
+      setSelectedNodeId(selectedNodes.length === 1 ? selectedNodes[0].id : null);
+    },
+    []
+  );
 
   // Handle adding a floating note
   const handleAddNote = () => {
@@ -908,7 +960,7 @@ export default function StrategyEditorPage({ params }: Props) {
             edges={edges}
             onNodesChange={handleNodesChange}
             onEdgesChange={setEdges}
-            onNodeSelect={(node) => setSelectedNodeId(node?.id ?? null)}
+            onSelectionChange={handleSelectionChange}
             onAddNote={handleAddNote}
             globalValidationErrors={globalValidationErrors}
           />
