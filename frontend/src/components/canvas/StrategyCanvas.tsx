@@ -14,6 +14,7 @@ import {
   ReactFlowInstance,
   applyNodeChanges,
   applyEdgeChanges,
+  SelectionMode,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
@@ -26,7 +27,7 @@ interface StrategyCanvasProps {
   edges: Edge[];
   onNodesChange: (nodes: Node[]) => void;
   onEdgesChange: (edges: Edge[]) => void;
-  onNodeSelect: (node: Node | null) => void;
+  onSelectionChange: (selectedNodes: Node[]) => void;
   onAddNote: () => void;
   globalValidationErrors?: ValidationError[];
 }
@@ -36,7 +37,7 @@ function CanvasInner({
   edges,
   onNodesChange,
   onEdgesChange,
-  onNodeSelect,
+  onSelectionChange,
   onAddNote,
   globalValidationErrors,
 }: StrategyCanvasProps) {
@@ -53,11 +54,11 @@ function CanvasInner({
   );
 
   // Handle node selection
-  const onSelectionChange = useCallback(
+  const handleSelectionChange = useCallback(
     ({ nodes: selectedNodes }: { nodes: Node[] }) => {
-      onNodeSelect(selectedNodes.length === 1 ? selectedNodes[0] : null);
+      onSelectionChange(selectedNodes);
     },
-    [onNodeSelect]
+    [onSelectionChange]
   );
 
   // Handle drop from palette
@@ -132,7 +133,7 @@ function CanvasInner({
         onNodesChange={handleNodesChange}
         onEdgesChange={handleEdgesChange}
         onConnect={onConnect}
-        onSelectionChange={onSelectionChange}
+        onSelectionChange={handleSelectionChange}
         onDragOver={onDragOver}
         onDrop={onDrop}
         onInit={onInit}
@@ -140,6 +141,9 @@ function CanvasInner({
         fitView
         snapToGrid
         snapGrid={[15, 15]}
+        selectionMode={SelectionMode.Partial}
+        multiSelectionKeyCode={null}
+        selectNodesOnDrag={false}
         defaultEdgeOptions={{
           type: "smoothstep",
           style: { strokeWidth: 2 },
