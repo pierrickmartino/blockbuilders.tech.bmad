@@ -172,23 +172,34 @@ function computeReturnDistribution(
   trades: Array<{ pnl_pct: number }>
 ): DistributionBucket[] {
   const buckets = [
-    { label: '>20%', min: 20, max: Infinity, count: 0 },
-    { label: '10-20%', min: 10, max: 20, count: 0 },
-    { label: '5-10%', min: 5, max: 10, count: 0 },
-    { label: '0-5%', min: 0, max: 5, count: 0 },
-    { label: '0 to -5%', min: -5, max: 0, count: 0 },
-    { label: '-5 to -10%', min: -10, max: -5, count: 0 },
-    { label: '-10 to -20%', min: -20, max: -10, count: 0 },
-    { label: '<-20%', min: -Infinity, max: -20, count: 0 },
+    { label: '>20%', count: 0 },
+    { label: '10-20%', count: 0 },
+    { label: '5-10%', count: 0 },
+    { label: '0-5%', count: 0 },
+    { label: '0 to -5%', count: 0 },
+    { label: '-5 to -10%', count: 0 },
+    { label: '-10 to -20%', count: 0 },
+    { label: '<-20%', count: 0 },
   ];
 
   for (const trade of trades) {
     const pnl = trade.pnl_pct;
-    for (const bucket of buckets) {
-      if (pnl >= bucket.min && pnl < bucket.max) {
-        bucket.count++;
-        break;
-      }
+    if (pnl > 20) {
+      buckets[0].count++;
+    } else if (pnl > 10) {
+      buckets[1].count++;
+    } else if (pnl > 5) {
+      buckets[2].count++;
+    } else if (pnl >= 0) {
+      buckets[3].count++;
+    } else if (pnl >= -5) {
+      buckets[4].count++;
+    } else if (pnl >= -10) {
+      buckets[5].count++;
+    } else if (pnl >= -20) {
+      buckets[6].count++;
+    } else {
+      buckets[7].count++;
     }
   }
 
