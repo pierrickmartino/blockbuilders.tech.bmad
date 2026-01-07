@@ -75,6 +75,7 @@ When there is any conflict, follow this precedence order:
 **Strategy metadata:** If you need to store non-execution data in a strategy version JSON (e.g., notes), keep it under a top-level `metadata` key so the interpreter can ignore it safely.
 **Strategy portability:** Keep import/export formats minimal and stable (JSON only), favoring explicit validation over clever transforms.
 **Strategy explanations:** Keep explanation generation deterministic and derived from block JSON; store any generated text under `metadata.explanation` if persistence is required.
+**Strategy tags:** Store tags in relational tables tied to strategies/users (not inside strategy version JSON) so the interpreter stays untouched.
 
 ### 3.2. Default behavior
 
