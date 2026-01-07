@@ -203,11 +203,11 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - CryptoCompare API dynamically supports all listed pairs
 - No database schema changes required (asset stored as string)
 
-### 3.5. Strategy Import/Export (Planned)
+### 3.5. Strategy Import/Export
 
 **Purpose:** Allow users to export a strategy as a JSON file and import it later to create a new strategy. This supports backup, sharing outside the platform, and account migration.
 
-**Planned Behavior:**
+**Behavior:**
 - Export downloads a JSON file containing strategy metadata + latest definition JSON.
 - Import accepts a JSON file, validates it, and creates a new strategy + version.
 - Imported strategies always create a new record (never overwrite).
@@ -411,7 +411,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 
 **Purpose:** Provide quick explanations for indicators, logic blocks, and metrics without leaving the app.
 
-**Planned Behavior:**
+**Behavior:**
 - Info icons next to technical terms with hover tooltips on indicator cards, logic blocks, and performance metrics.
 - Definitions appear directly in the tooltip (no links to a glossary page).
 - Copy is short (1–2 sentences), focused on plain-language meaning and usage.
@@ -424,7 +424,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 
 **Purpose:** A dedicated, searchable reference page explaining every performance metric shown in backtests.
 
-**Planned Behavior:**
+**Behavior:**
 - Simple static page with metric definitions, formulas, and plain-language interpretation.
 - “Good” vs “bad” ranges and example scenarios for each metric.
 - Client-side search input filters metrics in place.
@@ -449,11 +449,11 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - No new backend endpoints or block types needed.
 - Simple yellow sticky note UI with inline editing.
 
-### 4.8. Strategy Explanation Generator (Planned)
+### 4.8. Strategy Explanation Generator
 
 **Purpose:** Auto-generate a plain-English explanation of what a strategy does based on its canvas blocks.
 
-**Planned Behavior:**
+**Behavior:**
 - Generates a readable summary such as: “This strategy enters long when price crosses above the 20-day SMA and RSI is below 30…”
 - Uses deterministic, template-based text generation from the strategy JSON.
 - Helps users document and share strategies without manually writing descriptions.
@@ -463,11 +463,11 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Output is read-only and can be regenerated at any time.
 - If stored, explanation lives under `metadata.explanation` in the strategy version JSON.
 
-### 4.9. Visual Strategy Validation Feedback (Planned)
+### 4.9. Visual Strategy Validation Feedback
 
 **Purpose:** Make validation errors obvious and actionable directly on the canvas.
 
-**Planned Behavior:**
+**Behavior:**
 - Blocks with errors or missing connections show **colored borders + icons** on the canvas.
 - Validation messages appear **inline near the affected blocks** (not only in the side panel).
 - Uses the existing validation endpoint; no new validation rules required.
@@ -476,11 +476,11 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - UI-only enhancement layered on top of current validation response.
 - Keep visuals lightweight (no new dependencies).
 
-### 4.10. Copy/Paste Blocks & Subgraphs (Planned)
+### 4.10. Copy/Paste Blocks & Subgraphs
 
 **Purpose:** Speed up strategy iteration by allowing users to copy selected blocks (and their internal connections) and paste them within the same strategy or into another strategy.
 
-**Planned Behavior:**
+**Behavior:**
 - Multi-select blocks on the canvas (drag marquee or shift-click).
 - Copy stores selected blocks + any connections where **both endpoints** are in the selection.
 - Paste creates new blocks with **new IDs** and offsets the position slightly for visibility.
@@ -597,7 +597,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Array of {timestamp, equity} points for buy-and-hold
 - Stored alongside the strategy curve
 
-**Drawdown Chart** (Planned)
+**Drawdown Chart**
 - Dedicated underwater equity percentage chart
 - Generated from equity curve data (peak-to-trough drawdown % over time)
 - Highlights max drawdown period and duration
@@ -621,7 +621,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Surrounding candles (90-day minimum window)
 - Used for detailed trade analysis
 
-**Seasonality Analysis** (Planned)
+**Seasonality Analysis**
 - Simple aggregation of trade results by time period (month, quarter, weekday)
 - Heatmap of average return per bucket to reveal calendar effects
 - Uses trades list as source data
@@ -689,7 +689,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 
 **Purpose:** Surface data quality metrics (gap %, outlier count, volume consistency) per asset/timeframe and warn users when a backtest period overlaps known issues.
 
-**Planned Behavior:**
+**Behavior:**
 - Daily validation job computes metrics for each asset/timeframe and stores quality metadata.
 - Backtest UI shows a compact quality summary for the selected asset/timeframe.
 - Backtest date range selector warns if the period overlaps known data issues.
@@ -911,7 +911,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Equity curve chart (Recharts line chart)
 - Trades table with sorting and pagination
 - Trade detail drawer with surrounding candles
-- Seasonality analysis heatmap (month, quarter, weekday) (planned)
+- Seasonality analysis heatmap (month, quarter, weekday)
 
 **Components:**
 - `frontend/src/app/(app)/strategies/[id]/backtest/page.tsx`
@@ -1398,24 +1398,24 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Account Management** | ✅ Complete | Profile, settings (fees, slippage, timezone), usage tracking |
 | **Strategy Management** | ✅ Complete | CRUD, versioning, validation, duplication, archiving |
 | **Visual Builder** | ✅ Complete | 20 block types, drag-drop, parameter editing, mobile-responsive |
-| **Copy/Paste Blocks & Subgraphs** | ⏳ Planned | Multi-select blocks and copy/paste within or across strategies |
+| **Copy/Paste Blocks & Subgraphs** | ✅ Complete | Multi-select blocks and copy/paste within or across strategies |
 | **Strategy Building Wizard** | ✅ Complete | Guided Q&A that generates editable strategy JSON |
 | **Backtesting** | ✅ Complete | Full engine with TP ladder, SL, max drawdown, equity curves, trade detail |
-| **Seasonality Analysis** | ⏳ Planned | Heatmap of average trade return by month, quarter, weekday |
-| **Drawdown Chart** | ⏳ Planned | Underwater equity % chart highlighting max drawdown period |
+| **Seasonality Analysis** | ✅ Complete | Heatmap of average trade return by month, quarter, weekday |
+| **Drawdown Chart** | ✅ Complete | Underwater equity % chart highlighting max drawdown period |
 | **Data Management** | ✅ Complete | Candle DB cache, CryptoCompare integration, S3/MinIO storage |
 | **Data Quality Indicators** | ✅ Complete | Gap %, outlier count, volume consistency, backtest warnings |
 | **Scheduled Updates** | ✅ Complete | Daily scheduler for auto-update strategies (paper trading) |
-| **Performance Alerts (Simple)** | ⏳ Planned | Drawdown threshold alerts on scheduled re-backtests |
+| **Performance Alerts (Simple)** | ✅ Complete | Drawdown threshold alerts on scheduled re-backtests |
 | **Usage Limits** | ✅ Complete | Soft caps (10 strategies, 50 backtests/day) with transparent tracking |
 | **In-App Notifications** | ✅ Complete | Bell icon with unread count, notifications for key events |
 | **Frontend UI** | ✅ Complete | Multi-strategy dashboard, strategy list/editor, backtest runner/results, profile |
 | **Contextual Help & Tooltips** | ✅ Complete | Hover tooltips for indicators, logic blocks, metrics |
 | **Metrics Glossary** | ✅ Complete | Dedicated searchable page explaining backtest metrics |
 | **Strategy Notes & Annotations** | ✅ Complete | Floating text notes on canvas (280 char limit), drag to position |
-| **Visual Validation Feedback** | ⏳ Planned | Inline canvas highlights and messages for validation errors |
-| **Strategy Explanation Generator** | ⏳ Planned | Template-based plain-English explanation from strategy JSON |
-| **Strategy Import/Export** | ⏳ Planned | JSON export/download + import/upload with validation |
+| **Visual Validation Feedback** | ✅ Complete | Inline canvas highlights and messages for validation errors |
+| **Strategy Explanation Generator** | ✅ Complete | Template-based plain-English explanation from strategy JSON |
+| **Strategy Import/Export** | ✅ Complete | JSON export/download + import/upload with validation |
 | **Worker Infrastructure** | ✅ Complete | RQ job queue, scheduler, background processing |
 | **API** | ✅ Complete | RESTful endpoints, JWT auth, OpenAPI docs |
 | **Database** | ✅ Complete | PostgreSQL with 11 migrations, indexed queries |
@@ -1473,7 +1473,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Dependent on CryptoCompare API uptime
 - Historical data gaps may cause backtest failures
 - No fallback vendor if CryptoCompare unavailable
-- No explicit data quality indicators or warnings in UI (planned)
+- No explicit data quality indicators or warnings in UI
 
 **Scalability:**
 - Single PostgreSQL instance (no sharding)
