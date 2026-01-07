@@ -224,7 +224,7 @@ function computeDurationDistribution(
     { label: '>30', min: 31, max: Infinity, count: 0 },
   ];
 
-  let hasValidTimestamps = false;
+  let validCount = 0;
 
   for (const trade of trades) {
     try {
@@ -232,14 +232,14 @@ function computeDurationDistribution(
       const exitMs = new Date(trade.exit_time).getTime();
 
       if (isNaN(entryMs) || isNaN(exitMs)) continue;
-
-      hasValidTimestamps = true;
       const durationSeconds = (exitMs - entryMs) / 1000;
+      if (durationSeconds < 0) continue;
       const durationBars = Math.round(durationSeconds / timeframeSeconds);
 
       for (const bucket of buckets) {
         if (durationBars >= bucket.min && durationBars < bucket.max) {
           bucket.count++;
+          validCount++;
           break;
         }
       }
@@ -248,9 +248,9 @@ function computeDurationDistribution(
     }
   }
 
-  if (!hasValidTimestamps) return null;
+  if (validCount === 0) return null;
 
-  const total = trades.length;
+  const total = validCount;
   return buckets.map(b => ({
     label: b.label,
     count: b.count,
@@ -361,6 +361,11 @@ export default function StrategyBacktestPage({ params }: Props) {
     const timeframeSeconds = timeframeToSeconds(selectedRun.timeframe);
     return computeDurationDistribution(trades, timeframeSeconds);
   }, [trades, selectedRun?.timeframe]);
+
+  const durationDistributionTotal = useMemo(() => {
+    if (!durationDistribution) return 0;
+    return durationDistribution.reduce((sum, bucket) => sum + bucket.count, 0);
+  }, [durationDistribution]);
 
   const skewCallout = useMemo(() => {
     if (trades.length < 3) return "";
@@ -1170,7 +1175,7 @@ export default function StrategyBacktestPage({ params }: Props) {
                           />
                           <Tooltip
                             formatter={(value) => [
-                              `${value} trades (${formatPercent((value as number / trades.length) * 100)})`,
+                              `${value} trades (${formatPercent(durationDistributionTotal > 0 ? (value as number / durationDistributionTotal) * 100 : 0)})`,
                               'Count'
                             ]}
                             contentStyle={{
