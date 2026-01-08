@@ -41,6 +41,21 @@ import TradeDrawer from "@/components/TradeDrawer";
 import InfoIcon from "@/components/InfoIcon";
 import { metricToGlossaryId, getTooltip } from "@/lib/tooltip-content";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import {
+  exportTradesToCSV,
+  exportTradesToJSON,
+  exportEquityToCSV,
+  exportEquityToJSON,
+  exportMetricsToCSV,
+  exportMetricsToJSON,
+} from "@/lib/backtest-export";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -756,6 +771,39 @@ export default function StrategyBacktestPage({ params }: Props) {
               >
                 View metrics glossary
               </Link>
+              {selectedRun?.status === "completed" && selectedRun.summary && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      Export Metrics
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    <DropdownMenuItem
+                      onClick={() =>
+                        exportMetricsToCSV(
+                          selectedRun.summary!,
+                          selectedRun,
+                          selectedRunId!
+                        )
+                      }
+                    >
+                      Download CSV
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() =>
+                        exportMetricsToJSON(
+                          selectedRun.summary!,
+                          selectedRun,
+                          selectedRunId!
+                        )
+                      }
+                    >
+                      Download JSON
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
               {selectedRun && statusBadge(selectedRun.status)}
             </div>
           </div>
@@ -865,7 +913,30 @@ export default function StrategyBacktestPage({ params }: Props) {
         {/* Equity Curve Chart - only show for completed runs */}
         {selectedRun?.status === "completed" && (
           <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-            <h2 className="mb-3 text-base font-semibold text-gray-900">Equity Curve</h2>
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-base font-semibold text-gray-900">Equity Curve</h2>
+              {equityCurve.length > 0 && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      Export
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    <DropdownMenuItem
+                      onClick={() => exportEquityToCSV(equityCurve, selectedRunId!)}
+                    >
+                      Download CSV
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => exportEquityToJSON(equityCurve, selectedRunId!)}
+                    >
+                      Download JSON
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+            </div>
 
             {isLoadingEquityCurve ? (
               <div className="flex h-64 items-center justify-center">
@@ -1214,12 +1285,34 @@ export default function StrategyBacktestPage({ params }: Props) {
           <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="text-base font-semibold text-gray-900">Trades</h2>
-              {trades.length > 0 && (
-                <div className="flex items-center gap-2 text-sm text-gray-500">
-                  <span>{trades.length} total</span>
-                  <select
-                    value={pageSize}
-                    onChange={(e) => {
+              <div className="flex items-center gap-3">
+                {trades.length > 0 && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        Export
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      <DropdownMenuItem
+                        onClick={() => exportTradesToCSV(trades, selectedRunId!)}
+                      >
+                        Download CSV
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => exportTradesToJSON(trades, selectedRunId!)}
+                      >
+                        Download JSON
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+                {trades.length > 0 && (
+                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <span>{trades.length} total</span>
+                    <select
+                      value={pageSize}
+                      onChange={(e) => {
                       setPageSize(Number(e.target.value));
                       setCurrentPage(1);
                     }}
@@ -1231,6 +1324,7 @@ export default function StrategyBacktestPage({ params }: Props) {
                   </select>
                 </div>
               )}
+              </div>
             </div>
 
             {isLoadingTrades ? (

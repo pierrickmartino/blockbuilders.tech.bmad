@@ -3,12 +3,12 @@ import { apiFetch } from "@/lib/api";
 import {
   BacktestStatusResponse,
   EquityCurvePoint,
-  Trade,
+  TradeDetail,
 } from "@/types/backtest";
 
 interface UseBacktestResultsReturn {
   selectedRun: BacktestStatusResponse | null;
-  trades: Trade[];
+  trades: TradeDetail[];
   equityCurve: EquityCurvePoint[];
   benchmarkCurve: EquityCurvePoint[];
   isLoadingTrades: boolean;
@@ -25,7 +25,7 @@ export function useBacktestResults(
   onRunDetailFetched?: (detail: BacktestStatusResponse) => void
 ): UseBacktestResultsReturn {
   const [selectedRun, setSelectedRun] = useState<BacktestStatusResponse | null>(null);
-  const [trades, setTrades] = useState<Trade[]>([]);
+  const [trades, setTrades] = useState<TradeDetail[]>([]);
   const [isLoadingTrades, setIsLoadingTrades] = useState(false);
   const [tradesError, setTradesError] = useState<string | null>(null);
 
@@ -53,7 +53,7 @@ export function useBacktestResults(
     setIsLoadingTrades(true);
     setTradesError(null);
     try {
-      const data = await apiFetch<Trade[]>(`/backtests/${runId}/trades`);
+      const data = await apiFetch<TradeDetail[]>(`/backtests/${runId}/trades`);
       setTrades(data);
     } catch (err) {
       setTradesError(err instanceof Error ? err.message : "Failed to load trades");
