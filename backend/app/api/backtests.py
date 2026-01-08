@@ -329,11 +329,11 @@ def get_backtest_trades(
                 r_multiple=t.get("r_multiple"),
                 peak_price=t.get("peak_price", 0),
                 peak_ts=datetime.fromisoformat(
-                    t.get("peak_ts", entry_ts_str).replace("Z", "+00:00")
+                    (t.get("peak_ts") or entry_ts_str).replace("Z", "+00:00")
                 ),
                 trough_price=t.get("trough_price", 0),
                 trough_ts=datetime.fromisoformat(
-                    t.get("trough_ts", entry_ts_str).replace("Z", "+00:00")
+                    (t.get("trough_ts") or entry_ts_str).replace("Z", "+00:00")
                 ),
                 duration_seconds=t.get("duration_seconds", 0),
             )
@@ -569,11 +569,11 @@ def get_trade_detail(
         r_multiple=trade_raw.get("r_multiple"),
         peak_price=trade_raw.get("peak_price", 0),
         peak_ts=datetime.fromisoformat(
-            trade_raw.get("peak_ts", entry_ts_str).replace("Z", "+00:00")
+            (trade_raw.get("peak_ts") or entry_ts_str).replace("Z", "+00:00")
         ),
         trough_price=trade_raw.get("trough_price", 0),
         trough_ts=datetime.fromisoformat(
-            trade_raw.get("trough_ts", entry_ts_str).replace("Z", "+00:00")
+            (trade_raw.get("trough_ts") or entry_ts_str).replace("Z", "+00:00")
         ),
         duration_seconds=trade_raw.get("duration_seconds", 0),
     )

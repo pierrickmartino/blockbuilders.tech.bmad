@@ -1433,12 +1433,12 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Authentication** | ✅ Complete | Email/password, OAuth (Google, GitHub), password reset |
 | **Account Management** | ✅ Complete | Profile, settings (fees, slippage, timezone), usage tracking |
 | **Strategy Management** | ✅ Complete | CRUD, versioning, validation, duplication, archiving |
-| **Strategy Groups/Tags** | 🚧 Planned | Custom tags, tag filtering, many-to-many strategy organization |
+| **Strategy Groups/Tags** | ✅ Complete | Custom tags, tag filtering, many-to-many strategy organization |
 | **Visual Builder** | ✅ Complete | 20 block types, drag-drop, parameter editing, mobile-responsive |
 | **Copy/Paste Blocks & Subgraphs** | ✅ Complete | Multi-select blocks and copy/paste within or across strategies |
 | **Strategy Building Wizard** | ✅ Complete | Guided Q&A that generates editable strategy JSON |
 | **Backtesting** | ✅ Complete | Full engine with TP ladder, SL, max drawdown, equity curves, trade detail |
-| **Data Export (CSV/JSON)** | 🚧 Planned | Download trade list, equity curve, and metrics as CSV or JSON |
+| **Data Export (CSV/JSON)** | ✅ Complete | Download trade list, equity curve, and metrics as CSV or JSON |
 | **Seasonality Analysis** | ✅ Complete | Heatmap of average trade return by month, quarter, weekday |
 | **Trade Distribution Analysis** | ✅ Complete | Histograms of trade return buckets and duration distribution for risk insight |
 | **Drawdown Chart** | ✅ Complete | Underwater equity % chart highlighting max drawdown period |
