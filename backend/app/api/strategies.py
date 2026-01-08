@@ -9,6 +9,8 @@ from app.api.deps import get_current_user
 from app.core.database import get_session
 from app.models.backtest_run import BacktestRun
 from app.models.strategy import Strategy
+from app.models.strategy_tag import StrategyTag
+from app.models.strategy_tag_link import StrategyTagLink
 from app.models.strategy_version import StrategyVersion
 from app.models.user import User
 from app.schemas.strategy import (
@@ -16,6 +18,7 @@ from app.schemas.strategy import (
     StrategyCreateRequest,
     StrategyDefinitionValidate,
     StrategyResponse,
+    StrategyTagResponse,
     StrategyUpdateRequest,
     StrategyVersionCreateRequest,
     StrategyVersionDetailResponse,
@@ -38,6 +41,26 @@ def get_user_strategy(
     if not strategy:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Strategy not found")
     return strategy
+
+
+def load_strategy_tags(strategy_id: UUID, session: Session) -> list[StrategyTagResponse]:
+    """Load all tags for a strategy."""
+    tags = session.exec(
+        select(StrategyTag)
+        .join(StrategyTagLink, StrategyTag.id == StrategyTagLink.tag_id)
+        .where(StrategyTagLink.strategy_id == strategy_id)
+        .order_by(StrategyTag.name)
+    ).all()
+
+    return [
+        StrategyTagResponse(
+            id=tag.id,
+            name=tag.name,
+            created_at=tag.created_at,
+            updated_at=tag.updated_at,
+        )
+        for tag in tags
+    ]
 
 
 @router.post("/", response_model=StrategyResponse, status_code=status.HTTP_201_CREATED)
@@ -80,6 +103,7 @@ def create_strategy(
         last_auto_run_at=strategy.last_auto_run_at,
         created_at=strategy.created_at,
         updated_at=strategy.updated_at,
+        tags=[],
     )
 
 
@@ -87,6 +111,7 @@ def create_strategy(
 def list_strategies(
     search: str = Query(default="", description="Filter by name (case-insensitive)"),
     include_archived: bool = Query(default=False, description="Include archived strategies"),
+    tag_ids: list[UUID] | None = Query(default=None, description="Filter by tag IDs (OR logic)"),
     user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
 ) -> list[StrategyWithMetricsResponse]:
@@ -138,6 +163,16 @@ def list_strategies(
     if search:
         query = query.where(Strategy.name.ilike(f"%{search}%"))
 
+    # Filter by tags (OR logic: show strategies that have ANY of the selected tags)
+    if tag_ids:
+        query = query.where(
+            Strategy.id.in_(
+                select(StrategyTagLink.strategy_id).where(
+                    StrategyTagLink.tag_id.in_(tag_ids)
+                )
+            )
+        )
+
     query = query.order_by(Strategy.updated_at.desc())
     results = session.exec(query).all()
 
@@ -158,6 +193,7 @@ def list_strategies(
             latest_win_rate_pct=backtest.win_rate if backtest else None,
             latest_num_trades=backtest.num_trades if backtest else None,
             last_run_at=backtest.created_at if backtest else None,
+            tags=load_strategy_tags(s.id, session),
         )
         for s, backtest in results
     ]
@@ -182,6 +218,7 @@ def get_strategy(
         last_auto_run_at=strategy.last_auto_run_at,
         created_at=strategy.created_at,
         updated_at=strategy.updated_at,
+        tags=load_strategy_tags(strategy_id, session),
     )
 
 
@@ -208,6 +245,37 @@ def update_strategy(
     if data.auto_update_lookback_days is not None:
         strategy.auto_update_lookback_days = data.auto_update_lookback_days
 
+    # Handle tag updates
+    if data.tag_ids is not None:
+        # Validate that all tags belong to the user
+        if data.tag_ids:
+            tag_count = session.exec(
+                select(func.count(StrategyTag.id)).where(
+                    StrategyTag.id.in_(data.tag_ids),
+                    StrategyTag.user_id == user.id
+                )
+            ).one()
+            if tag_count != len(data.tag_ids):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="One or more tags do not exist or do not belong to you"
+                )
+
+        # Delete existing links
+        session.exec(
+            select(StrategyTagLink).where(StrategyTagLink.strategy_id == strategy_id)
+        )
+        existing_links = session.exec(
+            select(StrategyTagLink).where(StrategyTagLink.strategy_id == strategy_id)
+        ).all()
+        for link in existing_links:
+            session.delete(link)
+
+        # Create new links
+        for tag_id in data.tag_ids:
+            link = StrategyTagLink(strategy_id=strategy_id, tag_id=tag_id)
+            session.add(link)
+
     strategy.updated_at = datetime.now(timezone.utc)
     session.add(strategy)
     session.commit()
@@ -224,6 +292,7 @@ def update_strategy(
         last_auto_run_at=strategy.last_auto_run_at,
         created_at=strategy.created_at,
         updated_at=strategy.updated_at,
+        tags=load_strategy_tags(strategy_id, session),
     )
 
 

@@ -6,7 +6,7 @@ import { apiFetch, ApiError } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
 import { useDisplay } from "@/context/display";
 import { useAuth } from "@/context/auth";
-import { ALLOWED_ASSETS, Strategy, StrategyExportFile, StrategyVersion, StrategyVersionDetail } from "@/types/strategy";
+import { ALLOWED_ASSETS, Strategy, StrategyExportFile, StrategyTag, StrategyVersion, StrategyVersionDetail } from "@/types/strategy";
 import type { ValidationResponse } from "@/types/canvas";
 import NewStrategyModal from "./new-strategy-modal";
 import { StrategyWizard } from "./strategy-wizard";
@@ -56,6 +56,8 @@ export default function StrategiesPage() {
   const [assetFilter, setAssetFilter] = useState<string>("all");
   const [performanceFilter, setPerformanceFilter] = useState<PerformanceFilter>("all");
   const [lastRunFilter, setLastRunFilter] = useState<LastRunFilter>("all");
+  const [availableTags, setAvailableTags] = useState<StrategyTag[]>([]);
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
 
   useEffect(() => {
     const loadStrategies = async () => {
@@ -73,6 +75,18 @@ export default function StrategiesPage() {
     };
     loadStrategies();
   }, [showArchived]);
+
+  useEffect(() => {
+    const loadTags = async () => {
+      try {
+        const data = await apiFetch<StrategyTag[]>("/strategy-tags");
+        setAvailableTags(data);
+      } catch (err) {
+        console.error("Failed to load tags:", err);
+      }
+    };
+    loadTags();
+  }, []);
 
   const refreshStrategies = async () => {
     try {
@@ -128,6 +142,13 @@ export default function StrategiesPage() {
         }
         return true;
       });
+    }
+
+    // Tag filter (OR logic: show strategies that have ANY of the selected tags)
+    if (selectedTagIds.length > 0) {
+      filtered = filtered.filter((s) =>
+        s.tags?.some(tag => selectedTagIds.includes(tag.id))
+      );
     }
 
     // Sorting
@@ -458,6 +479,65 @@ export default function StrategiesPage() {
             <SelectItem value="never">Never Run</SelectItem>
           </SelectContent>
         </Select>
+
+        {availableTags.length > 0 && (
+          <div className="relative">
+            <Select
+              value={selectedTagIds.length > 0 ? "selected" : "all"}
+              onValueChange={(v) => {
+                if (v === "all") setSelectedTagIds([]);
+              }}
+            >
+              <SelectTrigger className="w-[150px]">
+                <SelectValue>
+                  {selectedTagIds.length > 0 ? `${selectedTagIds.length} tag(s)` : "All Tags"}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Tags</SelectItem>
+                {availableTags.map((tag) => (
+                  <div
+                    key={tag.id}
+                    className="flex items-center gap-2 px-2 py-1.5 hover:bg-gray-100 cursor-pointer"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setSelectedTagIds(prev =>
+                        prev.includes(tag.id)
+                          ? prev.filter(id => id !== tag.id)
+                          : [...prev, tag.id]
+                      );
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedTagIds.includes(tag.id)}
+                      onChange={() => {}}
+                      className="rounded border-input"
+                    />
+                    <span className="text-sm">{tag.name}</span>
+                  </div>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        {(search || assetFilter !== "all" || performanceFilter !== "all" || lastRunFilter !== "all" || selectedTagIds.length > 0) && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setSearch("");
+              setAssetFilter("all");
+              setPerformanceFilter("all");
+              setLastRunFilter("all");
+              setSelectedTagIds([]);
+            }}
+          >
+            Clear filters
+          </Button>
+        )}
       </div>
 
       {filteredAndSortedStrategies.length === 0 ? (
@@ -523,18 +603,29 @@ export default function StrategiesPage() {
                     className={`hover:bg-gray-50 ${strategy.is_archived ? "opacity-60" : ""}`}
                   >
                     <td className="whitespace-nowrap px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => router.push(`/strategies/${strategy.id}`)}
-                          className="font-medium text-blue-600 hover:text-blue-800"
-                        >
-                          {strategy.name}
-                        </button>
-                        {strategy.is_archived && (
-                          <Badge variant="secondary">Archived</Badge>
-                        )}
-                        {strategy.auto_update_enabled && (
-                          <Badge variant="outline" className="bg-blue-50 text-blue-700">Auto: On</Badge>
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => router.push(`/strategies/${strategy.id}`)}
+                            className="font-medium text-blue-600 hover:text-blue-800"
+                          >
+                            {strategy.name}
+                          </button>
+                          {strategy.is_archived && (
+                            <Badge variant="secondary">Archived</Badge>
+                          )}
+                          {strategy.auto_update_enabled && (
+                            <Badge variant="outline" className="bg-blue-50 text-blue-700">Auto: On</Badge>
+                          )}
+                        </div>
+                        {strategy.tags && strategy.tags.length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {strategy.tags.map((tag) => (
+                              <Badge key={tag.id} variant="outline" className="bg-purple-50 text-purple-700 text-xs">
+                                {tag.name}
+                              </Badge>
+                            ))}
+                          </div>
                         )}
                       </div>
                     </td>
@@ -622,6 +713,11 @@ export default function StrategiesPage() {
                       {strategy.auto_update_enabled && (
                         <Badge variant="outline" className="bg-blue-50 text-blue-700">Auto: On</Badge>
                       )}
+                      {strategy.tags?.map((tag) => (
+                        <Badge key={tag.id} variant="outline" className="bg-purple-50 text-purple-700">
+                          {tag.name}
+                        </Badge>
+                      ))}
                     </div>
                   </div>
                   <button
