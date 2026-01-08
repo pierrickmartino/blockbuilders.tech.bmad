@@ -247,15 +247,16 @@ def update_strategy(
 
     # Handle tag updates
     if data.tag_ids is not None:
+        unique_tag_ids = list(dict.fromkeys(data.tag_ids)) if data.tag_ids else []
         # Validate that all tags belong to the user
-        if data.tag_ids:
+        if unique_tag_ids:
             tag_count = session.exec(
                 select(func.count(StrategyTag.id)).where(
-                    StrategyTag.id.in_(data.tag_ids),
+                    StrategyTag.id.in_(unique_tag_ids),
                     StrategyTag.user_id == user.id
                 )
             ).one()
-            if tag_count != len(data.tag_ids):
+            if tag_count != len(unique_tag_ids):
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="One or more tags do not exist or do not belong to you"
@@ -272,7 +273,7 @@ def update_strategy(
             session.delete(link)
 
         # Create new links
-        for tag_id in data.tag_ids:
+        for tag_id in unique_tag_ids:
             link = StrategyTagLink(strategy_id=strategy_id, tag_id=tag_id)
             session.add(link)
 
