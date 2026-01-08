@@ -642,6 +642,11 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Simple skew callout (e.g., many small wins vs few large losses) based on bucket counts
 - Uses trades list as source data
 
+**Data Export (CSV/JSON)**
+- Download buttons on backtest results pages
+- Exports trade list, equity curve, and summary metrics as CSV or JSON
+- Uses existing backtest result endpoints; frontend formats files for download
+
 **Implementation:** `backend/app/backtest/engine.py`, `backend/app/backtest/indicators.py`, `backend/app/backtest/interpreter.py`
 
 ---
@@ -1433,6 +1438,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Copy/Paste Blocks & Subgraphs** | ✅ Complete | Multi-select blocks and copy/paste within or across strategies |
 | **Strategy Building Wizard** | ✅ Complete | Guided Q&A that generates editable strategy JSON |
 | **Backtesting** | ✅ Complete | Full engine with TP ladder, SL, max drawdown, equity curves, trade detail |
+| **Data Export (CSV/JSON)** | 🚧 Planned | Download trade list, equity curve, and metrics as CSV or JSON |
 | **Seasonality Analysis** | ✅ Complete | Heatmap of average trade return by month, quarter, weekday |
 | **Trade Distribution Analysis** | ✅ Complete | Histograms of trade return buckets and duration distribution for risk insight |
 | **Drawdown Chart** | ✅ Complete | Underwater equity % chart highlighting max drawdown period |
@@ -1676,6 +1682,7 @@ pytest --cov            # Coverage report
 - `docs/phase2.md` - Auth UX improvements spec
 - `docs/prd-strategy-building-wizard.md` - Strategy building wizard PRD
 - `docs/prd-contextual-help-tooltips.md` - Contextual help & tooltips PRD
+- `docs/prd-backtest-data-export-csv-json.md` - Backtest data export (CSV/JSON) PRD
 - `docs/prd-data-quality-indicators.md` - Data quality indicators PRD
 - `docs/prd-metrics-glossary.md` - Metrics glossary PRD
 - `docs/prd-strategy-notes-annotations.md` - Strategy notes & annotations PRD
