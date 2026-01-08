@@ -27,6 +27,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Card, CardContent } from "@/components/ui/card";
 
 type SortField = "name" | "updated_at" | "total_return" | "last_run" | "asset";
 type SortOrder = "asc" | "desc";
@@ -185,7 +192,7 @@ export default function StrategiesPage() {
     });
 
     return sorted;
-  }, [strategies, search, assetFilter, performanceFilter, lastRunFilter, sortField, sortOrder]);
+  }, [strategies, search, assetFilter, performanceFilter, lastRunFilter, selectedTagIds, sortField, sortOrder]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -651,41 +658,39 @@ export default function StrategiesPage() {
                       {formatDate(strategy.last_run_at)}
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-right text-sm">
-                      <details className="relative inline-block text-left">
-                        <summary className="flex h-8 w-8 cursor-pointer list-none items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-700">
-                          <span className="sr-only">Open actions</span>
-                          <span aria-hidden>•••</span>
-                        </summary>
-                        <div className="absolute right-0 z-10 mt-2 w-40 rounded-md border border-gray-200 bg-white py-1 text-left text-sm shadow-lg">
-                          <button
-                            onClick={() => router.push(`/strategies/${strategy.id}`)}
-                            className="block w-full px-3 py-2 text-left text-gray-700 hover:bg-gray-50"
-                          >
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                            <span className="sr-only">Open actions</span>
+                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                            </svg>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => router.push(`/strategies/${strategy.id}`)}>
                             Open
-                          </button>
-                          <button
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
                             onClick={() => handleDuplicate(strategy.id)}
                             disabled={actionLoading === strategy.id}
-                            className="block w-full px-3 py-2 text-left text-gray-700 hover:bg-gray-50 disabled:opacity-50"
                           >
                             Duplicate
-                          </button>
-                          <button
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
                             onClick={() => handleExport(strategy.id)}
                             disabled={actionLoading === strategy.id}
-                            className="block w-full px-3 py-2 text-left text-gray-700 hover:bg-gray-50 disabled:opacity-50"
                           >
                             Export
-                          </button>
-                          <button
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
                             onClick={() => handleArchive(strategy.id, !strategy.is_archived)}
                             disabled={actionLoading === strategy.id}
-                            className="block w-full px-3 py-2 text-left text-gray-700 hover:bg-gray-50 disabled:opacity-50"
                           >
                             {strategy.is_archived ? "Unarchive" : "Archive"}
-                          </button>
-                        </div>
-                      </details>
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </td>
                   </tr>
                 ))}
@@ -696,95 +701,103 @@ export default function StrategiesPage() {
           {/* Mobile Cards */}
           <div className="space-y-4 md:hidden">
             {filteredAndSortedStrategies.map((strategy) => (
-              <div
+              <Card
                 key={strategy.id}
-                className={`rounded-lg border border-gray-200 bg-white p-4 shadow-sm ${strategy.is_archived ? "opacity-60" : ""}`}
+                className={strategy.is_archived ? "opacity-60" : ""}
               >
-                <div className="mb-3 flex items-start justify-between">
-                  <div>
-                    <h3 className="font-semibold text-gray-900">{strategy.name}</h3>
-                    <p className="text-sm text-gray-600">
-                      {strategy.asset} • {strategy.timeframe}
-                    </p>
-                    <div className="mt-1 flex flex-wrap gap-1">
-                      {strategy.is_archived && (
-                        <Badge variant="secondary">Archived</Badge>
-                      )}
-                      {strategy.auto_update_enabled && (
-                        <Badge variant="outline" className="bg-blue-50 text-blue-700">Auto: On</Badge>
-                      )}
-                      {strategy.tags?.map((tag) => (
-                        <Badge key={tag.id} variant="outline" className="bg-purple-50 text-purple-700">
-                          {tag.name}
-                        </Badge>
-                      ))}
+                <CardContent className="p-4">
+                  <div className="mb-3 flex items-start justify-between">
+                    <div className="min-w-0 flex-1">
+                      <button
+                        onClick={() => router.push(`/strategies/${strategy.id}`)}
+                        className="font-semibold text-foreground hover:text-primary truncate block"
+                      >
+                        {strategy.name}
+                      </button>
+                      <p className="text-sm text-muted-foreground">
+                        {strategy.asset} • {strategy.timeframe}
+                      </p>
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        {strategy.is_archived && (
+                          <Badge variant="secondary">Archived</Badge>
+                        )}
+                        {strategy.auto_update_enabled && (
+                          <Badge variant="outline" className="bg-blue-50 text-blue-700">Auto: On</Badge>
+                        )}
+                        {strategy.tags?.map((tag) => (
+                          <Badge key={tag.id} variant="outline" className="bg-purple-50 text-purple-700">
+                            {tag.name}
+                          </Badge>
+                        ))}
+                      </div>
                     </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                          <span className="sr-only">Open actions</span>
+                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                          </svg>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => router.push(`/strategies/${strategy.id}`)}>
+                          Open
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleDuplicate(strategy.id)}
+                          disabled={actionLoading === strategy.id}
+                        >
+                          Duplicate
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleExport(strategy.id)}
+                          disabled={actionLoading === strategy.id}
+                        >
+                          Export
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleArchive(strategy.id, !strategy.is_archived)}
+                          disabled={actionLoading === strategy.id}
+                        >
+                          {strategy.is_archived ? "Unarchive" : "Archive"}
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
-                  <button
-                    onClick={() => router.push(`/strategies/${strategy.id}`)}
-                    className="text-sm text-blue-600 hover:text-blue-800"
-                  >
-                    Open
-                  </button>
-                </div>
 
-                <div className="mb-3 grid grid-cols-2 gap-3">
-                  <div>
-                    <div className="text-xs text-gray-500">Total Return</div>
-                    <div className={`font-semibold ${getReturnColorClass(strategy.latest_total_return_pct)}`}>
-                      {formatMetric(strategy.latest_total_return_pct, "%")}
+                  <div className="mb-3 grid grid-cols-2 gap-3">
+                    <div>
+                      <div className="text-xs text-muted-foreground">Total Return</div>
+                      <div className={`font-semibold ${getReturnColorClass(strategy.latest_total_return_pct)}`}>
+                        {formatMetric(strategy.latest_total_return_pct, "%")}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-muted-foreground">Max Drawdown</div>
+                      <div className="font-semibold">
+                        {formatMetric(strategy.latest_max_drawdown_pct, "%")}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-muted-foreground">Win Rate</div>
+                      <div className="font-semibold">
+                        {formatMetric(strategy.latest_win_rate_pct, "%")}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-muted-foreground">Trades</div>
+                      <div className="font-semibold">
+                        {formatMetric(strategy.latest_num_trades)}
+                      </div>
                     </div>
                   </div>
-                  <div>
-                    <div className="text-xs text-gray-500">Max Drawdown</div>
-                    <div className="font-semibold text-gray-900">
-                      {formatMetric(strategy.latest_max_drawdown_pct, "%")}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-gray-500">Win Rate</div>
-                    <div className="font-semibold text-gray-900">
-                      {formatMetric(strategy.latest_win_rate_pct, "%")}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-gray-500">Trades</div>
-                    <div className="font-semibold text-gray-900">
-                      {formatMetric(strategy.latest_num_trades)}
-                    </div>
-                  </div>
-                </div>
 
-                <div className="mb-3 text-sm text-gray-600">
-                  Last run: {formatDate(strategy.last_run_at)}
-                </div>
-
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleDuplicate(strategy.id)}
-                    disabled={actionLoading === strategy.id}
-                    className="text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50"
-                  >
-                    Duplicate
-                  </button>
-                  <span className="text-gray-300">•</span>
-                  <button
-                    onClick={() => handleExport(strategy.id)}
-                    disabled={actionLoading === strategy.id}
-                    className="text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50"
-                  >
-                    Export
-                  </button>
-                  <span className="text-gray-300">•</span>
-                  <button
-                    onClick={() => handleArchive(strategy.id, !strategy.is_archived)}
-                    disabled={actionLoading === strategy.id}
-                    className="text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50"
-                  >
-                    {strategy.is_archived ? "Unarchive" : "Archive"}
-                  </button>
-                </div>
-              </div>
+                  <div className="text-sm text-muted-foreground">
+                    Last run: {formatDate(strategy.last_run_at)}
+                  </div>
+                </CardContent>
+              </Card>
             ))}
           </div>
         </>
