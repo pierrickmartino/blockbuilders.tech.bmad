@@ -1,3 +1,10 @@
+export interface StrategyTag {
+  id: string;
+  name: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Strategy {
   id: string;
   name: string;
@@ -9,6 +16,7 @@ export interface Strategy {
   last_auto_run_at: string | null;
   created_at: string;
   updated_at: string;
+  tags?: StrategyTag[];
   latest_total_return_pct?: number | null;
   latest_max_drawdown_pct?: number | null;
   latest_win_rate_pct?: number | null;
@@ -39,6 +47,7 @@ export interface StrategyUpdateRequest {
   is_archived?: boolean;
   auto_update_enabled?: boolean;
   auto_update_lookback_days?: number;
+  tag_ids?: string[];
 }
 
 export interface StrategyVersionCreateRequest {

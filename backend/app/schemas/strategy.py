@@ -1,3 +1,4 @@
+import re
 from datetime import datetime
 from typing import Any, Literal, Optional
 from uuid import UUID
@@ -65,6 +66,7 @@ class StrategyUpdateRequest(BaseModel):
     is_archived: Optional[bool] = None
     auto_update_enabled: Optional[bool] = None
     auto_update_lookback_days: Optional[int] = Field(default=None, ge=30, le=730)
+    tag_ids: Optional[list[UUID]] = Field(default=None, max_length=20)
 
     @field_validator("asset")
     @classmethod
@@ -79,6 +81,29 @@ class StrategyUpdateRequest(BaseModel):
         if v is not None and v not in ALLOWED_TIMEFRAMES:
             raise ValueError(f"Timeframe must be one of: {', '.join(ALLOWED_TIMEFRAMES)}")
         return v
+
+
+class StrategyTagCreateRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=24)
+
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("Tag name cannot be empty")
+        if not re.match(r"^[a-zA-Z0-9 _-]+$", v):
+            raise ValueError(
+                "Tag name can only contain letters, numbers, spaces, dashes, and underscores"
+            )
+        return v
+
+
+class StrategyTagResponse(BaseModel):
+    id: UUID
+    name: str
+    created_at: datetime
+    updated_at: datetime
 
 
 class StrategyVersionCreateRequest(BaseModel):
@@ -96,6 +121,7 @@ class StrategyResponse(BaseModel):
     last_auto_run_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
+    tags: list[StrategyTagResponse] = Field(default_factory=list)
 
 
 class StrategyWithMetricsResponse(StrategyResponse):

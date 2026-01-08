@@ -7,7 +7,7 @@ import { Node, Edge } from "@xyflow/react";
 import { apiFetch } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
 import { useDisplay } from "@/context/display";
-import { Strategy, StrategyVersion, StrategyVersionDetail, StrategyExportFile } from "@/types/strategy";
+import { Strategy, StrategyTag, StrategyVersion, StrategyVersionDetail, StrategyExportFile } from "@/types/strategy";
 import { AlertRule } from "@/types/alert";
 import {
   StrategyDefinition,
@@ -30,6 +30,8 @@ import StrategyCanvas from "@/components/canvas/StrategyCanvas";
 import BlockPalette from "@/components/canvas/BlockPalette";
 import PropertiesPanel from "@/components/canvas/PropertiesPanel";
 import { StrategyTabs } from "@/components/StrategyTabs";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -71,6 +73,11 @@ export default function StrategyEditorPage({ params }: Props) {
 
   // Auto-update state
   const [isUpdatingAutoUpdate, setIsUpdatingAutoUpdate] = useState(false);
+
+  // Tags state
+  const [availableTags, setAvailableTags] = useState<StrategyTag[]>([]);
+  const [tagInput, setTagInput] = useState("");
+  const [isSavingTags, setIsSavingTags] = useState(false);
 
   // Alert state
   const [alertRule, setAlertRule] = useState<AlertRule | null>(null);
@@ -173,6 +180,19 @@ export default function StrategyEditorPage({ params }: Props) {
     loadVersions();
   }, [loadStrategy, loadVersions]);
 
+  // Load available tags
+  useEffect(() => {
+    const loadTags = async () => {
+      try {
+        const data = await apiFetch<StrategyTag[]>("/strategy-tags");
+        setAvailableTags(data);
+      } catch (err) {
+        console.error("Failed to load tags:", err);
+      }
+    };
+    loadTags();
+  }, []);
+
   // Load alert rule for this strategy
   useEffect(() => {
     const fetchAlert = async () => {
@@ -192,7 +212,7 @@ export default function StrategyEditorPage({ params }: Props) {
       }
     };
     fetchAlert();
-  }, [id]);
+  }, [id, resetAlertForm]);
 
   const selectedNode = useMemo(
     () => nodes.find((node) => node.id === selectedNodeId) || null,
@@ -399,6 +419,57 @@ export default function StrategyEditorPage({ params }: Props) {
       setAlertError(err instanceof Error ? err.message : "Failed to save alert");
     } finally {
       setIsSavingAlert(false);
+    }
+  };
+
+  // Tag management functions
+  const handleAddTag = async (tagName: string) => {
+    if (!tagName.trim() || !strategy) return;
+
+    setIsSavingTags(true);
+    try {
+      // Create or get existing tag
+      const tag = await apiFetch<StrategyTag>("/strategy-tags", {
+        method: "POST",
+        body: JSON.stringify({ name: tagName.trim() }),
+      });
+
+      // Update strategy with new tag list
+      const updatedTagIds = [...(strategy.tags?.map((t) => t.id) || []), tag.id];
+      const updated = await apiFetch<Strategy>(`/strategies/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ tag_ids: updatedTagIds }),
+      });
+
+      setStrategy(updated);
+      setTagInput("");
+
+      // Refresh available tags if needed
+      if (!availableTags.find((t) => t.id === tag.id)) {
+        setAvailableTags([...availableTags, tag]);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to add tag");
+    } finally {
+      setIsSavingTags(false);
+    }
+  };
+
+  const handleRemoveTag = async (tagId: string) => {
+    if (!strategy) return;
+
+    setIsSavingTags(true);
+    try {
+      const updatedTagIds = strategy.tags?.filter((t) => t.id !== tagId).map((t) => t.id) || [];
+      const updated = await apiFetch<Strategy>(`/strategies/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ tag_ids: updatedTagIds }),
+      });
+      setStrategy(updated);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to remove tag");
+    } finally {
+      setIsSavingTags(false);
     }
   };
 
@@ -706,6 +777,71 @@ export default function StrategyEditorPage({ params }: Props) {
         </div>
 
         <StrategyTabs strategyId={id} activeTab="build" />
+
+        {/* Tags Card */}
+        <section className="mt-2 rounded-lg bg-white p-4 shadow-sm sm:p-6">
+          <h3 className="text-sm font-semibold text-gray-900 sm:text-base">Tags</h3>
+          <p className="text-xs text-gray-500">
+            Organize your strategies with custom tags for easy filtering.
+          </p>
+
+          <div className="mt-3 space-y-3">
+            {/* Current tags */}
+            {strategy && strategy.tags && strategy.tags.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {strategy.tags.map((tag) => (
+                  <Badge key={tag.id} variant="outline" className="bg-purple-50 text-purple-700">
+                    {tag.name}
+                    <button
+                      onClick={() => handleRemoveTag(tag.id)}
+                      disabled={isSavingTags}
+                      className="ml-1 text-purple-500 hover:text-purple-700 disabled:opacity-50"
+                      title="Remove tag"
+                    >
+                      ×
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            )}
+
+            {/* Add tag input */}
+            <div className="flex gap-2">
+              <Input
+                type="text"
+                placeholder="Add tag (press Enter)"
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && tagInput.trim()) {
+                    handleAddTag(tagInput);
+                  }
+                }}
+                disabled={isSavingTags || (strategy?.tags?.length || 0) >= 20}
+                className="max-w-xs"
+                list="available-tags"
+              />
+              <button
+                onClick={() => handleAddTag(tagInput)}
+                disabled={!tagInput.trim() || isSavingTags || (strategy?.tags?.length || 0) >= 20}
+                className="rounded bg-purple-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-purple-700 disabled:opacity-50"
+              >
+                {isSavingTags ? "..." : "Add"}
+              </button>
+            </div>
+
+            {/* Autocomplete datalist */}
+            <datalist id="available-tags">
+              {availableTags.map((tag) => (
+                <option key={tag.id} value={tag.name} />
+              ))}
+            </datalist>
+
+            {strategy && strategy.tags && strategy.tags.length >= 20 && (
+              <p className="text-xs text-red-600">Maximum 20 tags per strategy</p>
+            )}
+          </div>
+        </section>
 
         {/* Performance Alerts Card */}
         <section className="mt-2 rounded-lg bg-white p-4 shadow-sm sm:p-6">
