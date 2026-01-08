@@ -256,12 +256,12 @@ def get_backtest_status(
     )
 
 
-@router.get("/{run_id}/trades", response_model=list[Trade])
+@router.get("/{run_id}/trades", response_model=list[TradeDetail])
 def get_backtest_trades(
     run_id: UUID,
     user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
-) -> list[Trade]:
+) -> list[TradeDetail]:
     """Get trades for a completed backtest run."""
     run = session.exec(
         select(BacktestRun).where(
@@ -289,6 +289,7 @@ def get_backtest_trades(
 
         normalized = []
         for t in trades_data:
+            # Calculate pnl_pct if missing (backward compatibility)
             if "pnl_pct" not in t:
                 entry = t.get("entry_price")
                 exit_price = t.get("exit_price")
@@ -300,7 +301,43 @@ def get_backtest_trades(
                         t["pnl_pct"] = ((exit_price - entry) / entry) * 100
                 else:
                     t["pnl_pct"] = 0.0
-            normalized.append(Trade(**t))
+
+            # Parse timestamps for TradeDetail
+            entry_ts_str = t.get("entry_time")
+            exit_ts_str = t.get("exit_time")
+            entry_ts = datetime.fromisoformat(entry_ts_str.replace("Z", "+00:00"))
+            exit_ts = datetime.fromisoformat(exit_ts_str.replace("Z", "+00:00"))
+
+            # Build TradeDetail with defaults for missing fields
+            trade_detail = TradeDetail(
+                entry_time=entry_ts,
+                entry_price=t.get("entry_price", 0),
+                exit_time=exit_ts,
+                exit_price=t.get("exit_price", 0),
+                side=t.get("side", "long"),
+                pnl=t.get("pnl", 0),
+                pnl_pct=t.get("pnl_pct", 0),
+                qty=t.get("qty", 0),
+                sl_price_at_entry=t.get("sl_price_at_entry"),
+                tp_price_at_entry=t.get("tp_price_at_entry"),
+                exit_reason=t.get("exit_reason", "unknown"),
+                mae_usd=t.get("mae_usd", 0),
+                mae_pct=t.get("mae_pct", 0),
+                mfe_usd=t.get("mfe_usd", 0),
+                mfe_pct=t.get("mfe_pct", 0),
+                initial_risk_usd=t.get("initial_risk_usd"),
+                r_multiple=t.get("r_multiple"),
+                peak_price=t.get("peak_price", 0),
+                peak_ts=datetime.fromisoformat(
+                    t.get("peak_ts", entry_ts_str).replace("Z", "+00:00")
+                ),
+                trough_price=t.get("trough_price", 0),
+                trough_ts=datetime.fromisoformat(
+                    t.get("trough_ts", entry_ts_str).replace("Z", "+00:00")
+                ),
+                duration_seconds=t.get("duration_seconds", 0),
+            )
+            normalized.append(trade_detail)
 
         return normalized
     except (KeyError, TypeError, ValueError) as e:
