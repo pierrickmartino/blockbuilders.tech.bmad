@@ -79,9 +79,32 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - auth_provider, provider_user_id (OAuth fields)
 - reset_token, reset_token_expires_at
 - max_strategies, max_backtests_per_day
+- plan_tier (enum: free/pro/premium)
+- plan_interval (enum: monthly/annual, nullable for free)
+- stripe_customer_id (nullable)
+- stripe_subscription_id (nullable)
+- subscription_status (enum: active/past_due/canceled/trialing, nullable)
 - created_at, updated_at
 
 **Implementation:** `backend/app/models/user.py`, `backend/app/api/auth.py`
+
+### 2.4. Subscription Plans & Billing
+
+**Plans (flat-rate, no usage-based billing):**
+
+| Tier | Monthly | Annual | Max Strategies | Backtests/Day | Historical Data Depth |
+|---|---|---|---|---|---|
+| **Free** | $0 | N/A | 10 | 50 | 1 year |
+| **Pro** | $19 | $190 | 50 | 200 | 3 years |
+| **Premium** | $49 | $490 | 200 | 500 | 10 years |
+
+**Notes:**
+- Free tier preserves the current beta limits (10 strategies, 50 backtests/day).
+- Paid tiers raise caps without metered usage or add-ons.
+- Billing is handled by Stripe with simple monthly/annual subscriptions.
+- Plan enforcement gates:
+  - Strategy creation
+  - Backtest creation (daily caps + max historical depth)
 
 ---
 
@@ -516,8 +539,14 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Enqueued to Redis for processing (5-minute timeout)
 
 **Daily Limit Enforcement:**
-- Max 50 backtests per user per day (resets at 00:00 UTC)
+- Enforced per subscription tier (resets at 00:00 UTC):
+  - Free: 50/day
+  - Pro: 200/day
+  - Premium: 500/day
 - Returns 429 error if limit exceeded
+
+**Historical Depth Enforcement:**
+- Backtest date range cannot exceed the plan’s historical depth cap.
 
 **Get Backtest** (`GET /backtests/{run_id}`)
 - Returns status and summary metrics
@@ -1196,6 +1225,11 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - default_slippage_percent (FLOAT, nullable)
 - max_strategies (INT, default 10)
 - max_backtests_per_day (INT, default 50)
+- plan_tier (ENUM: free/pro/premium, default free)
+- plan_interval (ENUM: monthly/annual, nullable)
+- stripe_customer_id (VARCHAR, nullable)
+- stripe_subscription_id (VARCHAR, nullable)
+- subscription_status (ENUM: active/past_due/canceled/trialing, nullable)
 - timezone_preference (ENUM: local/utc, default local)
 - reset_token (VARCHAR, nullable)
 - reset_token_expires_at (TIMESTAMP, nullable)
@@ -1315,6 +1349,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 9. `009_add_data_quality_metrics_table` - Data quality metrics table
 10. `010_add_notifications_table` - Notifications table
 11. `011_add_alert_rules_table` - Performance alert rules table
+12. `012_add_subscription_fields` - Subscription plan fields + Stripe IDs
 
 **Migration Commands:**
 - `alembic upgrade head` - Apply all pending migrations
@@ -1393,6 +1428,12 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET: GitHub OAuth
 - SCHEDULER_ENABLED: Enable daily scheduler (default: true)
 - SCHEDULER_HOUR: Hour of day for daily job (default: 2)
+- STRIPE_SECRET_KEY: Stripe secret key for billing
+- STRIPE_WEBHOOK_SECRET: Stripe webhook signing secret
+- STRIPE_PRICE_PRO_MONTHLY: Stripe price ID for Pro monthly
+- STRIPE_PRICE_PRO_ANNUAL: Stripe price ID for Pro annual
+- STRIPE_PRICE_PREMIUM_MONTHLY: Stripe price ID for Premium monthly
+- STRIPE_PRICE_PREMIUM_ANNUAL: Stripe price ID for Premium annual
 
 **Files:**
 - `.env.example`: Template with all variables
@@ -1446,7 +1487,8 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Data Quality Indicators** | ✅ Complete | Gap %, outlier count, volume consistency, backtest warnings |
 | **Scheduled Updates** | ✅ Complete | Daily scheduler for auto-update strategies (paper trading) |
 | **Performance Alerts (Simple)** | ✅ Complete | Drawdown threshold alerts on scheduled re-backtests |
-| **Usage Limits** | ✅ Complete | Soft caps (10 strategies, 50 backtests/day) with transparent tracking |
+| **Usage Limits** | ✅ Complete | Plan-based caps on strategies, daily backtests, and historical depth |
+| **Subscription Plans & Billing** | 🟡 Planned | Free/Pro/Premium tiers with Stripe monthly/annual billing and simple caps |
 | **In-App Notifications** | ✅ Complete | Bell icon with unread count, notifications for key events |
 | **Frontend UI** | ✅ Complete | Multi-strategy dashboard, strategy list/editor, backtest runner/results, profile |
 | **Contextual Help & Tooltips** | ✅ Complete | Hover tooltips for indicators, logic blocks, metrics |
@@ -1493,7 +1535,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 **Not Implemented (Intentionally):**
 - Real-time trading or brokerage integration
 - Strategy marketplace or public sharing links (manual file export/import is allowed)
-- Billing/subscription system (soft limits only)
+- Usage-based pricing, complex metering, or add-on feature packs
 - Email/SMS alerts outside performance alerts (performance alerts may send email; no SMS)
 - Full social feeds or discovery features
 - Advanced analytics (factor models, Monte Carlo, walk-forward)
@@ -1560,8 +1602,8 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Monte Carlo simulation
 
 **Operations:**
-- Introduce payments (single plan → multiple tiers)
-- Metered usage billing
+- Team billing and seat management
+- Usage-based pricing (only if the simple tier model proves insufficient)
 - Email/SMS alerts for backtest completion
 - Telegram/Discord bot integrations
 
@@ -1698,6 +1740,7 @@ pytest --cov            # Coverage report
 - `docs/prd-copy-paste-blocks-subgraphs.md` - Copy/paste blocks & subgraphs PRD
 - `docs/product.md` - This document (current product truth)
 - `docs/prd-strategy-tags-groups.md` - Strategy groups & tags PRD
+- `docs/prd-simple-tiered-subscription-plans.md` - Simple tiered subscription plans PRD
 - `CLAUDE.md` - Instructions for Claude Code
 - `README.md` - Quick start guide
 
