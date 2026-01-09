@@ -139,7 +139,7 @@ Even if it sounds cool or “easy”, **do not** introduce in MVP:
 - True live / tick-by-tick paper trading.
 - Multi-asset or multi-timeframe strategies.
 - Strategy marketplace, monetization, or complex sharing mechanics.
-- Complex billing, multi-plan pricing, or subscriptions logic.
+- Complex billing, usage-based pricing, or anything beyond simple flat-rate tiers defined in the active spec/PRD.
 - Microservices, Kubernetes, gRPC, event buses beyond the simple queue.
 - Advanced analytics (factor models, portfolio optimizers, etc.).
 
