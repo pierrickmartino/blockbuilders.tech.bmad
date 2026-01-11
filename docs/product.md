@@ -79,6 +79,8 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - auth_provider, provider_user_id (OAuth fields)
 - reset_token, reset_token_expires_at
 - max_strategies, max_backtests_per_day
+- backtest_credit_balance (non-expiring backtest credits)
+- extra_strategy_slots (non-expiring extra strategy capacity)
 - plan_tier (enum: free/pro/premium)
 - plan_interval (enum: monthly/annual, nullable for free)
 - stripe_customer_id (nullable)
@@ -101,6 +103,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 **Notes:**
 - Free tier preserves the current beta limits (10 strategies, 50 backtests/day).
 - Paid tiers raise caps without metered usage or add-ons.
+- One-time credit packs allow occasional extra backtests or strategy slots without a subscription.
 - Billing is handled by Stripe with simple monthly/annual subscriptions.
 - Plan enforcement gates:
   - Strategy creation
@@ -817,14 +820,14 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 ### 8.1. Soft Usage Caps
 
 **Per-User Limits:**
-- **Max Strategies:** 10 (active/non-archived)
-- **Max Backtests Per Day:** 50 (resets at 00:00 UTC)
+- **Max Strategies:** 10 (active/non-archived), plus any extra strategy slots
+- **Max Backtests Per Day:** 50 (resets at 00:00 UTC), with optional backtest credits for overflow
 
 **Defaults:** Configurable via environment variables
 - DEFAULT_MAX_STRATEGIES
 - DEFAULT_MAX_BACKTESTS_PER_DAY
 
-**Stored in:** `users` table (max_strategies, max_backtests_per_day)
+**Stored in:** `users` table (max_strategies, max_backtests_per_day, backtest_credit_balance, extra_strategy_slots)
 
 ### 8.2. Usage Tracking
 
@@ -832,27 +835,32 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Returns current usage and limits:
   - strategies_used / max_strategies
   - backtests_today / max_backtests_per_day
+  - backtest_credit_balance
+  - extra_strategy_slots
   - resets_at_utc (midnight UTC tomorrow)
 
 **Bundled Response:** `GET /users/me`
 - User profile
 - Usage bundle (strategies, backtests_today)
+- Credit balances (backtest credits, extra strategy slots)
 - Settings (default fees, slippage, timezone)
 
 **Frontend Display:**
 - Profile page shows usage progress bars
 - Strategy count: X / 10
 - Daily backtests: X / 50 (resets at midnight UTC)
+- If credits exist, show remaining backtest credits and extra strategy slots
 
 ### 8.3. Limit Enforcement
 
 **Strategy Creation:**
-- Check `strategies_used < max_strategies`
+- Check `strategies_used < (max_strategies + extra_strategy_slots)`
 - Return 403 if limit exceeded
 
 **Backtest Creation:**
 - Check `backtests_today < max_backtests_per_day`
-- Return 429 if limit exceeded
+- If daily cap exceeded, allow if `backtest_credit_balance > 0` and decrement by 1
+- Return 429 if limit exceeded and no credits remain
 - Auto-update jobs also respect limit
 
 **Daily Reset:**
@@ -1434,6 +1442,8 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - STRIPE_PRICE_PRO_ANNUAL: Stripe price ID for Pro annual
 - STRIPE_PRICE_PREMIUM_MONTHLY: Stripe price ID for Premium monthly
 - STRIPE_PRICE_PREMIUM_ANNUAL: Stripe price ID for Premium annual
+- STRIPE_PRICE_BACKTEST_CREDITS_50: Stripe price ID for 50 backtest credits
+- STRIPE_PRICE_STRATEGY_SLOTS_5: Stripe price ID for +5 strategy slots
 
 **Files:**
 - `.env.example`: Template with all variables
@@ -1488,6 +1498,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Scheduled Updates** | ✅ Complete | Daily scheduler for auto-update strategies (paper trading) |
 | **Performance Alerts (Simple)** | ✅ Complete | Drawdown threshold alerts on scheduled re-backtests |
 | **Usage Limits** | ✅ Complete | Plan-based caps on strategies, daily backtests, and historical depth |
+| **One-Time Credit Packs** | 🟡 Planned | Purchase 50 backtest credits or +5 strategy slots; credits never expire |
 | **Subscription Plans & Billing** | 🟡 Planned | Free/Pro/Premium tiers with Stripe monthly/annual billing and simple caps |
 | **In-App Notifications** | ✅ Complete | Bell icon with unread count, notifications for key events |
 | **Frontend UI** | ✅ Complete | Multi-strategy dashboard, strategy list/editor, backtest runner/results, profile |
@@ -1535,7 +1546,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 **Not Implemented (Intentionally):**
 - Real-time trading or brokerage integration
 - Strategy marketplace or public sharing links (manual file export/import is allowed)
-- Usage-based pricing, complex metering, or add-on feature packs
+- Usage-based pricing, complex metering, or add-on bundles beyond simple one-time credit packs
 - Email/SMS alerts outside performance alerts (performance alerts may send email; no SMS)
 - Full social feeds or discovery features
 - Advanced analytics (factor models, Monte Carlo, walk-forward)
@@ -1741,6 +1752,7 @@ pytest --cov            # Coverage report
 - `docs/product.md` - This document (current product truth)
 - `docs/prd-strategy-tags-groups.md` - Strategy groups & tags PRD
 - `docs/prd-simple-tiered-subscription-plans.md` - Simple tiered subscription plans PRD
+- `docs/prd-one-time-credit-packs.md` - One-time credit packs PRD
 - `CLAUDE.md` - Instructions for Claude Code
 - `README.md` - Quick start guide
 
