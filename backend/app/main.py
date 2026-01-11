@@ -5,6 +5,7 @@ from app.core.config import settings
 from app.api.alerts import router as alerts_router
 from app.api.auth import router as auth_router
 from app.api.backtests import router as backtests_router
+from app.api.billing import router as billing_router
 from app.api.health import router as health_router
 from app.api.notifications import router as notifications_router
 from app.api.strategies import router as strategies_router
@@ -24,6 +25,7 @@ app.add_middleware(
 
 app.include_router(health_router)
 app.include_router(auth_router)
+app.include_router(billing_router)
 app.include_router(users_router)
 app.include_router(usage_router)
 app.include_router(strategies_router)

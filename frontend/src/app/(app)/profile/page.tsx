@@ -28,6 +28,8 @@ export default function ProfilePage() {
     type: "success" | "error";
     text: string;
   } | null>(null);
+  const [isUpgrading, setIsUpgrading] = useState<string | null>(null);
+  const [billingError, setBillingError] = useState<string | null>(null);
 
   // Fetch profile on mount
   useEffect(() => {
@@ -95,6 +97,54 @@ export default function ProfilePage() {
     } catch {
       // Revert on error
       setTimezone(previousTz);
+    }
+  }
+
+  // Handle upgrade click
+  async function handleUpgrade(
+    tier: "pro" | "premium",
+    interval: "monthly" | "annual"
+  ) {
+    setIsUpgrading(`${tier}-${interval}`);
+    setBillingError(null);
+
+    try {
+      const response = await apiFetch<{ url: string }>(
+        "/billing/checkout-session",
+        {
+          method: "POST",
+          body: JSON.stringify({ plan_tier: tier, interval }),
+        }
+      );
+      window.location.href = response.url;
+    } catch (err) {
+      setBillingError(
+        err instanceof ApiError ? err.message : "Failed to start checkout"
+      );
+      setIsUpgrading(null);
+    }
+  }
+
+  // Handle manage billing click
+  async function handleManageBilling() {
+    setIsUpgrading("portal");
+    setBillingError(null);
+
+    try {
+      const response = await apiFetch<{ url: string }>(
+        "/billing/portal-session",
+        {
+          method: "POST",
+        }
+      );
+      window.location.href = response.url;
+    } catch (err) {
+      setBillingError(
+        err instanceof ApiError
+          ? err.message
+          : "Failed to open billing portal"
+      );
+      setIsUpgrading(null);
     }
   }
 
@@ -266,6 +316,108 @@ export default function ProfilePage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Section E: Billing */}
+        <Card id="billing">
+          <CardHeader>
+            <CardTitle>Billing & Plans</CardTitle>
+            <CardDescription>
+              Manage your subscription and see available plans.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {billingError && (
+              <div className="mb-4 rounded border border-red-200 bg-red-50 p-3 text-sm text-red-600">
+                {billingError}
+              </div>
+            )}
+
+            {/* Current Plan */}
+            <div className="mb-6 rounded-lg border bg-muted/50 p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold capitalize">
+                    {profile?.plan.tier} Plan
+                  </h3>
+                  {profile?.plan.interval && (
+                    <p className="text-sm text-muted-foreground">
+                      Billed {profile.plan.interval}ly
+                    </p>
+                  )}
+                  {profile?.plan.status && (
+                    <Badge
+                      variant={
+                        profile.plan.status === "active"
+                          ? "default"
+                          : "secondary"
+                      }
+                      className="mt-2"
+                    >
+                      {profile.plan.status}
+                    </Badge>
+                  )}
+                </div>
+                {profile?.plan.tier !== "free" &&
+                  profile?.plan.status === "active" && (
+                    <Button
+                      variant="outline"
+                      onClick={handleManageBilling}
+                      disabled={isUpgrading === "portal"}
+                    >
+                      {isUpgrading === "portal"
+                        ? "Loading..."
+                        : "Manage Billing"}
+                    </Button>
+                  )}
+              </div>
+            </div>
+
+            {/* Plan Comparison */}
+            {profile?.plan.tier === "free" && (
+              <div className="grid gap-4 md:grid-cols-3">
+                <PlanCard
+                  name="Free"
+                  price="$0"
+                  interval="forever"
+                  features={[
+                    "10 strategies",
+                    "50 backtests/day",
+                    "1 year history",
+                  ]}
+                  current={true}
+                />
+                <PlanCard
+                  name="Pro"
+                  price="$19"
+                  interval="month"
+                  annualPrice="$190/year"
+                  features={[
+                    "50 strategies",
+                    "200 backtests/day",
+                    "3 years history",
+                  ]}
+                  onUpgrade={() => handleUpgrade("pro", "monthly")}
+                  onUpgradeAnnual={() => handleUpgrade("pro", "annual")}
+                  isUpgrading={isUpgrading?.startsWith("pro")}
+                />
+                <PlanCard
+                  name="Premium"
+                  price="$49"
+                  interval="month"
+                  annualPrice="$490/year"
+                  features={[
+                    "200 strategies",
+                    "500 backtests/day",
+                    "10 years history",
+                  ]}
+                  onUpgrade={() => handleUpgrade("premium", "monthly")}
+                  onUpgradeAnnual={() => handleUpgrade("premium", "annual")}
+                  isUpgrading={isUpgrading?.startsWith("premium")}
+                />
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
@@ -323,7 +475,11 @@ function UsageCard({
 
         {state === "reached" && (
           <p className="mt-2 text-sm text-red-600">
-            You&apos;ve reached your limit. Try again after the daily reset.
+            You&apos;ve reached your limit.{" "}
+            <a href="#billing" className="underline">
+              Upgrade your plan
+            </a>{" "}
+            for higher limits.
           </p>
         )}
 
@@ -331,6 +487,78 @@ function UsageCard({
           <p className="mt-1 text-xs text-muted-foreground">
             Resets at {new Date(resetsAt).toLocaleString()}
           </p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function PlanCard({
+  name,
+  price,
+  interval,
+  annualPrice,
+  features,
+  current = false,
+  onUpgrade,
+  onUpgradeAnnual,
+  isUpgrading = false,
+}: {
+  name: string;
+  price: string;
+  interval: string;
+  annualPrice?: string;
+  features: string[];
+  current?: boolean;
+  onUpgrade?: () => void;
+  onUpgradeAnnual?: () => void;
+  isUpgrading?: boolean;
+}) {
+  return (
+    <Card className={cn(current && "border-primary")}>
+      <CardContent className="p-4">
+        <h3 className="mb-2 text-lg font-semibold">{name}</h3>
+        <div className="mb-4">
+          <span className="text-3xl font-bold">{price}</span>
+          <span className="text-sm text-muted-foreground">/{interval}</span>
+          {annualPrice && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              or {annualPrice}
+            </p>
+          )}
+        </div>
+        <ul className="mb-4 space-y-2 text-sm">
+          {features.map((feature, i) => (
+            <li key={i} className="flex items-center gap-2">
+              <span className="text-primary">✓</span>
+              {feature}
+            </li>
+          ))}
+        </ul>
+        {current ? (
+          <Badge variant="secondary" className="w-full justify-center py-2">
+            Current Plan
+          </Badge>
+        ) : (
+          <div className="space-y-2">
+            <Button
+              onClick={onUpgrade}
+              disabled={isUpgrading}
+              className="w-full"
+            >
+              {isUpgrading ? "Loading..." : "Upgrade Monthly"}
+            </Button>
+            {onUpgradeAnnual && (
+              <Button
+                onClick={onUpgradeAnnual}
+                disabled={isUpgrading}
+                variant="secondary"
+                className="w-full"
+              >
+                {isUpgrading ? "Loading..." : "Upgrade Annual"}
+              </Button>
+            )}
+          </div>
         )}
       </CardContent>
     </Card>
