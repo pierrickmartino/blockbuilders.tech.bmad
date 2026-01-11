@@ -47,9 +47,19 @@ export interface UsageBundle {
   backtests_today: BacktestUsageItem;
 }
 
+export interface PlanResponse {
+  tier: "free" | "pro" | "premium";
+  interval: "monthly" | "annual" | null;
+  status: "active" | "past_due" | "canceled" | "trialing" | null;
+  max_strategies: number;
+  max_backtests_per_day: number;
+  max_history_days: number;
+}
+
 export interface ProfileResponse {
   id: string;
   email: string;
   settings: SettingsResponse;
   usage: UsageBundle;
+  plan: PlanResponse;
 }

@@ -7,6 +7,7 @@ from sqlmodel import Session, select, func, and_
 
 from app.api.deps import get_current_user
 from app.core.database import get_session
+from app.core.plans import get_plan_limits
 from app.models.backtest_run import BacktestRun
 from app.models.strategy import Strategy
 from app.models.strategy_tag import StrategyTag
@@ -70,17 +71,18 @@ def create_strategy(
     session: Session = Depends(get_session),
 ) -> StrategyResponse:
     """Create a new strategy."""
-    # Check strategy limit
+    # Check strategy limit based on plan tier
     active_count = session.exec(
         select(func.count(Strategy.id)).where(
             Strategy.user_id == user.id,
             Strategy.is_archived == False,  # noqa: E712
         )
     ).one()
-    if active_count >= user.max_strategies:
+    limits = get_plan_limits(user.plan_tier)
+    if active_count >= limits["max_strategies"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"Strategy limit reached ({user.max_strategies}). Archive existing strategies to create new ones.",
+            detail=f"Strategy limit reached ({limits['max_strategies']}). Upgrade your plan or archive existing strategies.",
         )
 
     strategy = Strategy(
@@ -304,17 +306,18 @@ def duplicate_strategy(
     session: Session = Depends(get_session),
 ) -> StrategyResponse:
     """Duplicate a strategy with its latest version."""
-    # Check strategy limit
+    # Check strategy limit based on plan tier
     active_count = session.exec(
         select(func.count(Strategy.id)).where(
             Strategy.user_id == user.id,
             Strategy.is_archived == False,  # noqa: E712
         )
     ).one()
-    if active_count >= user.max_strategies:
+    limits = get_plan_limits(user.plan_tier)
+    if active_count >= limits["max_strategies"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"Strategy limit reached ({user.max_strategies}). Archive existing strategies to create new ones.",
+            detail=f"Strategy limit reached ({limits['max_strategies']}). Upgrade your plan or archive existing strategies.",
         )
 
     original = get_user_strategy(strategy_id, user, session)

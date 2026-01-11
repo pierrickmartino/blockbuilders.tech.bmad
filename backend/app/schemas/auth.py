@@ -56,11 +56,21 @@ class UsageBundle(BaseModel):
     backtests_today: BacktestUsageItem
 
 
+class PlanResponse(BaseModel):
+    tier: str
+    interval: Optional[str] = None
+    status: Optional[str] = None
+    max_strategies: int
+    max_backtests_per_day: int
+    max_history_days: int
+
+
 class ProfileResponse(BaseModel):
     id: UUID
     email: str
     settings: SettingsResponse
     usage: UsageBundle
+    plan: PlanResponse
 
 
 # Password reset

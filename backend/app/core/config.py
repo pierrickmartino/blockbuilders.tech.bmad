@@ -56,6 +56,14 @@ class Settings(BaseSettings):
     github_client_id: str = ""
     github_client_secret: str = ""
 
+    # Stripe
+    stripe_secret_key: str = ""
+    stripe_webhook_secret: str = ""
+    stripe_price_pro_monthly: str = ""
+    stripe_price_pro_annual: str = ""
+    stripe_price_premium_monthly: str = ""
+    stripe_price_premium_annual: str = ""
+
     class Config:
         env_file = ".env"
 

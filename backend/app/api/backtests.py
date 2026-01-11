@@ -13,6 +13,7 @@ from sqlmodel import Session, select, func
 from app.api.deps import get_current_user
 from app.core.config import settings
 from app.core.database import get_session
+from app.core.plans import get_plan_limits
 from app.models.backtest_run import BacktestRun
 from app.models.candle import Candle
 from app.models.notification import Notification
@@ -64,7 +65,8 @@ def create_backtest(
             detail="Strategy not found",
         )
 
-    # Check daily backtest limit
+    # Check daily backtest limit based on plan tier
+    limits = get_plan_limits(user.plan_tier)
     today_start = datetime.now(timezone.utc).replace(
         hour=0, minute=0, second=0, microsecond=0
     )
@@ -74,7 +76,7 @@ def create_backtest(
             BacktestRun.created_at >= today_start,
         )
     ).one()
-    if today_count >= user.max_backtests_per_day:
+    if today_count >= limits["max_backtests_per_day"]:
         # Check if notification already exists today to avoid duplicates
         existing_notification = session.exec(
             select(Notification).where(
@@ -91,7 +93,7 @@ def create_backtest(
                 user_id=user.id,
                 type="usage_limit_reached",
                 title="Daily backtest limit reached",
-                body=f"You've reached your daily limit of {user.max_backtests_per_day} backtests.",
+                body=f"You've reached your daily limit of {limits['max_backtests_per_day']} backtests. Upgrade to increase this limit.",
             )
             session.add(notification)
             session.commit()
@@ -99,7 +101,15 @@ def create_backtest(
         tomorrow = today_start + timedelta(days=1)
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail=f"Daily backtest limit reached ({user.max_backtests_per_day}). Resets at {tomorrow.isoformat()}.",
+            detail=f"Daily backtest limit reached ({limits['max_backtests_per_day']}). Resets at {tomorrow.isoformat()}.",
+        )
+
+    # Check historical data depth limit based on plan tier
+    date_range_days = (data.date_to - data.date_from).days
+    if date_range_days > limits["max_history_days"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Date range exceeds your plan's historical data limit ({limits['max_history_days']} days). Upgrade to access longer history.",
         )
 
     # Get latest version

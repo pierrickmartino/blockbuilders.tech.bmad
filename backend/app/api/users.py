@@ -5,6 +5,7 @@ from sqlmodel import Session, select, func
 
 from app.api.deps import get_current_user
 from app.core.database import get_session
+from app.core.plans import get_plan_limits
 from app.models.backtest_run import BacktestRun
 from app.models.strategy import Strategy
 from app.models.user import User
@@ -14,6 +15,7 @@ from app.schemas.auth import (
     UsageBundle,
     UsageItem,
     BacktestUsageItem,
+    PlanResponse,
     UserUpdateRequest,
 )
 
@@ -44,6 +46,9 @@ def _build_profile_response(user: User, session: Session) -> ProfileResponse:
     # Calculate reset time (midnight UTC tomorrow)
     tomorrow = today_start + timedelta(days=1)
 
+    # Get plan limits
+    limits = get_plan_limits(user.plan_tier)
+
     return ProfileResponse(
         id=user.id,
         email=user.email,
@@ -59,6 +64,14 @@ def _build_profile_response(user: User, session: Session) -> ProfileResponse:
                 limit=user.max_backtests_per_day,
                 resets_at_utc=tomorrow.isoformat(),
             ),
+        ),
+        plan=PlanResponse(
+            tier=user.plan_tier,
+            interval=user.plan_interval,
+            status=user.subscription_status,
+            max_strategies=limits["max_strategies"],
+            max_backtests_per_day=limits["max_backtests_per_day"],
+            max_history_days=limits["max_history_days"],
         ),
     )
 

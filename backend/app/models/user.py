@@ -11,6 +11,24 @@ class TimezonePreference(str, Enum):
     UTC = "utc"
 
 
+class PlanTier(str, Enum):
+    FREE = "free"
+    PRO = "pro"
+    PREMIUM = "premium"
+
+
+class PlanInterval(str, Enum):
+    MONTHLY = "monthly"
+    ANNUAL = "annual"
+
+
+class SubscriptionStatus(str, Enum):
+    ACTIVE = "active"
+    PAST_DUE = "past_due"
+    CANCELED = "canceled"
+    TRIALING = "trialing"
+
+
 class User(SQLModel, table=True):
     __tablename__ = "users"
 
@@ -27,6 +45,22 @@ class User(SQLModel, table=True):
     )
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+    # Subscription & billing
+    plan_tier: PlanTier = Field(
+        default=PlanTier.FREE,
+        sa_column=Column(String(20), nullable=False),
+    )
+    plan_interval: Optional[PlanInterval] = Field(
+        default=None,
+        sa_column=Column(String(20), nullable=True),
+    )
+    stripe_customer_id: Optional[str] = Field(default=None, max_length=255, unique=True)
+    stripe_subscription_id: Optional[str] = Field(default=None, max_length=255, unique=True)
+    subscription_status: Optional[SubscriptionStatus] = Field(
+        default=None,
+        sa_column=Column(String(20), nullable=True),
+    )
 
     # Password reset
     reset_token: Optional[str] = None
