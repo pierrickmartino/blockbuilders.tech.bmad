@@ -105,7 +105,7 @@ def create_backtest(
         )
 
     # Check historical data depth limit based on plan tier
-    date_range_days = (data.end_date - data.start_date).days
+    date_range_days = (data.date_to - data.date_from).days
     if date_range_days > limits["max_history_days"]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
