@@ -634,6 +634,9 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Array of {timestamp, equity} points
 - Stored in S3/MinIO as JSON
 - Retrieved via presigned URL or direct fetch
+- Responsive sizing to the parent container (no fixed width/height)
+- Touch-friendly interactions: pinch-to-zoom and drag-to-pan
+- Mobile: reduced axis tick density and larger tooltip hit targets
 
 **Benchmark Equity Curve** (`GET /backtests/{run_id}/benchmark-equity-curve`)
 - Array of {timestamp, equity} points for buy-and-hold
@@ -643,6 +646,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Dedicated underwater equity percentage chart
 - Generated from equity curve data (peak-to-trough drawdown % over time)
 - Highlights max drawdown period and duration
+- Shares the same responsive and touch-friendly behavior as the equity curve
 
 **Trades List** (`GET /backtests/{run_id}/trades`)
 - Array of trade objects with:
@@ -968,7 +972,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Summary metrics cards:
   - Total return, CAGR, max drawdown
   - Number of trades, win rate
-- Equity curve chart (Recharts line chart)
+- Equity curve chart (responsive Recharts line chart with touch gestures)
 - Trades table with sorting and pagination
 - Trade detail drawer with surrounding candles
 - Seasonality analysis heatmap (month, quarter, weekday)
@@ -1512,6 +1516,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **API** | ✅ Complete | RESTful endpoints, JWT auth, OpenAPI docs |
 | **Database** | ✅ Complete | PostgreSQL with 11 migrations, indexed queries |
 | **Deployment** | ✅ Complete | Docker Compose stack (6 services) |
+| **Responsive Charts** | 🟡 Planned | Pinch-to-zoom + pan for equity/drawdown charts on mobile |
 
 **Current State:** Fully functional MVP with post-MVP enhancements (OAuth, scheduled updates, advanced risk management, timezone support, strategy building wizard, in-app notifications).
 
@@ -1745,6 +1750,7 @@ pytest --cov            # Coverage report
 - `docs/prd-in-app-notifications.md` - In-app notifications PRD
 - `docs/prd-multi-strategy-dashboard.md` - Multi-strategy dashboard PRD
 - `docs/prd-drawdown-chart.md` - Drawdown chart PRD
+- `docs/prd-responsive-charts-mobile.md` - Responsive charts (mobile/touch) PRD
 - `docs/prd-seasonality-analysis.md` - Seasonality analysis PRD
 - `docs/prd-trade-distribution-analysis.md` - Trade distribution analysis PRD
 - `docs/prd-performance-alerts-simple.md` - Performance alerts (simple) PRD
