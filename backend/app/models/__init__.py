@@ -6,6 +6,7 @@ from app.models.candle import Candle
 from app.models.alert_rule import AlertRule
 from app.models.strategy_tag import StrategyTag
 from app.models.strategy_tag_link import StrategyTagLink
+from app.models.stripe_webhook_event import StripeWebhookEvent
 
 __all__ = [
     "User",
@@ -16,4 +17,5 @@ __all__ = [
     "AlertRule",
     "StrategyTag",
     "StrategyTagLink",
+    "StripeWebhookEvent",
 ]

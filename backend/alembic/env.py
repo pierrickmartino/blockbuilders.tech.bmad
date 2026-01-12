@@ -5,7 +5,7 @@ from alembic import context
 from sqlmodel import SQLModel
 
 # Import all models so they register with SQLModel.metadata
-from app.models import User, Strategy, StrategyVersion, BacktestRun, Candle
+from app.models import User, Strategy, StrategyVersion, BacktestRun, Candle, StripeWebhookEvent
 
 config = context.config
 

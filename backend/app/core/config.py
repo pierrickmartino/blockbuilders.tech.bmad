@@ -63,6 +63,8 @@ class Settings(BaseSettings):
     stripe_price_pro_annual: str = ""
     stripe_price_premium_monthly: str = ""
     stripe_price_premium_annual: str = ""
+    stripe_price_backtest_credits_50: str = ""
+    stripe_price_strategy_slots_5: str = ""
 
     class Config:
         env_file = ".env"

@@ -56,6 +56,8 @@ def _build_profile_response(user: User, session: Session) -> ProfileResponse:
             default_fee_percent=user.default_fee_percent,
             default_slippage_percent=user.default_slippage_percent,
             timezone_preference=user.timezone_preference,
+            backtest_credit_balance=user.backtest_credit_balance,
+            extra_strategy_slots=user.extra_strategy_slots,
         ),
         usage=UsageBundle(
             strategies=UsageItem(used=strategies_count, limit=user.max_strategies),

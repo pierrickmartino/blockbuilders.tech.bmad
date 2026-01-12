@@ -49,6 +49,8 @@ class SettingsResponse(BaseModel):
     default_fee_percent: Optional[float] = None
     default_slippage_percent: Optional[float] = None
     timezone_preference: TimezonePreference = TimezonePreference.LOCAL
+    backtest_credit_balance: int = 0
+    extra_strategy_slots: int = 0
 
 
 class UsageBundle(BaseModel):
