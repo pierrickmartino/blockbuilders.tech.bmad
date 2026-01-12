@@ -76,13 +76,11 @@ def create_backtest(
             BacktestRun.created_at >= today_start,
         )
     ).one()
+    use_credit = False
     if today_count >= limits["max_backtests_per_day"]:
-        # Daily cap reached - check if user has credits
+        # Daily cap reached - require credits to proceed
         if user.backtest_credit_balance > 0:
-            user.backtest_credit_balance -= 1
-            session.add(user)
-            session.commit()
-            logger.info(f"User {user.id} used backtest credit (balance: {user.backtest_credit_balance})")
+            use_credit = True
         else:
             # No credits - create notification and reject
             existing_notification = session.exec(
@@ -165,6 +163,15 @@ def create_backtest(
             str(run.id),
             job_timeout=300,  # 5 minute timeout
         )
+        if use_credit:
+            user.backtest_credit_balance -= 1
+            session.add(user)
+            session.commit()
+            logger.info(
+                "User %s used backtest credit (balance: %s)",
+                user.id,
+                user.backtest_credit_balance,
+            )
     except Exception as e:
         # Mark run as failed if enqueue fails
         run.status = "failed"

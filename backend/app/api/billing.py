@@ -3,6 +3,7 @@ import logging
 from typing import Literal
 
 import stripe
+from sqlalchemy.exc import IntegrityError
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel
 from sqlmodel import Session, select
@@ -11,6 +12,7 @@ from app.api.deps import get_current_user
 from app.core.config import settings
 from app.core.database import get_session
 from app.models.user import User, PlanTier, PlanInterval, SubscriptionStatus
+from app.models.stripe_webhook_event import StripeWebhookEvent
 
 logger = logging.getLogger(__name__)
 
@@ -191,7 +193,12 @@ async def stripe_webhook(
     elif event["type"] == "checkout.session.completed":
         checkout_session = event["data"]["object"]
         if checkout_session.get("mode") == "payment":
-            await _handle_credit_pack_purchase(checkout_session, session)
+            await _handle_credit_pack_purchase(
+                checkout_session,
+                event["id"],
+                event["type"],
+                session,
+            )
 
     return {"status": "success"}
 
@@ -260,7 +267,12 @@ async def _handle_subscription_deleted(subscription: dict, session: Session):
     logger.info(f"Downgraded user {user.id} to free plan")
 
 
-async def _handle_credit_pack_purchase(checkout_session: dict, session: Session):
+async def _handle_credit_pack_purchase(
+    checkout_session: dict,
+    event_id: str,
+    event_type: str,
+    session: Session,
+):
     """Credit user account after successful credit pack purchase."""
     customer_id = checkout_session["customer"]
     pack_type = checkout_session.get("metadata", {}).get("pack_type")
@@ -275,6 +287,14 @@ async def _handle_credit_pack_purchase(checkout_session: dict, session: Session)
         logger.warning(f"No user found for Stripe customer {customer_id}")
         return
 
+    session.add(
+        StripeWebhookEvent(
+            event_id=event_id,
+            session_id=session_id,
+            event_type=event_type,
+        )
+    )
+
     # Credit the appropriate balance
     if pack_type == "backtest_credits":
         user.backtest_credit_balance += 50
@@ -287,4 +307,13 @@ async def _handle_credit_pack_purchase(checkout_session: dict, session: Session)
         return
 
     session.add(user)
-    session.commit()
+    try:
+        session.commit()
+    except IntegrityError:
+        session.rollback()
+        logger.info(
+            "Stripe webhook already processed for event %s (session %s)",
+            event_id,
+            session_id,
+        )
+        return
