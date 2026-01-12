@@ -79,10 +79,11 @@ def create_strategy(
         )
     ).one()
     limits = get_plan_limits(user.plan_tier)
-    if active_count >= limits["max_strategies"]:
+    max_allowed = limits["max_strategies"] + user.extra_strategy_slots
+    if active_count >= max_allowed:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"Strategy limit reached ({limits['max_strategies']}). Upgrade your plan or archive existing strategies.",
+            detail=f"Strategy limit reached ({max_allowed}). Upgrade your plan, purchase additional slots, or archive existing strategies.",
         )
 
     strategy = Strategy(
@@ -314,10 +315,11 @@ def duplicate_strategy(
         )
     ).one()
     limits = get_plan_limits(user.plan_tier)
-    if active_count >= limits["max_strategies"]:
+    max_allowed = limits["max_strategies"] + user.extra_strategy_slots
+    if active_count >= max_allowed:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"Strategy limit reached ({limits['max_strategies']}). Upgrade your plan or archive existing strategies.",
+            detail=f"Strategy limit reached ({max_allowed}). Upgrade your plan, purchase additional slots, or archive existing strategies.",
         )
 
     original = get_user_strategy(strategy_id, user, session)

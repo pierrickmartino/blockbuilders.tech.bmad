@@ -77,32 +77,38 @@ def create_backtest(
         )
     ).one()
     if today_count >= limits["max_backtests_per_day"]:
-        # Check if notification already exists today to avoid duplicates
-        existing_notification = session.exec(
-            select(Notification).where(
-                Notification.user_id == user.id,
-                Notification.type == "usage_limit_reached",
-                Notification.is_read == False,  # noqa: E712
-                Notification.created_at >= today_start,
-            )
-        ).first()
-
-        # Create notification if it doesn't exist
-        if not existing_notification:
-            notification = Notification(
-                user_id=user.id,
-                type="usage_limit_reached",
-                title="Daily backtest limit reached",
-                body=f"You've reached your daily limit of {limits['max_backtests_per_day']} backtests. Upgrade to increase this limit.",
-            )
-            session.add(notification)
+        # Daily cap reached - check if user has credits
+        if user.backtest_credit_balance > 0:
+            user.backtest_credit_balance -= 1
+            session.add(user)
             session.commit()
+            logger.info(f"User {user.id} used backtest credit (balance: {user.backtest_credit_balance})")
+        else:
+            # No credits - create notification and reject
+            existing_notification = session.exec(
+                select(Notification).where(
+                    Notification.user_id == user.id,
+                    Notification.type == "usage_limit_reached",
+                    Notification.is_read == False,  # noqa: E712
+                    Notification.created_at >= today_start,
+                )
+            ).first()
 
-        tomorrow = today_start + timedelta(days=1)
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail=f"Daily backtest limit reached ({limits['max_backtests_per_day']}). Resets at {tomorrow.isoformat()}.",
-        )
+            if not existing_notification:
+                notification = Notification(
+                    user_id=user.id,
+                    type="usage_limit_reached",
+                    title="Daily backtest limit reached",
+                    body=f"You've reached your daily limit of {limits['max_backtests_per_day']} backtests. Purchase backtest credits or upgrade your plan.",
+                )
+                session.add(notification)
+                session.commit()
+
+            tomorrow = today_start + timedelta(days=1)
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail=f"Daily backtest limit reached ({limits['max_backtests_per_day']}). Purchase credits or resets at {tomorrow.isoformat()}.",
+            )
 
     # Check historical data depth limit based on plan tier
     date_range_days = (data.date_to - data.date_from).days

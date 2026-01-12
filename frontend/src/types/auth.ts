@@ -40,6 +40,8 @@ export interface SettingsResponse {
   default_fee_percent: number | null;
   default_slippage_percent: number | null;
   timezone_preference: "local" | "utc";
+  backtest_credit_balance: number;
+  extra_strategy_slots: number;
 }
 
 export interface UsageBundle {

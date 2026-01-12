@@ -39,6 +39,8 @@ class User(SQLModel, table=True):
     default_slippage_percent: Optional[float] = None
     max_strategies: int = Field(default=10)
     max_backtests_per_day: int = Field(default=50)
+    backtest_credit_balance: int = Field(default=0)
+    extra_strategy_slots: int = Field(default=0)
     timezone_preference: TimezonePreference = Field(
         default=TimezonePreference.LOCAL,
         sa_column=Column(String(10), nullable=False),

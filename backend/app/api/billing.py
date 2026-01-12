@@ -41,6 +41,10 @@ class PortalSessionResponse(BaseModel):
     url: str
 
 
+class CreditPackCheckoutRequest(BaseModel):
+    pack: Literal["backtest_credits", "strategy_slots"]
+
+
 @router.post("/checkout-session", response_model=CheckoutSessionResponse)
 def create_checkout_session(
     data: CheckoutSessionRequest,
@@ -105,6 +109,55 @@ def create_portal_session(
     return PortalSessionResponse(url=portal_session.url)
 
 
+@router.post("/credit-pack/checkout-session", response_model=CheckoutSessionResponse)
+def create_credit_pack_checkout(
+    data: CreditPackCheckoutRequest,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> CheckoutSessionResponse:
+    """Create a Stripe Checkout session for one-time credit pack purchase."""
+    # Map pack type to price ID
+    price_id = None
+    if data.pack == "backtest_credits":
+        price_id = settings.stripe_price_backtest_credits_50
+    elif data.pack == "strategy_slots":
+        price_id = settings.stripe_price_strategy_slots_5
+
+    if not price_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid pack type or price not configured",
+        )
+
+    # Create or retrieve Stripe customer
+    if user.stripe_customer_id:
+        customer_id = user.stripe_customer_id
+    else:
+        customer = stripe.Customer.create(
+            email=user.email,
+            metadata={"user_id": str(user.id)},
+        )
+        customer_id = customer.id
+        user.stripe_customer_id = customer_id
+        session.add(user)
+        session.commit()
+
+    # Create checkout session for one-time payment
+    checkout_session = stripe.checkout.Session.create(
+        customer=customer_id,
+        mode="payment",
+        line_items=[{"price": price_id, "quantity": 1}],
+        success_url=f"{settings.frontend_url}/profile?pack_purchase_success=true",
+        cancel_url=f"{settings.frontend_url}/profile?pack_purchase_canceled=true",
+        metadata={
+            "user_id": str(user.id),
+            "pack_type": data.pack,
+        },
+    )
+
+    return CheckoutSessionResponse(url=checkout_session.url)
+
+
 @router.post("/webhook", status_code=status.HTTP_200_OK)
 async def stripe_webhook(
     request: Request,
@@ -135,6 +188,10 @@ async def stripe_webhook(
     elif event["type"] == "customer.subscription.deleted":
         subscription = event["data"]["object"]
         await _handle_subscription_deleted(subscription, session)
+    elif event["type"] == "checkout.session.completed":
+        checkout_session = event["data"]["object"]
+        if checkout_session.get("mode") == "payment":
+            await _handle_credit_pack_purchase(checkout_session, session)
 
     return {"status": "success"}
 
@@ -201,3 +258,33 @@ async def _handle_subscription_deleted(subscription: dict, session: Session):
     session.commit()
 
     logger.info(f"Downgraded user {user.id} to free plan")
+
+
+async def _handle_credit_pack_purchase(checkout_session: dict, session: Session):
+    """Credit user account after successful credit pack purchase."""
+    customer_id = checkout_session["customer"]
+    pack_type = checkout_session.get("metadata", {}).get("pack_type")
+    session_id = checkout_session["id"]
+
+    # Find user by Stripe customer ID
+    user = session.exec(
+        select(User).where(User.stripe_customer_id == customer_id)
+    ).first()
+
+    if not user:
+        logger.warning(f"No user found for Stripe customer {customer_id}")
+        return
+
+    # Credit the appropriate balance
+    if pack_type == "backtest_credits":
+        user.backtest_credit_balance += 50
+        logger.info(f"Credited user {user.id} with 50 backtest credits")
+    elif pack_type == "strategy_slots":
+        user.extra_strategy_slots += 5
+        logger.info(f"Credited user {user.id} with +5 strategy slots")
+    else:
+        logger.error(f"Unknown pack type {pack_type} in session {session_id}")
+        return
+
+    session.add(user)
+    session.commit()

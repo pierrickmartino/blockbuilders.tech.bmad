@@ -30,6 +30,7 @@ export default function ProfilePage() {
   } | null>(null);
   const [isUpgrading, setIsUpgrading] = useState<string | null>(null);
   const [billingError, setBillingError] = useState<string | null>(null);
+  const [isPurchasingPack, setIsPurchasingPack] = useState<string | null>(null);
 
   // Fetch profile on mount
   useEffect(() => {
@@ -145,6 +146,30 @@ export default function ProfilePage() {
           : "Failed to open billing portal"
       );
       setIsUpgrading(null);
+    }
+  }
+
+  // Handle credit pack purchase
+  async function handlePurchasePack(
+    pack: "backtest_credits" | "strategy_slots"
+  ) {
+    setIsPurchasingPack(pack);
+    setBillingError(null);
+
+    try {
+      const response = await apiFetch<{ url: string }>(
+        "/billing/credit-pack/checkout-session",
+        {
+          method: "POST",
+          body: JSON.stringify({ pack }),
+        }
+      );
+      window.location.href = response.url;
+    } catch (err) {
+      setBillingError(
+        err instanceof ApiError ? err.message : "Failed to start checkout"
+      );
+      setIsPurchasingPack(null);
     }
   }
 
@@ -301,8 +326,15 @@ export default function ProfilePage() {
                   <UsageCard
                     title="Strategies"
                     used={profile.usage.strategies.used}
-                    limit={profile.usage.strategies.limit}
-                    helper="Maximum saved strategies."
+                    limit={
+                      profile.usage.strategies.limit +
+                      (profile.settings.extra_strategy_slots || 0)
+                    }
+                    helper={`Maximum saved strategies${
+                      profile.settings.extra_strategy_slots
+                        ? ` (includes +${profile.settings.extra_strategy_slots} purchased)`
+                        : ""
+                    }.`}
                   />
                   <UsageCard
                     title="Backtests (today)"
@@ -313,6 +345,75 @@ export default function ProfilePage() {
                   />
                 </>
               )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Section D.5: Credits & Add-Ons */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Credits & Add-Ons</CardTitle>
+            <CardDescription>
+              Purchase additional capacity on-demand without a subscription.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {billingError && (
+              <div className="mb-4 rounded border border-red-200 bg-red-50 p-3 text-sm text-red-600">
+                {billingError}
+              </div>
+            )}
+
+            <div className="grid gap-4 md:grid-cols-2">
+              {/* Backtest Credits Card */}
+              <Card>
+                <CardContent className="p-4">
+                  <div className="mb-3 flex items-center justify-between">
+                    <h3 className="font-semibold">Backtest Credits</h3>
+                    <Badge variant="default">
+                      {profile?.settings.backtest_credit_balance || 0} credits
+                    </Badge>
+                  </div>
+                  <p className="mb-4 text-sm text-muted-foreground">
+                    Run backtests after your daily limit. Each credit = 1
+                    backtest. Never expire.
+                  </p>
+                  <Button
+                    onClick={() => handlePurchasePack("backtest_credits")}
+                    disabled={isPurchasingPack === "backtest_credits"}
+                    className="w-full"
+                  >
+                    {isPurchasingPack === "backtest_credits"
+                      ? "Loading..."
+                      : "Buy 50 Credits"}
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Strategy Slots Card */}
+              <Card>
+                <CardContent className="p-4">
+                  <div className="mb-3 flex items-center justify-between">
+                    <h3 className="font-semibold">Extra Strategy Slots</h3>
+                    <Badge variant="default">
+                      +{profile?.settings.extra_strategy_slots || 0} slots
+                    </Badge>
+                  </div>
+                  <p className="mb-4 text-sm text-muted-foreground">
+                    Permanently increase max strategies by 5. Stacks with plan
+                    limit.
+                  </p>
+                  <Button
+                    onClick={() => handlePurchasePack("strategy_slots")}
+                    disabled={isPurchasingPack === "strategy_slots"}
+                    className="w-full"
+                  >
+                    {isPurchasingPack === "strategy_slots"
+                      ? "Loading..."
+                      : "Buy +5 Slots"}
+                  </Button>
+                </CardContent>
+              </Card>
             </div>
           </CardContent>
         </Card>
