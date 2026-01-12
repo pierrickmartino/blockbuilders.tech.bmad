@@ -196,6 +196,19 @@ export default function ProfilePage() {
     );
   }
 
+  const extraStrategySlots = profile?.settings.extra_strategy_slots || 0;
+  const strategiesLimit =
+    (profile?.usage.strategies.limit || 0) + extraStrategySlots;
+  const strategiesUsed = profile?.usage.strategies.used || 0;
+  const strategiesHelper =
+    strategiesLimit > 0 && strategiesUsed >= strategiesLimit
+      ? `Maximum saved strategies${
+          extraStrategySlots ? ` (includes +${extraStrategySlots} purchased)` : ""
+        }.`
+      : `Save up to ${strategiesLimit} strategies${
+          extraStrategySlots ? ` (includes +${extraStrategySlots} purchased)` : ""
+        }.`;
+
   return (
     <div>
       <h1 className="mb-2 text-2xl font-bold">Profile</h1>
@@ -326,15 +339,8 @@ export default function ProfilePage() {
                   <UsageCard
                     title="Strategies"
                     used={profile.usage.strategies.used}
-                    limit={
-                      profile.usage.strategies.limit +
-                      (profile.settings.extra_strategy_slots || 0)
-                    }
-                    helper={`Maximum saved strategies${
-                      profile.settings.extra_strategy_slots
-                        ? ` (includes +${profile.settings.extra_strategy_slots} purchased)`
-                        : ""
-                    }.`}
+                    limit={strategiesLimit}
+                    helper={strategiesHelper}
                   />
                   <UsageCard
                     title="Backtests (today)"
