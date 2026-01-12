@@ -40,6 +40,7 @@ When writing or editing code, **always** optimize for:
    - Assume users will access the app on **desktop, tablet, and mobile**.
    - Use Tailwind’s responsive utilities (`sm:`, `md:`, `lg:`…) instead of custom CSS whenever reasonable.
    - Layouts should degrade gracefully to a single column on mobile; no horizontal scroll for core flows.
+   - Charts must stay responsive and touch-friendly; prefer built-in chart library options over custom gesture handling.
 
 5. **ESLint & TypeScript correctness**
    - All code must:
