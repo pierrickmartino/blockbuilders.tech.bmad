@@ -529,6 +529,23 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Notes (annotation nodes) are treated like normal nodes and can be copied too.
 - No API, schema, or backend changes required.
 
+### 4.11. Mobile-Optimized Canvas
+
+**Purpose:** Make strategy creation usable on phones by adapting the canvas UI for touch input.
+
+**Behavior:**
+- Mobile-specific canvas mode with larger tap targets for blocks, ports, and controls.
+- Simplified block palette optimized for limited screen space (grouped categories, fewer visible items at once).
+- Gesture-based connections: tap a port, then tap a target port to connect (no precision dragging required).
+- Touch-friendly selection and drag handles with clear visual feedback.
+- Mobile mode is automatic for small screens, with a manual toggle in settings for testing.
+
+**Implementation Notes:**
+- UI-only changes; no backend or schema updates.
+- Keep node visuals and block types unchanged; adjust wrappers and interaction affordances.
+- Reuse existing canvas components and React Flow APIs; avoid new dependencies.
+- Ensure desktop behavior remains unchanged unless mobile mode is active.
+
 --- 
 
 ## 5. Backtesting Engine
@@ -1490,6 +1507,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Strategy Management** | ✅ Complete | CRUD, versioning, validation, duplication, archiving |
 | **Strategy Groups/Tags** | ✅ Complete | Custom tags, tag filtering, many-to-many strategy organization |
 | **Visual Builder** | ✅ Complete | 20 block types, drag-drop, parameter editing, mobile-responsive |
+| **Mobile-Optimized Canvas** | 🟡 Planned | Touch-first controls, simplified palette, gesture-based connections |
 | **Copy/Paste Blocks & Subgraphs** | ✅ Complete | Multi-select blocks and copy/paste within or across strategies |
 | **Strategy Building Wizard** | ✅ Complete | Guided Q&A that generates editable strategy JSON |
 | **Backtesting** | ✅ Complete | Full engine with TP ladder, SL, max drawdown, equity curves, trade detail |
@@ -1755,6 +1773,7 @@ pytest --cov            # Coverage report
 - `docs/prd-trade-distribution-analysis.md` - Trade distribution analysis PRD
 - `docs/prd-performance-alerts-simple.md` - Performance alerts (simple) PRD
 - `docs/prd-copy-paste-blocks-subgraphs.md` - Copy/paste blocks & subgraphs PRD
+- `docs/prd-mobile-optimized-canvas.md` - Mobile-optimized canvas PRD
 - `docs/product.md` - This document (current product truth)
 - `docs/prd-strategy-tags-groups.md` - Strategy groups & tags PRD
 - `docs/prd-simple-tiered-subscription-plans.md` - Simple tiered subscription plans PRD
