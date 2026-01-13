@@ -15,23 +15,31 @@ export function ZoomableChart({
   maxScale = 3,
 }: ZoomableChartProps) {
   return (
-    <TransformWrapper
-      initialScale={1}
-      minScale={minScale}
-      maxScale={maxScale}
-      limitToBounds={false}
-      panning={{ velocityDisabled: true }}
-      wheel={{ step: 0.1 }}
-      pinch={{ step: 5 }}
-      doubleClick={{ disabled: true }}
-      alignmentAnimation={{ disabled: true }}
-    >
-      <TransformComponent
-        wrapperClass="w-full h-full touch-none"
-        contentClass="w-full h-full"
+    <div style={{ width: "100%", height: "100%" }}>
+      <TransformWrapper
+        initialScale={1}
+        minScale={minScale}
+        maxScale={maxScale}
+        limitToBounds={false}
+        panning={{ velocityDisabled: true }}
+        wheel={{ step: 0.1 }}
+        pinch={{ step: 5 }}
+        doubleClick={{ disabled: true }}
+        alignmentAnimation={{ disabled: true }}
       >
-        {children}
-      </TransformComponent>
-    </TransformWrapper>
+        <TransformComponent
+          wrapperStyle={{
+            width: "100%",
+            height: "100%",
+          }}
+          contentStyle={{
+            width: "100%",
+            height: "100%",
+          }}
+        >
+          {children}
+        </TransformComponent>
+      </TransformWrapper>
+    </div>
   );
 }
