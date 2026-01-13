@@ -720,14 +720,14 @@ export default function StrategyBacktestPage({ params }: Props) {
                   className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none"
                 />
               </div>
-              <div className="md:col-span-2 flex items-center justify-between">
+              <div className="md:col-span-2 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <p className="text-sm text-gray-500">
                   Backtests run in the background. You can leave this page and results will still be saved.
                 </p>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                  className="w-full rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 md:w-auto"
                 >
                   {isSubmitting ? "Starting..." : "Run backtest"}
                 </button>
@@ -779,20 +779,20 @@ export default function StrategyBacktestPage({ params }: Props) {
         </div>
 
         <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-          <div className="mb-3 flex items-center justify-between">
+          <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-base font-semibold text-gray-900">Run details</h2>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
               <Link
                 href="/metrics-glossary"
                 className="text-sm text-blue-600 hover:text-blue-800"
               >
-                View metrics glossary
+                Metrics glossary
               </Link>
               {selectedRun?.status === "completed" && selectedRun.summary && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" size="sm">
-                      Export Metrics
+                      Export
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent>
@@ -1318,9 +1318,9 @@ export default function StrategyBacktestPage({ params }: Props) {
         {/* Trades Table - only show for completed runs */}
         {selectedRun?.status === "completed" && (
           <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-            <div className="mb-3 flex items-center justify-between">
+            <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <h2 className="text-base font-semibold text-gray-900">Trades</h2>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                 {trades.length > 0 && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -1348,17 +1348,17 @@ export default function StrategyBacktestPage({ params }: Props) {
                     <select
                       value={pageSize}
                       onChange={(e) => {
-                      setPageSize(Number(e.target.value));
-                      setCurrentPage(1);
-                    }}
-                    className="rounded border border-gray-300 px-2 py-1 text-sm"
-                  >
-                    <option value={25}>25 per page</option>
-                    <option value={50}>50 per page</option>
-                    <option value={100}>100 per page</option>
-                  </select>
-                </div>
-              )}
+                        setPageSize(Number(e.target.value));
+                        setCurrentPage(1);
+                      }}
+                      className="rounded border border-gray-300 px-2 py-1 text-sm"
+                    >
+                      <option value={25}>25</option>
+                      <option value={50}>50</option>
+                      <option value={100}>100</option>
+                    </select>
+                  </div>
+                )}
               </div>
             </div>
 
