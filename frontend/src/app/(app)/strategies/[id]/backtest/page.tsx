@@ -48,6 +48,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import { ZoomableChart } from "@/components/ZoomableChart";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   exportTradesToCSV,
   exportTradesToJSON,
@@ -301,6 +303,7 @@ export default function StrategyBacktestPage({ params }: Props) {
   const { id } = use(params);
   const router = useRouter();
   const { timezone } = useDisplay();
+  const isMobile = useIsMobile();
 
   const [strategy, setStrategy] = useState<Strategy | null>(null);
   const [isLoadingStrategy, setIsLoadingStrategy] = useState(true);
@@ -572,6 +575,20 @@ export default function StrategyBacktestPage({ params }: Props) {
       isMaxDrawdown: idx >= maxDrawdownStartIdx && idx <= maxDrawdownEndIdx,
     }));
   }, [equityCurve]);
+
+  // Responsive tick configuration for mobile
+  const tickConfig = useMemo(() => {
+    if (isMobile) {
+      return {
+        xAxisTicks: 3, // Only 3 date labels on mobile
+        yAxisTicks: 4, // Only 4 value labels on mobile
+      };
+    }
+    return {
+      xAxisTicks: undefined, // Auto on desktop
+      yAxisTicks: undefined,
+    };
+  }, [isMobile]);
 
   // Trades pagination
   const totalPages = Math.ceil(trades.length / pageSize);
@@ -914,7 +931,12 @@ export default function StrategyBacktestPage({ params }: Props) {
         {selectedRun?.status === "completed" && (
           <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-base font-semibold text-gray-900">Equity Curve</h2>
+              <div className="flex items-center gap-2">
+                <h2 className="text-base font-semibold text-gray-900">Equity Curve</h2>
+                {isMobile && (
+                  <span className="text-xs text-gray-500">(Pinch to zoom)</span>
+                )}
+              </div>
               {equityCurve.length > 0 && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -968,22 +990,25 @@ export default function StrategyBacktestPage({ params }: Props) {
               </div>
             ) : (
               <div className="h-64 sm:h-72 md:h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={chartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                    <XAxis
-                      dataKey="timestamp"
-                      tickFormatter={(v) => formatChartDate(v, timezone)}
-                      tick={{ fontSize: 12 }}
-                      tickLine={false}
-                      axisLine={{ stroke: "#e5e7eb" }}
-                    />
-                    <YAxis
-                      tickFormatter={(v) => formatPrice(v, "").trim()}
-                      tick={{ fontSize: 12 }}
-                      tickLine={false}
-                      axisLine={{ stroke: "#e5e7eb" }}
-                      width={80}
-                    />
+                <ZoomableChart>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={chartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                      <XAxis
+                        dataKey="timestamp"
+                        tickFormatter={(v) => formatChartDate(v, timezone)}
+                        tick={{ fontSize: 12 }}
+                        tickLine={false}
+                        axisLine={{ stroke: "#e5e7eb" }}
+                        tickCount={tickConfig.xAxisTicks}
+                      />
+                      <YAxis
+                        tickFormatter={(v) => formatPrice(v, "").trim()}
+                        tick={{ fontSize: 12 }}
+                        tickLine={false}
+                        axisLine={{ stroke: "#e5e7eb" }}
+                        width={80}
+                        tickCount={tickConfig.yAxisTicks}
+                      />
                     <Tooltip
                       formatter={(value) => [formatPrice(Number(value)), "Equity"]}
                       labelFormatter={(label) => formatDateTime(label as string, timezone)}
@@ -1018,6 +1043,7 @@ export default function StrategyBacktestPage({ params }: Props) {
                     />
                   </LineChart>
                 </ResponsiveContainer>
+                </ZoomableChart>
               </div>
             )}
           </section>
@@ -1026,7 +1052,12 @@ export default function StrategyBacktestPage({ params }: Props) {
         {/* Drawdown Chart - only show for completed runs */}
         {selectedRun?.status === "completed" && (
           <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-            <h2 className="mb-3 text-base font-semibold text-gray-900">Drawdown (%)</h2>
+            <div className="mb-3 flex items-center gap-2">
+              <h2 className="text-base font-semibold text-gray-900">Drawdown (%)</h2>
+              {isMobile && (
+                <span className="text-xs text-gray-500">(Pinch to zoom)</span>
+              )}
+            </div>
 
             {isLoadingEquityCurve ? (
               <div className="flex h-64 items-center justify-center">
@@ -1050,28 +1081,31 @@ export default function StrategyBacktestPage({ params }: Props) {
               </div>
             ) : (
               <div className="h-64 sm:h-72 md:h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={drawdownData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                    <defs>
-                      <linearGradient id="drawdownGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#ef4444" stopOpacity={0.1} />
-                        <stop offset="100%" stopColor="#ef4444" stopOpacity={0.3} />
-                      </linearGradient>
-                    </defs>
-                    <XAxis
-                      dataKey="timestamp"
-                      tickFormatter={(v) => formatChartDate(v, timezone)}
-                      tick={{ fontSize: 12 }}
-                      tickLine={false}
-                      axisLine={{ stroke: "#e5e7eb" }}
-                    />
-                    <YAxis
-                      tickFormatter={(v) => `${v.toFixed(1)}%`}
-                      tick={{ fontSize: 12 }}
-                      tickLine={false}
-                      axisLine={{ stroke: "#e5e7eb" }}
-                      width={60}
-                    />
+                <ZoomableChart>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={drawdownData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                      <defs>
+                        <linearGradient id="drawdownGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#ef4444" stopOpacity={0.1} />
+                          <stop offset="100%" stopColor="#ef4444" stopOpacity={0.3} />
+                        </linearGradient>
+                      </defs>
+                      <XAxis
+                        dataKey="timestamp"
+                        tickFormatter={(v) => formatChartDate(v, timezone)}
+                        tick={{ fontSize: 12 }}
+                        tickLine={false}
+                        axisLine={{ stroke: "#e5e7eb" }}
+                        tickCount={tickConfig.xAxisTicks}
+                      />
+                      <YAxis
+                        tickFormatter={(v) => `${v.toFixed(1)}%`}
+                        tick={{ fontSize: 12 }}
+                        tickLine={false}
+                        axisLine={{ stroke: "#e5e7eb" }}
+                        width={60}
+                        tickCount={tickConfig.yAxisTicks}
+                      />
                     <Tooltip
                       formatter={(value) => [`${Number(value).toFixed(2)}%`, "Drawdown"]}
                       labelFormatter={(label) => formatDateTime(label as string, timezone)}
@@ -1103,6 +1137,7 @@ export default function StrategyBacktestPage({ params }: Props) {
                     />
                   </AreaChart>
                 </ResponsiveContainer>
+                </ZoomableChart>
               </div>
             )}
           </section>
