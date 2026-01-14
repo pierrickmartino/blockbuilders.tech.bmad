@@ -12,6 +12,7 @@ import {
   LogOut,
   ChevronUp,
   Blocks,
+  TrendingUp,
 } from "lucide-react"
 
 import { useAuth } from "@/context/auth"
@@ -39,6 +40,11 @@ const navItems = [
     title: "Dashboard",
     url: "/dashboard",
     icon: LayoutDashboard,
+  },
+  {
+    title: "Market",
+    url: "/market",
+    icon: TrendingUp,
   },
   {
     title: "Strategies",
