@@ -59,6 +59,14 @@ import {
 import { ZoomableChart } from "@/components/ZoomableChart";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
   exportTradesToCSV,
   exportTradesToJSON,
   exportEquityToCSV,
@@ -1376,38 +1384,28 @@ export default function StrategyBacktestPage({ params }: Props) {
               <p className="text-sm text-gray-500">No trades were generated for this run.</p>
             ) : (
               <>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-4 py-2 text-left text-xs font-medium uppercase text-gray-500">
+                <div className="rounded-lg border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>
                           Entry {timezone === "utc" ? "(UTC)" : ""}
-                        </th>
-                        <th className="px-4 py-2 text-left text-xs font-medium uppercase text-gray-500">
-                          Entry Price
-                        </th>
-                        <th className="px-4 py-2 text-left text-xs font-medium uppercase text-gray-500">
+                        </TableHead>
+                        <TableHead>Entry Price</TableHead>
+                        <TableHead>
                           Exit {timezone === "utc" ? "(UTC)" : ""}
-                        </th>
-                        <th className="px-4 py-2 text-left text-xs font-medium uppercase text-gray-500">
-                          Exit Price
-                        </th>
-                        <th className="px-4 py-2 text-left text-xs font-medium uppercase text-gray-500">
-                          Side
-                        </th>
-                        <th className="px-4 py-2 text-right text-xs font-medium uppercase text-gray-500">
-                          P&L
-                        </th>
-                        <th className="px-4 py-2 text-right text-xs font-medium uppercase text-gray-500">
-                          P&L %
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200 bg-white">
+                        </TableHead>
+                        <TableHead>Exit Price</TableHead>
+                        <TableHead>Side</TableHead>
+                        <TableHead className="text-right">P&L</TableHead>
+                        <TableHead className="text-right">P&L %</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
                       {paginatedTrades.map((trade, idx) => (
-                        <tr
+                        <TableRow
                           key={`${trade.entry_time}-${idx}`}
-                          className="cursor-pointer hover:bg-gray-50"
+                          className="cursor-pointer"
                           onClick={() => setSelectedTradeIdx((currentPage - 1) * pageSize + idx)}
                           tabIndex={0}
                           onKeyDown={(e) => {
@@ -1417,39 +1415,39 @@ export default function StrategyBacktestPage({ params }: Props) {
                             }
                           }}
                         >
-                          <td className="whitespace-nowrap px-4 py-2 text-sm text-gray-900">
+                          <TableCell>
                             {formatDateTime(trade.entry_time, timezone)}
-                          </td>
-                          <td className="whitespace-nowrap px-4 py-2 text-sm text-gray-600">
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
                             {formatPrice(trade.entry_price)}
-                          </td>
-                          <td className="whitespace-nowrap px-4 py-2 text-sm text-gray-900">
+                          </TableCell>
+                          <TableCell>
                             {formatDateTime(trade.exit_time, timezone)}
-                          </td>
-                          <td className="whitespace-nowrap px-4 py-2 text-sm text-gray-600">
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
                             {formatPrice(trade.exit_price)}
-                          </td>
-                          <td className="whitespace-nowrap px-4 py-2 text-sm text-gray-600 uppercase">
+                          </TableCell>
+                          <TableCell className="text-muted-foreground uppercase">
                             {trade.side}
-                          </td>
-                          <td
-                            className={`whitespace-nowrap px-4 py-2 text-right text-sm font-medium ${
+                          </TableCell>
+                          <TableCell
+                            className={`text-right font-medium ${
                               trade.pnl >= 0 ? "text-green-600" : "text-red-600"
                             }`}
                           >
                             {formatMoney(trade.pnl, "USDT", true)}
-                          </td>
-                          <td
-                            className={`whitespace-nowrap px-4 py-2 text-right text-sm ${
+                          </TableCell>
+                          <TableCell
+                            className={`text-right ${
                               trade.pnl_pct >= 0 ? "text-green-600" : "text-red-600"
                             }`}
                           >
                             {trade.pnl_pct >= 0 ? "+" : ""}{formatPercent(trade.pnl_pct).replace("%", "")}%
-                          </td>
-                        </tr>
+                          </TableCell>
+                        </TableRow>
                       ))}
-                    </tbody>
-                  </table>
+                    </TableBody>
+                  </Table>
                 </div>
 
                 {/* Pagination */}
