@@ -4,12 +4,14 @@ import { useState } from "react";
 import { BLOCK_REGISTRY, BlockCategory, BlockMeta } from "@/types/canvas";
 import InfoIcon from "@/components/InfoIcon";
 import { blockToGlossaryId, getTooltip } from "@/lib/tooltip-content";
+import { cn } from "@/lib/utils";
 
 interface BlockPaletteProps {
   onDragStart: (
     event: React.DragEvent,
     blockMeta: BlockMeta
   ) => void;
+  isMobileMode?: boolean;
 }
 
 const categories: { key: BlockCategory; label: string }[] = [
@@ -28,7 +30,7 @@ const categoryColors: Record<BlockCategory, string> = {
   risk: "bg-red-100 text-red-700 border-red-200",
 };
 
-export default function BlockPalette({ onDragStart }: BlockPaletteProps) {
+export default function BlockPalette({ onDragStart, isMobileMode = false }: BlockPaletteProps) {
   const [expandedCategories, setExpandedCategories] = useState<Set<BlockCategory>>(
     new Set(categories.map((c) => c.key))
   );
@@ -75,7 +77,11 @@ export default function BlockPalette({ onDragStart }: BlockPaletteProps) {
                       draggable
                       onDragStart={(e) => onDragStart(e, block)}
                       title={tooltip?.short || block.description}
-                      className={`cursor-grab rounded border px-3 py-2 text-xs font-medium transition-colors hover:opacity-80 ${categoryColors[block.category]}`}
+                      className={cn(
+                        "cursor-grab rounded border text-xs font-medium transition-colors hover:opacity-80",
+                        isMobileMode ? "px-4 py-3" : "px-3 py-2",
+                        categoryColors[block.category]
+                      )}
                     >
                       <div className="flex items-center justify-between">
                         <div>{block.label}</div>

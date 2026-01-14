@@ -1,5 +1,6 @@
 import { Handle, Position, NodeProps } from "@xyflow/react";
 import BaseNode from "../BaseNode";
+import { cn } from "@/lib/utils";
 
 export default function OrNode({ data, selected }: NodeProps) {
   const label = String(data?.label || "OR");
@@ -8,6 +9,7 @@ export default function OrNode({ data, selected }: NodeProps) {
     typeof data?.validationMessage === "string"
       ? data.validationMessage
       : undefined;
+  const isMobileMode = typeof data?.isMobileMode === "boolean" ? data.isMobileMode : false;
   return (
     <BaseNode
       label={label}
@@ -16,27 +18,37 @@ export default function OrNode({ data, selected }: NodeProps) {
       blockType="or"
       hasError={hasError}
       validationMessage={validationMessage}
+      isMobileMode={isMobileMode}
     >
       <Handle
         type="target"
         position={Position.Left}
         id="a"
         style={{ top: "35%" }}
-        className="!h-3 !w-3 !bg-amber-500"
+        className={cn(
+          isMobileMode ? "!h-5 !w-5" : "!h-3 !w-3",
+          "!bg-amber-500"
+        )}
       />
       <Handle
         type="target"
         position={Position.Left}
         id="b"
         style={{ top: "65%" }}
-        className="!h-3 !w-3 !bg-amber-500"
+        className={cn(
+          isMobileMode ? "!h-5 !w-5" : "!h-3 !w-3",
+          "!bg-amber-500"
+        )}
       />
-      <div className="text-center text-sm font-bold text-gray-700">||</div>
+      <div className="text-center text-sm font-mono font-bold text-gray-700">OR</div>
       <Handle
         type="source"
         position={Position.Right}
         id="output"
-        className="!h-3 !w-3 !bg-amber-500"
+        className={cn(
+          isMobileMode ? "!h-5 !w-5" : "!h-3 !w-3",
+          "!bg-amber-500"
+        )}
       />
     </BaseNode>
   );

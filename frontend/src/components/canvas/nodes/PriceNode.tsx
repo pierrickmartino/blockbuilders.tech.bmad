@@ -1,5 +1,6 @@
 import { Handle, Position, NodeProps } from "@xyflow/react";
 import BaseNode from "../BaseNode";
+import { cn } from "@/lib/utils";
 
 export default function PriceNode({ data, selected }: NodeProps) {
   const label = String(data?.label || "Price");
@@ -9,6 +10,7 @@ export default function PriceNode({ data, selected }: NodeProps) {
       ? data.validationMessage
       : undefined;
   const params = (data?.params || {}) as { source?: string };
+  const isMobileMode = typeof data?.isMobileMode === "boolean" ? data.isMobileMode : false;
   return (
     <BaseNode
       label={label}
@@ -17,6 +19,7 @@ export default function PriceNode({ data, selected }: NodeProps) {
       blockType="price"
       hasError={hasError}
       validationMessage={validationMessage}
+      isMobileMode={isMobileMode}
     >
       <div className="text-xs text-gray-600">
         Source: {params.source || "close"}
@@ -25,7 +28,10 @@ export default function PriceNode({ data, selected }: NodeProps) {
         type="source"
         position={Position.Right}
         id="output"
-        className="!h-3 !w-3 !bg-purple-500"
+        className={cn(
+          isMobileMode ? "!h-5 !w-5" : "!h-3 !w-3",
+          "!bg-purple-500"
+        )}
       />
     </BaseNode>
   );

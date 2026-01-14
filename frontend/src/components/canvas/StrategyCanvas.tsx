@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
   ReactFlow,
   Background,
@@ -30,7 +30,12 @@ interface StrategyCanvasProps {
   onSelectionChange: (selectedNodes: Node[]) => void;
   onAddNote: () => void;
   globalValidationErrors?: ValidationError[];
+  isMobileMode?: boolean;
 }
+
+type ConnectionState =
+  | { mode: "idle" }
+  | { mode: "connecting"; sourceNode: string; sourceHandle: string };
 
 function CanvasInner({
   nodes,
@@ -40,9 +45,13 @@ function CanvasInner({
   onSelectionChange,
   onAddNote,
   globalValidationErrors,
+  isMobileMode = false,
 }: StrategyCanvasProps) {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const reactFlowInstance = useRef<ReactFlowInstance | null>(null);
+  const [connectionState, setConnectionState] = useState<ConnectionState>({
+    mode: "idle",
+  });
 
   // Handle new connections
   const onConnect = useCallback(
@@ -51,6 +60,51 @@ function CanvasInner({
       onEdgesChange(newEdges);
     },
     [edges, onEdgesChange]
+  );
+
+  // Handle tap-to-connect for mobile
+  const handleNodeClick = useCallback(
+    (event: React.MouseEvent, node: Node) => {
+      if (!isMobileMode) return;
+
+      const target = event.target as HTMLElement;
+      const handle = target.closest('[data-handleid]') as HTMLElement | null;
+
+      if (!handle) {
+        // Clicked node body, cancel if connecting
+        if (connectionState.mode === "connecting") {
+          setConnectionState({ mode: "idle" });
+        }
+        return;
+      }
+
+      const handleId = handle.getAttribute("data-handleid");
+      const handleType = handle.getAttribute("data-handletype");
+
+      if (connectionState.mode === "idle") {
+        // Start connection from source
+        if (handleType === "source") {
+          setConnectionState({
+            mode: "connecting",
+            sourceNode: node.id,
+            sourceHandle: handleId || "output",
+          });
+        }
+      } else {
+        // Complete connection to target
+        if (handleType === "target") {
+          const newConnection: Connection = {
+            source: connectionState.sourceNode,
+            sourceHandle: connectionState.sourceHandle,
+            target: node.id,
+            targetHandle: handleId || "input",
+          };
+          onEdgesChange(addEdge(newConnection, edges));
+          setConnectionState({ mode: "idle" });
+        }
+      }
+    },
+    [isMobileMode, connectionState, edges, onEdgesChange]
   );
 
   // Handle node selection
@@ -137,13 +191,17 @@ function CanvasInner({
         onDragOver={onDragOver}
         onDrop={onDrop}
         onInit={onInit}
+        onNodeClick={isMobileMode ? handleNodeClick : undefined}
         nodeTypes={nodeTypes}
         fitView
         snapToGrid
         snapGrid={[15, 15]}
         selectionMode={SelectionMode.Partial}
         multiSelectionKeyCode={null}
-        selectNodesOnDrag={false}
+        selectNodesOnDrag={!isMobileMode}
+        panOnScroll={!isMobileMode}
+        zoomOnScroll={!isMobileMode}
+        panOnDrag={isMobileMode ? [1, 2] : [1]}
         defaultEdgeOptions={{
           type: "smoothstep",
           style: { strokeWidth: 2 },
@@ -168,6 +226,13 @@ function CanvasInner({
           </ControlButton>
         </Controls>
       </ReactFlow>
+
+      {/* Tap-to-connect feedback overlay */}
+      {isMobileMode && connectionState.mode === "connecting" && (
+        <div className="pointer-events-none absolute bottom-4 left-1/2 z-10 -translate-x-1/2 rounded-lg bg-blue-600 px-4 py-2 text-sm text-white shadow-lg">
+          Tap target port, or tap outside to cancel
+        </div>
+      )}
       </div>
     </div>
   );

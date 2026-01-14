@@ -63,7 +63,7 @@ interface Props {
 export default function StrategyEditorPage({ params }: Props) {
   const { id } = use(params);
   const router = useRouter();
-  const { timezone } = useDisplay();
+  const { timezone, mobileCanvasMode, setMobileCanvasMode, isMobileCanvasMode } = useDisplay();
 
   const [strategy, setStrategy] = useState<Strategy | null>(null);
   const [versions, setVersions] = useState<StrategyVersion[]>([]);
@@ -237,9 +237,19 @@ export default function StrategyEditorPage({ params }: Props) {
     fetchAlert();
   }, [id, resetAlertForm]);
 
+  // Enrich nodes with mobile mode flag
+  const nodesWithMobileMode = useMemo(
+    () =>
+      nodes.map((node) => ({
+        ...node,
+        data: { ...node.data, isMobileMode: isMobileCanvasMode },
+      })),
+    [nodes, isMobileCanvasMode]
+  );
+
   const selectedNode = useMemo(
-    () => nodes.find((node) => node.id === selectedNodeId) || null,
-    [nodes, selectedNodeId]
+    () => nodesWithMobileMode.find((node) => node.id === selectedNodeId) || null,
+    [nodesWithMobileMode, selectedNodeId]
   );
 
   const globalValidationErrors = useMemo(
@@ -1058,6 +1068,24 @@ export default function StrategyEditorPage({ params }: Props) {
                     )}
                   </div>
 
+                  {/* Canvas Mode */}
+                  <div>
+                    <h4 className="text-sm font-semibold">Canvas Mode</h4>
+                    <p className="text-xs text-muted-foreground">
+                      Mobile mode uses tap-to-connect instead of dragging
+                    </p>
+                    <Select value={mobileCanvasMode} onValueChange={setMobileCanvasMode}>
+                      <SelectTrigger className="mt-2 h-8 w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="auto">Auto (based on screen size)</SelectItem>
+                        <SelectItem value="mobile">Always mobile mode</SelectItem>
+                        <SelectItem value="desktop">Always desktop mode</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
                   {/* Auto-update Status */}
                   <div>
                     <h4 className="text-sm font-semibold">Auto-update</h4>
@@ -1100,7 +1128,7 @@ export default function StrategyEditorPage({ params }: Props) {
       <div className="flex flex-1 overflow-hidden">
         {/* Left Panel - Block Palette (hidden on mobile, drawer) */}
         <div className="hidden w-64 flex-shrink-0 border-r lg:block">
-          <BlockPalette onDragStart={handlePaletteDragStart} />
+          <BlockPalette onDragStart={handlePaletteDragStart} isMobileMode={isMobileCanvasMode} />
         </div>
 
         {/* Mobile Palette Drawer */}
@@ -1116,7 +1144,7 @@ export default function StrategyEditorPage({ params }: Props) {
                   </svg>
                 </button>
               </div>
-              <BlockPalette onDragStart={handlePaletteDragStart} />
+              <BlockPalette onDragStart={handlePaletteDragStart} isMobileMode={isMobileCanvasMode} />
             </div>
           </div>
         )}
@@ -1148,13 +1176,14 @@ export default function StrategyEditorPage({ params }: Props) {
           </div>
 
           <StrategyCanvas
-            nodes={nodes}
+            nodes={nodesWithMobileMode}
             edges={edges}
             onNodesChange={handleNodesChange}
             onEdgesChange={setEdges}
             onSelectionChange={handleSelectionChange}
             onAddNote={handleAddNote}
             globalValidationErrors={globalValidationErrors}
+            isMobileMode={isMobileCanvasMode}
           />
         </div>
 
@@ -1165,6 +1194,7 @@ export default function StrategyEditorPage({ params }: Props) {
             onParamsChange={handleParamsChange}
             onDeleteNode={handleDeleteNode}
             validationErrors={validationErrors}
+            isMobileMode={isMobileCanvasMode}
           />
         </div>
 

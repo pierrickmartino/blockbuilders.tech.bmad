@@ -1,5 +1,6 @@
 import { Handle, Position, NodeProps } from "@xyflow/react";
 import BaseNode from "../BaseNode";
+import { cn } from "@/lib/utils";
 
 export default function BollingerNode({ data, selected }: NodeProps) {
   const label = String(data?.label || "Bollinger Bands");
@@ -9,6 +10,7 @@ export default function BollingerNode({ data, selected }: NodeProps) {
       ? data.validationMessage
       : undefined;
   const params = (data?.params || {}) as { period?: number; stddev?: number };
+  const isMobileMode = typeof data?.isMobileMode === "boolean" ? data.isMobileMode : false;
   return (
     <BaseNode
       label={label}
@@ -17,12 +19,16 @@ export default function BollingerNode({ data, selected }: NodeProps) {
       blockType="bollinger"
       hasError={hasError}
       validationMessage={validationMessage}
+      isMobileMode={isMobileMode}
     >
       <Handle
         type="target"
         position={Position.Left}
         id="input"
-        className="!h-3 !w-3 !bg-blue-500"
+        className={cn(
+          isMobileMode ? "!h-5 !w-5" : "!h-3 !w-3",
+          "!bg-blue-500"
+        )}
       />
       <div className="space-y-0.5 text-xs text-gray-600">
         <div>Period: {params.period || 20}</div>
@@ -33,21 +39,30 @@ export default function BollingerNode({ data, selected }: NodeProps) {
         position={Position.Right}
         id="upper"
         style={{ top: "35%" }}
-        className="!h-3 !w-3 !bg-blue-500"
+        className={cn(
+          isMobileMode ? "!h-5 !w-5" : "!h-3 !w-3",
+          "!bg-blue-500"
+        )}
       />
       <Handle
         type="source"
         position={Position.Right}
         id="middle"
         style={{ top: "55%" }}
-        className="!h-3 !w-3 !bg-blue-500"
+        className={cn(
+          isMobileMode ? "!h-5 !w-5" : "!h-3 !w-3",
+          "!bg-blue-500"
+        )}
       />
       <Handle
         type="source"
         position={Position.Right}
         id="lower"
         style={{ top: "75%" }}
-        className="!h-3 !w-3 !bg-blue-500"
+        className={cn(
+          isMobileMode ? "!h-5 !w-5" : "!h-3 !w-3",
+          "!bg-blue-500"
+        )}
       />
     </BaseNode>
   );

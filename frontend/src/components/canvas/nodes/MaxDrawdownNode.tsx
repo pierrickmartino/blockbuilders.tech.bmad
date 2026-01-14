@@ -8,7 +8,8 @@ export default function MaxDrawdownNode({ data, selected }: NodeProps) {
     typeof data?.validationMessage === "string"
       ? data.validationMessage
       : undefined;
-  const params = (data?.params || {}) as { max_drawdown_pct?: number };
+  const params = (data?.params || {}) as { percent?: number };
+  const isMobileMode = typeof data?.isMobileMode === "boolean" ? data.isMobileMode : false;
   return (
     <BaseNode
       label={label}
@@ -17,9 +18,10 @@ export default function MaxDrawdownNode({ data, selected }: NodeProps) {
       blockType="max_drawdown"
       hasError={hasError}
       validationMessage={validationMessage}
+      isMobileMode={isMobileMode}
     >
       <div className="text-xs text-gray-600">
-        Max DD: {params.max_drawdown_pct || 10}%
+        Max DD: {params.percent || 10}%
       </div>
     </BaseNode>
   );
