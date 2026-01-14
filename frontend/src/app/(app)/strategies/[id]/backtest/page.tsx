@@ -18,7 +18,7 @@ import {
   ReferenceArea,
   ReferenceLine,
 } from "recharts";
-import { apiFetch, ApiError, fetchDataQuality } from "@/lib/api";
+import { apiFetch, ApiError, fetchDataQuality, fetchDataCompleteness } from "@/lib/api";
 import {
   formatDateTime,
   formatPercent,
@@ -35,10 +35,12 @@ import {
   BacktestStatus,
   BacktestStatusResponse,
   DataQualityMetrics,
+  DataCompletenessResponse,
 } from "@/types/backtest";
 import { StrategyTabs } from "@/components/StrategyTabs";
 import TradeDrawer from "@/components/TradeDrawer";
 import InfoIcon from "@/components/InfoIcon";
+import { DataCompletenessTimeline } from "@/components/DataCompletenessTimeline";
 import { metricToGlossaryId, getTooltip } from "@/lib/tooltip-content";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
@@ -343,6 +345,9 @@ export default function StrategyBacktestPage({ params }: Props) {
   // Data quality state
   const [dataQuality, setDataQuality] = useState<DataQualityMetrics | null>(null);
 
+  // Data completeness state
+  const [completeness, setCompleteness] = useState<DataCompletenessResponse | null>(null);
+
   // Trade drawer state
   const [selectedTradeIdx, setSelectedTradeIdx] = useState<number | null>(null);
 
@@ -463,6 +468,30 @@ export default function StrategyBacktestPage({ params }: Props) {
       .then((data) => setDataQuality(data as DataQualityMetrics))
       .catch(() => setDataQuality(null));
   }, [strategy, dateFrom, dateTo]);
+
+  // Fetch data completeness metrics when strategy loads
+  useEffect(() => {
+    if (!strategy) {
+      setCompleteness(null);
+      return;
+    }
+
+    fetchDataCompleteness(strategy.asset, strategy.timeframe)
+      .then((data) => setCompleteness(data as DataCompletenessResponse))
+      .catch(() => setCompleteness(null));
+  }, [strategy]);
+
+  // Detect if backtest period overlaps any gaps
+  const gapOverlap = useMemo(() => {
+    if (!completeness || !dateFrom || !dateTo) return null;
+    const start = new Date(`${dateFrom}T00:00:00Z`);
+    const end = new Date(`${dateTo}T23:59:59Z`);
+    return completeness.gap_ranges.filter(gap => {
+      const gapStart = new Date(gap.start);
+      const gapEnd = new Date(gap.end);
+      return start < gapEnd && end > gapStart;
+    });
+  }, [completeness, dateFrom, dateTo]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -673,6 +702,11 @@ export default function StrategyBacktestPage({ params }: Props) {
             ⚠️ Data quality warning: {dataQuality.issues_description}. Results may be less reliable.
           </div>
         )}
+        {gapOverlap && gapOverlap.length > 0 && (
+          <div className="mt-2 rounded border border-orange-200 bg-orange-50 px-3 py-2 text-sm text-orange-700">
+            ⚠️ Warning: Selected period overlaps {gapOverlap.length} data gap{gapOverlap.length > 1 ? 's' : ''}. Results may be affected by missing data.
+          </div>
+        )}
       </div>
 
       {/* Main Content */}
@@ -736,6 +770,16 @@ export default function StrategyBacktestPage({ params }: Props) {
                   className="mt-1"
                 />
               </div>
+              {completeness && (
+                <div className="md:col-span-2 mt-2">
+                  <h3 className="text-sm font-medium text-gray-700 mb-2">Data Availability</h3>
+                  <DataCompletenessTimeline
+                    data={completeness}
+                    highlightStart={dateFrom}
+                    highlightEnd={dateTo}
+                  />
+                </div>
+              )}
               <div className="md:col-span-2 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <p className="text-sm text-gray-500">
                   Backtests run in the background. You can leave this page and results will still be saved.
@@ -935,6 +979,15 @@ export default function StrategyBacktestPage({ params }: Props) {
                       ⚠️ {selectedRun.data_quality.issues_description}
                     </div>
                   )}
+                </div>
+              )}
+
+              {/* Data Completeness Summary */}
+              {completeness && completeness.coverage_start && completeness.coverage_end && (
+                <div className="mt-3 text-xs text-gray-600">
+                  Data completeness: {completeness.completeness_percent.toFixed(1)}%
+                  ({new Date(completeness.coverage_start).toLocaleDateString()} - {new Date(completeness.coverage_end).toLocaleDateString()}),
+                  {completeness.gap_count} gap{completeness.gap_count !== 1 ? 's' : ''}
                 </div>
               )}
             </div>

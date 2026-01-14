@@ -20,7 +20,7 @@ from app.models.notification import Notification
 from app.models.strategy import Strategy
 from app.models.strategy_version import StrategyVersion
 from app.models.user import User
-from app.backtest.data_quality import query_metrics_for_range
+from app.backtest.data_quality import query_metrics_for_range, compute_completeness_metrics
 from app.backtest.storage import download_json
 from app.schemas.backtest import (
     BacktestCreateRequest,
@@ -29,6 +29,7 @@ from app.schemas.backtest import (
     BacktestStatusResponse,
     BacktestSummary,
     CandleResponse,
+    DataCompletenessResponse,
     DataQualityMetrics,
     EquityCurvePoint,
     Trade,
@@ -679,4 +680,30 @@ def get_data_quality(
         volume_consistency=volume_consistency_avg,
         has_issues=has_issues,
         issues_description=issues_description,
+    )
+
+
+@router.get("/data-completeness", response_model=DataCompletenessResponse)
+def get_data_completeness(
+    asset: str = Query(..., description="Asset pair (e.g., BTC/USDT)"),
+    timeframe: str = Query(..., description="Timeframe (e.g., 1d, 4h)"),
+    session: Session = Depends(get_session),
+) -> DataCompletenessResponse:
+    """
+    Get data completeness metrics and gap ranges for asset/timeframe.
+
+    Returns coverage range, completeness percent, gap count, gap duration, and gap ranges.
+    No authentication required - read-only public data.
+    """
+    metrics = compute_completeness_metrics(asset, timeframe, session)
+
+    return DataCompletenessResponse(
+        asset=asset,
+        timeframe=timeframe,
+        coverage_start=metrics["coverage_start"],
+        coverage_end=metrics["coverage_end"],
+        completeness_percent=metrics["completeness_percent"],
+        gap_count=metrics["gap_count"],
+        gap_total_hours=metrics["gap_total_hours"],
+        gap_ranges=metrics["gap_ranges"],
     )

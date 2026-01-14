@@ -111,3 +111,19 @@ export interface TradeDetailResponse {
   asset: string;
   timeframe: string;
 }
+
+export interface GapRange {
+  start: string;
+  end: string;
+}
+
+export interface DataCompletenessResponse {
+  asset: string;
+  timeframe: string;
+  coverage_start: string | null;
+  coverage_end: string | null;
+  completeness_percent: number;
+  gap_count: number;
+  gap_total_hours: number;
+  gap_ranges: GapRange[];
+}

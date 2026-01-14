@@ -93,3 +93,12 @@ export async function fetchDataQuality(
     `/backtests/data-quality?asset=${encodeURIComponent(asset)}&timeframe=${timeframe}&date_from=${dateFrom}&date_to=${dateTo}`
   );
 }
+
+export async function fetchDataCompleteness(
+  asset: string,
+  timeframe: string
+) {
+  return apiFetch(
+    `/backtests/data-completeness?asset=${encodeURIComponent(asset)}&timeframe=${timeframe}`
+  );
+}

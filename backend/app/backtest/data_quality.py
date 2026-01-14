@@ -2,9 +2,9 @@
 from datetime import datetime, timedelta, timezone
 import logging
 
-from sqlmodel import Session, select
+from sqlmodel import Session, select, func
 
-from app.backtest.candles import TIMEFRAME_SECONDS
+from app.backtest.candles import TIMEFRAME_SECONDS, _detect_gaps
 from app.core.config import settings
 from app.models.candle import Candle
 from app.models.data_quality_metric import DataQualityMetric
@@ -141,3 +141,88 @@ def query_metrics_for_range(
         .order_by(DataQualityMetric.date)
     )
     return list(session.exec(stmt).all())
+
+
+def compute_completeness_metrics(
+    asset: str,
+    timeframe: str,
+    session: Session,
+) -> dict:
+    """
+    Compute completeness metrics for asset/timeframe.
+
+    Returns dict with:
+    - coverage_start: datetime (earliest candle)
+    - coverage_end: datetime (latest candle)
+    - completeness_percent: float (% of expected candles that exist)
+    - gap_count: int (number of gap periods)
+    - gap_total_hours: float (total missing time)
+    - gap_ranges: list[dict] with {start, end} for each gap
+    """
+    # Query coverage range and count
+    stmt = (
+        select(
+            func.min(Candle.timestamp),
+            func.max(Candle.timestamp),
+            func.count(Candle.id)
+        )
+        .where(Candle.asset == asset)
+        .where(Candle.timeframe == timeframe)
+    )
+    result = session.exec(stmt).first()
+
+    # Handle case where no candles exist
+    if not result or result[0] is None:
+        return {
+            "coverage_start": None,
+            "coverage_end": None,
+            "completeness_percent": 0.0,
+            "gap_count": 0,
+            "gap_total_hours": 0.0,
+            "gap_ranges": [],
+        }
+
+    coverage_start, coverage_end, actual_count = result
+
+    # Calculate expected candle count
+    interval_seconds = TIMEFRAME_SECONDS.get(timeframe, 3600)
+    time_diff = (coverage_end - coverage_start).total_seconds()
+    expected_count = int(time_diff / interval_seconds) + 1
+
+    # Calculate completeness percent
+    if expected_count > 0:
+        completeness_percent = (actual_count / expected_count) * 100
+    else:
+        completeness_percent = 100.0
+
+    # Query all candles to detect gaps
+    candles_stmt = (
+        select(Candle)
+        .where(Candle.asset == asset)
+        .where(Candle.timeframe == timeframe)
+        .order_by(Candle.timestamp)
+    )
+    candles = list(session.exec(candles_stmt).all())
+
+    # Detect gaps (using threshold of 0 to catch all gaps)
+    gaps = _detect_gaps(candles, timeframe, max_gap_candles=0)
+
+    # Calculate gap metrics
+    gap_count = len(gaps)
+    gap_total_seconds = sum((end - start).total_seconds() for start, end in gaps)
+    gap_total_hours = gap_total_seconds / 3600
+
+    # Format gap ranges
+    gap_ranges = [
+        {"start": start, "end": end}
+        for start, end in gaps
+    ]
+
+    return {
+        "coverage_start": coverage_start,
+        "coverage_end": coverage_end,
+        "completeness_percent": completeness_percent,
+        "gap_count": gap_count,
+        "gap_total_hours": gap_total_hours,
+        "gap_ranges": gap_ranges,
+    }

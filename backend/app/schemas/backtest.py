@@ -168,3 +168,23 @@ class TradeDetailResponse(BaseModel):
     candles: list[CandleResponse]
     asset: str
     timeframe: str
+
+
+class GapRange(BaseModel):
+    """Single gap range with start and end timestamps."""
+
+    start: datetime
+    end: datetime
+
+
+class DataCompletenessResponse(BaseModel):
+    """Response model for data completeness metrics."""
+
+    asset: str
+    timeframe: str
+    coverage_start: Optional[datetime] = None
+    coverage_end: Optional[datetime] = None
+    completeness_percent: float
+    gap_count: int
+    gap_total_hours: float
+    gap_ranges: list[GapRange]
