@@ -759,18 +759,20 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 
 **Implementation:** `backend/app/backtest/storage.py`
 
-### 6.4. Data Quality Indicators
+### 6.4. Data Quality & Completeness Indicators
 
-**Purpose:** Surface data quality metrics (gap %, outlier count, volume consistency) per asset/timeframe and warn users when a backtest period overlaps known issues.
+**Purpose:** Surface data quality metrics (gap %, outlier count, volume consistency) and **data completeness indicators** per asset/timeframe so users can trust backtest periods.
 
 **Behavior:**
-- Daily validation job computes metrics for each asset/timeframe and stores quality metadata.
+- Daily validation job computes quality metrics and candle coverage for each asset/timeframe.
 - Backtest UI shows a compact quality summary for the selected asset/timeframe.
-- Backtest date range selector warns if the period overlaps known data issues.
+- Data availability timeline highlights missing candle gaps within the available history range.
+- Completeness summary string: “99.2% complete from Jan 2020 to present, 3 gap periods totaling 18 hours.”
+- Backtest date range selector warns if the period overlaps known data issues or gaps.
 
 **Implementation Notes:**
 - Use existing candle data (no extra vendor calls).
-- Store quality metadata in a simple table keyed by asset, timeframe, and date range.
+- Store quality metadata and gap ranges in a simple table keyed by asset, timeframe, and date range.
 
 ---
 
@@ -1561,7 +1563,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Trade Distribution Analysis** | ✅ Complete | Histograms of trade return buckets and duration distribution for risk insight |
 | **Drawdown Chart** | ✅ Complete | Underwater equity % chart highlighting max drawdown period |
 | **Data Management** | ✅ Complete | Candle DB cache, CryptoCompare integration, S3/MinIO storage |
-| **Data Quality Indicators** | ✅ Complete | Gap %, outlier count, volume consistency, backtest warnings |
+| **Data Quality & Completeness Indicators** | ✅ Complete | Gap %, outlier count, volume consistency, data availability timeline, backtest warnings |
 | **Scheduled Updates** | ✅ Complete | Daily scheduler for auto-update strategies (paper trading) |
 | **Performance Alerts (Simple)** | ✅ Complete | Drawdown threshold alerts on scheduled re-backtests |
 | **Usage Limits** | ✅ Complete | Plan-based caps on strategies, daily backtests, and historical depth |
@@ -1634,7 +1636,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Dependent on CryptoCompare API uptime
 - Historical data gaps may cause backtest failures
 - No fallback vendor if CryptoCompare unavailable
-- No explicit data quality indicators or warnings in UI
+- Completeness indicators reflect candle gaps only (no vendor-level reconciliation)
 
 **Scalability:**
 - Single PostgreSQL instance (no sharding)
@@ -1667,7 +1669,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Short selling support
 - Advanced order types (limit, stop-limit)
 - Strategy templates and presets
-- Data quality indicators with backtest-period warnings
+- Data quality upgrades (multi-vendor reconciliation, extended anomaly detection)
 - Improved analytics (drawdown analysis, trade tagging)
 - Email notifications for auto-updates
 - Strategy sharing (read-only links)
@@ -1806,6 +1808,7 @@ pytest --cov            # Coverage report
 - `docs/prd-contextual-help-tooltips.md` - Contextual help & tooltips PRD
 - `docs/prd-backtest-data-export-csv-json.md` - Backtest data export (CSV/JSON) PRD
 - `docs/prd-data-quality-indicators.md` - Data quality indicators PRD
+- `docs/prd-data-completeness-indicators.md` - Data completeness indicators PRD
 - `docs/prd-metrics-glossary.md` - Metrics glossary PRD
 - `docs/prd-strategy-notes-annotations.md` - Strategy notes & annotations PRD
 - `docs/prd-strategy-explanation-generator.md` - Strategy explanation generator PRD
