@@ -8,7 +8,8 @@ export default function StopLossNode({ data, selected }: NodeProps) {
     typeof data?.validationMessage === "string"
       ? data.validationMessage
       : undefined;
-  const params = (data?.params || {}) as { stop_loss_pct?: number };
+  const params = (data?.params || {}) as { percent?: number };
+  const isMobileMode = typeof data?.isMobileMode === "boolean" ? data.isMobileMode : false;
   return (
     <BaseNode
       label={label}
@@ -17,9 +18,10 @@ export default function StopLossNode({ data, selected }: NodeProps) {
       blockType="stop_loss"
       hasError={hasError}
       validationMessage={validationMessage}
+      isMobileMode={isMobileMode}
     >
       <div className="text-xs text-gray-600">
-        Stop: -{params.stop_loss_pct || 5}%
+        Loss: {params.percent || 2}%
       </div>
     </BaseNode>
   );

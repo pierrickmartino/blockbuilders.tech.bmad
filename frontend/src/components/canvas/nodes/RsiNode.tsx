@@ -1,5 +1,6 @@
 import { Handle, Position, NodeProps } from "@xyflow/react";
 import BaseNode from "../BaseNode";
+import { cn } from "@/lib/utils";
 
 export default function RsiNode({ data, selected }: NodeProps) {
   const label = String(data?.label || "RSI");
@@ -9,6 +10,7 @@ export default function RsiNode({ data, selected }: NodeProps) {
       ? data.validationMessage
       : undefined;
   const params = (data?.params || {}) as { period?: number };
+  const isMobileMode = typeof data?.isMobileMode === "boolean" ? data.isMobileMode : false;
   return (
     <BaseNode
       label={label}
@@ -17,12 +19,16 @@ export default function RsiNode({ data, selected }: NodeProps) {
       blockType="rsi"
       hasError={hasError}
       validationMessage={validationMessage}
+      isMobileMode={isMobileMode}
     >
       <Handle
         type="target"
         position={Position.Left}
         id="input"
-        className="!h-3 !w-3 !bg-blue-500"
+        className={cn(
+          isMobileMode ? "!h-5 !w-5" : "!h-3 !w-3",
+          "!bg-blue-500"
+        )}
       />
       <div className="text-xs text-gray-600">
         Period: {params.period || 14}
@@ -31,7 +37,10 @@ export default function RsiNode({ data, selected }: NodeProps) {
         type="source"
         position={Position.Right}
         id="output"
-        className="!h-3 !w-3 !bg-blue-500"
+        className={cn(
+          isMobileMode ? "!h-5 !w-5" : "!h-3 !w-3",
+          "!bg-blue-500"
+        )}
       />
     </BaseNode>
   );

@@ -4,12 +4,14 @@ import { Node } from "@xyflow/react";
 import { BlockType, getBlockMeta, ValidationError, TakeProfitLevel } from "@/types/canvas";
 import InfoIcon from "@/components/InfoIcon";
 import { paramToGlossaryId, getTooltip } from "@/lib/tooltip-content";
+import { cn } from "@/lib/utils";
 
 interface PropertiesPanelProps {
   selectedNode: Node | null;
   onParamsChange: (nodeId: string, params: Record<string, unknown>) => void;
   onDeleteNode: (nodeId: string) => void;
   validationErrors: ValidationError[];
+  isMobileMode?: boolean;
 }
 
 export default function PropertiesPanel({
@@ -17,6 +19,7 @@ export default function PropertiesPanel({
   onParamsChange,
   onDeleteNode,
   validationErrors,
+  isMobileMode = false,
 }: PropertiesPanelProps) {
   if (!selectedNode) {
     return (
@@ -177,7 +180,10 @@ export default function PropertiesPanel({
         <h3 className="text-sm font-semibold text-gray-900">Properties</h3>
         <button
           onClick={() => onDeleteNode(selectedNode.id)}
-          className="rounded px-2 py-1 text-xs text-red-600 hover:bg-red-50"
+          className={cn(
+            "rounded text-xs text-red-600 hover:bg-red-50",
+            isMobileMode ? "h-10 px-4" : "h-8 px-3"
+          )}
         >
           Delete
         </button>

@@ -9,6 +9,7 @@ export default function TimeExitNode({ data, selected }: NodeProps) {
       ? data.validationMessage
       : undefined;
   const params = (data?.params || {}) as { bars?: number };
+  const isMobileMode = typeof data?.isMobileMode === "boolean" ? data.isMobileMode : false;
   return (
     <BaseNode
       label={label}
@@ -17,9 +18,10 @@ export default function TimeExitNode({ data, selected }: NodeProps) {
       blockType="time_exit"
       hasError={hasError}
       validationMessage={validationMessage}
+      isMobileMode={isMobileMode}
     >
       <div className="text-xs text-gray-600">
-        Exit: {params.bars || 10} bars
+        Exit after: {params.bars || 10} bars
       </div>
     </BaseNode>
   );

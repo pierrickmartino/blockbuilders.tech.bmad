@@ -1,5 +1,6 @@
 import { Handle, Position, NodeProps } from "@xyflow/react";
 import BaseNode from "../BaseNode";
+import { cn } from "@/lib/utils";
 
 export default function CrossoverNode({ data, selected }: NodeProps) {
   const label = String(data?.label || "Crossover");
@@ -8,9 +9,7 @@ export default function CrossoverNode({ data, selected }: NodeProps) {
     typeof data?.validationMessage === "string"
       ? data.validationMessage
       : undefined;
-  const params = (data?.params || {}) as { direction?: string };
-  const direction = params.direction || "crosses_above";
-  const displayText = direction === "crosses_above" ? "Crosses Above" : "Crosses Below";
+  const isMobileMode = typeof data?.isMobileMode === "boolean" ? data.isMobileMode : false;
   return (
     <BaseNode
       label={label}
@@ -19,27 +18,37 @@ export default function CrossoverNode({ data, selected }: NodeProps) {
       blockType="crossover"
       hasError={hasError}
       validationMessage={validationMessage}
+      isMobileMode={isMobileMode}
     >
       <Handle
         type="target"
         position={Position.Left}
         id="fast"
         style={{ top: "35%" }}
-        className="!h-3 !w-3 !bg-amber-500"
+        className={cn(
+          isMobileMode ? "!h-5 !w-5" : "!h-3 !w-3",
+          "!bg-amber-500"
+        )}
       />
       <Handle
         type="target"
         position={Position.Left}
         id="slow"
         style={{ top: "65%" }}
-        className="!h-3 !w-3 !bg-amber-500"
+        className={cn(
+          isMobileMode ? "!h-5 !w-5" : "!h-3 !w-3",
+          "!bg-amber-500"
+        )}
       />
-      <div className="text-xs text-gray-600">{displayText}</div>
+      <div className="text-xs text-gray-600">Fast × Slow</div>
       <Handle
         type="source"
         position={Position.Right}
         id="output"
-        className="!h-3 !w-3 !bg-amber-500"
+        className={cn(
+          isMobileMode ? "!h-5 !w-5" : "!h-3 !w-3",
+          "!bg-amber-500"
+        )}
       />
     </BaseNode>
   );

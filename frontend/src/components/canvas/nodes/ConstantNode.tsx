@@ -1,5 +1,6 @@
 import { Handle, Position, NodeProps } from "@xyflow/react";
 import BaseNode from "../BaseNode";
+import { cn } from "@/lib/utils";
 
 export default function ConstantNode({ data, selected }: NodeProps) {
   const label = String(data?.label || "Constant");
@@ -10,6 +11,7 @@ export default function ConstantNode({ data, selected }: NodeProps) {
       : undefined;
   const params = (data?.params || {}) as { value?: number };
   const value = params.value ?? 0;
+  const isMobileMode = typeof data?.isMobileMode === "boolean" ? data.isMobileMode : false;
 
   return (
     <BaseNode
@@ -19,13 +21,17 @@ export default function ConstantNode({ data, selected }: NodeProps) {
       blockType="constant"
       hasError={hasError}
       validationMessage={validationMessage}
+      isMobileMode={isMobileMode}
     >
       <div className="text-xs text-gray-600">Value: {value}</div>
       <Handle
         type="source"
         position={Position.Right}
         id="output"
-        className="!h-3 !w-3 !bg-purple-500"
+        className={cn(
+          isMobileMode ? "!h-5 !w-5" : "!h-3 !w-3",
+          "!bg-purple-500"
+        )}
       />
     </BaseNode>
   );

@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import InfoIcon from "@/components/InfoIcon";
 import { blockToGlossaryId, getTooltip } from "@/lib/tooltip-content";
+import { cn } from "@/lib/utils";
 
 interface BaseNodeProps {
   label: string;
@@ -10,6 +11,7 @@ interface BaseNodeProps {
   hasError?: boolean;
   blockType?: string;
   validationMessage?: string;
+  isMobileMode?: boolean;
 }
 
 const categoryStyles = {
@@ -53,6 +55,7 @@ export default function BaseNode({
   hasError,
   blockType,
   validationMessage,
+  isMobileMode = false,
 }: BaseNodeProps) {
   const styles = categoryStyles[category];
   const borderClass = selected ? styles.borderSelected : styles.border;
@@ -61,10 +64,20 @@ export default function BaseNode({
 
   return (
     <div
-      className={`relative min-w-[120px] rounded-lg border-2 shadow-sm ${borderClass} ${styles.bg} ${errorBorder}`}
+      className={cn(
+        "relative rounded-lg border-2 shadow-sm",
+        isMobileMode ? "min-w-[150px]" : "min-w-[120px]",
+        borderClass,
+        styles.bg,
+        errorBorder
+      )}
     >
       <div
-        className={`flex items-center justify-between gap-1 rounded-t-md px-3 py-1.5 text-xs font-semibold ${styles.header}`}
+        className={cn(
+          "flex items-center justify-between gap-1 rounded-t-md text-xs font-semibold",
+          isMobileMode ? "px-4 py-2" : "px-3 py-1.5",
+          styles.header
+        )}
         title={tooltip?.short}
       >
         <div className="flex items-center gap-1.5">

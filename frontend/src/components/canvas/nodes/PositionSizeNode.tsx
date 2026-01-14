@@ -8,7 +8,8 @@ export default function PositionSizeNode({ data, selected }: NodeProps) {
     typeof data?.validationMessage === "string"
       ? data.validationMessage
       : undefined;
-  const params = (data?.params || {}) as { value?: number };
+  const params = (data?.params || {}) as { percent?: number };
+  const isMobileMode = typeof data?.isMobileMode === "boolean" ? data.isMobileMode : false;
   return (
     <BaseNode
       label={label}
@@ -17,9 +18,10 @@ export default function PositionSizeNode({ data, selected }: NodeProps) {
       blockType="position_size"
       hasError={hasError}
       validationMessage={validationMessage}
+      isMobileMode={isMobileMode}
     >
       <div className="text-xs text-gray-600">
-        {params.value || 5}% of equity
+        Size: {params.percent || 100}%
       </div>
     </BaseNode>
   );
