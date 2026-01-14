@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 
 interface StrategyTabsProps {
   strategyId: string;
@@ -6,21 +7,28 @@ interface StrategyTabsProps {
 }
 
 export function StrategyTabs({ strategyId, activeTab }: StrategyTabsProps) {
-  const activeClasses = "rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-sm font-medium text-blue-700";
-  const inactiveClasses = "rounded-full px-3 py-1 text-sm font-medium text-gray-600 transition hover:bg-gray-100 hover:text-gray-900";
-
   return (
-    <div className="mt-3 flex gap-2">
+    <div className="mt-3 inline-flex h-9 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground">
       <Link
         href={`/strategies/${strategyId}`}
-        className={activeTab === "build" ? activeClasses : inactiveClasses}
+        className={cn(
+          "inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+          activeTab === "build"
+            ? "bg-background text-foreground shadow"
+            : "hover:bg-background/50 hover:text-foreground"
+        )}
         aria-current={activeTab === "build" ? "page" : undefined}
       >
         Build
       </Link>
       <Link
         href={`/strategies/${strategyId}/backtest`}
-        className={activeTab === "backtest" ? activeClasses : inactiveClasses}
+        className={cn(
+          "inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+          activeTab === "backtest"
+            ? "bg-background text-foreground shadow"
+            : "hover:bg-background/50 hover:text-foreground"
+        )}
         aria-current={activeTab === "backtest" ? "page" : undefined}
       >
         Backtest
