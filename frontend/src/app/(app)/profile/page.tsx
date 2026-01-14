@@ -370,7 +370,7 @@ export default function ProfilePage() {
               </div>
             )}
 
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-2">
               {/* Backtest Credits Card */}
               <Card>
                 <CardContent className="p-4">
@@ -481,7 +481,7 @@ export default function ProfilePage() {
 
             {/* Plan Comparison */}
             {profile?.plan.tier === "free" && (
-              <div className="grid gap-4 md:grid-cols-3">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <PlanCard
                   name="Free"
                   price="$0"

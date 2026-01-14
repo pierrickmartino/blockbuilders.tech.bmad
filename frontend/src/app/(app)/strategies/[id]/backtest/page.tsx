@@ -853,7 +853,7 @@ export default function StrategyBacktestPage({ params }: Props) {
                   {selectedRun.error_message || "Backtest failed. Please try again."}
                 </div>
               ) : selectedRun.summary ? (
-                <div className="grid gap-4 md:grid-cols-3">
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   <MetricCard
                     metricKey="final-balance"
                     label="Final balance"
@@ -910,7 +910,7 @@ export default function StrategyBacktestPage({ params }: Props) {
               {selectedRun.data_quality && (
                 <div className="mt-4">
                   <h3 className="mb-2 text-sm font-medium text-gray-700">Data Quality</h3>
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                     <div className="rounded border border-gray-200 bg-gray-50 p-3">
                       <div className="text-xs text-gray-500">Gap %</div>
                       <div className="text-lg font-semibold">
@@ -1173,10 +1173,10 @@ export default function StrategyBacktestPage({ params }: Props) {
                     <div
                       className={`grid gap-2 ${
                         periodType === "month"
-                          ? "grid-cols-4 sm:grid-cols-6 md:grid-cols-12"
+                          ? "grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-12"
                           : periodType === "quarter"
-                          ? "grid-cols-4"
-                          : "grid-cols-7"
+                          ? "grid-cols-2 sm:grid-cols-4"
+                          : "grid-cols-4 sm:grid-cols-7"
                       }`}
                     >
                       {seasonalityData.map((bucket, idx) => (
@@ -1384,8 +1384,8 @@ export default function StrategyBacktestPage({ params }: Props) {
               <p className="text-sm text-gray-500">No trades were generated for this run.</p>
             ) : (
               <>
-                <div className="rounded-lg border">
-                  <Table>
+                <div className="overflow-x-auto rounded-lg border">
+                  <Table className="min-w-[700px]">
                     <TableHeader>
                       <TableRow>
                         <TableHead>
@@ -1452,7 +1452,7 @@ export default function StrategyBacktestPage({ params }: Props) {
 
                 {/* Pagination */}
                 {totalPages > 1 && (
-                  <div className="mt-3 flex items-center justify-between border-t pt-3">
+                  <div className="mt-3 flex flex-col gap-2 border-t pt-3 sm:flex-row sm:items-center sm:justify-between">
                     <p className="text-sm text-gray-500">
                       Page {currentPage} of {totalPages}
                     </p>
