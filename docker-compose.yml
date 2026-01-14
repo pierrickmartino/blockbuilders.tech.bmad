@@ -48,6 +48,23 @@ services:
         condition: service_started
     restart: unless-stopped
 
+  scheduler:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: python -m app.worker.main scheduler
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/blockbuilders
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: unless-stopped
+
   db:
     image: postgres:16-alpine
     env_file:
