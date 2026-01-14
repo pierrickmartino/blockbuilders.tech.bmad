@@ -1552,7 +1552,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Strategy Management** | ✅ Complete | CRUD, versioning, validation, duplication, archiving |
 | **Strategy Groups/Tags** | ✅ Complete | Custom tags, tag filtering, many-to-many strategy organization |
 | **Visual Builder** | ✅ Complete | 20 block types, drag-drop, parameter editing, mobile-responsive |
-| **Mobile-Optimized Canvas** | 🟡 Planned | Touch-first controls, simplified palette, gesture-based connections |
+| **Mobile-Optimized Canvas** | ✅ Complete | Touch-first controls, simplified palette, gesture-based connections |
 | **Copy/Paste Blocks & Subgraphs** | ✅ Complete | Multi-select blocks and copy/paste within or across strategies |
 | **Strategy Building Wizard** | ✅ Complete | Guided Q&A that generates editable strategy JSON |
 | **Backtesting** | ✅ Complete | Full engine with TP ladder, SL, max drawdown, equity curves, trade detail |
@@ -1565,8 +1565,8 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Scheduled Updates** | ✅ Complete | Daily scheduler for auto-update strategies (paper trading) |
 | **Performance Alerts (Simple)** | ✅ Complete | Drawdown threshold alerts on scheduled re-backtests |
 | **Usage Limits** | ✅ Complete | Plan-based caps on strategies, daily backtests, and historical depth |
-| **One-Time Credit Packs** | 🟡 Planned | Purchase 50 backtest credits or +5 strategy slots; credits never expire |
-| **Subscription Plans & Billing** | 🟡 Planned | Free/Pro/Premium tiers with Stripe monthly/annual billing and simple caps |
+| **One-Time Credit Packs** | ✅ Complete | Purchase 50 backtest credits or +5 strategy slots; credits never expire |
+| **Subscription Plans & Billing** | ✅ Complete | Free/Pro/Premium tiers with Stripe monthly/annual billing and simple caps |
 | **In-App Notifications** | ✅ Complete | Bell icon with unread count, notifications for key events |
 | **Real-Time Price Tickers** | ✅ Complete | Market overview with live price, 24h change, volume, trend; 4s polling, 3s Redis cache |
 | **Frontend UI** | ✅ Complete | Multi-strategy dashboard, strategy list/editor, backtest runner/results, profile |
@@ -1580,7 +1580,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **API** | ✅ Complete | RESTful endpoints, JWT auth, OpenAPI docs |
 | **Database** | ✅ Complete | PostgreSQL with 11 migrations, indexed queries |
 | **Deployment** | ✅ Complete | Docker Compose stack (6 services) |
-| **Responsive Charts** | 🟡 Planned | Pinch-to-zoom + pan for equity/drawdown charts on mobile |
+| **Responsive Charts** | ✅ Complete | Pinch-to-zoom + pan for equity/drawdown charts on mobile |
 
 **Current State:** Fully functional MVP with post-MVP enhancements (OAuth, scheduled updates, advanced risk management, timezone support, strategy building wizard, in-app notifications).
 
