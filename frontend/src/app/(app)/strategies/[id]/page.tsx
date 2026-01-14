@@ -715,7 +715,7 @@ export default function StrategyEditorPage({ params }: Props) {
                       setNameInput(strategy.name);
                     }
                   }}
-                  className="h-7 w-40 text-sm font-semibold"
+                  className="h-7 w-32 text-sm font-semibold sm:w-40"
                   autoFocus
                 />
                 <Button size="sm" className="h-7 px-2" onClick={handleNameSave} disabled={isSavingName}>
@@ -773,7 +773,7 @@ export default function StrategyEditorPage({ params }: Props) {
                 value={String(selectedVersion?.version_number || "")}
                 onValueChange={(v) => loadVersionDetail(Number(v))}
               >
-                <SelectTrigger className="h-8 w-[140px] text-xs">
+                <SelectTrigger className="h-8 w-[110px] text-xs sm:w-[140px]">
                   <SelectValue placeholder="Version" />
                 </SelectTrigger>
                 <SelectContent>
@@ -837,7 +837,7 @@ export default function StrategyEditorPage({ params }: Props) {
                   </svg>
                 </Button>
               </SheetTrigger>
-              <SheetContent className="w-[340px] overflow-y-auto sm:w-[400px]">
+              <SheetContent className="w-full overflow-y-auto sm:w-[400px] sm:max-w-[400px]">
                 <SheetHeader>
                   <SheetTitle>Strategy Settings</SheetTitle>
                   <SheetDescription>
@@ -1202,7 +1202,7 @@ export default function StrategyEditorPage({ params }: Props) {
         {showProperties && (
           <div className="fixed inset-0 z-50 lg:hidden">
             <div className="absolute inset-0 bg-black/50" onClick={() => setShowProperties(false)} />
-            <div className="absolute right-0 top-0 h-full w-80 bg-white shadow-xl">
+            <div className="absolute right-0 top-0 h-full w-full bg-white shadow-xl sm:w-80">
               <div className="flex items-center justify-between border-b px-4 py-3">
                 <span className="font-semibold">Properties</span>
                 <button onClick={() => setShowProperties(false)} className="text-gray-500">

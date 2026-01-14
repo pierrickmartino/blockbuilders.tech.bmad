@@ -24,10 +24,10 @@ export default function DashboardPage() {
   const recentStrategies = strategies.slice(0, 5);
 
   return (
-    <div>
+    <div className="mx-auto max-w-4xl">
       <h1 className="mb-6 text-2xl font-bold text-gray-900">Dashboard</h1>
 
-      <div className="rounded-lg bg-white p-6 shadow-sm">
+      <div className="rounded-lg bg-white p-4 shadow-sm sm:p-6">
         <h2 className="mb-4 text-lg font-semibold text-gray-900">
           Welcome, {user?.email}
         </h2>
@@ -75,15 +75,15 @@ export default function DashboardPage() {
                 <Link
                   key={strategy.id}
                   href={`/strategies/${strategy.id}`}
-                  className="flex items-center justify-between rounded-lg border border-gray-200 p-4 hover:bg-gray-50"
+                  className="flex flex-col gap-1 rounded-lg border border-gray-200 p-4 hover:bg-gray-50 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
                 >
-                  <div>
-                    <div className="font-medium text-gray-900">{strategy.name}</div>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate font-medium text-gray-900">{strategy.name}</div>
                     <div className="text-sm text-gray-500">
                       {strategy.asset} &middot; {strategy.timeframe}
                     </div>
                   </div>
-                  <div className="text-sm text-gray-400">
+                  <div className="flex-shrink-0 text-sm text-gray-400">
                     {formatDateTime(strategy.updated_at, timezone)}
                   </div>
                 </Link>

@@ -52,7 +52,7 @@ export default function NotificationBell() {
           )}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-80">
+      <DropdownMenuContent align="end" className="w-[calc(100vw-2rem)] max-w-80 sm:w-80">
         <div className="flex items-center justify-between px-2">
           <DropdownMenuLabel>Notifications</DropdownMenuLabel>
           {unreadCount > 0 && (
@@ -62,7 +62,7 @@ export default function NotificationBell() {
           )}
         </div>
         <DropdownMenuSeparator />
-        <div className="max-h-96 overflow-y-auto">
+        <div className="max-h-[60vh] overflow-y-auto sm:max-h-96">
           {notifications.length === 0 ? (
             <div className="p-8 text-center text-sm text-muted-foreground">No notifications yet</div>
           ) : (

@@ -457,9 +457,9 @@ export default function StrategiesPage() {
       </div>
 
       {/* Filter Controls */}
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row">
+      <div className="mb-4 grid grid-cols-2 gap-3 sm:flex sm:flex-wrap">
         <Select value={assetFilter} onValueChange={setAssetFilter}>
-          <SelectTrigger className="w-[150px]">
+          <SelectTrigger className="w-full sm:w-[150px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -473,7 +473,7 @@ export default function StrategiesPage() {
         </Select>
 
         <Select value={performanceFilter} onValueChange={(v) => setPerformanceFilter(v as PerformanceFilter)}>
-          <SelectTrigger className="w-[150px]">
+          <SelectTrigger className="w-full sm:w-[150px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -484,7 +484,7 @@ export default function StrategiesPage() {
         </Select>
 
         <Select value={lastRunFilter} onValueChange={(v) => setLastRunFilter(v as LastRunFilter)}>
-          <SelectTrigger className="w-[150px]">
+          <SelectTrigger className="w-full sm:w-[150px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -503,7 +503,7 @@ export default function StrategiesPage() {
                 if (v === "all") setSelectedTagIds([]);
               }}
             >
-              <SelectTrigger className="w-[150px]">
+              <SelectTrigger className="w-full sm:w-[150px]">
                 <SelectValue>
                   {selectedTagIds.length > 0 ? `${selectedTagIds.length} tag(s)` : "All Tags"}
                 </SelectValue>
@@ -542,6 +542,7 @@ export default function StrategiesPage() {
           <Button
             variant="outline"
             size="sm"
+            className="col-span-2 sm:col-span-1"
             onClick={() => {
               setSearch("");
               setAssetFilter("all");
@@ -824,7 +825,7 @@ export default function StrategiesPage() {
       )}
 
       <Dialog open={showImportModal} onOpenChange={(open) => { if (!open) handleImportCancel(); else setShowImportModal(true); }}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Import Strategy</DialogTitle>
           </DialogHeader>
