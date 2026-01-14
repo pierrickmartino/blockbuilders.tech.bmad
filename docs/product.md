@@ -912,6 +912,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 /strategies                → Strategy list (protected)
 /strategies/[id]           → Strategy editor (protected)
 /strategies/[id]/backtest  → Backtest runner (protected)
+/market                    → Market overview (protected)
 /profile                   → User settings (protected)
 /how-backtests-work        → Documentation (protected)
 ```
@@ -1077,7 +1078,29 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Each item includes a short message, timestamp, and optional deep link
 - Simple empty state when no notifications
 
-### 9.9. Performance Alerts (Simple)
+### 9.9. Real-Time Price Tickers
+
+**Purpose:** Provide a live market overview so users can see current prices and trend context while building strategies.
+
+**UI Placement (minimal):**
+- Dedicated **Market Overview** page accessible from the main app navigation.
+- Displays a simple table with all supported pairs.
+
+**Data Display (per pair):**
+- Current price
+- 24h change % (green/red)
+- 24h volume
+- Trend indicator (up/down arrow based on price vs last update)
+
+**Update Behavior:**
+- Refresh every few seconds via polling (default).
+- WebSocket updates are optional if the data vendor provides it later.
+
+**Notes:**
+- Uses the same supported asset list as strategies (Section 3.4).
+- Read-only UI; no trading actions.
+
+### 9.10. Performance Alerts (Simple)
 
 **Purpose:** Let users monitor auto-updated strategies without checking manually.
 
@@ -1523,6 +1546,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **One-Time Credit Packs** | 🟡 Planned | Purchase 50 backtest credits or +5 strategy slots; credits never expire |
 | **Subscription Plans & Billing** | 🟡 Planned | Free/Pro/Premium tiers with Stripe monthly/annual billing and simple caps |
 | **In-App Notifications** | ✅ Complete | Bell icon with unread count, notifications for key events |
+| **Real-Time Price Tickers** | 🟡 Planned | Market overview with live price, 24h change, volume, trend |
 | **Frontend UI** | ✅ Complete | Multi-strategy dashboard, strategy list/editor, backtest runner/results, profile |
 | **Contextual Help & Tooltips** | ✅ Complete | Hover tooltips for indicators, logic blocks, metrics |
 | **Metrics Glossary** | ✅ Complete | Dedicated searchable page explaining backtest metrics |
@@ -1774,6 +1798,7 @@ pytest --cov            # Coverage report
 - `docs/prd-performance-alerts-simple.md` - Performance alerts (simple) PRD
 - `docs/prd-copy-paste-blocks-subgraphs.md` - Copy/paste blocks & subgraphs PRD
 - `docs/prd-mobile-optimized-canvas.md` - Mobile-optimized canvas PRD
+- `docs/prd-real-time-price-tickers.md` - Real-time price tickers PRD
 - `docs/product.md` - This document (current product truth)
 - `docs/prd-strategy-tags-groups.md` - Strategy groups & tags PRD
 - `docs/prd-simple-tiered-subscription-plans.md` - Simple tiered subscription plans PRD
