@@ -1082,23 +1082,45 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 
 **Purpose:** Provide a live market overview so users can see current prices and trend context while building strategies.
 
-**UI Placement (minimal):**
-- Dedicated **Market Overview** page accessible from the main app navigation.
-- Displays a simple table with all supported pairs.
+**UI Placement:**
+- Dedicated **Market Overview** page (`/market`) accessible from main app navigation
+- "Market" link in sidebar with TrendingUp icon (between Dashboard and Strategies)
 
 **Data Display (per pair):**
-- Current price
-- 24h change % (green/red)
-- 24h volume
-- Trend indicator (up/down arrow based on price vs last update)
+- Pair symbol (e.g., BTC/USDT)
+- Current price (formatted with commas and USDT suffix)
+- 24h change % (green for positive, red for negative)
+- 24h volume (formatted as whole number)
+- Trend indicator (▲ TrendingUp / ▼ TrendingDown icons)
+- "Last updated" timestamp (respects user timezone preference)
 
 **Update Behavior:**
-- Refresh every few seconds via polling (default).
-- WebSocket updates are optional if the data vendor provides it later.
+- Frontend polls every 4 seconds (middle of PRD's 3-5s requirement)
+- Backend caches data for 3 seconds in Redis (reduces vendor API calls)
+- Graceful error handling: shows error message if vendor unavailable
+
+**Responsive Design:**
+- Desktop (md+): Table with 5 columns (Pair, Price, 24h Change, 24h Volume, Trend)
+- Mobile (<md): Card grid with same data in vertical layout
+- Uses shadcn/ui Table and Card components
+
+**Backend Implementation:**
+- Endpoint: `GET /market/tickers` (protected, requires auth)
+- Vendor: CryptoCompare `pricemultifull` API (single call for all 23 pairs)
+- Response schema: `TickerListResponse` with `items[]` and `as_of` timestamp
+- Redis caching: key `market:tickers`, 3-second TTL
+- Error handling: Returns 503 on vendor failure, zeros for missing pair data
+
+**Frontend Implementation:**
+- Hook: `useMarketTickers()` (polling pattern similar to `useNotifications`)
+- Types: `TickerItem`, `TickerListResponse` in `types/market.ts`
+- Formatting: Reuses `formatPrice`, `formatPercent`, `formatNumber`, `formatDateTime`
+- Page: `frontend/src/app/(app)/market/page.tsx`
 
 **Notes:**
-- Uses the same supported asset list as strategies (Section 3.4).
-- Read-only UI; no trading actions.
+- Uses the same supported asset list as strategies (Section 3.4: 23 pairs)
+- Read-only UI; no trading actions
+- WebSocket updates are optional for future enhancement
 
 ### 9.10. Performance Alerts (Simple)
 
@@ -1546,7 +1568,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **One-Time Credit Packs** | 🟡 Planned | Purchase 50 backtest credits or +5 strategy slots; credits never expire |
 | **Subscription Plans & Billing** | 🟡 Planned | Free/Pro/Premium tiers with Stripe monthly/annual billing and simple caps |
 | **In-App Notifications** | ✅ Complete | Bell icon with unread count, notifications for key events |
-| **Real-Time Price Tickers** | 🟡 Planned | Market overview with live price, 24h change, volume, trend |
+| **Real-Time Price Tickers** | ✅ Complete | Market overview with live price, 24h change, volume, trend; 4s polling, 3s Redis cache |
 | **Frontend UI** | ✅ Complete | Multi-strategy dashboard, strategy list/editor, backtest runner/results, profile |
 | **Contextual Help & Tooltips** | ✅ Complete | Hover tooltips for indicators, logic blocks, metrics |
 | **Metrics Glossary** | ✅ Complete | Dedicated searchable page explaining backtest metrics |
