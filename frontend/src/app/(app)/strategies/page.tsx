@@ -34,6 +34,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 type SortField = "name" | "updated_at" | "total_return" | "last_run" | "asset";
 type SortOrder = "asc" | "desc";
@@ -558,63 +566,53 @@ export default function StrategiesPage() {
       ) : (
         <>
           {/* Desktop Table */}
-          <div className="hidden overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm md:block">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th
-                    className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 hover:text-gray-700"
+          <div className="hidden rounded-lg border md:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead
+                    className="cursor-pointer hover:text-foreground"
                     onClick={() => handleSort("name")}
                   >
                     Name <SortIcon field="name" />
-                  </th>
-                  <th
-                    className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 hover:text-gray-700"
+                  </TableHead>
+                  <TableHead
+                    className="cursor-pointer hover:text-foreground"
                     onClick={() => handleSort("asset")}
                   >
                     Asset <SortIcon field="asset" />
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Timeframe
-                  </th>
-                  <th
-                    className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 hover:text-gray-700"
+                  </TableHead>
+                  <TableHead>Timeframe</TableHead>
+                  <TableHead
+                    className="cursor-pointer hover:text-foreground"
                     onClick={() => handleSort("total_return")}
                   >
                     Total Return <SortIcon field="total_return" />
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Max DD
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Win Rate
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Trades
-                  </th>
-                  <th
-                    className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 hover:text-gray-700"
+                  </TableHead>
+                  <TableHead>Max DD</TableHead>
+                  <TableHead>Win Rate</TableHead>
+                  <TableHead>Trades</TableHead>
+                  <TableHead
+                    className="cursor-pointer hover:text-foreground"
                     onClick={() => handleSort("last_run")}
                   >
                     Last Run <SortIcon field="last_run" />
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200 bg-white">
+                  </TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {filteredAndSortedStrategies.map((strategy) => (
-                  <tr
+                  <TableRow
                     key={strategy.id}
-                    className={`hover:bg-gray-50 ${strategy.is_archived ? "opacity-60" : ""}`}
+                    className={strategy.is_archived ? "opacity-60" : ""}
                   >
-                    <td className="whitespace-nowrap px-6 py-4">
+                    <TableCell>
                       <div className="flex flex-col gap-2">
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => router.push(`/strategies/${strategy.id}`)}
-                            className="font-medium text-blue-600 hover:text-blue-800"
+                            className="font-medium text-primary hover:underline"
                           >
                             {strategy.name}
                           </button>
@@ -635,29 +633,29 @@ export default function StrategiesPage() {
                           </div>
                         )}
                       </div>
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-600">
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
                       {strategy.asset}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-600">
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
                       {strategy.timeframe}
-                    </td>
-                    <td className={`whitespace-nowrap px-6 py-4 text-sm font-medium ${getReturnColorClass(strategy.latest_total_return_pct)}`}>
+                    </TableCell>
+                    <TableCell className={`font-medium ${getReturnColorClass(strategy.latest_total_return_pct)}`}>
                       {formatMetric(strategy.latest_total_return_pct, "%")}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
+                    </TableCell>
+                    <TableCell>
                       {formatMetric(strategy.latest_max_drawdown_pct, "%")}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
+                    </TableCell>
+                    <TableCell>
                       {formatMetric(strategy.latest_win_rate_pct, "%")}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
+                    </TableCell>
+                    <TableCell>
                       {formatMetric(strategy.latest_num_trades)}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
                       {formatDate(strategy.last_run_at)}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-right text-sm">
+                    </TableCell>
+                    <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -691,11 +689,11 @@ export default function StrategiesPage() {
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
 
           {/* Mobile Cards */}
