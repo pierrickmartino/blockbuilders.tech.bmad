@@ -48,6 +48,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ZoomableChart } from "@/components/ZoomableChart";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
@@ -674,29 +682,29 @@ export default function StrategyBacktestPage({ params }: Props) {
             <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
                 <label className="block text-sm font-medium text-gray-700">Date from</label>
-                <input
+                <Input
                   type="date"
                   value={dateFrom}
                   max={dateTo}
                   onChange={(e) => setDateFrom(e.target.value)}
-                  className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none"
+                  className="mt-1"
                   required
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">Date to</label>
-                <input
+                <Input
                   type="date"
                   value={dateTo}
                   min={dateFrom}
                   onChange={(e) => setDateTo(e.target.value)}
-                  className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none"
+                  className="mt-1"
                   required
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">Fee rate (optional)</label>
-                <input
+                <Input
                   type="number"
                   step="0.0001"
                   min="0"
@@ -704,12 +712,12 @@ export default function StrategyBacktestPage({ params }: Props) {
                   value={feeRate}
                   onChange={(e) => setFeeRate(e.target.value)}
                   placeholder="0.001 for 0.1%"
-                  className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none"
+                  className="mt-1"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">Slippage rate (optional)</label>
-                <input
+                <Input
                   type="number"
                   step="0.0001"
                   min="0"
@@ -717,20 +725,16 @@ export default function StrategyBacktestPage({ params }: Props) {
                   value={slippageRate}
                   onChange={(e) => setSlippageRate(e.target.value)}
                   placeholder="0.0005 for 0.05%"
-                  className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none"
+                  className="mt-1"
                 />
               </div>
               <div className="md:col-span-2 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <p className="text-sm text-gray-500">
                   Backtests run in the background. You can leave this page and results will still be saved.
                 </p>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-full rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 md:w-auto"
-                >
+                <Button type="submit" disabled={isSubmitting} className="w-full md:w-auto">
                   {isSubmitting ? "Starting..." : "Run backtest"}
-                </button>
+                </Button>
               </div>
             </form>
           </section>
@@ -738,13 +742,15 @@ export default function StrategyBacktestPage({ params }: Props) {
           <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="text-base font-semibold text-gray-900">Recent runs</h2>
-              <button
+              <Button
+                variant="link"
+                size="sm"
                 onClick={loadBacktests}
                 disabled={isLoadingBacktests}
-                className="text-sm text-blue-600 hover:text-blue-800 disabled:opacity-50"
+                className="h-auto p-0"
               >
                 {isLoadingBacktests ? "Refreshing..." : "Refresh"}
-              </button>
+              </Button>
             </div>
             {backtests.length === 0 ? (
               <p className="text-sm text-gray-500">No backtests yet. Run your first one above.</p>
@@ -968,24 +974,18 @@ export default function StrategyBacktestPage({ params }: Props) {
               <div className="flex h-64 items-center justify-center rounded border border-red-200 bg-red-50">
                 <div className="text-center">
                   <p className="text-sm text-red-600">{equityCurveError}</p>
-                  <button
-                    onClick={refetchEquityCurve}
-                    className="mt-2 text-sm text-blue-600 hover:text-blue-800"
-                  >
+                  <Button variant="link" size="sm" onClick={refetchEquityCurve} className="mt-2">
                     Retry
-                  </button>
+                  </Button>
                 </div>
               </div>
             ) : equityCurve.length === 0 ? (
               <div className="flex h-64 items-center justify-center">
                 <div className="text-center">
                   <p className="text-sm text-gray-500">No equity data available for this run.</p>
-                  <button
-                    onClick={refetchEquityCurve}
-                    className="mt-2 text-sm text-blue-600 hover:text-blue-800"
-                  >
+                  <Button variant="link" size="sm" onClick={refetchEquityCurve} className="mt-2">
                     Retry
-                  </button>
+                  </Button>
                 </div>
               </div>
             ) : (
@@ -1067,12 +1067,9 @@ export default function StrategyBacktestPage({ params }: Props) {
               <div className="flex h-64 items-center justify-center rounded border border-red-200 bg-red-50">
                 <div className="text-center">
                   <p className="text-sm text-red-600">{equityCurveError}</p>
-                  <button
-                    onClick={refetchEquityCurve}
-                    className="mt-2 text-sm text-blue-600 hover:text-blue-800"
-                  >
+                  <Button variant="link" size="sm" onClick={refetchEquityCurve} className="mt-2">
                     Retry
-                  </button>
+                  </Button>
                 </div>
               </div>
             ) : drawdownData.length < 2 ? (
@@ -1345,18 +1342,22 @@ export default function StrategyBacktestPage({ params }: Props) {
                 {trades.length > 0 && (
                   <div className="flex items-center gap-2 text-sm text-gray-500">
                     <span>{trades.length} total</span>
-                    <select
-                      value={pageSize}
-                      onChange={(e) => {
-                        setPageSize(Number(e.target.value));
+                    <Select
+                      value={String(pageSize)}
+                      onValueChange={(value) => {
+                        setPageSize(Number(value));
                         setCurrentPage(1);
                       }}
-                      className="rounded border border-gray-300 px-2 py-1 text-sm"
                     >
-                      <option value={25}>25</option>
-                      <option value={50}>50</option>
-                      <option value={100}>100</option>
-                    </select>
+                      <SelectTrigger className="h-8 w-[70px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="25">25</SelectItem>
+                        <SelectItem value="50">50</SelectItem>
+                        <SelectItem value="100">100</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 )}
               </div>
@@ -1367,12 +1368,9 @@ export default function StrategyBacktestPage({ params }: Props) {
             ) : tradesError ? (
               <div className="flex items-center gap-2">
                 <p className="text-sm text-red-600">{tradesError}</p>
-                <button
-                  onClick={refetchTrades}
-                  className="text-sm text-blue-600 hover:text-blue-800"
-                >
+                <Button variant="link" size="sm" onClick={refetchTrades} className="h-auto p-0">
                   Retry
-                </button>
+                </Button>
               </div>
             ) : trades.length === 0 ? (
               <p className="text-sm text-gray-500">No trades were generated for this run.</p>
@@ -1461,20 +1459,22 @@ export default function StrategyBacktestPage({ params }: Props) {
                       Page {currentPage} of {totalPages}
                     </p>
                     <div className="flex gap-2">
-                      <button
+                      <Button
+                        variant="outline"
+                        size="sm"
                         onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                         disabled={currentPage === 1}
-                        className="rounded border border-gray-300 px-3 py-1 text-sm disabled:opacity-50"
                       >
                         Previous
-                      </button>
-                      <button
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
                         onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                         disabled={currentPage === totalPages}
-                        className="rounded border border-gray-300 px-3 py-1 text-sm disabled:opacity-50"
                       >
                         Next
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 )}
