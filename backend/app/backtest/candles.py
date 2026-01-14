@@ -124,7 +124,7 @@ def _fetch_from_vendor(
         with httpx.Client(timeout=30.0) as client:
             while remaining > 0:
                 limit = min(remaining, 2000)
-                url = f"{settings.cryptocompare_api_url}/{endpoint}"
+                url = f"{settings.cryptocompare_api_url}/v2/{endpoint}"
                 params = {
                     "fsym": fsym,
                     "tsym": tsym,

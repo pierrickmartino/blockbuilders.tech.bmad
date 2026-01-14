@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     s3_region: str = "us-east-1"
 
     # CryptoCompare API settings
-    cryptocompare_api_url: str = "https://min-api.cryptocompare.com/data/v2"
+    cryptocompare_api_url: str = "https://min-api.cryptocompare.com/data"
     cryptocompare_api_key: str = ""
 
     # Backtest defaults
