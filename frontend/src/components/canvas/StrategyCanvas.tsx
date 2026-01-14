@@ -78,8 +78,8 @@ function CanvasInner({
         return;
       }
 
-      const handleId = handle.getAttribute('data-handleid');
-      const handleType = handle.getAttribute('data-handlepos');
+      const handleId = handle.getAttribute("data-handleid");
+      const handleType = handle.getAttribute("data-handletype");
 
       if (connectionState.mode === "idle") {
         // Start connection from source

@@ -9,9 +9,23 @@ export default function TakeProfitNode({ data, selected }: NodeProps) {
       ? data.validationMessage
       : undefined;
   const params = (data?.params || {}) as {
-    levels?: Array<{ percent: number; ratio: number }>;
+    levels?: Array<{
+      percent?: number;
+      ratio?: number;
+      profit_pct?: number;
+      close_pct?: number;
+    }>;
+    take_profit_pct?: number;
   };
-  const levels = params.levels || [{ percent: 5, ratio: 100 }];
+  const levels =
+    Array.isArray(params.levels) && params.levels.length > 0
+      ? params.levels.map((level) => ({
+          percent: level.percent ?? level.profit_pct ?? 5,
+          ratio: level.ratio ?? level.close_pct ?? 100,
+        }))
+      : typeof params.take_profit_pct === "number"
+        ? [{ percent: params.take_profit_pct, ratio: 100 }]
+        : [{ percent: 5, ratio: 100 }];
   const isMobileMode = typeof data?.isMobileMode === "boolean" ? data.isMobileMode : false;
 
   return (
