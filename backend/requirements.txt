@@ -1,8 +1,8 @@
 fastapi==0.115.6
 uvicorn[standard]==0.32.1
-sqlmodel==0.0.22
+sqlmodel>=0.0.31
 alembic==1.14.0
-psycopg2-binary==2.9.10
+psycopg2-binary>=2.9.10
 redis==5.2.1
 rq==1.16.2
 rq-scheduler==0.13.1
