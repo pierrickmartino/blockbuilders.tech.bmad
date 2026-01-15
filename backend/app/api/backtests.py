@@ -610,6 +610,12 @@ def get_trade_detail(
     )
 
 
+@router.get("/test-simple")
+def test_simple(asset: str, timeframe: str):
+    """Simple test endpoint without Query() validators."""
+    return {"asset": asset, "timeframe": timeframe, "message": "test works"}
+
+
 @router.get("/data-quality", response_model=DataQualityMetrics)
 def get_data_quality(
     asset: str = Query(..., description="Asset pair e.g. BTC/USDT"),
