@@ -89,7 +89,20 @@ export async function fetchDataQuality(
   dateFrom: string,
   dateTo: string
 ) {
+  // Convert date strings (YYYY-MM-DD) to ISO datetime strings for backend
+  const dateFromISO = `${dateFrom}T00:00:00Z`;
+  const dateToISO = `${dateTo}T23:59:59Z`;
+
   return apiFetch(
-    `/backtests/data-quality?asset=${encodeURIComponent(asset)}&timeframe=${timeframe}&date_from=${dateFrom}&date_to=${dateTo}`
+    `/backtests/data-quality?asset=${encodeURIComponent(asset)}&timeframe=${timeframe}&date_from=${dateFromISO}&date_to=${dateToISO}`
+  );
+}
+
+export async function fetchDataCompleteness(
+  asset: string,
+  timeframe: string
+) {
+  return apiFetch(
+    `/backtests/data-completeness?asset=${encodeURIComponent(asset)}&timeframe=${timeframe}`
   );
 }
