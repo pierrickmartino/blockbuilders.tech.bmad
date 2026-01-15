@@ -4,6 +4,7 @@ export interface User {
   default_fee_percent: number | null;
   default_slippage_percent: number | null;
   timezone_preference: "local" | "utc";
+  favorite_metrics: string[] | null;
 }
 
 export interface AuthResponse {
@@ -15,6 +16,7 @@ export interface UserUpdateRequest {
   default_fee_percent?: number | null;
   default_slippage_percent?: number | null;
   timezone_preference?: "local" | "utc";
+  favorite_metrics?: string[] | null;
 }
 
 // Legacy Usage type (kept for /usage/me endpoint compatibility)
@@ -42,6 +44,7 @@ export interface SettingsResponse {
   timezone_preference: "local" | "utc";
   backtest_credit_balance: number;
   extra_strategy_slots: number;
+  favorite_metrics: string[] | null;
 }
 
 export interface UsageBundle {

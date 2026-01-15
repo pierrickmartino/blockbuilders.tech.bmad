@@ -1,8 +1,8 @@
 from datetime import datetime
 from enum import Enum
-from typing import Optional
+from typing import Optional, List
 from uuid import UUID, uuid4
-from sqlalchemy import Column, String
+from sqlalchemy import Column, String, JSON
 from sqlmodel import SQLModel, Field
 
 
@@ -44,6 +44,10 @@ class User(SQLModel, table=True):
     timezone_preference: TimezonePreference = Field(
         default=TimezonePreference.LOCAL,
         sa_column=Column(String(10), nullable=False),
+    )
+    favorite_metrics: Optional[List[str]] = Field(
+        default=None,
+        sa_column=Column(JSON, nullable=True),
     )
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
