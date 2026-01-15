@@ -623,11 +623,15 @@ def get_data_quality(
     Get data quality metrics for specified asset/timeframe/date range.
     Aggregates daily metrics over the period.
     """
+    logger.info(f"data-quality called: asset={asset}, timeframe={timeframe}, date_from={date_from}, date_to={date_to}")
+
     # Parse datetime strings
     try:
         date_from_dt = datetime.fromisoformat(date_from.replace("Z", "+00:00"))
         date_to_dt = datetime.fromisoformat(date_to.replace("Z", "+00:00"))
+        logger.info(f"Parsed dates successfully: {date_from_dt} to {date_to_dt}")
     except (ValueError, AttributeError) as e:
+        logger.error(f"Date parsing failed: {e}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Invalid date format. Use ISO 8601 format (e.g., 2025-01-31T00:00:00Z): {str(e)}",
