@@ -236,7 +236,7 @@ function computePositionStats(
 
   for (const trade of trades) {
     // Check hold time data
-    if (trade.duration_seconds != null && trade.duration_seconds > 0) {
+    if (trade.duration_seconds != null && trade.duration_seconds >= 0) {
       totalDuration += trade.duration_seconds;
       minDuration = Math.min(minDuration, trade.duration_seconds);
       maxDuration = Math.max(maxDuration, trade.duration_seconds);
