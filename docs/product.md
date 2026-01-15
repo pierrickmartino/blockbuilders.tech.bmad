@@ -76,6 +76,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - id, email, password_hash (nullable for OAuth)
 - default_fee_percent, default_slippage_percent
 - timezone_preference (enum: local/utc)
+- favorite_metrics (JSON array of metric keys for backtest summary pinning, nullable)
 - auth_provider, provider_user_id (OAuth fields)
 - reset_token, reset_token_expires_at
 - max_strategies, max_backtests_per_day
@@ -1000,6 +1001,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Summary metrics cards:
   - Total return, CAGR, max drawdown
   - Number of trades, win rate
+- Planned: Favorite metrics row that lets users pin/reorder the summary metrics they care about most (stored per user).
 - Equity curve chart (responsive Recharts line chart with touch gestures)
 - Trades table with sorting and pagination
 - Trade detail drawer with surrounding candles
@@ -1583,6 +1585,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Frontend UI** | ✅ Complete | Multi-strategy dashboard, strategy list/editor, backtest runner/results, profile |
 | **Contextual Help & Tooltips** | ✅ Complete | Hover tooltips for indicators, logic blocks, metrics |
 | **Metrics Glossary** | ✅ Complete | Dedicated searchable page explaining backtest metrics |
+| **Favorite Metrics (Backtest Summary)** | 📝 Planned | Users can pin/reorder the metrics shown in backtest summary cards |
 | **Strategy Notes & Annotations** | ✅ Complete | Floating text notes on canvas (280 char limit), drag to position |
 | **Visual Validation Feedback** | ✅ Complete | Inline canvas highlights and messages for validation errors |
 | **Strategy Explanation Generator** | ✅ Complete | Template-based plain-English explanation from strategy JSON |
@@ -1678,6 +1681,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Short selling support
 - Advanced order types (limit, stop-limit)
 - Strategy templates and presets
+- Favorite metrics pinning in backtest summaries
 - Data quality upgrades (multi-vendor reconciliation, extended anomaly detection)
 - Improved analytics (drawdown analysis, trade tagging)
 - Email notifications for auto-updates
@@ -1819,6 +1823,7 @@ pytest --cov            # Coverage report
 - `docs/prd-data-quality-indicators.md` - Data quality indicators PRD
 - `docs/prd-data-completeness-indicators.md` - Data completeness indicators PRD
 - `docs/prd-metrics-glossary.md` - Metrics glossary PRD
+- `docs/prd-favorite-metrics-backtest-summary.md` - Favorite metrics (backtest summary) PRD
 - `docs/prd-strategy-notes-annotations.md` - Strategy notes & annotations PRD
 - `docs/prd-strategy-explanation-generator.md` - Strategy explanation generator PRD
 - `docs/prd-strategy-import-export.md` - Strategy import/export PRD
