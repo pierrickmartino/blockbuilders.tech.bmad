@@ -695,6 +695,14 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Simple skew callout (e.g., many small wins vs few large losses) based on bucket counts
 - Uses trades list as source data
 
+**Position Analysis**
+- Summary stats from the trades list:
+  - Average hold time (based on entry/exit timestamps, expressed in bars and hours/days)
+  - Longest and shortest holding periods
+  - Average position size (based on trade quantity and entry price)
+- Simple helper copy to distinguish day-trading vs swing-style holding patterns
+- Uses existing trade data (no stored aggregates)
+
 **Data Export (CSV/JSON)**
 - Download buttons on backtest results pages
 - Exports trade list, equity curve, and summary metrics as CSV or JSON
@@ -1561,6 +1569,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Data Export (CSV/JSON)** | ✅ Complete | Download trade list, equity curve, and metrics as CSV or JSON |
 | **Seasonality Analysis** | ✅ Complete | Heatmap of average trade return by month, quarter, weekday |
 | **Trade Distribution Analysis** | ✅ Complete | Histograms of trade return buckets and duration distribution for risk insight |
+| **Position Analysis** | ✅ Complete | Average hold time, longest/shortest positions, average position size |
 | **Drawdown Chart** | ✅ Complete | Underwater equity % chart highlighting max drawdown period |
 | **Data Management** | ✅ Complete | Candle DB cache, CryptoCompare integration, S3/MinIO storage |
 | **Data Quality & Completeness Indicators** | ✅ Complete | Gap %, outlier count, volume consistency, data availability timeline, backtest warnings |
@@ -1820,6 +1829,7 @@ pytest --cov            # Coverage report
 - `docs/prd-responsive-charts-mobile.md` - Responsive charts (mobile/touch) PRD
 - `docs/prd-seasonality-analysis.md` - Seasonality analysis PRD
 - `docs/prd-trade-distribution-analysis.md` - Trade distribution analysis PRD
+- `docs/prd-position-analysis.md` - Position analysis PRD
 - `docs/prd-performance-alerts-simple.md` - Performance alerts (simple) PRD
 - `docs/prd-copy-paste-blocks-subgraphs.md` - Copy/paste blocks & subgraphs PRD
 - `docs/prd-mobile-optimized-canvas.md` - Mobile-optimized canvas PRD
