@@ -614,8 +614,8 @@ def get_trade_detail(
 def get_data_quality(
     asset: str = Query(..., description="Asset pair e.g. BTC/USDT"),
     timeframe: str = Query(..., description="Timeframe e.g. 1d or 4h"),
-    date_from: datetime = Query(..., description="Start date"),
-    date_to: datetime = Query(..., description="End date"),
+    date_from: str = Query(..., description="Start date (ISO 8601 format)"),
+    date_to: str = Query(..., description="End date (ISO 8601 format)"),
     user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
 ) -> DataQualityMetrics:
@@ -623,8 +623,18 @@ def get_data_quality(
     Get data quality metrics for specified asset/timeframe/date range.
     Aggregates daily metrics over the period.
     """
+    # Parse datetime strings
+    try:
+        date_from_dt = datetime.fromisoformat(date_from.replace("Z", "+00:00"))
+        date_to_dt = datetime.fromisoformat(date_to.replace("Z", "+00:00"))
+    except (ValueError, AttributeError) as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid date format. Use ISO 8601 format (e.g., 2025-01-31T00:00:00Z): {str(e)}",
+        )
+
     # Validate date range
-    if date_to <= date_from:
+    if date_to_dt <= date_from_dt:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="date_to must be after date_from",
@@ -634,8 +644,8 @@ def get_data_quality(
     metrics_list = query_metrics_for_range(
         asset,
         timeframe,
-        date_from,
-        date_to,
+        date_from_dt,
+        date_to_dt,
         session,
     )
 
@@ -644,8 +654,8 @@ def get_data_quality(
         return DataQualityMetrics(
             asset=asset,
             timeframe=timeframe,
-            date_from=date_from,
-            date_to=date_to,
+            date_from=date_from_dt,
+            date_to=date_to_dt,
             gap_percent=0.0,
             outlier_count=0,
             volume_consistency=100.0,
@@ -673,8 +683,8 @@ def get_data_quality(
     return DataQualityMetrics(
         asset=asset,
         timeframe=timeframe,
-        date_from=date_from,
-        date_to=date_to,
+        date_from=date_from_dt,
+        date_to=date_to_dt,
         gap_percent=gap_percent_avg,
         outlier_count=outlier_count_total,
         volume_consistency=volume_consistency_avg,
