@@ -28,6 +28,7 @@ import {
   formatDuration,
 } from "@/lib/format";
 import { useDisplay } from "@/context/display";
+import { useAuth } from "@/context/auth";
 import { useBacktestResults } from "@/hooks/useBacktestResults";
 import { Strategy } from "@/types/strategy";
 import {
@@ -35,6 +36,7 @@ import {
   BacktestListItem,
   BacktestStatus,
   BacktestStatusResponse,
+  BacktestSummary,
   DataQualityMetrics,
   DataCompletenessResponse,
   TradeDetail,
@@ -101,26 +103,111 @@ const statusStyles: Record<BacktestStatus, string> = {
   failed: "bg-red-100 text-red-700",
 };
 
+interface MetricConfig {
+  key: string;
+  label: string;
+  getValue: (summary: BacktestSummary) => string | number;
+}
+
+function getOrderedMetrics(
+  summary: BacktestSummary,
+  favoriteKeys: string[] | null
+): MetricConfig[] {
+  const allMetrics: MetricConfig[] = [
+    { key: "final-balance", label: "Final balance", getValue: s => formatPrice(s.final_balance) },
+    { key: "total-return", label: "Total return", getValue: s => formatPercent(s.total_return_pct) },
+    { key: "max-drawdown", label: "Max drawdown", getValue: s => formatPercent(s.max_drawdown_pct) },
+    { key: "cagr", label: "CAGR", getValue: s => formatPercent(s.cagr_pct) },
+    { key: "trades", label: "Trades", getValue: s => s.num_trades },
+    { key: "win-rate", label: "Win rate", getValue: s => formatPercent(s.win_rate_pct) },
+    { key: "benchmark-return", label: "Benchmark return", getValue: s => formatPercent(s.benchmark_return_pct) },
+    { key: "alpha", label: "Alpha", getValue: s => formatPercent(s.alpha) },
+    { key: "beta", label: "Beta", getValue: s => s.beta.toFixed(2) },
+  ];
+
+  if (!favoriteKeys || favoriteKeys.length === 0) {
+    return allMetrics;
+  }
+
+  // Pinned metrics first (in user order), then remaining
+  const pinned = favoriteKeys
+    .map(key => allMetrics.find(m => m.key === key))
+    .filter(Boolean) as MetricConfig[];
+
+  const remaining = allMetrics.filter(m => !favoriteKeys.includes(m.key));
+
+  return [...pinned, ...remaining];
+}
+
 function MetricCard({
   metricKey,
   label,
   value,
+  isPinned = false,
+  canMoveLeft = false,
+  canMoveRight = false,
+  onTogglePin,
+  onMoveLeft,
+  onMoveRight,
+  disabled = false,
 }: {
   metricKey: string;
   label: string;
   value: string | number;
+  isPinned?: boolean;
+  canMoveLeft?: boolean;
+  canMoveRight?: boolean;
+  onTogglePin?: () => void;
+  onMoveLeft?: () => void;
+  onMoveRight?: () => void;
+  disabled?: boolean;
 }) {
   const tooltip = getTooltip(metricToGlossaryId(metricKey));
+
   return (
     <div className="rounded border border-gray-200 bg-gray-50 p-3">
-      <div className="flex items-center gap-1 text-xs uppercase text-gray-500">
-        <span title={tooltip?.short}>{label}</span>
-        <InfoIcon
-          tooltip={tooltip}
-          className="flex-shrink-0"
-        />
+      <div className="flex items-center justify-between gap-1 text-xs uppercase text-gray-500">
+        <div className="flex items-center gap-1">
+          <span title={tooltip?.short}>{label}</span>
+          <InfoIcon tooltip={tooltip} className="flex-shrink-0" />
+        </div>
+
+        <button
+          onClick={onTogglePin}
+          disabled={disabled}
+          className="text-gray-400 transition-colors hover:text-blue-500 disabled:opacity-50"
+          title={isPinned ? "Unpin metric" : "Pin metric"}
+        >
+          <svg className="h-4 w-4" fill={isPinned ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeWidth="2" d="M5 5l7-2 7 2v10l-7 2-7-2V5z" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
       </div>
+
       <div className="text-lg font-semibold text-gray-900">{value}</div>
+
+      {isPinned && (
+        <div className="mt-2 flex gap-1">
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={onMoveLeft}
+            disabled={!canMoveLeft || disabled}
+            className="h-6 px-2 text-xs"
+          >
+            ← Left
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={onMoveRight}
+            disabled={!canMoveRight || disabled}
+            className="h-6 px-2 text-xs"
+          >
+            Right →
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
@@ -404,6 +491,7 @@ export default function StrategyBacktestPage({ params }: Props) {
   const { id } = use(params);
   const router = useRouter();
   const { timezone } = useDisplay();
+  const { user, refreshUser } = useAuth();
   const isMobile = useIsMobile();
 
   const [strategy, setStrategy] = useState<Strategy | null>(null);
@@ -437,6 +525,9 @@ export default function StrategyBacktestPage({ params }: Props) {
   // Seasonality state
   const [periodType, setPeriodType] = useState<PeriodType>("month");
 
+  // Favorite metrics state
+  const [savingMetrics, setSavingMetrics] = useState(false);
+
   // Use custom hook for backtest results (trades, equity curve, benchmark, polling)
   const handleRunDetailFetched = useCallback((detail: BacktestStatusResponse) => {
     setError(null);
@@ -452,6 +543,56 @@ export default function StrategyBacktestPage({ params }: Props) {
       )
     );
   }, []);
+
+  // Favorite metrics handlers
+  const handleToggleFavorite = useCallback(async (metricKey: string) => {
+    if (!user) return;
+
+    const current = user.favorite_metrics || [];
+    const newFavorites = current.includes(metricKey)
+      ? current.filter(k => k !== metricKey)
+      : [...current, metricKey];
+
+    setSavingMetrics(true);
+    try {
+      await apiFetch("/users/me", {
+        method: "PUT",
+        body: JSON.stringify({ favorite_metrics: newFavorites }),
+      });
+      await refreshUser();
+    } catch {
+      // Silent fail or show toast
+    } finally {
+      setSavingMetrics(false);
+    }
+  }, [user, refreshUser]);
+
+  const handleReorderFavorite = useCallback(async (metricKey: string, direction: "left" | "right") => {
+    if (!user?.favorite_metrics) return;
+
+    const current = [...user.favorite_metrics];
+    const idx = current.indexOf(metricKey);
+    if (idx === -1) return;
+
+    const newIdx = direction === "left" ? idx - 1 : idx + 1;
+    if (newIdx < 0 || newIdx >= current.length) return;
+
+    // Swap
+    [current[idx], current[newIdx]] = [current[newIdx], current[idx]];
+
+    setSavingMetrics(true);
+    try {
+      await apiFetch("/users/me", {
+        method: "PUT",
+        body: JSON.stringify({ favorite_metrics: current }),
+      });
+      await refreshUser();
+    } catch {
+      // Silent fail
+    } finally {
+      setSavingMetrics(false);
+    }
+  }, [user, refreshUser]);
 
   const {
     selectedRun,
@@ -981,51 +1122,27 @@ export default function StrategyBacktestPage({ params }: Props) {
                 </div>
               ) : selectedRun.summary ? (
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  <MetricCard
-                    metricKey="final-balance"
-                    label="Final balance"
-                    value={formatPrice(selectedRun.summary.final_balance)}
-                  />
-                  <MetricCard
-                    metricKey="total-return"
-                    label="Total return"
-                    value={formatPercent(selectedRun.summary.total_return_pct)}
-                  />
-                  <MetricCard
-                    metricKey="max-drawdown"
-                    label="Max drawdown"
-                    value={formatPercent(selectedRun.summary.max_drawdown_pct)}
-                  />
-                  <MetricCard
-                    metricKey="cagr"
-                    label="CAGR"
-                    value={formatPercent(selectedRun.summary.cagr_pct)}
-                  />
-                  <MetricCard
-                    metricKey="trades"
-                    label="Trades"
-                    value={selectedRun.summary.num_trades}
-                  />
-                  <MetricCard
-                    metricKey="win-rate"
-                    label="Win rate"
-                    value={formatPercent(selectedRun.summary.win_rate_pct)}
-                  />
-                  <MetricCard
-                    metricKey="benchmark-return"
-                    label="Benchmark return"
-                    value={formatPercent(selectedRun.summary.benchmark_return_pct)}
-                  />
-                  <MetricCard
-                    metricKey="alpha"
-                    label="Alpha"
-                    value={formatPercent(selectedRun.summary.alpha)}
-                  />
-                  <MetricCard
-                    metricKey="beta"
-                    label="Beta"
-                    value={selectedRun.summary.beta.toFixed(2)}
-                  />
+                  {getOrderedMetrics(selectedRun.summary, user?.favorite_metrics || null).map((metric) => {
+                    const isPinned = user?.favorite_metrics?.includes(metric.key) || false;
+                    const pinnedMetrics = user?.favorite_metrics || [];
+                    const pinnedIndex = pinnedMetrics.indexOf(metric.key);
+
+                    return (
+                      <MetricCard
+                        key={metric.key}
+                        metricKey={metric.key}
+                        label={metric.label}
+                        value={metric.getValue(selectedRun.summary!)}
+                        isPinned={isPinned}
+                        canMoveLeft={isPinned && pinnedIndex > 0}
+                        canMoveRight={isPinned && pinnedIndex < pinnedMetrics.length - 1}
+                        onTogglePin={() => handleToggleFavorite(metric.key)}
+                        onMoveLeft={() => handleReorderFavorite(metric.key, "left")}
+                        onMoveRight={() => handleReorderFavorite(metric.key, "right")}
+                        disabled={savingMetrics}
+                      />
+                    );
+                  })}
                 </div>
               ) : (
                 <p className="text-sm text-gray-600">

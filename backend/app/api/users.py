@@ -58,6 +58,7 @@ def _build_profile_response(user: User, session: Session) -> ProfileResponse:
             timezone_preference=user.timezone_preference,
             backtest_credit_balance=user.backtest_credit_balance,
             extra_strategy_slots=user.extra_strategy_slots,
+            favorite_metrics=user.favorite_metrics,
         ),
         usage=UsageBundle(
             strategies=UsageItem(used=strategies_count, limit=user.max_strategies),
@@ -100,6 +101,8 @@ def update_me(
         user.default_slippage_percent = data.default_slippage_percent
     if data.timezone_preference is not None:
         user.timezone_preference = data.timezone_preference
+    if data.favorite_metrics is not None:
+        user.favorite_metrics = data.favorite_metrics
     user.updated_at = datetime.now(timezone.utc)
     session.add(user)
     session.commit()
