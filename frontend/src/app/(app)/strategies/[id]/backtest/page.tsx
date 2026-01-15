@@ -25,6 +25,7 @@ import {
   formatPrice,
   formatMoney,
   formatChartDate,
+  formatDuration,
 } from "@/lib/format";
 import { useDisplay } from "@/context/display";
 import { useBacktestResults } from "@/hooks/useBacktestResults";
@@ -36,6 +37,7 @@ import {
   BacktestStatusResponse,
   DataQualityMetrics,
   DataCompletenessResponse,
+  TradeDetail,
 } from "@/types/backtest";
 import { StrategyTabs } from "@/components/StrategyTabs";
 import TradeDrawer from "@/components/TradeDrawer";
@@ -201,6 +203,87 @@ function timeframeToSeconds(timeframe: string): number {
     case 'w': return value * 604800;
     default: return 86400;
   }
+}
+
+interface PositionStats {
+  avgHoldSeconds: number;
+  avgHoldBars: number;
+  longestHoldSeconds: number;
+  longestHoldBars: number;
+  shortestHoldSeconds: number;
+  shortestHoldBars: number;
+  avgPositionSize: number;
+  hasMissingTimestamps: boolean;
+  hasMissingPositionData: boolean;
+}
+
+function computePositionStats(
+  trades: TradeDetail[],
+  timeframeSeconds: number
+): PositionStats | null {
+  if (trades.length < 2) {
+    return null;
+  }
+
+  let totalDuration = 0;
+  let minDuration = Infinity;
+  let maxDuration = -Infinity;
+  let totalPositionSize = 0;
+  let validDurationCount = 0;
+  let validPositionCount = 0;
+  let hasMissingTimestamps = false;
+  let hasMissingPositionData = false;
+
+  for (const trade of trades) {
+    // Check hold time data
+    if (trade.duration_seconds != null && trade.duration_seconds > 0) {
+      totalDuration += trade.duration_seconds;
+      minDuration = Math.min(minDuration, trade.duration_seconds);
+      maxDuration = Math.max(maxDuration, trade.duration_seconds);
+      validDurationCount++;
+    } else {
+      hasMissingTimestamps = true;
+    }
+
+    // Check position size data
+    if (
+      trade.entry_price != null &&
+      trade.qty != null &&
+      trade.entry_price > 0 &&
+      trade.qty > 0
+    ) {
+      totalPositionSize += trade.entry_price * trade.qty;
+      validPositionCount++;
+    } else {
+      hasMissingPositionData = true;
+    }
+  }
+
+  const avgHoldSeconds =
+    validDurationCount > 0 ? totalDuration / validDurationCount : 0;
+
+  return {
+    avgHoldSeconds,
+    avgHoldBars: avgHoldSeconds / timeframeSeconds,
+    longestHoldSeconds: maxDuration !== -Infinity ? maxDuration : 0,
+    longestHoldBars:
+      (maxDuration !== -Infinity ? maxDuration : 0) / timeframeSeconds,
+    shortestHoldSeconds: minDuration !== Infinity ? minDuration : 0,
+    shortestHoldBars:
+      (minDuration !== Infinity ? minDuration : 0) / timeframeSeconds,
+    avgPositionSize:
+      validPositionCount > 0 ? totalPositionSize / validPositionCount : 0,
+    hasMissingTimestamps,
+    hasMissingPositionData,
+  };
+}
+
+function getHoldTimeInterpretation(avgHoldSeconds: number): string {
+  const oneDaySeconds = 86400;
+  if (avgHoldSeconds <= oneDaySeconds) {
+    return 'Holding times suggest a day-trading style.';
+  }
+  return 'Holding times suggest a swing-trading style.';
 }
 
 function computeReturnDistribution(
@@ -1200,6 +1283,110 @@ export default function StrategyBacktestPage({ params }: Props) {
             )}
           </section>
         )}
+
+        {/* Position Analysis - only show for completed runs */}
+        {selectedRun?.status === 'completed' &&
+          (() => {
+            const timeframeSeconds = timeframeToSeconds(selectedRun.timeframe);
+            const positionStats = computePositionStats(trades, timeframeSeconds);
+
+            return (
+              <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+                <h2 className="mb-3 text-base font-semibold text-gray-900">
+                  Position Analysis
+                </h2>
+
+                {!positionStats ? (
+                  <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-8 text-center">
+                    <p className="text-sm text-gray-500">
+                      Not enough trades to analyze. Need at least 2 trades.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {/* Metrics Grid */}
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                      {/* Average Hold Time */}
+                      {!positionStats.hasMissingTimestamps && (
+                        <div className="rounded border border-gray-200 bg-gray-50 p-3">
+                          <div className="text-xs uppercase text-gray-500">
+                            Avg Hold Time
+                          </div>
+                          <div className="text-lg font-semibold text-gray-900">
+                            {formatDuration(positionStats.avgHoldSeconds)}
+                          </div>
+                          <div className="text-xs text-gray-600">
+                            {positionStats.avgHoldBars.toFixed(1)} bars
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Longest Position */}
+                      {!positionStats.hasMissingTimestamps && (
+                        <div className="rounded border border-gray-200 bg-gray-50 p-3">
+                          <div className="text-xs uppercase text-gray-500">
+                            Longest Position
+                          </div>
+                          <div className="text-lg font-semibold text-gray-900">
+                            {formatDuration(positionStats.longestHoldSeconds)}
+                          </div>
+                          <div className="text-xs text-gray-600">
+                            {positionStats.longestHoldBars.toFixed(1)} bars
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Shortest Position */}
+                      {!positionStats.hasMissingTimestamps && (
+                        <div className="rounded border border-gray-200 bg-gray-50 p-3">
+                          <div className="text-xs uppercase text-gray-500">
+                            Shortest Position
+                          </div>
+                          <div className="text-lg font-semibold text-gray-900">
+                            {formatDuration(positionStats.shortestHoldSeconds)}
+                          </div>
+                          <div className="text-xs text-gray-600">
+                            {positionStats.shortestHoldBars.toFixed(1)} bars
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Average Position Size */}
+                      {!positionStats.hasMissingPositionData &&
+                        positionStats.avgPositionSize > 0 && (
+                          <div className="rounded border border-gray-200 bg-gray-50 p-3">
+                            <div className="text-xs uppercase text-gray-500">
+                              Avg Position Size
+                            </div>
+                            <div className="text-lg font-semibold text-gray-900">
+                              {formatMoney(positionStats.avgPositionSize)}
+                            </div>
+                          </div>
+                        )}
+                    </div>
+
+                    {/* Interpretation Helper */}
+                    {!positionStats.hasMissingTimestamps &&
+                      positionStats.avgHoldSeconds > 0 && (
+                        <div className="rounded border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-700">
+                          {getHoldTimeInterpretation(
+                            positionStats.avgHoldSeconds
+                          )}
+                        </div>
+                      )}
+
+                    {/* Warning Messages */}
+                    {positionStats.hasMissingTimestamps && (
+                      <div className="rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
+                        Some trades have missing or invalid timestamps. Hold
+                        time statistics are hidden.
+                      </div>
+                    )}
+                  </div>
+                )}
+              </section>
+            );
+          })()}
 
         {/* Seasonality Analysis - only show for completed runs */}
         {selectedRun?.status === "completed" && (
