@@ -1,6 +1,7 @@
 import { Handle, Position, NodeProps } from "@xyflow/react";
 import BaseNode from "../BaseNode";
 import { cn } from "@/lib/utils";
+import { PriceSource } from "@/types/canvas";
 
 export default function BollingerNode({ data, selected }: NodeProps) {
   const label = String(data?.label || "Bollinger Bands");
@@ -9,7 +10,7 @@ export default function BollingerNode({ data, selected }: NodeProps) {
     typeof data?.validationMessage === "string"
       ? data.validationMessage
       : undefined;
-  const params = (data?.params || {}) as { period?: number; stddev?: number };
+  const params = (data?.params || {}) as { source?: PriceSource; period?: number; stddev?: number };
   const isMobileMode = typeof data?.isMobileMode === "boolean" ? data.isMobileMode : false;
   return (
     <BaseNode
@@ -21,16 +22,8 @@ export default function BollingerNode({ data, selected }: NodeProps) {
       validationMessage={validationMessage}
       isMobileMode={isMobileMode}
     >
-      <Handle
-        type="target"
-        position={Position.Left}
-        id="input"
-        className={cn(
-          isMobileMode ? "!h-5 !w-5" : "!h-3 !w-3",
-          "!bg-blue-500"
-        )}
-      />
       <div className="space-y-0.5 text-xs text-gray-600">
+        <div>Source: {params.source || "close"}</div>
         <div>Period: {params.period || 20}</div>
         <div>StdDev: {params.stddev || 2}</div>
       </div>
@@ -38,7 +31,7 @@ export default function BollingerNode({ data, selected }: NodeProps) {
         type="source"
         position={Position.Right}
         id="upper"
-        style={{ top: "35%" }}
+        style={{ top: "30%" }}
         className={cn(
           isMobileMode ? "!h-5 !w-5" : "!h-3 !w-3",
           "!bg-blue-500"
@@ -58,7 +51,7 @@ export default function BollingerNode({ data, selected }: NodeProps) {
         type="source"
         position={Position.Right}
         id="lower"
-        style={{ top: "75%" }}
+        style={{ top: "80%" }}
         className={cn(
           isMobileMode ? "!h-5 !w-5" : "!h-3 !w-3",
           "!bg-blue-500"

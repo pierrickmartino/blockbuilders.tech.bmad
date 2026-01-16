@@ -27,31 +27,40 @@ export interface ConstantParams {
   value: number;
 }
 
+// Price source type for indicators
+export type PriceSource = "open" | "high" | "low" | "close";
+
 export interface SmaParams {
+  source: PriceSource;
   period: number;
 }
 
 export interface EmaParams {
+  source: PriceSource;
   period: number;
 }
 
 export interface RsiParams {
+  source: PriceSource;
   period: number;
 }
 
 export interface MacdParams {
+  source: PriceSource;
   fast_period: number;
   slow_period: number;
   signal_period: number;
 }
 
 export interface BollingerParams {
+  source: PriceSource;
   period: number;
   stddev: number;
 }
 
 export interface AtrParams {
   period: number;
+  // ATR uses high/low/close internally, no source selection needed
 }
 
 export interface CompareParams {
@@ -229,52 +238,52 @@ export const BLOCK_REGISTRY: BlockMeta[] = [
     category: "indicator",
     label: "SMA",
     description: "Simple Moving Average",
-    inputs: ["input"],
+    inputs: [],
     outputs: ["output"],
-    defaultParams: { period: 20 },
+    defaultParams: { source: "close", period: 20 },
   },
   {
     type: "ema",
     category: "indicator",
     label: "EMA",
     description: "Exponential Moving Average",
-    inputs: ["input"],
+    inputs: [],
     outputs: ["output"],
-    defaultParams: { period: 20 },
+    defaultParams: { source: "close", period: 20 },
   },
   {
     type: "rsi",
     category: "indicator",
     label: "RSI",
     description: "Relative Strength Index",
-    inputs: ["input"],
+    inputs: [],
     outputs: ["output"],
-    defaultParams: { period: 14 },
+    defaultParams: { source: "close", period: 14 },
   },
   {
     type: "macd",
     category: "indicator",
     label: "MACD",
     description: "Moving Average Convergence Divergence",
-    inputs: ["input"],
+    inputs: [],
     outputs: ["macd", "signal", "histogram"],
-    defaultParams: { fast_period: 12, slow_period: 26, signal_period: 9 },
+    defaultParams: { source: "close", fast_period: 12, slow_period: 26, signal_period: 9 },
   },
   {
     type: "bollinger",
     category: "indicator",
     label: "Bollinger Bands",
     description: "Bollinger Bands indicator",
-    inputs: ["input"],
+    inputs: [],
     outputs: ["upper", "middle", "lower"],
-    defaultParams: { period: 20, stddev: 2 },
+    defaultParams: { source: "close", period: 20, stddev: 2 },
   },
   {
     type: "atr",
     category: "indicator",
     label: "ATR",
-    description: "Average True Range",
-    inputs: ["input"],
+    description: "Average True Range (uses High/Low/Close)",
+    inputs: [],
     outputs: ["output"],
     defaultParams: { period: 14 },
   },

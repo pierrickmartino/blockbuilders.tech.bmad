@@ -300,6 +300,18 @@ function getParamConfigs(blockType: BlockType): ParamConfig[] {
     case "ema":
       return [
         {
+          key: "source",
+          label: "Price Source",
+          type: "select",
+          defaultValue: "close",
+          options: [
+            { value: "open", label: "Open" },
+            { value: "high", label: "High" },
+            { value: "low", label: "Low" },
+            { value: "close", label: "Close" },
+          ],
+        },
+        {
           key: "period",
           label: "Period",
           type: "number",
@@ -312,6 +324,18 @@ function getParamConfigs(blockType: BlockType): ParamConfig[] {
     case "rsi":
       return [
         {
+          key: "source",
+          label: "Price Source",
+          type: "select",
+          defaultValue: "close",
+          options: [
+            { value: "open", label: "Open" },
+            { value: "high", label: "High" },
+            { value: "low", label: "Low" },
+            { value: "close", label: "Close" },
+          ],
+        },
+        {
           key: "period",
           label: "Period",
           type: "number",
@@ -323,6 +347,18 @@ function getParamConfigs(blockType: BlockType): ParamConfig[] {
       ];
     case "macd":
       return [
+        {
+          key: "source",
+          label: "Price Source",
+          type: "select",
+          defaultValue: "close",
+          options: [
+            { value: "open", label: "Open" },
+            { value: "high", label: "High" },
+            { value: "low", label: "Low" },
+            { value: "close", label: "Close" },
+          ],
+        },
         {
           key: "fast_period",
           label: "Fast Period",
@@ -351,6 +387,18 @@ function getParamConfigs(blockType: BlockType): ParamConfig[] {
     case "bollinger":
       return [
         {
+          key: "source",
+          label: "Price Source",
+          type: "select",
+          defaultValue: "close",
+          options: [
+            { value: "open", label: "Open" },
+            { value: "high", label: "High" },
+            { value: "low", label: "Low" },
+            { value: "close", label: "Close" },
+          ],
+        },
+        {
           key: "period",
           label: "Period",
           type: "number",
@@ -369,6 +417,7 @@ function getParamConfigs(blockType: BlockType): ParamConfig[] {
         },
       ];
     case "atr":
+      // ATR uses high/low/close internally - no source selection needed
       return [
         {
           key: "period",
@@ -377,6 +426,7 @@ function getParamConfigs(blockType: BlockType): ParamConfig[] {
           defaultValue: 14,
           min: 1,
           max: 500,
+          help: "Uses High/Low/Close for True Range",
         },
       ];
     case "compare":

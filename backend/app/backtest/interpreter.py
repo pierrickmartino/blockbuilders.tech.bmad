@@ -122,25 +122,33 @@ def interpret_strategy(
             block_outputs[block_id]["output"] = result
 
         elif block_type == "sma":
-            input_data = _get_input(inputs, "input", get_block_output, closes)
+            # Get price source from params (defaults to close for backward compatibility)
+            source = params.get("source", "close")
+            input_data = candle_data.get(source, closes)
             period = int(params.get("period", 20))
             result = indicators.sma(input_data, period)
             block_outputs[block_id]["output"] = result
 
         elif block_type == "ema":
-            input_data = _get_input(inputs, "input", get_block_output, closes)
+            # Get price source from params (defaults to close for backward compatibility)
+            source = params.get("source", "close")
+            input_data = candle_data.get(source, closes)
             period = int(params.get("period", 20))
             result = indicators.ema(input_data, period)
             block_outputs[block_id]["output"] = result
 
         elif block_type == "rsi":
-            input_data = _get_input(inputs, "input", get_block_output, closes)
+            # Get price source from params (defaults to close for backward compatibility)
+            source = params.get("source", "close")
+            input_data = candle_data.get(source, closes)
             period = int(params.get("period", 14))
             result = indicators.rsi(input_data, period)
             block_outputs[block_id]["output"] = result
 
         elif block_type == "macd":
-            input_data = _get_input(inputs, "input", get_block_output, closes)
+            # Get price source from params (defaults to close for backward compatibility)
+            source = params.get("source", "close")
+            input_data = candle_data.get(source, closes)
             fast = int(params.get("fast_period", 12))
             slow = int(params.get("slow_period", 26))
             signal = int(params.get("signal_period", 9))
@@ -151,7 +159,9 @@ def interpret_strategy(
             block_outputs[block_id]["output"] = macd_line  # Default output
 
         elif block_type == "bollinger":
-            input_data = _get_input(inputs, "input", get_block_output, closes)
+            # Get price source from params (defaults to close for backward compatibility)
+            source = params.get("source", "close")
+            input_data = candle_data.get(source, closes)
             period = int(params.get("period", 20))
             std_dev = float(params.get("stddev", 2.0))
             upper, middle, lower = indicators.bollinger(input_data, period, std_dev)
@@ -161,6 +171,7 @@ def interpret_strategy(
             block_outputs[block_id]["output"] = middle  # Default output
 
         elif block_type == "atr":
+            # ATR uses high/low/close internally - no source selection
             period = int(params.get("period", 14))
             result = indicators.atr(highs, lows, closes, period)
             block_outputs[block_id]["output"] = result
