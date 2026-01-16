@@ -165,17 +165,17 @@ function MetricCard({
   const tooltip = getTooltip(metricToGlossaryId(metricKey));
 
   return (
-    <div className="rounded border border-gray-200 bg-gray-50 p-3">
+    <div className="rounded border border-gray-200 bg-gray-50 p-2 sm:p-3">
       <div className="flex items-center justify-between gap-1 text-xs uppercase text-gray-500">
-        <div className="flex items-center gap-1">
-          <span title={tooltip?.short}>{label}</span>
-          <InfoIcon tooltip={tooltip} className="flex-shrink-0" />
+        <div className="flex min-w-0 items-center gap-1">
+          <span className="truncate" title={tooltip?.short}>{label}</span>
+          <InfoIcon tooltip={tooltip} className="hidden flex-shrink-0 sm:inline-flex" />
         </div>
 
         <button
           onClick={onTogglePin}
           disabled={disabled}
-          className="text-gray-400 transition-colors hover:text-blue-500 disabled:opacity-50"
+          className="flex-shrink-0 text-gray-400 transition-colors hover:text-blue-500 disabled:opacity-50"
           title={isPinned ? "Unpin metric" : "Pin metric"}
         >
           <svg className="h-4 w-4" fill={isPinned ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
@@ -184,10 +184,10 @@ function MetricCard({
         </button>
       </div>
 
-      <div className="text-lg font-semibold text-gray-900">{value}</div>
+      <div className="text-base font-semibold text-gray-900 sm:text-lg">{value}</div>
 
       {isPinned && (
-        <div className="mt-2 flex gap-1">
+        <div className="mt-2 hidden gap-1 sm:flex">
           <Button
             size="sm"
             variant="ghost"
@@ -888,9 +888,9 @@ export default function StrategyBacktestPage({ params }: Props) {
   }
 
   return (
-    <div className="flex h-screen flex-col">
+    <div className="flex h-screen flex-col overflow-x-hidden">
       {/* Top Bar */}
-      <div className="border-b bg-white px-4 py-3">
+      <div className="border-b bg-white px-3 py-3 sm:px-4">
         <div className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center gap-3">
             <Link href="/strategies" className="text-gray-500 hover:text-gray-700">
@@ -934,16 +934,14 @@ export default function StrategyBacktestPage({ params }: Props) {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 space-y-4 overflow-auto bg-gray-50 p-4">
-        <div className="grid gap-4 lg:grid-cols-3">
-          <section className="lg:col-span-2 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-            <div className="mb-4 flex items-center justify-between">
-              <div>
-                <h2 className="text-base font-semibold text-gray-900">Run a backtest</h2>
-                <p className="text-sm text-gray-500">
-                  Uses the latest saved version of your strategy. Fee and slippage default to your settings.
-                </p>
-              </div>
+      <div className="flex-1 space-y-4 overflow-auto bg-gray-50 p-3 sm:p-4">
+        <div className="grid gap-3 sm:gap-4 lg:grid-cols-3">
+          <section className="lg:col-span-2 rounded-lg border border-gray-200 bg-white p-3 shadow-sm sm:p-4">
+            <div className="mb-3 sm:mb-4">
+              <h2 className="text-base font-semibold text-gray-900">Run a backtest</h2>
+              <p className="text-sm text-gray-500">
+                Uses the latest saved version. Fee and slippage default to your settings.
+              </p>
             </div>
             <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
@@ -1015,7 +1013,7 @@ export default function StrategyBacktestPage({ params }: Props) {
             </form>
           </section>
 
-          <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+          <section className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm sm:p-4">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="text-base font-semibold text-gray-900">Recent runs</h2>
               <Button
@@ -1060,7 +1058,7 @@ export default function StrategyBacktestPage({ params }: Props) {
           </section>
         </div>
 
-        <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+        <section className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm sm:p-4">
           <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-base font-semibold text-gray-900">Run details</h2>
             <div className="flex flex-wrap items-center gap-2 sm:gap-3">
@@ -1121,7 +1119,7 @@ export default function StrategyBacktestPage({ params }: Props) {
                   {selectedRun.error_message || "Backtest failed. Please try again."}
                 </div>
               ) : selectedRun.summary ? (
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
                   {getOrderedMetrics(selectedRun.summary, user?.favorite_metrics || null).map((metric) => {
                     const isPinned = user?.favorite_metrics?.includes(metric.key) || false;
                     const pinnedMetrics = user?.favorite_metrics || [];
@@ -1154,22 +1152,22 @@ export default function StrategyBacktestPage({ params }: Props) {
               {selectedRun.data_quality && (
                 <div className="mt-4">
                   <h3 className="mb-2 text-sm font-medium text-gray-700">Data Quality</h3>
-                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                    <div className="rounded border border-gray-200 bg-gray-50 p-3">
+                  <div className="grid grid-cols-2 gap-2 lg:grid-cols-3">
+                    <div className="rounded border border-gray-200 bg-gray-50 p-2 sm:p-3">
                       <div className="text-xs text-gray-500">Gap %</div>
-                      <div className="text-lg font-semibold">
+                      <div className="text-base font-semibold sm:text-lg">
                         {selectedRun.data_quality.gap_percent.toFixed(2)}%
                       </div>
                     </div>
-                    <div className="rounded border border-gray-200 bg-gray-50 p-3">
+                    <div className="rounded border border-gray-200 bg-gray-50 p-2 sm:p-3">
                       <div className="text-xs text-gray-500">Outliers</div>
-                      <div className="text-lg font-semibold">
+                      <div className="text-base font-semibold sm:text-lg">
                         {selectedRun.data_quality.outlier_count}
                       </div>
                     </div>
-                    <div className="rounded border border-gray-200 bg-gray-50 p-3">
+                    <div className="col-span-2 rounded border border-gray-200 bg-gray-50 p-2 sm:p-3 lg:col-span-1">
                       <div className="text-xs text-gray-500">Volume Consistency</div>
-                      <div className="text-lg font-semibold">
+                      <div className="text-base font-semibold sm:text-lg">
                         {selectedRun.data_quality.volume_consistency.toFixed(1)}%
                       </div>
                     </div>
@@ -1196,7 +1194,7 @@ export default function StrategyBacktestPage({ params }: Props) {
 
         {/* Equity Curve Chart - only show for completed runs */}
         {selectedRun?.status === "completed" && (
-          <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+          <section className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm sm:p-4">
             <div className="mb-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <h2 className="text-base font-semibold text-gray-900">Equity Curve</h2>
@@ -1312,7 +1310,7 @@ export default function StrategyBacktestPage({ params }: Props) {
 
         {/* Drawdown Chart - only show for completed runs */}
         {selectedRun?.status === "completed" && (
-          <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+          <section className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm sm:p-4">
             <div className="mb-3 flex items-center gap-2">
               <h2 className="text-base font-semibold text-gray-900">Drawdown (%)</h2>
               {isMobile && (
@@ -1408,7 +1406,7 @@ export default function StrategyBacktestPage({ params }: Props) {
             const positionStats = computePositionStats(trades, timeframeSeconds);
 
             return (
-              <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+              <section className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm sm:p-4">
                 <h2 className="mb-3 text-base font-semibold text-gray-900">
                   Position Analysis
                 </h2>
@@ -1422,14 +1420,14 @@ export default function StrategyBacktestPage({ params }: Props) {
                 ) : (
                   <div className="space-y-4">
                     {/* Metrics Grid */}
-                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
                       {/* Average Hold Time */}
                       {!positionStats.hasMissingTimestamps && (
-                        <div className="rounded border border-gray-200 bg-gray-50 p-3">
+                        <div className="rounded border border-gray-200 bg-gray-50 p-2 sm:p-3">
                           <div className="text-xs uppercase text-gray-500">
-                            Avg Hold Time
+                            Avg Hold
                           </div>
-                          <div className="text-lg font-semibold text-gray-900">
+                          <div className="text-base font-semibold text-gray-900 sm:text-lg">
                             {formatDuration(positionStats.avgHoldSeconds)}
                           </div>
                           <div className="text-xs text-gray-600">
@@ -1440,11 +1438,11 @@ export default function StrategyBacktestPage({ params }: Props) {
 
                       {/* Longest Position */}
                       {!positionStats.hasMissingTimestamps && (
-                        <div className="rounded border border-gray-200 bg-gray-50 p-3">
+                        <div className="rounded border border-gray-200 bg-gray-50 p-2 sm:p-3">
                           <div className="text-xs uppercase text-gray-500">
-                            Longest Position
+                            Longest
                           </div>
-                          <div className="text-lg font-semibold text-gray-900">
+                          <div className="text-base font-semibold text-gray-900 sm:text-lg">
                             {formatDuration(positionStats.longestHoldSeconds)}
                           </div>
                           <div className="text-xs text-gray-600">
@@ -1455,11 +1453,11 @@ export default function StrategyBacktestPage({ params }: Props) {
 
                       {/* Shortest Position */}
                       {!positionStats.hasMissingTimestamps && (
-                        <div className="rounded border border-gray-200 bg-gray-50 p-3">
+                        <div className="rounded border border-gray-200 bg-gray-50 p-2 sm:p-3">
                           <div className="text-xs uppercase text-gray-500">
-                            Shortest Position
+                            Shortest
                           </div>
-                          <div className="text-lg font-semibold text-gray-900">
+                          <div className="text-base font-semibold text-gray-900 sm:text-lg">
                             {formatDuration(positionStats.shortestHoldSeconds)}
                           </div>
                           <div className="text-xs text-gray-600">
@@ -1471,11 +1469,11 @@ export default function StrategyBacktestPage({ params }: Props) {
                       {/* Average Position Size */}
                       {!positionStats.hasMissingPositionData &&
                         positionStats.avgPositionSize > 0 && (
-                          <div className="rounded border border-gray-200 bg-gray-50 p-3">
+                          <div className="rounded border border-gray-200 bg-gray-50 p-2 sm:p-3">
                             <div className="text-xs uppercase text-gray-500">
-                              Avg Position Size
+                              Avg Size
                             </div>
-                            <div className="text-lg font-semibold text-gray-900">
+                            <div className="text-base font-semibold text-gray-900 sm:text-lg">
                               {formatMoney(positionStats.avgPositionSize)}
                             </div>
                           </div>
@@ -1507,7 +1505,7 @@ export default function StrategyBacktestPage({ params }: Props) {
 
         {/* Seasonality Analysis - only show for completed runs */}
         {selectedRun?.status === "completed" && (
-          <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+          <section className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm sm:p-4">
             <h2 className="mb-3 text-base font-semibold text-gray-900">
               Seasonality Analysis
             </h2>
@@ -1530,7 +1528,7 @@ export default function StrategyBacktestPage({ params }: Props) {
                     <div
                       className={`grid gap-2 ${
                         periodType === "month"
-                          ? "grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-12"
+                          ? "grid-cols-4 sm:grid-cols-6 lg:grid-cols-12"
                           : periodType === "quarter"
                           ? "grid-cols-2 sm:grid-cols-4"
                           : "grid-cols-4 sm:grid-cols-7"
@@ -1539,14 +1537,14 @@ export default function StrategyBacktestPage({ params }: Props) {
                       {seasonalityData.map((bucket, idx) => (
                         <div
                           key={idx}
-                          className={`rounded border p-3 text-center ${getColorClass(bucket.avgReturn)}`}
+                          className={`rounded border p-2 text-center sm:p-3 ${getColorClass(bucket.avgReturn)}`}
                           title={`${bucket.label}: ${formatPercent(bucket.avgReturn)} avg return, ${bucket.count} trades`}
                         >
                           <div className="text-xs font-medium">{bucket.label}</div>
-                          <div className="mt-1 text-sm font-semibold">
+                          <div className="mt-0.5 text-xs font-semibold sm:mt-1 sm:text-sm">
                             {bucket.count > 0 ? formatPercent(bucket.avgReturn) : "—"}
                           </div>
-                          <div className="mt-0.5 text-xs opacity-75">
+                          <div className="mt-0.5 hidden text-xs opacity-75 sm:block">
                             {bucket.count} {bucket.count === 1 ? "trade" : "trades"}
                           </div>
                         </div>
@@ -1561,9 +1559,9 @@ export default function StrategyBacktestPage({ params }: Props) {
 
         {/* Trade Distribution Analysis - only show for completed runs */}
         {selectedRun?.status === "completed" && (
-          <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+          <section className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm sm:p-4">
             <h2 className="mb-3 text-base font-semibold text-gray-900">
-              Trade Distribution Analysis
+              Trade Distribution
             </h2>
 
             {trades.length < 3 ? (
@@ -1679,7 +1677,7 @@ export default function StrategyBacktestPage({ params }: Props) {
 
         {/* Trades Table - only show for completed runs */}
         {selectedRun?.status === "completed" && (
-          <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+          <section className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm sm:p-4">
             <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <h2 className="text-base font-semibold text-gray-900">Trades</h2>
               <div className="flex flex-wrap items-center gap-2 sm:gap-3">
@@ -1741,8 +1739,45 @@ export default function StrategyBacktestPage({ params }: Props) {
               <p className="text-sm text-gray-500">No trades were generated for this run.</p>
             ) : (
               <>
-                <div className="overflow-x-auto rounded-lg border">
-                  <Table className="min-w-[700px]">
+                {/* Mobile: Card-based layout */}
+                <div className="space-y-3 md:hidden">
+                  {paginatedTrades.map((trade, idx) => (
+                    <button
+                      key={`${trade.entry_time}-${idx}`}
+                      className="w-full rounded-lg border border-gray-200 bg-gray-50 p-3 text-left transition hover:border-blue-300"
+                      onClick={() => setSelectedTradeIdx((currentPage - 1) * pageSize + idx)}
+                    >
+                      <div className="mb-2 flex items-center justify-between">
+                        <span className="text-xs font-medium uppercase text-gray-500">{trade.side}</span>
+                        <span className={`text-sm font-semibold ${trade.pnl >= 0 ? "text-green-600" : "text-red-600"}`}>
+                          {trade.pnl_pct >= 0 ? "+" : ""}{formatPercent(trade.pnl_pct).replace("%", "")}%
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div>
+                          <div className="text-xs text-gray-500">Entry</div>
+                          <div className="font-medium">{formatPrice(trade.entry_price)}</div>
+                          <div className="text-xs text-gray-500">{formatDateTime(trade.entry_time, timezone)}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-gray-500">Exit</div>
+                          <div className="font-medium">{formatPrice(trade.exit_price)}</div>
+                          <div className="text-xs text-gray-500">{formatDateTime(trade.exit_time, timezone)}</div>
+                        </div>
+                      </div>
+                      <div className="mt-2 flex justify-between border-t border-gray-200 pt-2">
+                        <span className="text-xs text-gray-500">P&L</span>
+                        <span className={`text-sm font-medium ${trade.pnl >= 0 ? "text-green-600" : "text-red-600"}`}>
+                          {formatMoney(trade.pnl, "USDT", true)}
+                        </span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Desktop: Table layout */}
+                <div className="hidden overflow-x-auto rounded-lg border md:block">
+                  <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>
