@@ -41,6 +41,7 @@ import {
   DataCompletenessResponse,
   TradeDetail,
 } from "@/types/backtest";
+import { PlanResponse } from "@/types/auth";
 import { StrategyTabs } from "@/components/StrategyTabs";
 import TradeDrawer from "@/components/TradeDrawer";
 import InfoIcon from "@/components/InfoIcon";
@@ -95,6 +96,34 @@ const defaultRange = (() => {
   past.setDate(today.getDate() - DEFAULT_LOOKBACK_DAYS);
   return { from: formatDateInput(past), to: formatDateInput(today) };
 })();
+
+type PeriodPreset = "30d" | "60d" | "90d" | "1y" | "2y" | "3y" | "custom";
+
+interface PeriodOption {
+  value: PeriodPreset;
+  label: string;
+  days: number | null;
+  premiumOnly: boolean;
+}
+
+const PERIOD_PRESETS: PeriodOption[] = [
+  { value: "30d", label: "Last 30 days", days: 30, premiumOnly: false },
+  { value: "60d", label: "Last 60 days", days: 60, premiumOnly: false },
+  { value: "90d", label: "Last 90 days", days: 90, premiumOnly: false },
+  { value: "1y", label: "Last year", days: 365, premiumOnly: false },
+  { value: "2y", label: "Last 2 years", days: 730, premiumOnly: true },
+  { value: "3y", label: "Last 3 years", days: 1095, premiumOnly: true },
+  { value: "custom", label: "Custom", days: null, premiumOnly: false },
+];
+
+function getDatesFromPreset(preset: PeriodPreset): { from: string; to: string } | null {
+  const option = PERIOD_PRESETS.find((p) => p.value === preset);
+  if (!option || option.days === null) return null;
+  const today = new Date();
+  const past = new Date();
+  past.setDate(today.getDate() - option.days);
+  return { from: formatDateInput(past), to: formatDateInput(today) };
+}
 
 const statusStyles: Record<BacktestStatus, string> = {
   pending: "bg-amber-100 text-amber-700",
@@ -501,9 +530,11 @@ export default function StrategyBacktestPage({ params }: Props) {
 
   const [dateFrom, setDateFrom] = useState(defaultRange.from);
   const [dateTo, setDateTo] = useState(defaultRange.to);
+  const [periodPreset, setPeriodPreset] = useState<PeriodPreset>("custom");
   const [feeRate, setFeeRate] = useState("");
   const [slippageRate, setSlippageRate] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [userPlan, setUserPlan] = useState<PlanResponse | null>(null);
 
   const [backtests, setBacktests] = useState<BacktestListItem[]>([]);
   const [isLoadingBacktests, setIsLoadingBacktests] = useState(false);
@@ -680,6 +711,26 @@ export default function StrategyBacktestPage({ params }: Props) {
     loadStrategy();
     loadBacktests();
   }, [loadStrategy, loadBacktests]);
+
+  // Fetch user plan to check for premium features
+  useEffect(() => {
+    apiFetch<{ plan: PlanResponse }>("/users/me")
+      .then((data) => setUserPlan(data.plan))
+      .catch(() => setUserPlan(null));
+  }, []);
+
+  // Handle period preset changes
+  const handlePeriodChange = useCallback((preset: PeriodPreset) => {
+    setPeriodPreset(preset);
+    const dates = getDatesFromPreset(preset);
+    if (dates) {
+      setDateFrom(dates.from);
+      setDateTo(dates.to);
+    }
+  }, []);
+
+  // Check if user can use premium periods
+  const isPremiumUser = userPlan?.tier === "premium" || userPlan?.tier === "pro";
 
   // Fetch data quality metrics when dates or strategy change
   useEffect(() => {
@@ -944,13 +995,43 @@ export default function StrategyBacktestPage({ params }: Props) {
               </p>
             </div>
             <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700">Period</label>
+                <Select value={periodPreset} onValueChange={(v) => handlePeriodChange(v as PeriodPreset)}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Select period" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PERIOD_PRESETS.map((option) => {
+                      const isDisabled = option.premiumOnly && !isPremiumUser;
+                      return (
+                        <SelectItem
+                          key={option.value}
+                          value={option.value}
+                          disabled={isDisabled}
+                        >
+                          {option.label}
+                          {option.premiumOnly && (
+                            <span className={`ml-2 text-xs ${isDisabled ? "text-gray-400" : "text-amber-600"}`}>
+                              (Pro/Premium)
+                            </span>
+                          )}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">Date from</label>
                 <Input
                   type="date"
                   value={dateFrom}
                   max={dateTo}
-                  onChange={(e) => setDateFrom(e.target.value)}
+                  onChange={(e) => {
+                    setDateFrom(e.target.value);
+                    setPeriodPreset("custom");
+                  }}
                   className="mt-1"
                   required
                 />
@@ -961,7 +1042,10 @@ export default function StrategyBacktestPage({ params }: Props) {
                   type="date"
                   value={dateTo}
                   min={dateFrom}
-                  onChange={(e) => setDateTo(e.target.value)}
+                  onChange={(e) => {
+                    setDateTo(e.target.value);
+                    setPeriodPreset("custom");
+                  }}
                   className="mt-1"
                   required
                 />
