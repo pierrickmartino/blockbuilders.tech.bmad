@@ -1,4 +1,11 @@
-"""Alert evaluation service for performance alerts."""
+"""Alert evaluation service for performance alerts.
+
+Alerts are evaluated only for scheduled re-backtests (triggered_by='auto').
+Entry/exit signals and drawdown alerts are checked FOR TODAY only:
+- Entry alert: triggers if a trade was entered on the last day of the backtest
+- Exit alert: triggers if a trade was exited on the last day of the backtest
+- Drawdown alert: triggers if the CURRENT drawdown (at backtest end) exceeds threshold
+"""
 import logging
 from datetime import datetime, timezone
 from typing import Any
@@ -14,6 +21,26 @@ from app.models.strategy import Strategy
 from app.backtest.storage import get_s3_client, download_json
 
 logger = logging.getLogger(__name__)
+
+
+def _parse_timestamp(ts: Any) -> datetime | None:
+    """Parse a timestamp string or datetime to datetime object."""
+    if ts is None:
+        return None
+    if isinstance(ts, datetime):
+        return ts
+    try:
+        # Handle ISO format strings
+        return datetime.fromisoformat(ts.replace("Z", "+00:00"))
+    except (ValueError, AttributeError):
+        return None
+
+
+def _is_same_date(dt1: datetime | None, dt2: datetime | None) -> bool:
+    """Check if two datetimes are on the same calendar date."""
+    if dt1 is None or dt2 is None:
+        return False
+    return dt1.date() == dt2.date()
 
 
 def evaluate_alerts_for_run(run: BacktestRun, session: Session) -> None:
@@ -51,15 +78,28 @@ def evaluate_alerts_for_run(run: BacktestRun, session: Session) -> None:
         logger.error(f"Strategy {run.strategy_id} not found for alert evaluation")
         return
 
-    # Evaluate conditions
+    # Evaluate conditions - all alerts check FOR TODAY (the last day of the backtest)
     reasons = []
+    last_backtest_date = run.date_to  # The end date represents "today" for scheduled runs
 
-    # 1. Check drawdown threshold
-    if rule.threshold_pct is not None and run.max_drawdown is not None:
-        if run.max_drawdown >= rule.threshold_pct:
-            reasons.append(f"drawdown {run.max_drawdown:.1f}% ≥ {rule.threshold_pct}%")
+    # 1. Check drawdown threshold FOR TODAY (current drawdown, not historical max)
+    if rule.threshold_pct is not None and run.equity_curve_key:
+        try:
+            equity_curve = download_json(run.equity_curve_key)
+            if equity_curve:
+                # Calculate current drawdown from peak to last equity value
+                peak_equity = max(pt.get("equity", 0) for pt in equity_curve)
+                last_equity = equity_curve[-1].get("equity", peak_equity)
+                if peak_equity > 0:
+                    current_drawdown = ((peak_equity - last_equity) / peak_equity) * 100
+                    if current_drawdown >= rule.threshold_pct:
+                        reasons.append(
+                            f"current drawdown {current_drawdown:.1f}% ≥ {rule.threshold_pct}%"
+                        )
+        except Exception as e:
+            logger.warning(f"Failed to fetch equity curve for drawdown eval: {e}")
 
-    # 2. Check entry/exit signals (fetch trades from S3)
+    # 2. Check entry/exit signals FOR TODAY (fetch trades from S3)
     trades = []
     if run.trades_key and (rule.alert_on_entry or rule.alert_on_exit):
         try:
@@ -67,13 +107,21 @@ def evaluate_alerts_for_run(run: BacktestRun, session: Session) -> None:
         except Exception as e:
             logger.warning(f"Failed to fetch trades from S3 for alert eval: {e}")
 
-    # Entry alert: check if trades list is non-empty
-    if rule.alert_on_entry and len(trades) > 0:
-        reasons.append("entry signal")
+    # Entry alert: check if any trade was entered TODAY (on the last day of backtest)
+    if rule.alert_on_entry:
+        for t in trades:
+            entry_time = _parse_timestamp(t.get("entry_time"))
+            if _is_same_date(entry_time, last_backtest_date):
+                reasons.append("entry signal today")
+                break
 
-    # Exit alert: check if any trade has exit_time
-    if rule.alert_on_exit and any(t.get("exit_time") is not None for t in trades):
-        reasons.append("exit signal")
+    # Exit alert: check if any trade was exited TODAY (on the last day of backtest)
+    if rule.alert_on_exit:
+        for t in trades:
+            exit_time = _parse_timestamp(t.get("exit_time"))
+            if _is_same_date(exit_time, last_backtest_date):
+                reasons.append("exit signal today")
+                break
 
     # If no conditions triggered, return early
     if not reasons:

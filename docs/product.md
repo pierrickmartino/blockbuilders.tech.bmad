@@ -1139,16 +1139,17 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 **Purpose:** Let users monitor auto-updated strategies without checking manually.
 
 **Alert Rule (v1):**
-- Conditions (any selected):
-  - "Notify me if strategy **max drawdown % exceeds X**"
-  - "Notify me when strategy generates an **entry**"
-  - "Notify me when strategy generates an **exit**"
+- Conditions (any selected, **checked FOR TODAY only**):
+  - "Notify me if strategy **current drawdown % exceeds X**" (peak-to-current equity, not historical max)
+  - "Notify me when strategy generates an **entry today**"
+  - "Notify me when strategy generates an **exit today**"
 - Scope: One rule per strategy.
 - Channels: In-app notification (default). Optional email if enabled on the rule.
 
 **Behavior:**
 - Evaluated after each **scheduled** re-backtest completes.
-- If any selected condition is met (drawdown threshold, entry, exit), trigger notification(s).
+- **Entry/exit alerts only fire if the signal occurred today** (the last day of the backtest).
+- **Drawdown alerts check current drawdown** (peak to final equity), not historical max drawdown.
 - Manual backtests do **not** trigger alerts.
 
 **UI Placement (simple):**
