@@ -1,7 +1,7 @@
 # PRD: Performance Alerts (Simple)
 
 ## Summary
-Allow users to set a simple alert like “notify me if strategy drawdown exceeds 20%” or “notify me when the strategy enters/exits” on scheduled re-backtests. When any selected condition is met, send an in-app notification (default) and optionally an email if the user opted in.
+Allow users to set a simple alert like "notify me if strategy drawdown exceeds 20%" or "notify me when the strategy enters/exits" on scheduled re-backtests. **Alerts are triggered only when conditions are met FOR TODAY** (the last day of the backtest). When any selected condition is met, send an in-app notification (default) and optionally an email if the user opted in.
 
 ## Goals
 - Let users monitor auto-updated strategies without manual checking.
@@ -16,18 +16,18 @@ Allow users to set a simple alert like “notify me if strategy drawdown exceeds
 - SMS, push, or webhook notifications.
 
 ## User Stories
-- As a user, I can set a drawdown threshold for a strategy and get notified if it’s exceeded.
-- As a user, I can get notified when the strategy generates an entry.
-- As a user, I can get notified when the strategy generates an exit.
+- As a user, I can set a drawdown threshold for a strategy and get notified if my current equity is in drawdown by that amount today.
+- As a user, I can get notified when the strategy generates an entry signal **today**.
+- As a user, I can get notified when the strategy generates an exit signal **today**.
 - As a user, I can enable/disable the alert without deleting it.
 - As a user, I can choose in-app only or in-app + email.
 
 ## Scope
 ### Rule Type (v1)
-- Metric: `max_drawdown_pct`
-- Condition: trigger when `max_drawdown` >= `threshold_pct`
-- Entry: trigger when at least one trade entry occurs in the scheduled re-backtest
-- Exit: trigger when at least one trade exit occurs in the scheduled re-backtest
+- Metric: `current_drawdown_pct` (drawdown from peak to current equity)
+- Condition: trigger when **current** drawdown >= `threshold_pct` (not historical max drawdown)
+- Entry: trigger when at least one trade entry occurs **today** (on the last day of the backtest)
+- Exit: trigger when at least one trade exit occurs **today** (on the last day of the backtest)
 - Evaluation: only after **scheduled re-backtests**
 - One rule per strategy (simple, no list management needed)
 
@@ -89,22 +89,25 @@ Allow users to set a simple alert like “notify me if strategy drawdown exceeds
 ## Evaluation Logic
 - Run after scheduled re-backtest completes (triggered_by = `auto`).
 - Load alert rule for the strategy (if active).
-- Compare `backtest_run.max_drawdown` vs `threshold_pct`.
-- Determine if the run produced any trade entries or exits.
+- **Drawdown check:** Calculate current drawdown from peak equity to final equity (not historical max). Trigger if current drawdown >= `threshold_pct`.
+- **Entry check:** Scan trades for any entry that occurred on the last day of the backtest (today).
+- **Exit check:** Scan trades for any exit that occurred on the last day of the backtest (today).
 - If any selected condition is triggered:
   - Create an in-app notification (type: `performance_alert`).
   - If `notify_email` is true, send a simple email using the existing email provider.
   - Update `last_triggered_run_id` and `last_triggered_at` to avoid duplicate alerts for the same run.
 
 ## Notification Copy (Simple)
-- Title: “Performance alert triggered”
-- Body: `"{strategy_name}" triggered alert: {reasons}.` (e.g., "drawdown 22% ≥ 20%", "entry signal", "exit signal")
+- Title: "Performance alert triggered"
+- Body: `"{strategy_name}" triggered alert: {reasons}.` (e.g., "current drawdown 22% ≥ 20%", "entry signal today", "exit signal today")
 - Link: strategy detail or latest backtest run.
 
 ## Acceptance Criteria
 - Users can create/update/delete a drawdown alert for a strategy.
 - Users can opt into entry and/or exit alerts.
 - Alerts only evaluate on scheduled re-backtests.
+- **Entry/exit alerts only fire if the signal occurred today** (the last day of the backtest).
+- **Drawdown alerts check current drawdown** (peak to final equity), not historical max drawdown.
 - When triggered, an in-app notification is created.
 - Optional email is sent only if enabled for the rule.
 - Alerts do not fire multiple times for the same run.
