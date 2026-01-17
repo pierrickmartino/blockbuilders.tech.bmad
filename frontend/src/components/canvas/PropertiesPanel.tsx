@@ -280,6 +280,7 @@ function getParamConfigs(blockType: BlockType): ParamConfig[] {
             { value: "high", label: "High" },
             { value: "low", label: "Low" },
             { value: "close", label: "Close" },
+            { value: "prev_close", label: "Previous Close" },
           ],
         },
       ];
@@ -309,6 +310,7 @@ function getParamConfigs(blockType: BlockType): ParamConfig[] {
             { value: "high", label: "High" },
             { value: "low", label: "Low" },
             { value: "close", label: "Close" },
+            { value: "prev_close", label: "Previous Close" },
           ],
         },
         {
@@ -333,6 +335,7 @@ function getParamConfigs(blockType: BlockType): ParamConfig[] {
             { value: "high", label: "High" },
             { value: "low", label: "Low" },
             { value: "close", label: "Close" },
+            { value: "prev_close", label: "Previous Close" },
           ],
         },
         {
@@ -357,6 +360,7 @@ function getParamConfigs(blockType: BlockType): ParamConfig[] {
             { value: "high", label: "High" },
             { value: "low", label: "Low" },
             { value: "close", label: "Close" },
+            { value: "prev_close", label: "Previous Close" },
           ],
         },
         {
@@ -396,6 +400,7 @@ function getParamConfigs(blockType: BlockType): ParamConfig[] {
             { value: "high", label: "High" },
             { value: "low", label: "Low" },
             { value: "close", label: "Close" },
+            { value: "prev_close", label: "Previous Close" },
           ],
         },
         {
