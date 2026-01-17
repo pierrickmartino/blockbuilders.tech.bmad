@@ -70,11 +70,15 @@ def interpret_strategy(
     closes = [c.close for c in candles]
     volumes = [c.volume for c in candles]
 
+    # Previous close: None for first candle, then close[t-1]
+    prev_closes = [None] + closes[:-1]
+
     candle_data = {
         "open": opens,
         "high": highs,
         "low": lows,
         "close": closes,
+        "prev_close": prev_closes,
         "volume": volumes,
     }
 

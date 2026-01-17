@@ -28,7 +28,7 @@ export interface ConstantParams {
 }
 
 // Price source type for indicators
-export type PriceSource = "open" | "high" | "low" | "close";
+export type PriceSource = "open" | "high" | "low" | "close" | "prev_close";
 
 export interface SmaParams {
   source: PriceSource;
