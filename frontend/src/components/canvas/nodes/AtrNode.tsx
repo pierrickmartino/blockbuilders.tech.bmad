@@ -21,15 +21,6 @@ export default function AtrNode({ data, selected }: NodeProps) {
       validationMessage={validationMessage}
       isMobileMode={isMobileMode}
     >
-      <Handle
-        type="target"
-        position={Position.Left}
-        id="input"
-        className={cn(
-          isMobileMode ? "!h-5 !w-5" : "!h-3 !w-3",
-          "!bg-blue-500"
-        )}
-      />
       <div className="text-xs text-gray-600">
         Period: {params.period || 14}
       </div>

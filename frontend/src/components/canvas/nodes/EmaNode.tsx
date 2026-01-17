@@ -1,6 +1,7 @@
 import { Handle, Position, NodeProps } from "@xyflow/react";
 import BaseNode from "../BaseNode";
 import { cn } from "@/lib/utils";
+import { PriceSource } from "@/types/canvas";
 
 export default function EmaNode({ data, selected }: NodeProps) {
   const label = String(data?.label || "EMA");
@@ -9,7 +10,7 @@ export default function EmaNode({ data, selected }: NodeProps) {
     typeof data?.validationMessage === "string"
       ? data.validationMessage
       : undefined;
-  const params = (data?.params || {}) as { period?: number };
+  const params = (data?.params || {}) as { source?: PriceSource; period?: number };
   const isMobileMode = typeof data?.isMobileMode === "boolean" ? data.isMobileMode : false;
   return (
     <BaseNode
@@ -21,17 +22,9 @@ export default function EmaNode({ data, selected }: NodeProps) {
       validationMessage={validationMessage}
       isMobileMode={isMobileMode}
     >
-      <Handle
-        type="target"
-        position={Position.Left}
-        id="input"
-        className={cn(
-          isMobileMode ? "!h-5 !w-5" : "!h-3 !w-3",
-          "!bg-blue-500"
-        )}
-      />
-      <div className="text-xs text-gray-600">
-        Period: {params.period || 20}
+      <div className="space-y-0.5 text-xs text-gray-600">
+        <div>Source: {params.source || "close"}</div>
+        <div>Period: {params.period || 20}</div>
       </div>
       <Handle
         type="source"
