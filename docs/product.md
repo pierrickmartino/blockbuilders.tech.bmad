@@ -1106,6 +1106,12 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Trend indicator (▲ TrendingUp / ▼ TrendingDown icons)
 - "Last updated" timestamp (respects user timezone preference)
 
+**Volatility Metrics (Planned):**
+- Current volatility (standard deviation of returns, annualized or per timeframe)
+- ATR-based volatility (ATR as % of price)
+- 1-year volatility percentile (e.g., “80th percentile”)
+- Simple tooltip text explaining how to interpret “calm vs chaotic”
+
 **Update Behavior:**
 - Frontend polls every 4 seconds (middle of PRD's 3-5s requirement)
 - Backend caches data for 3 seconds in Redis (reduces vendor API calls)
@@ -1583,6 +1589,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Subscription Plans & Billing** | ✅ Complete | Free/Pro/Premium tiers with Stripe monthly/annual billing and simple caps |
 | **In-App Notifications** | ✅ Complete | Bell icon with unread count, notifications for key events |
 | **Real-Time Price Tickers** | ✅ Complete | Market overview with live price, 24h change, volume, trend; 4s polling, 3s Redis cache |
+| **Volatility Metrics (Market Overview)** | 📝 Planned | Show current + historical volatility with percentile rank per pair |
 | **Frontend UI** | ✅ Complete | Multi-strategy dashboard, strategy list/editor, backtest runner/results, profile |
 | **Contextual Help & Tooltips** | ✅ Complete | Hover tooltips for indicators, logic blocks, metrics |
 | **Metrics Glossary** | ✅ Complete | Dedicated searchable page explaining backtest metrics |
@@ -1840,6 +1847,7 @@ pytest --cov            # Coverage report
 - `docs/prd-copy-paste-blocks-subgraphs.md` - Copy/paste blocks & subgraphs PRD
 - `docs/prd-mobile-optimized-canvas.md` - Mobile-optimized canvas PRD
 - `docs/prd-real-time-price-tickers.md` - Real-time price tickers PRD
+- `docs/prd-volatility-metrics-market-overview.md` - Volatility metrics (market overview) PRD
 - `docs/product.md` - This document (current product truth)
 - `docs/prd-strategy-tags-groups.md` - Strategy groups & tags PRD
 - `docs/prd-simple-tiered-subscription-plans.md` - Simple tiered subscription plans PRD
