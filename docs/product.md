@@ -1112,6 +1112,12 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - 1-year volatility percentile (e.g., “80th percentile”)
 - Simple tooltip text explaining how to interpret “calm vs chaotic”
 
+**Market Sentiment Indicators (Planned):**
+- Fear & Greed Index (market-wide gauge + 30-day trend line)
+- Social mention volume (asset-level trend line, 7-day window)
+- Funding rates (asset-level trend line, 7-day window)
+- Simple “risk-on / risk-off” helper text based on the latest index value
+
 **Update Behavior:**
 - Frontend polls every 4 seconds (middle of PRD's 3-5s requirement)
 - Backend caches data for 3 seconds in Redis (reduces vendor API calls)
@@ -1128,6 +1134,12 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Response schema: `TickerListResponse` with `items[]` and `as_of` timestamp
 - Redis caching: key `market:tickers`, 3-second TTL
 - Error handling: Returns 503 on vendor failure, zeros for missing pair data
+
+**Sentiment Data (Planned):**
+- Endpoint: `GET /market/sentiment` (protected, requires auth)
+- Providers: Alternative.me (Fear & Greed Index), LunarCrush (social mentions), derivatives exchange funding rates
+- Redis caching: 15-minute TTL (slow-changing data)
+- Error handling: Return partial data with `source_status` flags per indicator
 
 **Frontend Implementation:**
 - Hook: `useMarketTickers()` (polling pattern similar to `useNotifications`)
@@ -1589,6 +1601,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Subscription Plans & Billing** | ✅ Complete | Free/Pro/Premium tiers with Stripe monthly/annual billing and simple caps |
 | **In-App Notifications** | ✅ Complete | Bell icon with unread count, notifications for key events |
 | **Real-Time Price Tickers** | ✅ Complete | Market overview with live price, 24h change, volume, trend; 4s polling, 3s Redis cache |
+| **Market Sentiment Indicators (Market Overview)** | 📝 Planned | Fear & Greed Index, social mentions, funding rates with simple gauges/trend lines |
 | **Volatility Metrics (Market Overview)** | 📝 Planned | Show current + historical volatility with percentile rank per pair |
 | **Frontend UI** | ✅ Complete | Multi-strategy dashboard, strategy list/editor, backtest runner/results, profile |
 | **Contextual Help & Tooltips** | ✅ Complete | Hover tooltips for indicators, logic blocks, metrics |
@@ -1848,6 +1861,7 @@ pytest --cov            # Coverage report
 - `docs/prd-mobile-optimized-canvas.md` - Mobile-optimized canvas PRD
 - `docs/prd-real-time-price-tickers.md` - Real-time price tickers PRD
 - `docs/prd-volatility-metrics-market-overview.md` - Volatility metrics (market overview) PRD
+- `docs/prd-market-sentiment-indicators.md` - Market sentiment indicators PRD
 - `docs/product.md` - This document (current product truth)
 - `docs/prd-strategy-tags-groups.md` - Strategy groups & tags PRD
 - `docs/prd-simple-tiered-subscription-plans.md` - Simple tiered subscription plans PRD
