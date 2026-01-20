@@ -249,6 +249,20 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Tag filtering uses OR logic (match any selected tag).
 - Tagging is purely organizational and does not affect backtests or execution.
 
+### 3.7. Strategy Templates Marketplace
+
+**Purpose:** Provide a curated library of pre-built strategy templates (e.g., RSI oversold, MA crossover, Bollinger breakout) that users can clone and customize, reducing time-to-first-backtest and teaching common patterns.
+
+**Behavior:**
+- Templates are maintained by the Blockbuilders team initially.
+- Each template includes:
+  - Plain-language description of the logic.
+  - Typical use cases.
+  - Suggested parameter ranges.
+- Users can **Clone** a template to create a new editable strategy.
+- A simple template seeding system loads the initial curated set.
+- Community submissions are planned later and require approval before publishing.
+
 ---
 
 ## 4. Visual Strategy Builder
@@ -1615,6 +1629,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Visual Validation Feedback** | ✅ Complete | Inline canvas highlights and messages for validation errors |
 | **Strategy Explanation Generator** | ✅ Complete | Template-based plain-English explanation from strategy JSON |
 | **Strategy Import/Export** | ✅ Complete | JSON export/download + import/upload with validation |
+| **Strategy Templates Marketplace** | 📝 Planned | Curated template library with clone-to-edit workflows |
 | **Worker Infrastructure** | ✅ Complete | RQ job queue, scheduler, background processing |
 | **API** | ✅ Complete | RESTful endpoints, JWT auth, OpenAPI docs |
 | **Database** | ✅ Complete | PostgreSQL with 11 migrations, indexed queries |
@@ -1653,7 +1668,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 
 **Not Implemented (Intentionally):**
 - Real-time trading or brokerage integration
-- Strategy marketplace or public sharing links (manual file export/import is allowed)
+- Full strategy marketplace, public sharing links, or monetization (manual file export/import is allowed)
 - Usage-based pricing, complex metering, or add-on bundles beyond simple one-time credit packs
 - Email/SMS alerts outside performance alerts (performance alerts may send email; no SMS)
 - Full social feeds or discovery features
@@ -1705,7 +1720,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - More indicators (Stochastic, CCI, ADX)
 - Short selling support
 - Advanced order types (limit, stop-limit)
-- Strategy templates and presets
+- Strategy templates marketplace (curated library with clone-to-edit)
 - Favorite metrics pinning in backtest summaries
 - Data quality upgrades (multi-vendor reconciliation, extended anomaly detection)
 - Improved analytics (drawdown analysis, trade tagging)
@@ -1852,6 +1867,7 @@ pytest --cov            # Coverage report
 - `docs/prd-strategy-notes-annotations.md` - Strategy notes & annotations PRD
 - `docs/prd-strategy-explanation-generator.md` - Strategy explanation generator PRD
 - `docs/prd-strategy-import-export.md` - Strategy import/export PRD
+- `docs/prd-strategy-templates-marketplace.md` - Strategy templates marketplace PRD
 - `docs/prd-visual-strategy-validation-feedback.md` - Visual validation feedback PRD
 - `docs/prd-in-app-notifications.md` - In-app notifications PRD
 - `docs/prd-multi-strategy-dashboard.md` - Multi-strategy dashboard PRD
