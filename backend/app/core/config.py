@@ -21,6 +21,12 @@ class Settings(BaseSettings):
     cryptocompare_api_url: str = "https://min-api.cryptocompare.com/data"
     cryptocompare_api_key: str = ""
 
+    # Market sentiment API settings
+    alternative_me_api_url: str = "https://api.alternative.me"
+    coingecko_api_url: str = "https://api.coingecko.com/api/v3"
+    coingecko_api_key: str = "CG-DEMO-KEY"
+    binance_futures_api_url: str = "https://fapi.binance.com"
+
     # Backtest defaults
     default_initial_balance: float = 10000.0
     default_fee_rate: float = 0.001

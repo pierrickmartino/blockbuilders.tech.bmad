@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useMarketTickers } from "@/hooks/useMarketTickers";
 import { formatPrice, formatPercent, formatNumber, formatDateTime, formatVolatility } from "@/lib/format";
 import { useDisplay } from "@/context/display";
@@ -13,14 +14,23 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { TrendingUp, TrendingDown, Info } from "lucide-react";
+import { MarketSentimentPanel } from "@/components/MarketSentimentPanel";
 
 export default function MarketPage() {
+  const [selectedAsset, setSelectedAsset] = useState<string>("BTC/USDT");
   const { tickers, asOf, isLoading, error } = useMarketTickers();
   const { timezone } = useDisplay();
 
@@ -50,13 +60,27 @@ export default function MarketPage() {
     <TooltipProvider>
       <div className="container mx-auto p-4">
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold">Market Overview</h1>
+        <div className="flex items-center gap-4">
+          <h1 className="text-2xl font-bold">Market Overview</h1>
+          <Select value={selectedAsset} onValueChange={setSelectedAsset}>
+            <SelectTrigger className="w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="BTC/USDT">BTC/USDT</SelectItem>
+              <SelectItem value="ETH/USDT">ETH/USDT</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
         {asOf && (
           <p className="text-sm text-muted-foreground">
             Last updated: {formatDateTime(asOf, timezone)}
           </p>
         )}
       </div>
+
+      {/* Market Sentiment Panel */}
+      <MarketSentimentPanel asset={selectedAsset} />
 
       {/* Desktop: Table */}
       <div className="hidden md:block rounded-lg border">

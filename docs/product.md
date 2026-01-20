@@ -1112,11 +1112,15 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - 1-year volatility percentile (e.g., “80th percentile”)
 - Simple tooltip text explaining how to interpret “calm vs chaotic”
 
-**Market Sentiment Indicators (Planned):**
-- Fear & Greed Index (market-wide gauge + 30-day trend line)
-- Social mention volume (asset-level trend line, 7-day window)
-- Funding rates (asset-level trend line, 7-day window)
-- Simple “risk-on / risk-off” helper text based on the latest index value
+**Market Sentiment Indicators (Implemented):**
+- Fear & Greed Index (0-100 gauge from Alternative.me with 30-day history)
+- Social Activity (Twitter followers from CoinGecko, sparkline display)
+- Funding Rates (Binance perpetual futures, 7-day average with sparkline)
+- Asset selector to switch between BTC/USDT and ETH/USDT
+- Simple "risk-on / risk-off" helper text based on Fear & Greed value
+- Partial failure support: unavailable data sources show badge instead of breaking page
+- 15-minute cache on backend, 60-second polling on frontend
+- Sentiment context also displayed in backtest results (start/end/average values for backtest period)
 
 **Update Behavior:**
 - Frontend polls every 4 seconds (middle of PRD's 3-5s requirement)
@@ -1601,8 +1605,8 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Subscription Plans & Billing** | ✅ Complete | Free/Pro/Premium tiers with Stripe monthly/annual billing and simple caps |
 | **In-App Notifications** | ✅ Complete | Bell icon with unread count, notifications for key events |
 | **Real-Time Price Tickers** | ✅ Complete | Market overview with live price, 24h change, volume, trend; 4s polling, 3s Redis cache |
-| **Market Sentiment Indicators (Market Overview)** | 📝 Planned | Fear & Greed Index, social mentions, funding rates with simple gauges/trend lines |
-| **Volatility Metrics (Market Overview)** | 📝 Planned | Show current + historical volatility with percentile rank per pair |
+| **Volatility Metrics (Market Overview)** | ✅ Complete | Show current + historical volatility with percentile rank per pair |
+| **Market Sentiment Indicators (Market Overview)** | ✅ Complete | Fear & Greed Index (Alternative.me), social activity (CoinGecko), funding rates (Binance); 15min cache, partial failure support, backtest sentiment context |
 | **Frontend UI** | ✅ Complete | Multi-strategy dashboard, strategy list/editor, backtest runner/results, profile |
 | **Contextual Help & Tooltips** | ✅ Complete | Hover tooltips for indicators, logic blocks, metrics |
 | **Metrics Glossary** | ✅ Complete | Dedicated searchable page explaining backtest metrics |
