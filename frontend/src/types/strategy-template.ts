@@ -1,3 +1,5 @@
+import { Block, Connection } from "./canvas";
+
 export interface StrategyTemplate {
   id: string;
   name: string;
@@ -12,8 +14,8 @@ export interface StrategyTemplate {
 
 export interface StrategyTemplateDetail extends StrategyTemplate {
   definition_json: {
-    blocks: any[];
-    connections: any[];
-    meta: Record<string, any>;
+    blocks: Block[];
+    connections: Connection[];
+    meta: Record<string, unknown>;
   };
 }
