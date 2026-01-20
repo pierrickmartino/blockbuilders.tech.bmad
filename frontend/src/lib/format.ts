@@ -199,3 +199,22 @@ export function formatNumber(
     useGrouping: true,
   }).format(value);
 }
+
+/**
+ * Format volatility value (std dev, ATR%, or percentile).
+ * Returns "—" (PLACEHOLDER) for null/undefined values.
+ * Example: formatVolatility(0.024, 3) -> "0.024"
+ * Example: formatVolatility(80.5, 1) -> "80.5"
+ */
+export function formatVolatility(
+  value: number | null | undefined,
+  decimals: number = 3
+): string {
+  if (!isValidNumber(value)) return PLACEHOLDER;
+
+  return new Intl.NumberFormat(LOCALE, {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+    useGrouping: false,
+  }).format(value);
+}

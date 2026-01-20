@@ -1,7 +1,7 @@
 "use client";
 
 import { useMarketTickers } from "@/hooks/useMarketTickers";
-import { formatPrice, formatPercent, formatNumber, formatDateTime } from "@/lib/format";
+import { formatPrice, formatPercent, formatNumber, formatDateTime, formatVolatility } from "@/lib/format";
 import { useDisplay } from "@/context/display";
 import {
   Table,
@@ -12,7 +12,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
-import { TrendingUp, TrendingDown } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { TrendingUp, TrendingDown, Info } from "lucide-react";
 
 export default function MarketPage() {
   const { tickers, asOf, isLoading, error } = useMarketTickers();
@@ -41,7 +47,8 @@ export default function MarketPage() {
   }
 
   return (
-    <div className="container mx-auto p-4">
+    <TooltipProvider>
+      <div className="container mx-auto p-4">
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold">Market Overview</h1>
         {asOf && (
@@ -60,6 +67,19 @@ export default function MarketPage() {
               <TableHead className="text-right">Price</TableHead>
               <TableHead className="text-right">24h Change</TableHead>
               <TableHead className="text-right">24h Volume</TableHead>
+              <TableHead className="text-right">Vol (Std)</TableHead>
+              <TableHead className="text-right">Vol (ATR%)</TableHead>
+              <TableHead className="text-right">
+                Vol %ile
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="inline-block ml-1 w-3 h-3 cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Percentile compares today&apos;s volatility to the last year</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TableHead>
               <TableHead className="text-center">Trend</TableHead>
             </TableRow>
           </TableHeader>
@@ -81,6 +101,15 @@ export default function MarketPage() {
                 </TableCell>
                 <TableCell className="text-right">
                   {formatNumber(ticker.volume_24h, 0)}
+                </TableCell>
+                <TableCell className="text-right">
+                  {formatVolatility(ticker.volatility_stddev, 3)}
+                </TableCell>
+                <TableCell className="text-right">
+                  {formatVolatility(ticker.volatility_atr_pct, 1)}
+                </TableCell>
+                <TableCell className="text-right">
+                  {formatVolatility(ticker.volatility_percentile_1y, 0)}
                 </TableCell>
                 <TableCell className="text-center">
                   {ticker.change_24h_pct >= 0 ? (
@@ -131,11 +160,40 @@ export default function MarketPage() {
                   <p className="text-muted-foreground">24h Volume</p>
                   <p className="font-medium">{formatNumber(ticker.volume_24h, 0)}</p>
                 </div>
+                <div>
+                  <p className="text-muted-foreground">Vol (Std)</p>
+                  <p className="font-medium">
+                    {formatVolatility(ticker.volatility_stddev, 3)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Vol (ATR%)</p>
+                  <p className="font-medium">
+                    {formatVolatility(ticker.volatility_atr_pct, 1)}
+                  </p>
+                </div>
+                <div className="col-span-2">
+                  <p className="text-muted-foreground">
+                    Vol Percentile (1y)
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="inline-block ml-1 w-3 h-3 cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Percentile compares today&apos;s volatility to the last year</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </p>
+                  <p className="font-medium">
+                    {formatVolatility(ticker.volatility_percentile_1y, 0)}
+                  </p>
+                </div>
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
-    </div>
+      </div>
+    </TooltipProvider>
   );
 }
