@@ -1577,6 +1577,10 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - STRIPE_PRICE_PREMIUM_ANNUAL: Stripe price ID for Premium annual
 - STRIPE_PRICE_BACKTEST_CREDITS_50: Stripe price ID for 50 backtest credits
 - STRIPE_PRICE_STRATEGY_SLOTS_5: Stripe price ID for +5 strategy slots
+- ALTERNATIVE_ME_API_URL: Alternative.me API endpoint for Fear & Greed Index (default: https://api.alternative.me)
+- COINGECKO_API_URL: CoinGecko API endpoint for social metrics (default: https://api.coingecko.com/api/v3)
+- COINGECKO_API_KEY: CoinGecko API key (default: CG-DEMO-KEY)
+- BINANCE_FUTURES_API_URL: Binance futures API endpoint for funding rates (default: https://fapi.binance.com)
 
 **Files:**
 - `.env.example`: Template with all variables
