@@ -4,15 +4,9 @@ import { DataCompletenessResponse } from "@/types/backtest";
 
 interface Props {
   data: DataCompletenessResponse;
-  highlightStart?: string;
-  highlightEnd?: string;
 }
 
-export function DataCompletenessTimeline({
-  data,
-  highlightStart,
-  highlightEnd,
-}: Props) {
+export function DataCompletenessTimeline({ data }: Props) {
   const {
     coverage_start,
     coverage_end,
