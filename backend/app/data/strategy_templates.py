@@ -81,7 +81,7 @@ TEMPLATES = [
                     "type": "stop_loss",
                     "label": "Stop Loss (5%)",
                     "position": {"x": 700, "y": 350},
-                    "params": {"percent": 5.0}
+                    "params": {"stop_loss_pct": 5.0}
                 }
             ],
             "connections": [
@@ -189,7 +189,7 @@ TEMPLATES = [
                     "type": "stop_loss",
                     "label": "Stop Loss (3%)",
                     "position": {"x": 700, "y": 350},
-                    "params": {"percent": 3.0}
+                    "params": {"stop_loss_pct": 3.0}
                 }
             ],
             "connections": [
@@ -295,7 +295,7 @@ TEMPLATES = [
                     "type": "stop_loss",
                     "label": "Stop Loss (4%)",
                     "position": {"x": 700, "y": 350},
-                    "params": {"percent": 4.0}
+                    "params": {"stop_loss_pct": 4.0}
                 }
             ],
             "connections": [
