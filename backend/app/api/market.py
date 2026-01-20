@@ -1,7 +1,7 @@
 """Market data endpoints (real-time tickers)."""
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 import httpx
@@ -211,12 +211,15 @@ def _fetch_social_mentions(asset: str, days: int = 7) -> tuple[Optional[Sentimen
                 logger.warning(f"CoinGecko returned no community data for {coin_id}")
                 return None, "unavailable"
 
-            # CoinGecko doesn't provide historical community data in free tier
-            # Use current value only, create a simple history with current value repeated
+            # CoinGecko doesn't provide historical community data in free tier.
+            # Synthesize a dated history ending today so backtests can slice by date.
             history = []
+            end_date = datetime.now(timezone.utc).date()
+            start_date = end_date - timedelta(days=days - 1)
             for i in range(days):
+                day = start_date + timedelta(days=i)
                 history.append(HistoryPoint(
-                    t=(datetime.now(timezone.utc).date()).strftime("%Y-%m-%d"),
+                    t=day.strftime("%Y-%m-%d"),
                     v=float(twitter_followers)
                 ))
 
