@@ -218,3 +218,34 @@ export function formatVolatility(
     useGrouping: false,
   }).format(value);
 }
+
+/**
+ * Format sentiment value with context-specific display.
+ * Example: formatSentiment(62, "fear_greed") -> "62 (Greed)"
+ * Example: formatSentiment(0.0001, "funding") -> "0.01%"
+ * Example: formatSentiment(12450, "mentions") -> "12,450"
+ */
+export function formatSentiment(
+  value: number | null | undefined,
+  type: "fear_greed" | "mentions" | "funding"
+): string {
+  if (!isValidNumber(value)) return PLACEHOLDER;
+
+  if (type === "fear_greed") {
+    // 0-100 scale with label
+    const label = value >= 75 ? "Extreme Greed"
+                : value >= 55 ? "Greed"
+                : value >= 45 ? "Neutral"
+                : value >= 25 ? "Fear"
+                : "Extreme Fear";
+    return `${Math.round(value)} (${label})`;
+  }
+
+  if (type === "funding") {
+    // Funding rate as percentage (0.0001 -> 0.01%)
+    return `${(value * 100).toFixed(2)}%`;
+  }
+
+  // Mentions: large integer
+  return formatNumber(value, 0);
+}

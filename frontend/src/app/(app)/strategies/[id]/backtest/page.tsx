@@ -46,6 +46,7 @@ import { StrategyTabs } from "@/components/StrategyTabs";
 import TradeDrawer from "@/components/TradeDrawer";
 import InfoIcon from "@/components/InfoIcon";
 import { DataCompletenessTimeline } from "@/components/DataCompletenessTimeline";
+import { BacktestSentimentStrip } from "@/components/BacktestSentimentStrip";
 import { metricToGlossaryId, getTooltip } from "@/lib/tooltip-content";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
@@ -1271,6 +1272,11 @@ export default function StrategyBacktestPage({ params }: Props) {
                   ({new Date(completeness.coverage_start).toLocaleDateString()} - {new Date(completeness.coverage_end).toLocaleDateString()}),
                   {completeness.gap_count} gap{completeness.gap_count !== 1 ? 's' : ''}
                 </div>
+              )}
+
+              {/* Sentiment Context Strip */}
+              {selectedRunId && selectedRun?.status === "completed" && (
+                <BacktestSentimentStrip runId={selectedRunId} />
               )}
             </div>
           )}

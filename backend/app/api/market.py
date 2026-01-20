@@ -19,7 +19,15 @@ from app.core.config import settings
 from app.core.database import get_session
 from app.models.candle import Candle
 from app.models.user import User
-from app.schemas.market import TickerItem, TickerListResponse
+from app.schemas.market import (
+    BacktestSentimentResponse,
+    HistoryPoint,
+    MarketSentimentResponse,
+    SentimentIndicator,
+    SourceStatus,
+    TickerItem,
+    TickerListResponse,
+)
 from app.schemas.strategy import ALLOWED_ASSETS
 
 logger = logging.getLogger(__name__)
@@ -28,6 +36,7 @@ router = APIRouter()
 
 CACHE_TTL_SECONDS = 3  # 3-second cache to reduce vendor calls
 CACHE_KEY = "market:tickers"
+SENTIMENT_CACHE_TTL_SECONDS = 900  # 15-minute cache for sentiment data
 
 
 def _get_redis() -> Redis:
@@ -94,6 +103,192 @@ def _calculate_volatility_metrics(asset: str, current_price: float, session: Ses
             "volatility_atr_pct": None,
             "volatility_percentile_1y": None,
         }
+
+
+def _fetch_fear_greed_index(days: int = 30) -> tuple[Optional[SentimentIndicator], str]:
+    """
+    Fetch Fear & Greed Index from Alternative.me.
+
+    Returns:
+        (SentimentIndicator | None, status: "ok" | "unavailable")
+
+    API: https://api.alternative.me/fng/?limit={days}
+    Response: {"data": [{"value": "62", "timestamp": "1672531200"}]}
+    """
+    try:
+        url = f"{settings.alternative_me_api_url}/fng/"
+        params = {"limit": str(days)}
+
+        with httpx.Client(timeout=10.0) as client:
+            response = client.get(url, params=params)
+            response.raise_for_status()
+            data = response.json()
+
+            if "data" not in data or len(data["data"]) == 0:
+                logger.warning("Alternative.me returned no data")
+                return None, "unavailable"
+
+            # data[0] is most recent
+            latest = data["data"][0]
+            history = []
+
+            for item in reversed(data["data"]):  # Oldest first
+                timestamp = datetime.fromtimestamp(
+                    int(item["timestamp"]), tz=timezone.utc
+                )
+                history.append(HistoryPoint(
+                    t=timestamp.strftime("%Y-%m-%d"),
+                    v=float(item["value"])
+                ))
+
+            indicator = SentimentIndicator(
+                value=float(latest["value"]),
+                history=history
+            )
+            return indicator, "ok"
+
+    except Exception as e:
+        logger.error(f"Failed to fetch Fear & Greed Index: {e}")
+        return None, "unavailable"
+
+
+def _fetch_social_mentions(asset: str, days: int = 7) -> tuple[Optional[SentimentIndicator], str]:
+    """
+    Fetch social activity score from CoinGecko.
+
+    Returns:
+        (SentimentIndicator | None, status: "ok" | "unavailable")
+
+    API: GET /coins/{id}?localization=false&community_data=true
+    Uses community_score (0-100) and twitter_followers as proxy for social activity.
+    """
+    # Symbol mapping for CoinGecko IDs
+    COINGECKO_SYMBOL_MAP = {
+        "BTC/USDT": "bitcoin",
+        "ETH/USDT": "ethereum",
+        "ADA/USDT": "cardano",
+        "SOL/USDT": "solana",
+        "MATIC/USDT": "matic-network",
+        "LINK/USDT": "chainlink",
+        "DOT/USDT": "polkadot",
+        "XRP/USDT": "ripple",
+        "DOGE/USDT": "dogecoin",
+        "AVAX/USDT": "avalanche-2",
+        "LTC/USDT": "litecoin",
+        "BCH/USDT": "bitcoin-cash",
+        "ATOM/USDT": "cosmos",
+        "NEAR/USDT": "near",
+        "FIL/USDT": "filecoin",
+    }
+
+    coin_id = COINGECKO_SYMBOL_MAP.get(asset)
+    if not coin_id:
+        logger.warning(f"No CoinGecko mapping for {asset}")
+        return None, "unavailable"
+
+    try:
+        url = f"{settings.coingecko_api_url}/coins/{coin_id}"
+        params = {
+            "localization": "false",
+            "community_data": "true",
+            "developer_data": "false",
+            "sparkline": "false",
+        }
+        headers = {}
+        if settings.coingecko_api_key and settings.coingecko_api_key != "CG-DEMO-KEY":
+            headers["x-cg-demo-api-key"] = settings.coingecko_api_key
+
+        with httpx.Client(timeout=10.0) as client:
+            response = client.get(url, params=params, headers=headers)
+            response.raise_for_status()
+            data = response.json()
+
+            # Extract community score (0-100) and Twitter followers
+            community_data = data.get("community_data", {})
+            twitter_followers = community_data.get("twitter_followers", 0)
+
+            if twitter_followers == 0:
+                logger.warning(f"CoinGecko returned no community data for {coin_id}")
+                return None, "unavailable"
+
+            # CoinGecko doesn't provide historical community data in free tier
+            # Use current value only, create a simple history with current value repeated
+            history = []
+            for i in range(days):
+                history.append(HistoryPoint(
+                    t=(datetime.now(timezone.utc).date()).strftime("%Y-%m-%d"),
+                    v=float(twitter_followers)
+                ))
+
+            indicator = SentimentIndicator(
+                value=float(twitter_followers),
+                history=history
+            )
+            return indicator, "ok"
+
+    except Exception as e:
+        logger.error(f"Failed to fetch social mentions for {asset}: {e}")
+        return None, "unavailable"
+
+
+def _fetch_funding_rate(asset: str, days: int = 7) -> tuple[Optional[SentimentIndicator], str]:
+    """
+    Fetch funding rate from Binance perpetual futures.
+
+    Returns:
+        (SentimentIndicator | None, status: "ok" | "unavailable")
+
+    API: GET /fapi/v1/fundingRate?symbol={symbol}&limit={limit}
+    Symbol mapping: BTC/USDT -> BTCUSDT
+    Response: [{"symbol": "BTCUSDT", "fundingTime": 1672531200000, "fundingRate": "0.00010000"}]
+    """
+    try:
+        # Binance symbol format: BTC/USDT -> BTCUSDT
+        symbol = asset.replace("/", "")
+
+        url = f"{settings.binance_futures_api_url}/fapi/v1/fundingRate"
+        params = {
+            "symbol": symbol,
+            "limit": days * 3  # 3 funding periods per day (8h intervals)
+        }
+
+        with httpx.Client(timeout=10.0) as client:
+            response = client.get(url, params=params)
+            response.raise_for_status()
+            data = response.json()
+
+            if not data or len(data) == 0:
+                logger.warning(f"Binance returned no funding data for {symbol}")
+                return None, "unavailable"
+
+            # data[0] is oldest, data[-1] is most recent
+            latest = data[-1]
+            history = []
+
+            # Group by day and average (since funding occurs 3x daily)
+            from collections import defaultdict
+            daily_rates = defaultdict(list)
+
+            for item in data:
+                timestamp = datetime.fromtimestamp(
+                    int(item["fundingTime"]) / 1000, tz=timezone.utc
+                )
+                date_key = timestamp.strftime("%Y-%m-%d")
+                daily_rates[date_key].append(float(item["fundingRate"]))
+
+            for date_key in sorted(daily_rates.keys()):
+                avg_rate = sum(daily_rates[date_key]) / len(daily_rates[date_key])
+                history.append(HistoryPoint(t=date_key, v=avg_rate))
+
+            indicator = SentimentIndicator(
+                value=float(latest["fundingRate"]),
+                history=history
+            )
+            return indicator, "ok"
+
+    except Exception as e:
+        logger.error(f"Failed to fetch funding rate for {asset}: {e}")
+        return None, "unavailable"
 
 
 @router.get("/market/tickers", response_model=TickerListResponse)
@@ -205,5 +400,174 @@ def get_tickers(
     cache_dict = response_data.model_dump()
     cache_dict["as_of"] = cache_dict["as_of"].isoformat()
     redis.setex(CACHE_KEY, CACHE_TTL_SECONDS, json.dumps(cache_dict))
+
+    return response_data
+
+
+@router.get("/market/sentiment", response_model=MarketSentimentResponse)
+def get_market_sentiment(
+    asset: str = "BTC/USDT",
+    user: User = Depends(get_current_user),
+) -> MarketSentimentResponse:
+    """
+    Get market sentiment indicators for a given asset.
+
+    Protected endpoint. Data is cached for 15 minutes.
+
+    Args:
+        asset: Trading pair (e.g., "BTC/USDT")
+
+    Returns:
+        MarketSentimentResponse with latest values and short history
+
+    Raises:
+        HTTPException: 503 if all providers fail, 400 if asset not supported
+    """
+    # Validate asset
+    if asset not in ALLOWED_ASSETS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Asset {asset} not supported"
+        )
+
+    # Try cache first
+    cache_key = f"market:sentiment:{asset}"
+    redis = _get_redis()
+    cached = redis.get(cache_key)
+    if cached:
+        cached_data = json.loads(cached)
+        cached_data["as_of"] = datetime.fromisoformat(cached_data["as_of"])
+        cached_data["fear_greed"] = SentimentIndicator(**cached_data["fear_greed"])
+        cached_data["mentions"] = SentimentIndicator(**cached_data["mentions"])
+        cached_data["funding"] = SentimentIndicator(**cached_data["funding"])
+        cached_data["source_status"] = SourceStatus(**cached_data["source_status"])
+        return MarketSentimentResponse(**cached_data)
+
+    # Fetch from all providers
+    fear_greed, fg_status = _fetch_fear_greed_index(days=30)
+    mentions, mn_status = _fetch_social_mentions(asset, days=7)
+    funding, fr_status = _fetch_funding_rate(asset, days=7)
+
+    # If all providers fail, return 503
+    if fg_status == "unavailable" and mn_status == "unavailable" and fr_status == "unavailable":
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="All sentiment providers unavailable"
+        )
+
+    # Build response with partial data
+    response_data = MarketSentimentResponse(
+        as_of=datetime.now(timezone.utc),
+        asset=asset,
+        fear_greed=fear_greed or SentimentIndicator(),
+        mentions=mentions or SentimentIndicator(),
+        funding=funding or SentimentIndicator(),
+        source_status=SourceStatus(
+            fear_greed=fg_status,
+            mentions=mn_status,
+            funding=fr_status
+        )
+    )
+
+    # Cache for 15 minutes
+    cache_dict = response_data.model_dump()
+    cache_dict["as_of"] = cache_dict["as_of"].isoformat()
+    redis.setex(cache_key, SENTIMENT_CACHE_TTL_SECONDS, json.dumps(cache_dict))
+
+    return response_data
+
+
+@router.get("/backtests/{run_id}/sentiment", response_model=BacktestSentimentResponse)
+def get_backtest_sentiment(
+    run_id: str,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> BacktestSentimentResponse:
+    """
+    Get sentiment indicators for a backtest date range.
+
+    Protected endpoint. Reuses cached market sentiment data where possible.
+
+    Args:
+        run_id: Backtest run UUID
+
+    Returns:
+        BacktestSentimentResponse with start/end/average values
+
+    Raises:
+        HTTPException: 404 if backtest not found, 503 if all providers fail
+    """
+    from app.models.backtest_run import BacktestRun
+
+    # Fetch backtest run
+    run = session.get(BacktestRun, run_id)
+    if not run or run.user_id != user.id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Backtest run not found"
+        )
+
+    # Calculate days in backtest range
+    delta = (run.date_to - run.date_from).days
+    lookback_days = max(30, delta)  # At least 30 days for context
+
+    # Fetch sentiment data (same as market endpoint)
+    fear_greed, fg_status = _fetch_fear_greed_index(days=lookback_days)
+    mentions, mn_status = _fetch_social_mentions(run.asset, days=lookback_days)
+    funding, fr_status = _fetch_funding_rate(run.asset, days=lookback_days)
+
+    if fg_status == "unavailable" and mn_status == "unavailable" and fr_status == "unavailable":
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="All sentiment providers unavailable"
+        )
+
+    # Calculate start/end/average for backtest range
+    def get_range_stats(indicator: Optional[SentimentIndicator], start_date: datetime, end_date: datetime):
+        """Extract start, end, and average values within date range."""
+        if not indicator or not indicator.history:
+            return None, None, None
+
+        start_str = start_date.strftime("%Y-%m-%d")
+        end_str = end_date.strftime("%Y-%m-%d")
+
+        # Filter history to backtest range
+        in_range = [
+            h for h in indicator.history
+            if start_str <= h.t <= end_str
+        ]
+
+        if not in_range:
+            return None, None, None
+
+        start_val = in_range[0].v
+        end_val = in_range[-1].v
+        avg_val = sum(h.v for h in in_range) / len(in_range)
+
+        return start_val, end_val, avg_val
+
+    fg_start, fg_end, fg_avg = get_range_stats(fear_greed, run.date_from, run.date_to)
+    _, _, mn_avg = get_range_stats(mentions, run.date_from, run.date_to)
+    _, _, fr_avg = get_range_stats(funding, run.date_from, run.date_to)
+
+    response_data = BacktestSentimentResponse(
+        as_of=datetime.now(timezone.utc),
+        asset=run.asset,
+        date_from=run.date_from,
+        date_to=run.date_to,
+        fear_greed_start=fg_start,
+        fear_greed_end=fg_end,
+        fear_greed_avg=fg_avg,
+        mentions_avg=mn_avg,
+        funding_avg=fr_avg,
+        fear_greed_history=fear_greed.history if fear_greed else [],
+        mentions_history=mentions.history if mentions else [],
+        funding_history=funding.history if funding else [],
+        source_status=SourceStatus(
+            fear_greed=fg_status,
+            mentions=mn_status,
+            funding=fr_status
+        )
+    )
 
     return response_data

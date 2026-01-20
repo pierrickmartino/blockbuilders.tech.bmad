@@ -1,6 +1,6 @@
 """Market data response schemas."""
 from datetime import datetime
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import BaseModel
 
@@ -22,3 +22,54 @@ class TickerListResponse(BaseModel):
 
     items: list[TickerItem]
     as_of: datetime
+
+
+class HistoryPoint(BaseModel):
+    """Single timestamp-value pair for history data."""
+
+    t: str  # ISO date string (YYYY-MM-DD)
+    v: float
+
+
+class SentimentIndicator(BaseModel):
+    """Single sentiment indicator with current value and history."""
+
+    value: Optional[float] = None  # Current value
+    history: list[HistoryPoint] = []  # Historical points (7-30 days)
+
+
+class SourceStatus(BaseModel):
+    """Status flags for each data source."""
+
+    fear_greed: Literal["ok", "partial", "unavailable"]
+    mentions: Literal["ok", "partial", "unavailable"]
+    funding: Literal["ok", "partial", "unavailable"]
+
+
+class MarketSentimentResponse(BaseModel):
+    """Response for /market/sentiment endpoint."""
+
+    as_of: datetime
+    asset: str
+    fear_greed: SentimentIndicator
+    mentions: SentimentIndicator
+    funding: SentimentIndicator
+    source_status: SourceStatus
+
+
+class BacktestSentimentResponse(BaseModel):
+    """Response for /backtests/{run_id}/sentiment endpoint."""
+
+    as_of: datetime
+    asset: str
+    date_from: datetime
+    date_to: datetime
+    fear_greed_start: Optional[float] = None
+    fear_greed_end: Optional[float] = None
+    fear_greed_avg: Optional[float] = None
+    mentions_avg: Optional[float] = None
+    funding_avg: Optional[float] = None
+    fear_greed_history: list[HistoryPoint] = []
+    mentions_history: list[HistoryPoint] = []
+    funding_history: list[HistoryPoint] = []
+    source_status: SourceStatus
