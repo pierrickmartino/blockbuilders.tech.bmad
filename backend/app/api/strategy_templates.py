@@ -11,7 +11,7 @@ from app.models.strategy_version import StrategyVersion
 from app.models.user import User
 from app.schemas.strategy_template import TemplateResponse, TemplateDetailResponse
 from app.schemas.strategy import StrategyResponse
-from app.core.plan_limits import get_plan_limits
+from app.core.plans import get_plan_limits
 
 router = APIRouter(prefix="/strategy-templates", tags=["strategy-templates"])
 
