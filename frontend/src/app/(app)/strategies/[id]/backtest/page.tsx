@@ -1082,8 +1082,6 @@ export default function StrategyBacktestPage({ params }: Props) {
                   <h3 className="text-sm font-medium text-gray-700 mb-2">Data Availability</h3>
                   <DataCompletenessTimeline
                     data={completeness}
-                    highlightStart={dateFrom}
-                    highlightEnd={dateTo}
                   />
                 </div>
               )}

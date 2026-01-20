@@ -253,15 +253,33 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 
 **Purpose:** Provide a curated library of pre-built strategy templates (e.g., RSI oversold, MA crossover, Bollinger breakout) that users can clone and customize, reducing time-to-first-backtest and teaching common patterns.
 
+**Implementation:**
+- **Frontend:** Dedicated templates browser page at `/strategies/templates` with responsive card grid
+- **Backend:** Three minimal endpoints:
+  - `GET /strategy-templates` - List all published templates
+  - `GET /strategy-templates/{id}` - Get template detail with full definition
+  - `POST /strategy-templates/{id}/clone` - Clone template into user strategy
+- **Database:** `strategy_templates` table with name, description, logic summary, use cases, parameter ranges, definition JSON, source, status
+- **Seeding:** Alembic migration seeds initial 3 templates (RSI Oversold Bounce, MA Crossover, Bollinger Breakout)
+- **Access:** Templates list available from "Browse Templates" button on strategies page
+
 **Behavior:**
-- Templates are maintained by the Blockbuilders team initially.
+- Templates are maintained by the Blockbuilders team initially
 - Each template includes:
-  - Plain-language description of the logic.
-  - Typical use cases.
-  - Suggested parameter ranges.
-- Users can **Clone** a template to create a new editable strategy.
-- A simple template seeding system loads the initial curated set.
-- Community submissions are planned later and require approval before publishing.
+  - Plain-language description of the logic
+  - Typical use cases (bulleted list)
+  - Suggested parameter ranges for customization
+  - Asset and timeframe defaults
+  - Complete strategy definition JSON
+- Users can **Clone** a template to create a new editable strategy
+- Cloning respects user capacity limits (plan tier + extra slots)
+- Cloned strategies open directly in canvas editor
+- Community submissions are planned later and require approval before publishing
+
+**Files:**
+- Backend: `backend/app/models/strategy_template.py`, `backend/app/api/strategy_templates.py`, `backend/app/schemas/strategy_template.py`, `backend/app/data/strategy_templates.py`
+- Frontend: `frontend/src/app/(app)/strategies/templates/page.tsx`, `frontend/src/types/strategy-template.ts`
+- Migration: `backend/alembic/versions/017_add_strategy_templates.py`
 
 ---
 
@@ -1629,7 +1647,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Visual Validation Feedback** | ✅ Complete | Inline canvas highlights and messages for validation errors |
 | **Strategy Explanation Generator** | ✅ Complete | Template-based plain-English explanation from strategy JSON |
 | **Strategy Import/Export** | ✅ Complete | JSON export/download + import/upload with validation |
-| **Strategy Templates Marketplace** | 📝 Planned | Curated template library with clone-to-edit workflows |
+| **Strategy Templates Marketplace** | ✅ Complete | Curated template library with 3 templates, clone-to-edit workflow, dedicated browser page |
 | **Worker Infrastructure** | ✅ Complete | RQ job queue, scheduler, background processing |
 | **API** | ✅ Complete | RESTful endpoints, JWT auth, OpenAPI docs |
 | **Database** | ✅ Complete | PostgreSQL with 11 migrations, indexed queries |

@@ -11,6 +11,7 @@ from app.api.market import router as market_router
 from app.api.notifications import router as notifications_router
 from app.api.strategies import router as strategies_router
 from app.api.strategy_tags import router as strategy_tags_router
+from app.api.strategy_templates import router as strategy_templates_router
 from app.api.usage import router as usage_router
 from app.api.users import router as users_router
 
@@ -31,6 +32,7 @@ app.include_router(users_router)
 app.include_router(usage_router)
 app.include_router(strategies_router)
 app.include_router(strategy_tags_router)
+app.include_router(strategy_templates_router)
 app.include_router(backtests_router)
 app.include_router(notifications_router)
 app.include_router(alerts_router)
