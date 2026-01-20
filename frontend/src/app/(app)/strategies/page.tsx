@@ -424,6 +424,9 @@ export default function StrategiesPage() {
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold">Strategies</h1>
         <div className="flex gap-2">
+          <Button variant="outline" onClick={() => router.push("/strategies/templates")}>
+            Browse Templates
+          </Button>
           <Button variant="outline" onClick={() => setShowImportModal(true)}>
             Import
           </Button>
