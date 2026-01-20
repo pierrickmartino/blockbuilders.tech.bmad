@@ -211,15 +211,15 @@ export default function StrategiesPage() {
     }
   };
 
-  const handleDuplicate = async (id: string) => {
+  const handleClone = async (id: string) => {
     setActionLoading(id);
     try {
-      const newStrategy = await apiFetch<Strategy>(`/strategies/${id}/duplicate`, {
+      await apiFetch<Strategy>(`/strategies/${id}/duplicate`, {
         method: "POST",
       });
-      router.push(`/strategies/${newStrategy.id}`);
+      await refreshStrategies();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to duplicate strategy");
+      setError(err instanceof Error ? err.message : "Failed to clone strategy");
     } finally {
       setActionLoading(null);
     }
@@ -671,10 +671,10 @@ export default function StrategiesPage() {
                             Open
                           </DropdownMenuItem>
                           <DropdownMenuItem
-                            onClick={() => handleDuplicate(strategy.id)}
+                            onClick={() => handleClone(strategy.id)}
                             disabled={actionLoading === strategy.id}
                           >
-                            Duplicate
+                            Clone
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => handleExport(strategy.id)}
@@ -744,10 +744,10 @@ export default function StrategiesPage() {
                           Open
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          onClick={() => handleDuplicate(strategy.id)}
+                          onClick={() => handleClone(strategy.id)}
                           disabled={actionLoading === strategy.id}
                         >
-                          Duplicate
+                          Clone
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => handleExport(strategy.id)}
