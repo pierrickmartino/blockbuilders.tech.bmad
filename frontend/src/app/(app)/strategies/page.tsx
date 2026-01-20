@@ -218,7 +218,6 @@ export default function StrategiesPage() {
         method: "POST",
       });
       await refreshStrategies();
-      setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to clone strategy");
     } finally {
