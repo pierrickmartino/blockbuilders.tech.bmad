@@ -959,7 +959,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Multi-Strategy Dashboard with all strategies in a table/grid
 - Latest performance metrics per strategy (preview)
 - Sort and filter by performance, last run date, asset, tags
-- Quick actions: Open, Duplicate, Archive, Create new strategy
+- Quick actions: Open, Clone (one-click duplicate), Archive, Create new strategy
 - Tag chips displayed alongside strategy names
 
 **Strategy List** (`/strategies`)
@@ -971,7 +971,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
   - Tags (chip list)
   - Latest backtest metrics preview
   - Last run timestamp
-  - Actions: Open, Duplicate, Archive
+  - Actions: Open, Clone (one-click duplicate), Archive
 - Empty state + create menu offer “Strategy Building Wizard” for guided creation
 
 **Strategy Editor** (`/strategies/[id]`)
@@ -1584,7 +1584,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 |---|---|---|
 | **Authentication** | ✅ Complete | Email/password, OAuth (Google, GitHub), password reset |
 | **Account Management** | ✅ Complete | Profile, settings (fees, slippage, timezone), usage tracking |
-| **Strategy Management** | ✅ Complete | CRUD, versioning, validation, duplication, archiving |
+| **Strategy Management** | ✅ Complete | CRUD, versioning, validation, duplication (one-click list clone), archiving |
 | **Strategy Groups/Tags** | ✅ Complete | Custom tags, tag filtering, many-to-many strategy organization |
 | **Visual Builder** | ✅ Complete | 20 block types, drag-drop, parameter editing, mobile-responsive |
 | **Mobile-Optimized Canvas** | ✅ Complete | Touch-first controls, simplified palette, gesture-based connections |
@@ -1870,6 +1870,7 @@ pytest --cov            # Coverage report
 - `docs/prd-strategy-tags-groups.md` - Strategy groups & tags PRD
 - `docs/prd-simple-tiered-subscription-plans.md` - Simple tiered subscription plans PRD
 - `docs/prd-one-time-credit-packs.md` - One-time credit packs PRD
+- `docs/prd-quick-strategy-clone.md` - Quick strategy clone (list action) PRD
 - `CLAUDE.md` - Instructions for Claude Code
 - `README.md` - Quick start guide
 
