@@ -16,6 +16,7 @@ export interface UserUpdateRequest {
   default_fee_percent?: number | null;
   default_slippage_percent?: number | null;
   timezone_preference?: "local" | "utc";
+  theme_preference?: "system" | "light" | "dark";
   favorite_metrics?: string[] | null;
 }
 
@@ -42,6 +43,7 @@ export interface SettingsResponse {
   default_fee_percent: number | null;
   default_slippage_percent: number | null;
   timezone_preference: "local" | "utc";
+  theme_preference: "system" | "light" | "dark";
   backtest_credit_balance: number;
   extra_strategy_slots: number;
   favorite_metrics: string[] | null;

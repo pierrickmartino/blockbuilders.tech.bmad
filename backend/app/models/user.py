@@ -11,6 +11,12 @@ class TimezonePreference(str, Enum):
     UTC = "utc"
 
 
+class ThemePreference(str, Enum):
+    SYSTEM = "system"
+    LIGHT = "light"
+    DARK = "dark"
+
+
 class PlanTier(str, Enum):
     FREE = "free"
     PRO = "pro"
@@ -43,6 +49,10 @@ class User(SQLModel, table=True):
     extra_strategy_slots: int = Field(default=0)
     timezone_preference: TimezonePreference = Field(
         default=TimezonePreference.LOCAL,
+        sa_column=Column(String(10), nullable=False),
+    )
+    theme_preference: ThemePreference = Field(
+        default=ThemePreference.SYSTEM,
         sa_column=Column(String(10), nullable=False),
     )
     favorite_metrics: Optional[List[str]] = Field(

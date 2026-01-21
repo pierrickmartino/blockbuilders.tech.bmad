@@ -1345,14 +1345,14 @@ export default function StrategyBacktestPage({ params }: Props) {
                         tickFormatter={(v) => formatChartDate(v, timezone)}
                         tick={{ fontSize: 12 }}
                         tickLine={false}
-                        axisLine={{ stroke: "#e5e7eb" }}
+                        axisLine={{ stroke: "hsl(var(--border))" }}
                         tickCount={tickConfig.xAxisTicks}
                       />
                       <YAxis
                         tickFormatter={(v) => formatPrice(v, "").trim()}
                         tick={{ fontSize: 12 }}
                         tickLine={false}
-                        axisLine={{ stroke: "#e5e7eb" }}
+                        axisLine={{ stroke: "hsl(var(--border))" }}
                         width={80}
                         tickCount={tickConfig.yAxisTicks}
                       />
@@ -1360,10 +1360,11 @@ export default function StrategyBacktestPage({ params }: Props) {
                       formatter={(value) => [formatPrice(Number(value)), "Equity"]}
                       labelFormatter={(label) => formatDateTime(label as string, timezone)}
                       contentStyle={{
-                        backgroundColor: "white",
-                        border: "1px solid #e5e7eb",
+                        backgroundColor: "hsl(var(--popover))",
+                        border: "1px solid hsl(var(--border))",
                         borderRadius: "0.375rem",
                         fontSize: "0.875rem",
+                        color: "hsl(var(--popover-foreground))",
                       }}
                     />
                     <Legend
@@ -1373,16 +1374,16 @@ export default function StrategyBacktestPage({ params }: Props) {
                     <Line
                       type="monotone"
                       dataKey="equity"
-                      stroke="#2563eb"
+                      stroke="hsl(var(--chart-1))"
                       strokeWidth={2}
                       dot={false}
-                      activeDot={{ r: 4, fill: "#2563eb" }}
+                      activeDot={{ r: 4, fill: "hsl(var(--chart-1))" }}
                       name="Strategy"
                     />
                     <Line
                       type="monotone"
                       dataKey="benchmark"
-                      stroke="#9ca3af"
+                      stroke="hsl(var(--muted-foreground))"
                       strokeWidth={2}
                       dot={false}
                       strokeDasharray="5 5"
@@ -1430,8 +1431,8 @@ export default function StrategyBacktestPage({ params }: Props) {
                     <AreaChart data={drawdownData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
                       <defs>
                         <linearGradient id="drawdownGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#ef4444" stopOpacity={0.1} />
-                          <stop offset="100%" stopColor="#ef4444" stopOpacity={0.3} />
+                          <stop offset="0%" stopColor="hsl(var(--destructive))" stopOpacity={0.1} />
+                          <stop offset="100%" stopColor="hsl(var(--destructive))" stopOpacity={0.3} />
                         </linearGradient>
                       </defs>
                       <XAxis
@@ -1439,14 +1440,14 @@ export default function StrategyBacktestPage({ params }: Props) {
                         tickFormatter={(v) => formatChartDate(v, timezone)}
                         tick={{ fontSize: 12 }}
                         tickLine={false}
-                        axisLine={{ stroke: "#e5e7eb" }}
+                        axisLine={{ stroke: "hsl(var(--border))" }}
                         tickCount={tickConfig.xAxisTicks}
                       />
                       <YAxis
                         tickFormatter={(v) => `${v.toFixed(1)}%`}
                         tick={{ fontSize: 12 }}
                         tickLine={false}
-                        axisLine={{ stroke: "#e5e7eb" }}
+                        axisLine={{ stroke: "hsl(var(--border))" }}
                         width={60}
                         tickCount={tickConfig.yAxisTicks}
                       />
@@ -1454,18 +1455,19 @@ export default function StrategyBacktestPage({ params }: Props) {
                       formatter={(value) => [`${Number(value).toFixed(2)}%`, "Drawdown"]}
                       labelFormatter={(label) => formatDateTime(label as string, timezone)}
                       contentStyle={{
-                        backgroundColor: "white",
-                        border: "1px solid #e5e7eb",
+                        backgroundColor: "hsl(var(--popover))",
+                        border: "1px solid hsl(var(--border))",
                         borderRadius: "0.375rem",
                         fontSize: "0.875rem",
+                        color: "hsl(var(--popover-foreground))",
                       }}
                     />
-                    <ReferenceLine y={0} stroke="#9ca3af" strokeDasharray="3 3" />
+                    <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
                     {drawdownData.some((d) => d.isMaxDrawdown) && (
                       <ReferenceArea
                         x1={drawdownData.find((d) => d.isMaxDrawdown)?.timestamp}
                         x2={drawdownData.filter((d) => d.isMaxDrawdown).pop()?.timestamp}
-                        fill="#fca5a5"
+                        fill="hsl(var(--destructive))"
                         fillOpacity={0.2}
                         strokeOpacity={0}
                       />
@@ -1473,11 +1475,11 @@ export default function StrategyBacktestPage({ params }: Props) {
                     <Area
                       type="monotone"
                       dataKey="drawdown"
-                      stroke="#ef4444"
+                      stroke="hsl(var(--destructive))"
                       strokeWidth={2}
                       fill="url(#drawdownGradient)"
                       dot={false}
-                      activeDot={{ r: 4, fill: "#ef4444" }}
+                      activeDot={{ r: 4, fill: "hsl(var(--destructive))" }}
                     />
                   </AreaChart>
                 </ResponsiveContainer>
@@ -1673,13 +1675,13 @@ export default function StrategyBacktestPage({ params }: Props) {
                           dataKey="label"
                           tick={{ fontSize: 12 }}
                           tickLine={false}
-                          axisLine={{ stroke: "#e5e7eb" }}
+                          axisLine={{ stroke: "hsl(var(--border))" }}
                         />
                         <YAxis
                           label={{ value: 'Count', angle: -90, position: 'insideLeft', style: { fontSize: 12 } }}
                           tick={{ fontSize: 12 }}
                           tickLine={false}
-                          axisLine={{ stroke: "#e5e7eb" }}
+                          axisLine={{ stroke: "hsl(var(--border))" }}
                         />
                         <Tooltip
                           formatter={(value) => [
@@ -1687,15 +1689,16 @@ export default function StrategyBacktestPage({ params }: Props) {
                             'Count'
                           ]}
                           contentStyle={{
-                            backgroundColor: "white",
-                            border: "1px solid #e5e7eb",
+                            backgroundColor: "hsl(var(--popover))",
+                            border: "1px solid hsl(var(--border))",
                             borderRadius: "0.375rem",
                             fontSize: "0.875rem",
+                            color: "hsl(var(--popover-foreground))",
                           }}
                         />
                         <Bar
                           dataKey="count"
-                          fill="#2563eb"
+                          fill="hsl(var(--chart-1))"
                           radius={[4, 4, 0, 0]}
                         />
                       </BarChart>
@@ -1719,13 +1722,13 @@ export default function StrategyBacktestPage({ params }: Props) {
                             dataKey="label"
                             tick={{ fontSize: 12 }}
                             tickLine={false}
-                            axisLine={{ stroke: "#e5e7eb" }}
+                            axisLine={{ stroke: "hsl(var(--border))" }}
                           />
                           <YAxis
                             label={{ value: 'Count', angle: -90, position: 'insideLeft', style: { fontSize: 12 } }}
                             tick={{ fontSize: 12 }}
                             tickLine={false}
-                            axisLine={{ stroke: "#e5e7eb" }}
+                            axisLine={{ stroke: "hsl(var(--border))" }}
                           />
                           <Tooltip
                             formatter={(value) => [
@@ -1733,15 +1736,16 @@ export default function StrategyBacktestPage({ params }: Props) {
                               'Count'
                             ]}
                             contentStyle={{
-                              backgroundColor: "white",
-                              border: "1px solid #e5e7eb",
+                              backgroundColor: "hsl(var(--popover))",
+                              border: "1px solid hsl(var(--border))",
                               borderRadius: "0.375rem",
                               fontSize: "0.875rem",
+                              color: "hsl(var(--popover-foreground))",
                             }}
                           />
                           <Bar
                             dataKey="count"
-                            fill="#2563eb"
+                            fill="hsl(var(--chart-1))"
                             radius={[4, 4, 0, 0]}
                           />
                         </BarChart>
