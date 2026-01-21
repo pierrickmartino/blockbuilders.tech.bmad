@@ -70,6 +70,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
   - Slippage rate (default 0.05%)
 - Display preferences:
   - Timezone (local or UTC)
+  - **Planned:** Theme preference (system/light/dark)
   - Applied to all timestamps in UI
 
 **User Model Fields:**
@@ -1053,6 +1054,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
   - Slippage rate input (0.01-2%)
 - Display Preferences:
   - Timezone toggle (local or UTC)
+  - **Planned:** Theme toggle (system/light/dark)
 - Usage section:
   - Strategies progress bar (X / 10)
   - Daily backtests progress bar (X / 50)
@@ -1644,6 +1646,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Volatility Metrics (Market Overview)** | ✅ Complete | Show current + historical volatility with percentile rank per pair |
 | **Market Sentiment Indicators (Market Overview)** | ✅ Complete | Fear & Greed Index (Alternative.me), social activity (CoinGecko), funding rates (Binance); 15min cache, partial failure support, backtest sentiment context |
 | **Frontend UI** | ✅ Complete | Multi-strategy dashboard, strategy list/editor, backtest runner/results, profile |
+| **Dark Mode** | 📝 Planned | User-selectable theme (system/light/dark) applied across canvas, charts, and forms |
 | **Contextual Help & Tooltips** | ✅ Complete | Hover tooltips for indicators, logic blocks, metrics |
 | **Metrics Glossary** | ✅ Complete | Dedicated searchable page explaining backtest metrics |
 | **Favorite Metrics (Backtest Summary)** | 📝 Planned | Users can pin/reorder the metrics shown in backtest summary cards |
@@ -1895,6 +1898,7 @@ pytest --cov            # Coverage report
 - `docs/prd-multi-strategy-dashboard.md` - Multi-strategy dashboard PRD
 - `docs/prd-drawdown-chart.md` - Drawdown chart PRD
 - `docs/prd-responsive-charts-mobile.md` - Responsive charts (mobile/touch) PRD
+- `docs/prd-dark-mode-theme.md` - Dark mode (theme preference) PRD
 - `docs/prd-seasonality-analysis.md` - Seasonality analysis PRD
 - `docs/prd-trade-distribution-analysis.md` - Trade distribution analysis PRD
 - `docs/prd-position-analysis.md` - Position analysis PRD
