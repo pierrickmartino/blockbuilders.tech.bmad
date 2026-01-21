@@ -1,3 +1,5 @@
+"use client";
+
 import { useState } from "react";
 import { DataCompletenessResponse, DataQualityMetrics } from "@/types/backtest";
 import { DataCompletenessTimeline } from "./DataCompletenessTimeline";
