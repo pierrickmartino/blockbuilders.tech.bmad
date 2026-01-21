@@ -19,7 +19,7 @@ export default function TemplatesPage() {
   useEffect(() => {
     const loadTemplates = async () => {
       try {
-        const data = await apiFetch<StrategyTemplate[]>("/strategy-templates");
+        const data = await apiFetch<StrategyTemplate[]>("/strategy-templates/");
         setTemplates(data);
       } catch (err) {
         setError(
