@@ -81,11 +81,11 @@ export function DataAvailabilitySection({
               <div className="mb-2 text-sm text-gray-600">
                 <span className="font-semibold">{completeness.completeness_percent.toFixed(1)}%</span> complete from{" "}
                 <span className="font-medium">
-                  {new Date(completeness.coverage_start).toLocaleDateString()}
+                  {new Date(completeness.coverage_start!).toLocaleDateString()}
                 </span>{" "}
                 to{" "}
                 <span className="font-medium">
-                  {new Date(completeness.coverage_end).toLocaleDateString()}
+                  {new Date(completeness.coverage_end!).toLocaleDateString()}
                 </span>
               </div>
               {completeness && <DataCompletenessTimeline data={completeness} />}
