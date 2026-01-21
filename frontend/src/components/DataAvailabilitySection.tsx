@@ -21,6 +21,13 @@ export function DataAvailabilitySection({
   dateTo,
 }: DataAvailabilitySectionProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const formatLocalDate = (ymd: string) => {
+    const [year, month, day] = ymd.split("-").map(Number);
+    if (!year || !month || !day) {
+      return ymd;
+    }
+    return new Date(year, month - 1, day).toLocaleDateString();
+  };
 
   if (!completeness && !dataQuality) {
     return null;
@@ -66,6 +73,7 @@ export function DataAvailabilitySection({
                   tooltip={{
                     short: "Shows the full range of available historical data in our database for this asset/timeframe.",
                     long: "This metric indicates data availability from the earliest to latest candle in our database. High coverage means we have most data points across the full time range, even if some candles are missing within that range.",
+                    category: "metric",
                   }}
                   className="text-gray-400"
                 />
@@ -91,7 +99,7 @@ export function DataAvailabilitySection({
                 <h4 className="text-sm font-medium text-gray-700">
                   Selected Period Quality
                   <span className="ml-1 text-xs font-normal text-gray-500">
-                    ({new Date(dateFrom).toLocaleDateString()} - {new Date(dateTo).toLocaleDateString()})
+                    ({formatLocalDate(dateFrom)} - {formatLocalDate(dateTo)})
                   </span>
                 </h4>
               </div>
@@ -105,6 +113,7 @@ export function DataAvailabilitySection({
                       tooltip={{
                         short: "Percentage of expected candles that are missing in your selected backtest period.",
                         long: "This measures scattered missing data points within each day. For example, if we expect 24 hourly candles per day but only receive 20-21, that's ~12-16% missing. Missing candles can affect backtest accuracy.",
+                        category: "metric",
                       }}
                       className="text-gray-400"
                     />
@@ -129,6 +138,7 @@ export function DataAvailabilitySection({
                       tooltip={{
                         short: "Percentage of candles with valid volume data.",
                         long: "Shows how many candles have non-zero volume values. Low volume consistency may indicate data quality issues or periods of low market activity.",
+                        category: "metric",
                       }}
                       className="text-gray-400"
                     />
@@ -153,6 +163,7 @@ export function DataAvailabilitySection({
                       tooltip={{
                         short: "Number of candles with extreme price movements (>25%).",
                         long: "Counts candles where the price changed by more than 25% in a single period. These may indicate data errors or extreme market events.",
+                        category: "metric",
                       }}
                       className="text-gray-400"
                     />
@@ -177,6 +188,7 @@ export function DataAvailabilitySection({
                   tooltip={{
                     short: "Continuous periods of missing data larger than expected.",
                     long: "Unlike scattered missing candles, these are significant continuous gaps where no data exists for multiple hours or days. These can seriously impact backtest results.",
+                    category: "metric",
                   }}
                   className="text-gray-400"
                 />
