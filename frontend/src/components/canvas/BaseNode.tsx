@@ -16,34 +16,34 @@ interface BaseNodeProps {
 
 const categoryStyles = {
   input: {
-    border: "border-purple-300",
-    borderSelected: "border-purple-500",
-    bg: "bg-purple-50",
-    header: "bg-purple-100 text-purple-700",
+    border: "border-purple-300 dark:border-purple-600",
+    borderSelected: "border-purple-500 dark:border-purple-400",
+    bg: "bg-purple-50 dark:bg-purple-950/30",
+    header: "bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300",
   },
   indicator: {
-    border: "border-blue-300",
-    borderSelected: "border-blue-500",
-    bg: "bg-blue-50",
-    header: "bg-blue-100 text-blue-700",
+    border: "border-blue-300 dark:border-blue-600",
+    borderSelected: "border-blue-500 dark:border-blue-400",
+    bg: "bg-blue-50 dark:bg-blue-950/30",
+    header: "bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300",
   },
   logic: {
-    border: "border-amber-300",
-    borderSelected: "border-amber-500",
-    bg: "bg-amber-50",
-    header: "bg-amber-100 text-amber-700",
+    border: "border-amber-300 dark:border-amber-600",
+    borderSelected: "border-amber-500 dark:border-amber-400",
+    bg: "bg-amber-50 dark:bg-amber-950/30",
+    header: "bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300",
   },
   signal: {
-    border: "border-green-300",
-    borderSelected: "border-green-500",
-    bg: "bg-green-50",
-    header: "bg-green-100 text-green-700",
+    border: "border-green-300 dark:border-green-600",
+    borderSelected: "border-green-500 dark:border-green-400",
+    bg: "bg-green-50 dark:bg-green-950/30",
+    header: "bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300",
   },
   risk: {
-    border: "border-red-300",
-    borderSelected: "border-red-500",
-    bg: "bg-red-50",
-    header: "bg-red-100 text-red-700",
+    border: "border-red-300 dark:border-red-600",
+    borderSelected: "border-red-500 dark:border-red-400",
+    bg: "bg-red-50 dark:bg-red-950/30",
+    header: "bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300",
   },
 };
 
@@ -59,7 +59,7 @@ export default function BaseNode({
 }: BaseNodeProps) {
   const styles = categoryStyles[category];
   const borderClass = selected ? styles.borderSelected : styles.border;
-  const errorBorder = hasError ? "border-red-500 ring-2 ring-red-200" : "";
+  const errorBorder = hasError ? "border-red-500 ring-2 ring-red-200 dark:ring-red-900/50" : "";
   const tooltip = blockType ? getTooltip(blockToGlossaryId(blockType)) : null;
 
   return (
@@ -107,7 +107,7 @@ export default function BaseNode({
         <div className="px-3 py-2">
           {children}
           {validationMessage && (
-            <div className="mt-1 text-xs text-red-600">{validationMessage}</div>
+            <div className="mt-1 text-xs text-red-600 dark:text-red-400">{validationMessage}</div>
           )}
         </div>
       )}

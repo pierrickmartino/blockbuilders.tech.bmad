@@ -13,8 +13,11 @@ import { useIsMobile } from "@/hooks/use-mobile";
 
 const STORAGE_KEY_TIMEZONE = "bb.display.timezone";
 const STORAGE_KEY_MOBILE_CANVAS = "bb.display.mobileCanvasMode";
+const STORAGE_KEY_THEME = "bb.display.theme";
 
 export type MobileCanvasMode = "auto" | "mobile" | "desktop";
+export type ThemePreference = "system" | "light" | "dark";
+export type ResolvedTheme = "light" | "dark";
 
 interface DisplayContextType {
   timezone: TimezoneMode;
@@ -22,6 +25,9 @@ interface DisplayContextType {
   mobileCanvasMode: MobileCanvasMode;
   setMobileCanvasMode: (mode: MobileCanvasMode) => void;
   isMobileCanvasMode: boolean;
+  theme: ThemePreference;
+  resolvedTheme: ResolvedTheme;
+  setTheme: (theme: ThemePreference) => void;
 }
 
 const DisplayContext = createContext<DisplayContextType | undefined>(undefined);
@@ -30,6 +36,23 @@ export function DisplayProvider({ children }: { children: ReactNode }) {
   const [timezone, setTimezoneState] = useState<TimezoneMode>("local");
   const [mobileCanvasMode, setMobileCanvasModeState] =
     useState<MobileCanvasMode>("auto");
+  const [theme, setThemeState] = useState<ThemePreference>(() => {
+    if (typeof window === "undefined") return "system";
+    const stored = localStorage.getItem(STORAGE_KEY_THEME);
+    if (stored === "system" || stored === "light" || stored === "dark") {
+      return stored;
+    }
+    return "system";
+  });
+  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>(() => {
+    if (typeof window === "undefined") return "light";
+    const stored = localStorage.getItem(STORAGE_KEY_THEME);
+    if (stored === "light" || stored === "dark") return stored;
+    if (document.documentElement.classList.contains("dark")) return "dark";
+    return window.matchMedia("(prefers-color-scheme: dark)").matches
+      ? "dark"
+      : "light";
+  });
   const isMobileViewport = useIsMobile();
 
   // Compute mobile canvas mode based on setting and viewport
@@ -73,6 +96,44 @@ export function DisplayProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // Handle system preference when theme is "system"
+  useEffect(() => {
+    if (theme !== "system") {
+      setResolvedTheme(theme);
+      return;
+    }
+
+    if (typeof window === "undefined") return;
+
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const updateResolvedTheme = () => {
+      setResolvedTheme(mediaQuery.matches ? "dark" : "light");
+    };
+
+    updateResolvedTheme();
+    mediaQuery.addEventListener("change", updateResolvedTheme);
+    return () => mediaQuery.removeEventListener("change", updateResolvedTheme);
+  }, [theme]);
+
+  // Apply dark class to HTML element based on resolved theme
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    if (resolvedTheme === "dark") {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }, [resolvedTheme]);
+
+  // Persist theme to localStorage on change
+  const setTheme = useCallback((newTheme: ThemePreference) => {
+    setThemeState(newTheme);
+    if (typeof window !== "undefined") {
+      localStorage.setItem(STORAGE_KEY_THEME, newTheme);
+    }
+  }, []);
+
   return (
     <DisplayContext.Provider
       value={{
@@ -81,6 +142,9 @@ export function DisplayProvider({ children }: { children: ReactNode }) {
         mobileCanvasMode,
         setMobileCanvasMode,
         isMobileCanvasMode,
+        theme,
+        resolvedTheme,
+        setTheme,
       }}
     >
       {children}

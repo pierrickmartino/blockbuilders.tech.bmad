@@ -23,7 +23,7 @@ export default function PropertiesPanel({
 }: PropertiesPanelProps) {
   if (!selectedNode) {
     return (
-      <div className="flex h-full items-center justify-center bg-white p-4 text-center text-sm text-gray-500">
+      <div className="flex h-full items-center justify-center bg-white dark:bg-gray-900 p-4 text-center text-sm text-gray-500 dark:text-gray-400 dark:text-gray-400">
         <div>
           <p className="font-medium">No block selected</p>
           <p className="mt-1 text-xs">Click a block to view its properties</p>
@@ -80,11 +80,11 @@ export default function PropertiesPanel({
 
     return (
       <div className="space-y-3">
-        <div className="text-xs font-medium text-gray-500">TP Ladder Levels</div>
+        <div className="text-xs font-medium text-gray-500 dark:text-gray-400">TP Ladder Levels</div>
         {levels.map((level, i) => (
-          <div key={i} className="flex items-center gap-2 rounded border border-gray-200 bg-gray-50 p-2">
+          <div key={i} className="flex items-center gap-2 rounded border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-2">
             <div className="flex-1">
-              <label className="block text-[10px] text-gray-500">Profit %</label>
+              <label className="block text-[10px] text-gray-500 dark:text-gray-400">Profit %</label>
               <input
                 type="number"
                 value={level.profit_pct}
@@ -92,11 +92,11 @@ export default function PropertiesPanel({
                 max={1000}
                 step={0.1}
                 onChange={(e) => updateLevel(i, "profit_pct", Number(e.target.value))}
-                className="w-full rounded border border-gray-300 px-2 py-1 text-sm"
+                className="w-full rounded border border-gray-300 dark:border-gray-600 px-2 py-1 text-sm"
               />
             </div>
             <div className="flex-1">
-              <label className="block text-[10px] text-gray-500">Close %</label>
+              <label className="block text-[10px] text-gray-500 dark:text-gray-400">Close %</label>
               <input
                 type="number"
                 value={level.close_pct}
@@ -104,7 +104,7 @@ export default function PropertiesPanel({
                 max={100}
                 step={1}
                 onChange={(e) => updateLevel(i, "close_pct", Number(e.target.value))}
-                className="w-full rounded border border-gray-300 px-2 py-1 text-sm"
+                className="w-full rounded border border-gray-300 dark:border-gray-600 px-2 py-1 text-sm"
               />
             </div>
             {levels.length > 1 && (
@@ -120,7 +120,7 @@ export default function PropertiesPanel({
         {levels.length < 3 && (
           <button
             onClick={addLevel}
-            className="w-full rounded border border-dashed border-gray-300 py-1 text-xs text-gray-500 hover:border-gray-400 hover:text-gray-700"
+            className="w-full rounded border border-dashed border-gray-300 dark:border-gray-600 py-1 text-xs text-gray-500 dark:text-gray-400 hover:border-gray-400 dark:border-gray-500 hover:text-gray-700 dark:text-gray-300"
           >
             + Add Level
           </button>
@@ -144,7 +144,7 @@ export default function PropertiesPanel({
         <select
           value={String(value)}
           onChange={(e) => handleChange(key, e.target.value)}
-          className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
+          className="w-full rounded border border-gray-300 dark:border-gray-600 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
         >
           {config.options?.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -164,7 +164,7 @@ export default function PropertiesPanel({
           max={config.max}
           step={config.step || 1}
           onChange={(e) => handleChange(key, Number(e.target.value))}
-          className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
+          className="w-full rounded border border-gray-300 dark:border-gray-600 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
         />
       );
     }
@@ -177,7 +177,7 @@ export default function PropertiesPanel({
   return (
     <div className="h-full overflow-y-auto bg-white p-4">
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-gray-900">Properties</h3>
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Properties</h3>
         <button
           onClick={() => onDeleteNode(selectedNode.id)}
           className={cn(
@@ -191,8 +191,8 @@ export default function PropertiesPanel({
 
       <div className="space-y-4">
         <div>
-          <label className="text-xs font-medium text-gray-500">Block Type</label>
-          <div className="mt-1 text-sm font-medium text-gray-900">
+          <label className="text-xs font-medium text-gray-500 dark:text-gray-400">Block Type</label>
+          <div className="mt-1 text-sm font-medium text-gray-900 dark:text-gray-100">
             {blockMeta?.label || blockType}
           </div>
         </div>
@@ -211,12 +211,12 @@ export default function PropertiesPanel({
           renderTakeProfitLevels()
         ) : paramConfigs.length > 0 ? (
           <div className="space-y-3">
-            <div className="text-xs font-medium text-gray-500">Parameters</div>
+            <div className="text-xs font-medium text-gray-500 dark:text-gray-400">Parameters</div>
             {paramConfigs.map((config) => {
               const tooltip = getTooltip(paramToGlossaryId(config.key));
               return (
                 <div key={config.key}>
-                  <label className="mb-1 flex items-center gap-1 text-xs text-gray-600">
+                  <label className="mb-1 flex items-center gap-1 text-xs text-gray-600 dark:text-gray-300">
                     <span title={tooltip?.short}>{config.label}</span>
                     <InfoIcon
                       tooltip={tooltip}

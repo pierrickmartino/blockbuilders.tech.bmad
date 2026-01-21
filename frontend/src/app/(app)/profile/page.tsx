@@ -17,7 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 export default function ProfilePage() {
-  const { timezone, setTimezone } = useDisplay();
+  const { timezone, setTimezone, theme, setTheme } = useDisplay();
   const [profile, setProfile] = useState<ProfileResponse | null>(null);
   const [feePercent, setFeePercent] = useState("");
   const [slippagePercent, setSlippagePercent] = useState("");
@@ -44,6 +44,10 @@ export default function ProfilePage() {
         if (data.settings.timezone_preference) {
           setTimezone(data.settings.timezone_preference);
         }
+        // Sync theme from server to display context
+        if (data.settings.theme_preference) {
+          setTheme(data.settings.theme_preference);
+        }
       } catch {
         setError("Couldn't load profile. Please try again.");
       } finally {
@@ -51,7 +55,7 @@ export default function ProfilePage() {
       }
     }
     fetchProfile();
-  }, [setTimezone]);
+  }, [setTimezone, setTheme]);
 
   // Handle backtest defaults save
   async function handleSaveDefaults(e: React.FormEvent) {
@@ -98,6 +102,22 @@ export default function ProfilePage() {
     } catch {
       // Revert on error
       setTimezone(previousTz);
+    }
+  }
+
+  // Handle theme change (save to server)
+  async function handleThemeChange(newTheme: "system" | "light" | "dark") {
+    const previousTheme = theme;
+    setTheme(newTheme);
+    try {
+      const updated = await apiFetch<ProfileResponse>("/users/me", {
+        method: "PUT",
+        body: JSON.stringify({ theme_preference: newTheme }),
+      });
+      setProfile(updated);
+    } catch {
+      // Revert on error
+      setTheme(previousTheme);
     }
   }
 
@@ -302,24 +322,57 @@ export default function ProfilePage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <label className="mb-2 block text-sm font-medium">
-              Timezone
-            </label>
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant={timezone === "local" ? "default" : "secondary"}
-                onClick={() => handleTimezoneChange("local")}
-              >
-                Local
-              </Button>
-              <Button
-                type="button"
-                variant={timezone === "utc" ? "default" : "secondary"}
-                onClick={() => handleTimezoneChange("utc")}
-              >
-                UTC
-              </Button>
+            <div className="space-y-4">
+              <div>
+                <label className="mb-2 block text-sm font-medium">
+                  Timezone
+                </label>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant={timezone === "local" ? "default" : "secondary"}
+                    onClick={() => handleTimezoneChange("local")}
+                  >
+                    Local
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={timezone === "utc" ? "default" : "secondary"}
+                    onClick={() => handleTimezoneChange("utc")}
+                  >
+                    UTC
+                  </Button>
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium">
+                  Theme
+                </label>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant={theme === "system" ? "default" : "secondary"}
+                    onClick={() => handleThemeChange("system")}
+                  >
+                    System
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={theme === "light" ? "default" : "secondary"}
+                    onClick={() => handleThemeChange("light")}
+                  >
+                    Light
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={theme === "dark" ? "default" : "secondary"}
+                    onClick={() => handleThemeChange("dark")}
+                  >
+                    Dark
+                  </Button>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>

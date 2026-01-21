@@ -3,7 +3,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field
 
-from app.models.user import TimezonePreference
+from app.models.user import TimezonePreference, ThemePreference
 
 
 class SignupRequest(BaseModel):
@@ -34,6 +34,7 @@ class UserUpdateRequest(BaseModel):
     default_fee_percent: Optional[float] = Field(default=None, ge=0, le=5)
     default_slippage_percent: Optional[float] = Field(default=None, ge=0, le=5)
     timezone_preference: Optional[TimezonePreference] = None
+    theme_preference: Optional[ThemePreference] = None
     favorite_metrics: Optional[List[str]] = None
 
 
@@ -51,6 +52,7 @@ class SettingsResponse(BaseModel):
     default_fee_percent: Optional[float] = None
     default_slippage_percent: Optional[float] = None
     timezone_preference: TimezonePreference = TimezonePreference.LOCAL
+    theme_preference: ThemePreference = ThemePreference.SYSTEM
     backtest_credit_balance: int = 0
     extra_strategy_slots: int = 0
     favorite_metrics: Optional[List[str]] = None
