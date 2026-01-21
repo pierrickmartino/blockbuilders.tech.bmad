@@ -51,9 +51,18 @@ def fetch_candles(
     interval_seconds = TIMEFRAME_SECONDS.get(timeframe, 3600)
     expected_count = int((date_to.timestamp() - date_from.timestamp()) / interval_seconds) + 1
 
-    # If we have enough candles, return them
+    # Check if we have enough candles AND they cover the requested end date
+    # The 95% threshold alone isn't enough - we must also verify the latest
+    # cached candle is close to date_to, otherwise we'd skip fetching fresh data
     if len(db_candles) >= expected_count * 0.95:  # 95% threshold
-        return db_candles
+        if db_candles:
+            latest_candle_ts = db_candles[-1].timestamp
+            # Allow up to 2 candle intervals of slack for the end date
+            max_end_gap = interval_seconds * 2
+            if (date_to.timestamp() - latest_candle_ts.timestamp()) <= max_end_gap:
+                return db_candles
+        else:
+            return db_candles
 
     # Fetch missing candles from vendor
     logger.info(f"Fetching candles from vendor: {asset} {timeframe} {date_from} - {date_to}")
