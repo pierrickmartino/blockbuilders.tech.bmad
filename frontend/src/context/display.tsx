@@ -36,8 +36,23 @@ export function DisplayProvider({ children }: { children: ReactNode }) {
   const [timezone, setTimezoneState] = useState<TimezoneMode>("local");
   const [mobileCanvasMode, setMobileCanvasModeState] =
     useState<MobileCanvasMode>("auto");
-  const [theme, setThemeState] = useState<ThemePreference>("system");
-  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>("light");
+  const [theme, setThemeState] = useState<ThemePreference>(() => {
+    if (typeof window === "undefined") return "system";
+    const stored = localStorage.getItem(STORAGE_KEY_THEME);
+    if (stored === "system" || stored === "light" || stored === "dark") {
+      return stored;
+    }
+    return "system";
+  });
+  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>(() => {
+    if (typeof window === "undefined") return "light";
+    const stored = localStorage.getItem(STORAGE_KEY_THEME);
+    if (stored === "light" || stored === "dark") return stored;
+    if (document.documentElement.classList.contains("dark")) return "dark";
+    return window.matchMedia("(prefers-color-scheme: dark)").matches
+      ? "dark"
+      : "light";
+  });
   const isMobileViewport = useIsMobile();
 
   // Compute mobile canvas mode based on setting and viewport
@@ -78,16 +93,6 @@ export function DisplayProvider({ children }: { children: ReactNode }) {
     setMobileCanvasModeState(mode);
     if (typeof window !== "undefined") {
       localStorage.setItem(STORAGE_KEY_MOBILE_CANVAS, mode);
-    }
-  }, []);
-
-  // Load theme from localStorage on mount
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem(STORAGE_KEY_THEME);
-      if (stored === "system" || stored === "light" || stored === "dark") {
-        setThemeState(stored);
-      }
     }
   }, []);
 
