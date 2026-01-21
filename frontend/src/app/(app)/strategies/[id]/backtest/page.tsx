@@ -45,8 +45,8 @@ import { PlanResponse } from "@/types/auth";
 import { StrategyTabs } from "@/components/StrategyTabs";
 import TradeDrawer from "@/components/TradeDrawer";
 import InfoIcon from "@/components/InfoIcon";
-import { DataCompletenessTimeline } from "@/components/DataCompletenessTimeline";
 import { BacktestSentimentStrip } from "@/components/BacktestSentimentStrip";
+import { DataAvailabilitySection } from "@/components/DataAvailabilitySection";
 import { metricToGlossaryId, getTooltip } from "@/lib/tooltip-content";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
@@ -973,21 +973,22 @@ export default function StrategyBacktestPage({ params }: Props) {
             {statusMessage}
           </div>
         )}
-        {dataQuality?.has_issues && (
-          <div className="mt-2 rounded border border-yellow-200 bg-yellow-50 px-3 py-2 text-sm text-yellow-700">
-            ⚠️ Data quality warning: {dataQuality.issues_description}. Results may be less reliable.
-          </div>
-        )}
-        {gapOverlap && gapOverlap.length > 0 && (
-          <div className="mt-2 rounded border border-orange-200 bg-orange-50 px-3 py-2 text-sm text-orange-700">
-            ⚠️ Warning: Selected period overlaps {gapOverlap.length} data gap{gapOverlap.length > 1 ? 's' : ''}. Results may be affected by missing data.
-          </div>
-        )}
       </div>
 
       {/* Main Content */}
       <div className="flex-1 space-y-4 overflow-auto bg-gray-50 p-3 sm:p-4">
         <div className="grid gap-3 sm:gap-4 lg:grid-cols-3">
+          {/* Data Availability - Full Width */}
+          <div className="lg:col-span-3">
+            <DataAvailabilitySection
+              completeness={completeness}
+              dataQuality={dataQuality}
+              gapOverlap={gapOverlap}
+              dateFrom={dateFrom}
+              dateTo={dateTo}
+            />
+          </div>
+
           <section className="lg:col-span-2 rounded-lg border border-gray-200 bg-white p-3 shadow-sm sm:p-4">
             <div className="mb-3 sm:mb-4">
               <h2 className="text-base font-semibold text-gray-900">Run a backtest</h2>
@@ -1077,14 +1078,6 @@ export default function StrategyBacktestPage({ params }: Props) {
                   className="mt-1"
                 />
               </div>
-              {completeness && (
-                <div className="md:col-span-2 mt-2">
-                  <h3 className="text-sm font-medium text-gray-700 mb-2">Data Availability</h3>
-                  <DataCompletenessTimeline
-                    data={completeness}
-                  />
-                </div>
-              )}
               <div className="md:col-span-2 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <p className="text-sm text-gray-500">
                   Backtests run in the background. You can leave this page and results will still be saved.
@@ -1229,47 +1222,6 @@ export default function StrategyBacktestPage({ params }: Props) {
                 <p className="text-sm text-gray-600">
                   Backtest is {selectedRun.status}. We&apos;ll keep polling for results.
                 </p>
-              )}
-
-              {/* Data Quality Metrics */}
-              {selectedRun.data_quality && (
-                <div className="mt-4">
-                  <h3 className="mb-2 text-sm font-medium text-gray-700">Data Quality</h3>
-                  <div className="grid grid-cols-2 gap-2 lg:grid-cols-3">
-                    <div className="rounded border border-gray-200 bg-gray-50 p-2 sm:p-3">
-                      <div className="text-xs text-gray-500">Gap %</div>
-                      <div className="text-base font-semibold sm:text-lg">
-                        {selectedRun.data_quality.gap_percent.toFixed(2)}%
-                      </div>
-                    </div>
-                    <div className="rounded border border-gray-200 bg-gray-50 p-2 sm:p-3">
-                      <div className="text-xs text-gray-500">Outliers</div>
-                      <div className="text-base font-semibold sm:text-lg">
-                        {selectedRun.data_quality.outlier_count}
-                      </div>
-                    </div>
-                    <div className="col-span-2 rounded border border-gray-200 bg-gray-50 p-2 sm:p-3 lg:col-span-1">
-                      <div className="text-xs text-gray-500">Volume Consistency</div>
-                      <div className="text-base font-semibold sm:text-lg">
-                        {selectedRun.data_quality.volume_consistency.toFixed(1)}%
-                      </div>
-                    </div>
-                  </div>
-                  {selectedRun.data_quality.has_issues && (
-                    <div className="mt-2 text-xs text-yellow-600">
-                      ⚠️ {selectedRun.data_quality.issues_description}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Data Completeness Summary */}
-              {completeness && completeness.coverage_start && completeness.coverage_end && (
-                <div className="mt-3 text-xs text-gray-600">
-                  Data completeness: {completeness.completeness_percent.toFixed(1)}%
-                  ({new Date(completeness.coverage_start).toLocaleDateString()} - {new Date(completeness.coverage_end).toLocaleDateString()}),
-                  {completeness.gap_count} gap{completeness.gap_count !== 1 ? 's' : ''}
-                </div>
               )}
 
               {/* Sentiment Context Strip */}
