@@ -1217,7 +1217,31 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Toggle on/off, set drawdown threshold %, choose entry/exit, choose email or in-app.
 - Shows last triggered timestamp (if any).
 
-### 9.11. Progress Dashboard
+### 9.11. Price Alerts
+
+**Status:** Planned
+
+**Purpose:** Let users monitor price levels without constantly checking charts.
+
+**Alert Rule (v1):**
+- Pair: any supported crypto pair (Section 3.4)
+- Condition: **above** or **below** a threshold price
+- Channels: in-app (default), optional email, optional webhook URL
+- Optional expiration timestamp
+- Multiple alerts per asset allowed
+- One-shot: alert deactivates after firing
+
+**Behavior:**
+- Background price monitor runs on a fixed interval (simple polling).
+- Alerts trigger **only when price crosses the threshold** since the last check.
+- On trigger: create in-app notification + send optional email/webhook payload.
+- Expired alerts are skipped and marked inactive.
+
+**UI Placement (simple):**
+- Alerts page (shared with performance alerts) with a minimal create/edit form.
+- List shows pair, condition, threshold, channels, status, and last triggered time.
+
+### 9.12. Progress Dashboard
 
 **Status:** Implemented
 
@@ -1294,6 +1318,10 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - POST /: Create alert rule
 - PATCH /{id}: Update alert rule
 - DELETE /{id}: Delete alert rule
+
+**Alert Types:**
+- `performance`: Strategy-level drawdown/entry/exit alerts (Section 9.10)
+- `price`: Pair threshold alerts (Section 9.11)
 
 **Strategies Router** (`/strategies`)
 - GET /: List strategies (search, include_archived)
@@ -1670,6 +1698,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Data Quality & Completeness Indicators** | ✅ Complete | Gap %, outlier count, volume consistency, data availability timeline, backtest warnings |
 | **Scheduled Updates** | ✅ Complete | Daily scheduler for auto-update strategies (paper trading) |
 | **Performance Alerts (Simple)** | ✅ Complete | Drawdown threshold alerts on scheduled re-backtests |
+| **Price Alerts** | 📝 Planned | Threshold alerts per pair with in-app/email/webhook delivery |
 | **Usage Limits** | ✅ Complete | Plan-based caps on strategies, daily backtests, and historical depth |
 | **One-Time Credit Packs** | ✅ Complete | Purchase 50 backtest credits or +5 strategy slots; credits never expire |
 | **Subscription Plans & Billing** | ✅ Complete | Free/Pro/Premium tiers with Stripe monthly/annual billing and simple caps |
@@ -1728,10 +1757,10 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Real-time trading or brokerage integration
 - Full strategy marketplace, public sharing links, or monetization (manual file export/import is allowed)
 - Usage-based pricing, complex metering, or add-on bundles beyond simple one-time credit packs
-- Email/SMS alerts outside performance alerts (performance alerts may send email; no SMS)
+- SMS alerts (no SMS for performance or price alerts)
 - Full social feeds or discovery features
 - Advanced analytics (factor models, Monte Carlo, walk-forward)
-- Webhooks or external integrations
+- Broad webhook/integration framework (price alert webhooks are allowed)
 - Mobile native apps
 - Export to Pine Script or other platforms
 
@@ -1936,6 +1965,7 @@ pytest --cov            # Coverage report
 - `docs/prd-trade-distribution-analysis.md` - Trade distribution analysis PRD
 - `docs/prd-position-analysis.md` - Position analysis PRD
 - `docs/prd-performance-alerts-simple.md` - Performance alerts (simple) PRD
+- `docs/prd-price-alerts.md` - Price alerts PRD
 - `docs/prd-copy-paste-blocks-subgraphs.md` - Copy/paste blocks & subgraphs PRD
 - `docs/prd-mobile-optimized-canvas.md` - Mobile-optimized canvas PRD
 - `docs/prd-real-time-price-tickers.md` - Real-time price tickers PRD
