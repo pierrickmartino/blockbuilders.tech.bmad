@@ -8,6 +8,7 @@ from sqlmodel import Session, select, func, and_
 from app.api.deps import get_current_user
 from app.core.database import get_session
 from app.core.plans import get_plan_limits
+from app.models.alert_rule import AlertRule
 from app.models.backtest_run import BacktestRun
 from app.models.strategy import Strategy
 from app.models.strategy_tag import StrategyTag
@@ -899,7 +900,16 @@ def bulk_delete_strategies(
         try:
             strategy = get_user_strategy(strategy_id, user, session)
 
-            # Cascade deletes (versions, backtest runs, tag links) handled by DB
+            # Explicitly delete dependent rows (no FK cascades for versions/backtests).
+            session.query(AlertRule).filter(AlertRule.strategy_id == strategy_id).delete()
+            session.query(BacktestRun).filter(BacktestRun.strategy_id == strategy_id).delete()
+            session.query(StrategyVersion).filter(
+                StrategyVersion.strategy_id == strategy_id
+            ).delete()
+            session.query(StrategyTagLink).filter(
+                StrategyTagLink.strategy_id == strategy_id
+            ).delete()
+
             session.delete(strategy)
             session.commit()
             success_count += 1
