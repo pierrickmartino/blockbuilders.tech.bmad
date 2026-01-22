@@ -187,3 +187,20 @@ class ValidationError(BaseModel):
 class ValidationResponse(BaseModel):
     status: Literal["valid", "invalid"]
     errors: list[ValidationError]
+
+
+# Bulk operation schemas
+class BulkStrategyRequest(BaseModel):
+    strategy_ids: list[UUID] = Field(min_length=1, max_length=100)
+
+
+class BulkStrategyTagRequest(BaseModel):
+    strategy_ids: list[UUID] = Field(min_length=1, max_length=100)
+    tag_ids: list[UUID] = Field(min_length=1, max_length=20)
+
+
+class BulkStrategyResponse(BaseModel):
+    success_count: int
+    failed_count: int
+    failed_ids: list[UUID] = Field(default_factory=list)
+    error_message: str | None = None
