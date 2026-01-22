@@ -1216,18 +1216,30 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 
 ### 9.11. Progress Dashboard
 
+**Status:** Implemented
+
 **Progress Dashboard** (`/progress`)
 - Simple metrics view showing user journey progress:
-  - Strategies created
-  - Backtests run
-  - Lessons learned (derived from completed usage milestones)
-  - Achievements unlocked (badge count + latest badge)
-- Optional “Next steps” suggestions based on low-usage signals (e.g., no backtests yet).
-- Uses existing usage data (strategies, backtests, versions) only; no new analytics pipelines.
+  - **Strategies created**: Count of non-archived strategies
+  - **Backtests run**: Count of completed backtest runs
+  - **Strategy versions**: Count of saved strategy versions
+  - **Lessons learned**: 4 boolean milestones (first strategy, saved version, first backtest, reviewed results)
+  - **Achievements**: 4 badge-style thresholds (1 strategy, 5 strategies, 1 backtest, 10 backtests)
+- "Next steps" suggestions with primary CTA button based on usage rules:
+  - No strategies → "Create your first strategy"
+  - No backtests → "Run your first backtest"
+  - No versions → "Save a new version of a strategy"
+  - Otherwise → "Review your latest backtest results"
+- Responsive 2-column layout (desktop) / single column (mobile)
+- All data computed on-demand from existing tables (no new analytics pipelines)
 
-**Components (planned):**
-- `frontend/src/app/(app)/progress/page.tsx`
-- `frontend/src/components/progress/ProgressDashboard.tsx`
+**API Endpoint:**
+- `GET /progress` → Returns ProgressResponse with counts, lessons, achievements, next_steps
+
+**Components:**
+- `frontend/src/app/(app)/progress/page.tsx` (implemented with inline components)
+- `backend/app/api/progress.py` (router)
+- `backend/app/schemas/progress.py` (response schemas)
 
 ---
 
@@ -1662,7 +1674,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Volatility Metrics (Market Overview)** | ✅ Complete | Show current + historical volatility with percentile rank per pair |
 | **Market Sentiment Indicators (Market Overview)** | ✅ Complete | Fear & Greed Index (Alternative.me), social activity (CoinGecko), funding rates (Binance); 15min cache, partial failure support, backtest sentiment context |
 | **Frontend UI** | ✅ Complete | Multi-strategy dashboard, strategy list/editor, backtest runner/results, profile |
-| **Progress Dashboard** | 📝 Planned | Journey metrics, achievements, and simple next-step suggestions from usage data |
+| **Progress Dashboard** | ✅ Complete | Journey metrics, achievements, lessons learned, and next-step suggestions from usage data |
 | **Dark Mode** | 📝 Planned | User-selectable theme (system/light/dark) applied across canvas, charts, and forms |
 | **Contextual Help & Tooltips** | ✅ Complete | Hover tooltips for indicators, logic blocks, metrics |
 | **Metrics Glossary** | ✅ Complete | Dedicated searchable page explaining backtest metrics |
