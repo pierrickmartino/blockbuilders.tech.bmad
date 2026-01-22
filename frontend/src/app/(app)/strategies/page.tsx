@@ -74,6 +74,17 @@ export default function StrategiesPage() {
   const [availableTags, setAvailableTags] = useState<StrategyTag[]>([]);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
 
+  // Bulk selection state
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkActionLoading, setBulkActionLoading] = useState(false);
+  const [showBulkTagDialog, setShowBulkTagDialog] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [bulkTagIds, setBulkTagIds] = useState<string[]>([]);
+  const [bulkResult, setBulkResult] = useState<{
+    type: 'success' | 'partial' | 'error';
+    message: string;
+  } | null>(null);
+
   useEffect(() => {
     const loadStrategies = async () => {
       try {
@@ -112,6 +123,154 @@ export default function StrategiesPage() {
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load strategies");
+    }
+  };
+
+  // Bulk selection helpers
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds(new Set(filteredAndSortedStrategies.map(s => s.id)));
+    } else {
+      setSelectedIds(new Set());
+    }
+  };
+
+  const handleSelectOne = (id: string, checked: boolean) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  };
+
+  const clearBulkResult = () => {
+    setTimeout(() => setBulkResult(null), 3000);
+  };
+
+  // Bulk action handlers
+  const handleBulkArchive = async () => {
+    setBulkActionLoading(true);
+    setBulkResult(null);
+    try {
+      const response = await apiFetch<{
+        success_count: number;
+        failed_count: number;
+        failed_ids: string[];
+      }>('/strategies/bulk/archive', {
+        method: 'POST',
+        body: JSON.stringify({ strategy_ids: Array.from(selectedIds) }),
+      });
+
+      if (response.failed_count === 0) {
+        setBulkResult({
+          type: 'success',
+          message: `Archived ${response.success_count} ${response.success_count === 1 ? 'strategy' : 'strategies'}`,
+        });
+        setSelectedIds(new Set());
+        clearBulkResult();
+      } else {
+        setBulkResult({
+          type: 'partial',
+          message: `Archived ${response.success_count}, failed ${response.failed_count}`,
+        });
+        setSelectedIds(new Set(response.failed_ids));
+      }
+      await refreshStrategies();
+    } catch (err) {
+      setBulkResult({
+        type: 'error',
+        message: err instanceof Error ? err.message : 'Failed to archive strategies',
+      });
+    } finally {
+      setBulkActionLoading(false);
+    }
+  };
+
+  const handleBulkTagConfirm = async () => {
+    if (bulkTagIds.length === 0) return;
+
+    setShowBulkTagDialog(false);
+    setBulkActionLoading(true);
+    setBulkResult(null);
+
+    try {
+      const response = await apiFetch<{
+        success_count: number;
+        failed_count: number;
+        failed_ids: string[];
+      }>('/strategies/bulk/tag', {
+        method: 'POST',
+        body: JSON.stringify({
+          strategy_ids: Array.from(selectedIds),
+          tag_ids: bulkTagIds,
+        }),
+      });
+
+      if (response.failed_count === 0) {
+        setBulkResult({
+          type: 'success',
+          message: `Tagged ${response.success_count} ${response.success_count === 1 ? 'strategy' : 'strategies'}`,
+        });
+        setSelectedIds(new Set());
+        setBulkTagIds([]);
+        clearBulkResult();
+      } else {
+        setBulkResult({
+          type: 'partial',
+          message: `Tagged ${response.success_count}, failed ${response.failed_count}`,
+        });
+        setSelectedIds(new Set(response.failed_ids));
+      }
+      await refreshStrategies();
+    } catch (err) {
+      setBulkResult({
+        type: 'error',
+        message: err instanceof Error ? err.message : 'Failed to tag strategies',
+      });
+    } finally {
+      setBulkActionLoading(false);
+    }
+  };
+
+  const handleBulkDeleteConfirm = async () => {
+    setShowDeleteConfirm(false);
+    setBulkActionLoading(true);
+    setBulkResult(null);
+
+    try {
+      const response = await apiFetch<{
+        success_count: number;
+        failed_count: number;
+        failed_ids: string[];
+      }>('/strategies/bulk/delete', {
+        method: 'POST',
+        body: JSON.stringify({ strategy_ids: Array.from(selectedIds) }),
+      });
+
+      if (response.failed_count === 0) {
+        setBulkResult({
+          type: 'success',
+          message: `Deleted ${response.success_count} ${response.success_count === 1 ? 'strategy' : 'strategies'}`,
+        });
+        setSelectedIds(new Set());
+        clearBulkResult();
+      } else {
+        setBulkResult({
+          type: 'partial',
+          message: `Deleted ${response.success_count}, failed ${response.failed_count}`,
+        });
+        setSelectedIds(new Set(response.failed_ids));
+      }
+      await refreshStrategies();
+      await refreshUsage();
+    } catch (err) {
+      setBulkResult({
+        type: 'error',
+        message: err instanceof Error ? err.message : 'Failed to delete strategies',
+      });
+    } finally {
+      setBulkActionLoading(false);
     }
   };
 
@@ -440,6 +599,18 @@ export default function StrategiesPage() {
         </div>
       )}
 
+      {bulkResult && (
+        <div className={`mb-4 rounded border p-3 text-sm ${
+          bulkResult.type === 'success'
+            ? 'border-green-500/50 bg-green-50 text-green-900 dark:bg-green-900/20 dark:text-green-100'
+            : bulkResult.type === 'partial'
+            ? 'border-yellow-500/50 bg-yellow-50 text-yellow-900 dark:bg-yellow-900/20 dark:text-yellow-100'
+            : 'border-destructive/50 bg-destructive/10 text-destructive'
+        }`}>
+          {bulkResult.message}
+        </div>
+      )}
+
       <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <Input
           type="text"
@@ -559,6 +730,39 @@ export default function StrategiesPage() {
         )}
       </div>
 
+      {selectedIds.size > 0 && (
+        <div className="mb-4 flex items-center justify-between rounded-lg border bg-muted/50 p-3">
+          <span className="text-sm text-muted-foreground">
+            {selectedIds.size} {selectedIds.size === 1 ? 'strategy' : 'strategies'} selected
+          </span>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="default" size="sm" disabled={bulkActionLoading}>
+                {bulkActionLoading ? 'Processing...' : 'Bulk Actions'}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleBulkArchive} disabled={bulkActionLoading}>
+                Archive
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setShowBulkTagDialog(true)}
+                disabled={bulkActionLoading}
+              >
+                Add Tags
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setShowDeleteConfirm(true)}
+                disabled={bulkActionLoading}
+                className="text-destructive focus:text-destructive"
+              >
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      )}
+
       {filteredAndSortedStrategies.length === 0 ? (
         <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-8 text-center">
           <p className="text-gray-500">
@@ -574,6 +778,15 @@ export default function StrategiesPage() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-12">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.size > 0 && selectedIds.size === filteredAndSortedStrategies.length}
+                      onChange={(e) => handleSelectAll(e.target.checked)}
+                      className="cursor-pointer rounded border-input"
+                      aria-label="Select all strategies"
+                    />
+                  </TableHead>
                   <TableHead
                     className="cursor-pointer hover:text-foreground"
                     onClick={() => handleSort("name")}
@@ -611,6 +824,15 @@ export default function StrategiesPage() {
                     key={strategy.id}
                     className={strategy.is_archived ? "opacity-60" : ""}
                   >
+                    <TableCell>
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(strategy.id)}
+                        onChange={(e) => handleSelectOne(strategy.id, e.target.checked)}
+                        className="cursor-pointer rounded border-input"
+                        aria-label={`Select ${strategy.name}`}
+                      />
+                    </TableCell>
                     <TableCell>
                       <div className="flex flex-col gap-2">
                         <div className="flex items-center gap-2">
@@ -705,9 +927,18 @@ export default function StrategiesPage() {
             {filteredAndSortedStrategies.map((strategy) => (
               <Card
                 key={strategy.id}
-                className={strategy.is_archived ? "opacity-60" : ""}
+                className={`relative ${strategy.is_archived ? "opacity-60" : ""}`}
               >
-                <CardContent className="p-4">
+                <div className="absolute left-3 top-3 z-10">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(strategy.id)}
+                    onChange={(e) => handleSelectOne(strategy.id, e.target.checked)}
+                    className="cursor-pointer rounded border-input"
+                    aria-label={`Select ${strategy.name}`}
+                  />
+                </div>
+                <CardContent className="p-4 pl-12">
                   <div className="mb-3 flex items-start justify-between">
                     <div className="min-w-0 flex-1">
                       <button
@@ -826,6 +1057,73 @@ export default function StrategiesPage() {
           }}
         />
       )}
+
+      <Dialog open={showBulkTagDialog} onOpenChange={setShowBulkTagDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Tags to {selectedIds.size} {selectedIds.size === 1 ? 'Strategy' : 'Strategies'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 max-h-60 overflow-y-auto">
+            {availableTags.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No tags available. Create tags from individual strategy pages.</p>
+            ) : (
+              availableTags.map(tag => (
+                <label key={tag.id} className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 rounded p-2">
+                  <input
+                    type="checkbox"
+                    checked={bulkTagIds.includes(tag.id)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setBulkTagIds(prev => [...prev, tag.id]);
+                      } else {
+                        setBulkTagIds(prev => prev.filter(id => id !== tag.id));
+                      }
+                    }}
+                    className="rounded border-input"
+                  />
+                  <span className="text-sm">{tag.name}</span>
+                </label>
+              ))
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowBulkTagDialog(false);
+                setBulkTagIds([]);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleBulkTagConfirm}
+              disabled={bulkTagIds.length === 0}
+            >
+              Apply Tags
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete {selectedIds.size} {selectedIds.size === 1 ? 'Strategy' : 'Strategies'}?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            This will permanently delete all versions and backtest runs. This action cannot be undone.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleBulkDeleteConfirm}>
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={showImportModal} onOpenChange={(open) => { if (!open) handleImportCancel(); else setShowImportModal(true); }}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">

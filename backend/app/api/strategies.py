@@ -16,6 +16,9 @@ from app.models.strategy_version import StrategyVersion
 from app.models.user import User
 from app.schemas.strategy import (
     Block,
+    BulkStrategyRequest,
+    BulkStrategyResponse,
+    BulkStrategyTagRequest,
     StrategyCreateRequest,
     StrategyDefinitionValidate,
     StrategyResponse,
@@ -790,3 +793,124 @@ def _collect_validation_errors(definition: StrategyDefinitionValidate) -> list[V
         errors.extend(param_errors)
 
     return errors
+
+
+# Bulk operations
+@router.post("/bulk/archive", response_model=BulkStrategyResponse)
+def bulk_archive_strategies(
+    data: BulkStrategyRequest,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> BulkStrategyResponse:
+    """Archive multiple strategies."""
+    success_count = 0
+    failed_ids = []
+
+    for strategy_id in data.strategy_ids:
+        try:
+            strategy = get_user_strategy(strategy_id, user, session)
+            strategy.is_archived = True
+            strategy.updated_at = datetime.now(timezone.utc)
+            session.add(strategy)
+            session.commit()
+            success_count += 1
+        except HTTPException:
+            failed_ids.append(strategy_id)
+        except Exception:
+            session.rollback()
+            failed_ids.append(strategy_id)
+
+    return BulkStrategyResponse(
+        success_count=success_count,
+        failed_count=len(failed_ids),
+        failed_ids=failed_ids,
+    )
+
+
+@router.post("/bulk/tag", response_model=BulkStrategyResponse)
+def bulk_tag_strategies(
+    data: BulkStrategyTagRequest,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> BulkStrategyResponse:
+    """Apply tags to multiple strategies (replaces existing tags)."""
+    # Validate all tags belong to user
+    tag_count = session.exec(
+        select(func.count(StrategyTag.id)).where(
+            StrategyTag.id.in_(data.tag_ids),
+            StrategyTag.user_id == user.id,
+        )
+    ).one()
+    if tag_count != len(data.tag_ids):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="One or more tags do not exist or do not belong to you",
+        )
+
+    success_count = 0
+    failed_ids = []
+
+    for strategy_id in data.strategy_ids:
+        try:
+            strategy = get_user_strategy(strategy_id, user, session)
+
+            # Delete existing tag links
+            session.exec(
+                select(StrategyTagLink).where(StrategyTagLink.strategy_id == strategy_id)
+            ).all()
+            session.query(StrategyTagLink).filter(
+                StrategyTagLink.strategy_id == strategy_id
+            ).delete()
+
+            # Create new tag links
+            for tag_id in data.tag_ids:
+                link = StrategyTagLink(strategy_id=strategy_id, tag_id=tag_id)
+                session.add(link)
+
+            strategy.updated_at = datetime.now(timezone.utc)
+            session.add(strategy)
+            session.commit()
+            success_count += 1
+        except HTTPException:
+            session.rollback()
+            failed_ids.append(strategy_id)
+        except Exception:
+            session.rollback()
+            failed_ids.append(strategy_id)
+
+    return BulkStrategyResponse(
+        success_count=success_count,
+        failed_count=len(failed_ids),
+        failed_ids=failed_ids,
+    )
+
+
+@router.post("/bulk/delete", response_model=BulkStrategyResponse)
+def bulk_delete_strategies(
+    data: BulkStrategyRequest,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> BulkStrategyResponse:
+    """Permanently delete multiple strategies and all related data."""
+    success_count = 0
+    failed_ids = []
+
+    for strategy_id in data.strategy_ids:
+        try:
+            strategy = get_user_strategy(strategy_id, user, session)
+
+            # Cascade deletes (versions, backtest runs, tag links) handled by DB
+            session.delete(strategy)
+            session.commit()
+            success_count += 1
+        except HTTPException:
+            failed_ids.append(strategy_id)
+        except Exception:
+            session.rollback()
+            failed_ids.append(strategy_id)
+
+    return BulkStrategyResponse(
+        success_count=success_count,
+        failed_count=len(failed_ids),
+        failed_ids=failed_ids,
+    )
