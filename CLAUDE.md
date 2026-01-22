@@ -173,7 +173,8 @@ If the spec is missing, add a small “delta spec” section to `docs/phase2.md`
 
 - Prefer **in-app notifications** over email for time-sensitive updates.
 - Keep notification payloads minimal (just enough to render text + a deep link).
-- Performance alerts may also send **email** if the user explicitly opts in; no other channels.
+- Performance alerts may also send **email** if the user explicitly opts in.
+- Price alerts may use **in-app**, **email**, or **webhook** delivery when the user explicitly opts in; no other channels.
 
 Use and respect the existing stack rather than introducing new tools:
 
