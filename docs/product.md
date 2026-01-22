@@ -1000,6 +1000,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Enhanced version of the dashboard list for full management
 - Search bar (filter by name)
 - Sort and filter by performance, last run date, asset, tags
+- Planned: bulk actions with checkbox selection + action dropdown (archive, tag, delete)
 - Table/grid rows with:
   - Name, asset, timeframe
   - Tags (chip list)
@@ -1651,6 +1652,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Authentication** | ✅ Complete | Email/password, OAuth (Google, GitHub), password reset |
 | **Account Management** | ✅ Complete | Profile, settings (fees, slippage, timezone), usage tracking |
 | **Strategy Management** | ✅ Complete | CRUD, versioning, validation, duplication (one-click list clone), archiving |
+| **Bulk Strategy Actions** | 📝 Planned | Multi-select strategies with checkbox selection + action dropdown for archive, tag, delete |
 | **Strategy Groups/Tags** | ✅ Complete | Custom tags, tag filtering, many-to-many strategy organization |
 | **Visual Builder** | ✅ Complete | 20 block types, drag-drop, parameter editing, mobile-responsive |
 | **Mobile-Optimized Canvas** | ✅ Complete | Touch-first controls, simplified palette, gesture-based connections |
@@ -1943,6 +1945,7 @@ pytest --cov            # Coverage report
 - `docs/prd-one-time-credit-packs.md` - One-time credit packs PRD
 - `docs/prd-quick-strategy-clone.md` - Quick strategy clone (list action) PRD
 - `docs/prd-progress-dashboard.md` - Progress dashboard PRD
+- `docs/prd-bulk-strategy-actions.md` - Bulk strategy actions PRD
 - `CLAUDE.md` - Instructions for Claude Code
 - `README.md` - Quick start guide
 
