@@ -73,42 +73,109 @@ def get_progress(
     ]
     completed_lessons = sum(1 for lesson in lessons if lesson.done)
 
+    def get_nth_created_at(model, where_clauses, threshold):
+        if threshold < 1:
+            return None
+        stmt = (
+            select(model.created_at)
+            .where(*where_clauses)
+            .order_by(model.created_at)
+            .offset(threshold - 1)
+            .limit(1)
+        )
+        return session.exec(stmt).first()
+
     # Compute achievements (4 thresholds)
+    first_strategy_unlocked_at = (
+        get_nth_created_at(
+            Strategy,
+            [Strategy.user_id == user.id, Strategy.is_archived == False],  # noqa: E712
+            1,
+        )
+        if strategies_count >= 1
+        else None
+    )
+    five_strategies_unlocked_at = (
+        get_nth_created_at(
+            Strategy,
+            [Strategy.user_id == user.id, Strategy.is_archived == False],  # noqa: E712
+            5,
+        )
+        if strategies_count >= 5
+        else None
+    )
+    first_backtest_unlocked_at = (
+        get_nth_created_at(
+            BacktestRun,
+            [
+                BacktestRun.user_id == user.id,
+                BacktestRun.status == "completed",
+            ],
+            1,
+        )
+        if completed_backtests_count >= 1
+        else None
+    )
+    ten_backtests_unlocked_at = (
+        get_nth_created_at(
+            BacktestRun,
+            [
+                BacktestRun.user_id == user.id,
+                BacktestRun.status == "completed",
+            ],
+            10,
+        )
+        if completed_backtests_count >= 10
+        else None
+    )
     achievements_list = [
         {
             "key": "first_strategy",
             "label": "First Strategy",
             "threshold": 1,
             "count": strategies_count,
+            "unlocked_at": first_strategy_unlocked_at,
         },
         {
             "key": "five_strategies",
             "label": "5 Strategies",
             "threshold": 5,
             "count": strategies_count,
+            "unlocked_at": five_strategies_unlocked_at,
         },
         {
             "key": "first_backtest",
             "label": "First Backtest",
             "threshold": 1,
             "count": completed_backtests_count,
+            "unlocked_at": first_backtest_unlocked_at,
         },
         {
             "key": "ten_backtests",
             "label": "10 Backtests",
             "threshold": 10,
             "count": completed_backtests_count,
+            "unlocked_at": ten_backtests_unlocked_at,
         },
     ]
 
     unlocked_count = 0
     latest_achievement = None
+    unlocked_achievements = []
     for ach in achievements_list:
         if ach["count"] >= ach["threshold"]:
             unlocked_count += 1
-            latest_achievement = AchievementItem(
-                key=ach["key"], label=ach["label"]
-            )
+            if ach["unlocked_at"] is not None:
+                unlocked_achievements.append(ach)
+
+    if unlocked_achievements:
+        latest_unlocked = max(
+            unlocked_achievements, key=lambda ach: ach["unlocked_at"]
+        )
+        latest_achievement = AchievementItem(
+            key=latest_unlocked["key"],
+            label=latest_unlocked["label"],
+        )
 
     # Generate next steps (rule-based suggestions)
     if strategies_count == 0:
