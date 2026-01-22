@@ -5,7 +5,8 @@ from typing import Optional
 from uuid import UUID, uuid4
 
 from pydantic import model_validator
-from sqlmodel import Field, SQLModel
+from sqlalchemy import Enum as SAEnum
+from sqlmodel import Column, Field, SQLModel
 
 
 class AlertType(str, Enum):
@@ -23,7 +24,13 @@ class AlertRule(SQLModel, table=True):
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     user_id: UUID = Field(foreign_key="users.id", index=True)
-    alert_type: AlertType = Field(default=AlertType.PERFORMANCE)
+    alert_type: AlertType = Field(
+        default=AlertType.PERFORMANCE,
+        sa_column=Column(
+            SAEnum(AlertType, values_callable=lambda e: [m.value for m in e]),
+            nullable=False,
+        ),
+    )
 
     # Performance alert fields
     strategy_id: Optional[UUID] = Field(default=None, foreign_key="strategies.id")
@@ -35,7 +42,13 @@ class AlertRule(SQLModel, table=True):
 
     # Price alert fields
     asset: Optional[str] = None
-    direction: Optional[Direction] = None
+    direction: Optional[Direction] = Field(
+        default=None,
+        sa_column=Column(
+            SAEnum(Direction, values_callable=lambda e: [m.value for m in e]),
+            nullable=True,
+        ),
+    )
     threshold_price: Optional[Decimal] = None
     notify_webhook: bool = Field(default=False)
     webhook_url: Optional[str] = None
