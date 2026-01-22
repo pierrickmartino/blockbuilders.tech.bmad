@@ -953,6 +953,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 /auth/callback             → OAuth callback handler (public)
 
 /dashboard                 → Multi-strategy dashboard (protected)
+/progress                  → Progress dashboard (protected)
 /strategies                → Strategy list (protected)
 /strategies/[id]           → Strategy editor (protected)
 /strategies/[id]/backtest  → Backtest runner (protected)
@@ -1212,6 +1213,21 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Strategy detail page → "Alerts" card.
 - Toggle on/off, set drawdown threshold %, choose entry/exit, choose email or in-app.
 - Shows last triggered timestamp (if any).
+
+### 9.11. Progress Dashboard
+
+**Progress Dashboard** (`/progress`)
+- Simple metrics view showing user journey progress:
+  - Strategies created
+  - Backtests run
+  - Lessons learned (derived from completed usage milestones)
+  - Achievements unlocked (badge count + latest badge)
+- Optional “Next steps” suggestions based on low-usage signals (e.g., no backtests yet).
+- Uses existing usage data (strategies, backtests, versions) only; no new analytics pipelines.
+
+**Components (planned):**
+- `frontend/src/app/(app)/progress/page.tsx`
+- `frontend/src/components/progress/ProgressDashboard.tsx`
 
 ---
 
@@ -1646,6 +1662,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Volatility Metrics (Market Overview)** | ✅ Complete | Show current + historical volatility with percentile rank per pair |
 | **Market Sentiment Indicators (Market Overview)** | ✅ Complete | Fear & Greed Index (Alternative.me), social activity (CoinGecko), funding rates (Binance); 15min cache, partial failure support, backtest sentiment context |
 | **Frontend UI** | ✅ Complete | Multi-strategy dashboard, strategy list/editor, backtest runner/results, profile |
+| **Progress Dashboard** | 📝 Planned | Journey metrics, achievements, and simple next-step suggestions from usage data |
 | **Dark Mode** | 📝 Planned | User-selectable theme (system/light/dark) applied across canvas, charts, and forms |
 | **Contextual Help & Tooltips** | ✅ Complete | Hover tooltips for indicators, logic blocks, metrics |
 | **Metrics Glossary** | ✅ Complete | Dedicated searchable page explaining backtest metrics |
@@ -1913,6 +1930,7 @@ pytest --cov            # Coverage report
 - `docs/prd-simple-tiered-subscription-plans.md` - Simple tiered subscription plans PRD
 - `docs/prd-one-time-credit-packs.md` - One-time credit packs PRD
 - `docs/prd-quick-strategy-clone.md` - Quick strategy clone (list action) PRD
+- `docs/prd-progress-dashboard.md` - Progress dashboard PRD
 - `CLAUDE.md` - Instructions for Claude Code
 - `README.md` - Quick start guide
 
