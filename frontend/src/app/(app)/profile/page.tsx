@@ -444,7 +444,7 @@ export default function ProfilePage() {
                   >
                     {isPurchasingPack === "backtest_credits"
                       ? "Loading..."
-                      : "Buy 50 Credits"}
+                      : "Buy 50 Credits – $15"}
                   </Button>
                 </CardContent>
               </Card>
@@ -469,7 +469,7 @@ export default function ProfilePage() {
                   >
                     {isPurchasingPack === "strategy_slots"
                       ? "Loading..."
-                      : "Buy +5 Slots"}
+                      : "Buy +5 Slots – $9"}
                   </Button>
                 </CardContent>
               </Card>

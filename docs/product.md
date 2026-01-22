@@ -105,7 +105,9 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 **Notes:**
 - Free tier preserves the current beta limits (10 strategies, 50 backtests/day).
 - Paid tiers raise caps without metered usage or add-ons.
-- One-time credit packs allow occasional extra backtests or strategy slots without a subscription.
+- One-time credit packs allow occasional extra backtests or strategy slots without a subscription:
+  - **+5 Strategy Slots:** US$9 (one-time, never expires)
+  - **+50 Backtest Credits:** US$15 (one-time, never expires)
 - Billing is handled by Stripe with simple monthly/annual subscriptions.
 - Plan enforcement gates:
   - Strategy creation
