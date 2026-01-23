@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 from uuid import UUID
 
+import resend
 from redis import Redis
 from rq import Queue
 from sqlmodel import Session, select, func
