@@ -25,6 +25,7 @@ import {
   generateBlockId,
 } from "@/lib/canvas-utils";
 import { copyToClipboard, pasteFromClipboard } from "@/lib/clipboard-utils";
+import { trackStrategyView } from "@/lib/recent-views";
 import { generateExplanation } from "@/lib/explanation-generator";
 import StrategyCanvas from "@/components/canvas/StrategyCanvas";
 import BlockPalette from "@/components/canvas/BlockPalette";
@@ -202,6 +203,13 @@ export default function StrategyEditorPage({ params }: Props) {
     loadStrategy();
     loadVersions();
   }, [loadStrategy, loadVersions]);
+
+  // Track strategy view for recently viewed section
+  useEffect(() => {
+    if (strategy) {
+      trackStrategyView(id);
+    }
+  }, [id, strategy]);
 
   // Load available tags
   useEffect(() => {
