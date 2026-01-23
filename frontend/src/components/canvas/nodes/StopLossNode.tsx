@@ -8,6 +8,10 @@ export default function StopLossNode({ data, selected }: NodeProps) {
     typeof data?.validationMessage === "string"
       ? data.validationMessage
       : undefined;
+  const helpLink =
+    typeof data?.helpLink === "string"
+      ? data.helpLink
+      : undefined;
   const params = (data?.params || {}) as {
     percent?: number;
     stop_loss_pct?: number;
@@ -22,6 +26,7 @@ export default function StopLossNode({ data, selected }: NodeProps) {
       blockType="stop_loss"
       hasError={hasError}
       validationMessage={validationMessage}
+      helpLink={helpLink}
       isMobileMode={isMobileMode}
     >
       <div className="text-xs text-gray-600">

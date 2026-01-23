@@ -8,6 +8,10 @@ export default function NoteNode({ data, selected }: NodeProps) {
     typeof data?.validationMessage === "string"
       ? data.validationMessage
       : undefined;
+  const helpLink =
+    typeof data?.helpLink === "string"
+      ? data.helpLink
+      : undefined;
   const params = (data?.params || {}) as { text?: string };
   const isMobileMode = typeof data?.isMobileMode === "boolean" ? data.isMobileMode : false;
 
@@ -18,6 +22,7 @@ export default function NoteNode({ data, selected }: NodeProps) {
       category="input"
       hasError={hasError}
       validationMessage={validationMessage}
+      helpLink={helpLink}
       isMobileMode={isMobileMode}
     >
       <div className="max-w-[200px] text-xs italic text-gray-600">

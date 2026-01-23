@@ -8,6 +8,10 @@ export default function TrailingStopNode({ data, selected }: NodeProps) {
     typeof data?.validationMessage === "string"
       ? data.validationMessage
       : undefined;
+  const helpLink =
+    typeof data?.helpLink === "string"
+      ? data.helpLink
+      : undefined;
   const params = (data?.params || {}) as { trail_pct?: number; percent?: number };
   const trailPct = typeof params.trail_pct === "number" ? params.trail_pct : params.percent;
   const isMobileMode = typeof data?.isMobileMode === "boolean" ? data.isMobileMode : false;
@@ -19,6 +23,7 @@ export default function TrailingStopNode({ data, selected }: NodeProps) {
       blockType="trailing_stop"
       hasError={hasError}
       validationMessage={validationMessage}
+      helpLink={helpLink}
       isMobileMode={isMobileMode}
     >
       <div className="text-xs text-gray-600">

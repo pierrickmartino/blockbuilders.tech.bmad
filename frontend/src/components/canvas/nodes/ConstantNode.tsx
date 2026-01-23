@@ -9,6 +9,10 @@ export default function ConstantNode({ data, selected }: NodeProps) {
     typeof data?.validationMessage === "string"
       ? data.validationMessage
       : undefined;
+  const helpLink =
+    typeof data?.helpLink === "string"
+      ? data.helpLink
+      : undefined;
   const params = (data?.params || {}) as { value?: number };
   const value = params.value ?? 0;
   const isMobileMode = typeof data?.isMobileMode === "boolean" ? data.isMobileMode : false;
@@ -21,6 +25,7 @@ export default function ConstantNode({ data, selected }: NodeProps) {
       blockType="constant"
       hasError={hasError}
       validationMessage={validationMessage}
+      helpLink={helpLink}
       isMobileMode={isMobileMode}
     >
       <div className="text-xs text-gray-600">Value: {value}</div>

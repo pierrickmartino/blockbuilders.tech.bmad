@@ -182,6 +182,8 @@ class ValidationError(BaseModel):
     block_id: Optional[str] = None
     code: str
     message: str
+    user_message: Optional[str] = None
+    help_link: Optional[str] = None
 
 
 class ValidationResponse(BaseModel):

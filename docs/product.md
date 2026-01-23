@@ -1725,7 +1725,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Favorite Metrics (Backtest Summary)** | 📝 Planned | Users can pin/reorder the metrics shown in backtest summary cards |
 | **Strategy Notes & Annotations** | ✅ Complete | Floating text notes on canvas (280 char limit), drag to position |
 | **Visual Validation Feedback** | ✅ Complete | Inline canvas highlights and messages for validation errors |
-| **Improved Error Messages** | 📝 Planned | Plain-language, actionable validation + error copy with help doc links |
+| **Improved Error Messages** | ✅ Complete | Plain-language, actionable validation + error copy with help doc links (/strategy-guide) |
 | **Strategy Explanation Generator** | ✅ Complete | Template-based plain-English explanation from strategy JSON |
 | **Strategy Import/Export** | ✅ Complete | JSON export/download + import/upload with validation |
 | **Strategy Templates Marketplace** | ✅ Complete | Curated template library with 3 templates, clone-to-edit workflow, dedicated browser page |

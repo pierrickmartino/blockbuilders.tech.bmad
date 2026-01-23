@@ -11,6 +11,7 @@ interface BaseNodeProps {
   hasError?: boolean;
   blockType?: string;
   validationMessage?: string;
+  helpLink?: string;
   isMobileMode?: boolean;
 }
 
@@ -55,6 +56,7 @@ export default function BaseNode({
   hasError,
   blockType,
   validationMessage,
+  helpLink,
   isMobileMode = false,
 }: BaseNodeProps) {
   const styles = categoryStyles[category];
@@ -107,7 +109,19 @@ export default function BaseNode({
         <div className="px-3 py-2">
           {children}
           {validationMessage && (
-            <div className="mt-1 text-xs text-red-600 dark:text-red-400">{validationMessage}</div>
+            <div className="mt-1">
+              <div className="text-xs text-red-600 dark:text-red-400">{validationMessage}</div>
+              {helpLink && (
+                <a
+                  href={helpLink}
+                  className="mt-1 inline-block text-xs text-red-700 underline hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Learn more
+                </a>
+              )}
+            </div>
           )}
         </div>
       )}
