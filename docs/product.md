@@ -996,6 +996,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Latest performance metrics per strategy (preview)
 - Sort and filter by performance, last run date, asset, tags
 - Quick actions: Open, Clone (one-click duplicate), Archive, Create new strategy
+- Recently viewed shortcuts: last viewed strategies and backtests surfaced as quick links (session history)
 - Tag chips displayed alongside strategy names
 
 **Strategy List** (`/strategies`)
@@ -1711,6 +1712,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Volatility Metrics (Market Overview)** | ✅ Complete | Show current + historical volatility with percentile rank per pair |
 | **Market Sentiment Indicators (Market Overview)** | ✅ Complete | Fear & Greed Index (Alternative.me), social activity (CoinGecko), funding rates (Binance); 15min cache, partial failure support, backtest sentiment context |
 | **Frontend UI** | ✅ Complete | Multi-strategy dashboard, strategy list/editor, backtest runner/results, profile |
+| **Recently Viewed Shortcuts (Dashboard)** | 📝 Planned | Quick links to recently viewed strategies and backtests from session history |
 | **Progress Dashboard** | ✅ Complete | Journey metrics, achievements, lessons learned, and next-step suggestions from usage data |
 | **Dark Mode** | 📝 Planned | User-selectable theme (system/light/dark) applied across canvas, charts, and forms |
 | **Contextual Help & Tooltips** | ✅ Complete | Hover tooltips for indicators, logic blocks, metrics |
@@ -1982,6 +1984,7 @@ pytest --cov            # Coverage report
 - `docs/prd-quick-strategy-clone.md` - Quick strategy clone (list action) PRD
 - `docs/prd-progress-dashboard.md` - Progress dashboard PRD
 - `docs/prd-bulk-strategy-actions.md` - Bulk strategy actions PRD
+- `docs/prd-recently-viewed-dashboard-shortcuts.md` - Recently viewed dashboard shortcuts PRD
 - `CLAUDE.md` - Instructions for Claude Code
 - `README.md` - Quick start guide
 
