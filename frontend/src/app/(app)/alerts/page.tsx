@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api";
+import { formatDateTime } from "@/lib/format";
 import { useDisplay } from "@/context/display";
 import { AlertRule } from "@/types/alert";
 import { ALLOWED_ASSETS } from "@/types/strategy";
@@ -137,18 +138,7 @@ export default function AlertsPage() {
     setAlerts((prev) => [alert, ...prev]);
   };
 
-  const formatDateTime = (dateStr: string | undefined) => {
-    if (!dateStr) return "—";
-    return new Date(dateStr).toLocaleString("en-US", {
-      timeZone: timezone,
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
-  const formatPrice = (price: number | undefined) => {
+  const formatAlertPrice = (price: number | undefined) => {
     if (price === undefined) return "—";
     return price.toLocaleString("en-US", { maximumFractionDigits: 2 });
   };
@@ -294,10 +284,10 @@ export default function AlertsPage() {
                       <TableRow key={alert.id}>
                         <TableCell className="font-medium">{alert.asset}</TableCell>
                         <TableCell className="capitalize">{alert.direction}</TableCell>
-                        <TableCell>${formatPrice(alert.threshold_price)}</TableCell>
+                        <TableCell>${formatAlertPrice(alert.threshold_price)}</TableCell>
                         <TableCell>{getStatusBadge(alert)}</TableCell>
                         <TableCell>{getChannelIcons(alert)}</TableCell>
-                        <TableCell>{formatDateTime(alert.expires_at)}</TableCell>
+                        <TableCell>{formatDateTime(alert.expires_at, timezone)}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-1">
                             <Button
@@ -336,7 +326,7 @@ export default function AlertsPage() {
                         <div>
                           <p className="font-medium">{alert.asset}</p>
                           <p className="text-sm text-muted-foreground">
-                            {alert.direction} ${formatPrice(alert.threshold_price)}
+                            {alert.direction} ${formatAlertPrice(alert.threshold_price)}
                           </p>
                         </div>
                         {getStatusBadge(alert)}
@@ -346,7 +336,7 @@ export default function AlertsPage() {
                           {getChannelIcons(alert)}
                           {alert.expires_at && (
                             <span className="text-xs text-muted-foreground">
-                              Expires {formatDateTime(alert.expires_at)}
+                              Expires {formatDateTime(alert.expires_at, timezone)}
                             </span>
                           )}
                         </div>
@@ -437,7 +427,7 @@ export default function AlertsPage() {
                           <TableCell>{alert.alert_on_entry ? "Yes" : "No"}</TableCell>
                           <TableCell>{alert.alert_on_exit ? "Yes" : "No"}</TableCell>
                           <TableCell>{getStatusBadge(alert)}</TableCell>
-                          <TableCell>{formatDateTime(alert.last_triggered_at)}</TableCell>
+                          <TableCell>{formatDateTime(alert.last_triggered_at, timezone)}</TableCell>
                           <TableCell className="text-right">
                             <Button variant="ghost" size="sm" asChild>
                               <Link href={`/strategies/${alert.strategy_id}`}>
@@ -475,7 +465,7 @@ export default function AlertsPage() {
                         <div className="mt-3 flex items-center justify-between">
                           <span className="text-xs text-muted-foreground">
                             {alert.last_triggered_at
-                              ? `Triggered ${formatDateTime(alert.last_triggered_at)}`
+                              ? `Triggered ${formatDateTime(alert.last_triggered_at, timezone)}`
                               : "Not triggered"}
                           </span>
                           <Button variant="ghost" size="sm" asChild>
