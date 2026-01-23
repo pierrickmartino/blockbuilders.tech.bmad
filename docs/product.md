@@ -587,6 +587,21 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Reuse existing canvas components and React Flow APIs; avoid new dependencies.
 - Ensure desktop behavior remains unchanged unless mobile mode is active.
 
+### 4.12. Canvas Undo/Redo History
+
+**Purpose:** Let users reverse or reapply recent canvas edits to reduce anxiety when building strategies.
+
+**Behavior:**
+- Undo/redo buttons live in the canvas toolbar with clear disabled states.
+- Keyboard shortcuts: `Cmd/Ctrl+Z` for undo, `Cmd/Ctrl+Shift+Z` or `Cmd/Ctrl+Y` for redo.
+- Tracks node/edge add/remove, move, param edits, and selection-driven layout changes.
+- History is front-end-only and resets when the strategy is reloaded.
+
+**Implementation Notes:**
+- Use a simple in-memory history stack with a small cap (e.g., 50 states).
+- No backend, schema, or API changes.
+- Keep state snapshots minimal (use existing canvas serialize helpers).
+
 --- 
 
 ## 5. Backtesting Engine
@@ -1697,6 +1712,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Visual Builder** | ✅ Complete | 20 block types, drag-drop, parameter editing, mobile-responsive |
 | **Mobile-Optimized Canvas** | ✅ Complete | Touch-first controls, simplified palette, gesture-based connections |
 | **Copy/Paste Blocks & Subgraphs** | ✅ Complete | Multi-select blocks and copy/paste within or across strategies |
+| **Canvas Undo/Redo** | 📝 Planned | Toolbar buttons + keyboard shortcuts for reverting canvas edits |
 | **Strategy Building Wizard** | ✅ Complete | Guided Q&A that generates editable strategy JSON |
 | **Backtesting** | ✅ Complete | Full engine with TP ladder, SL, max drawdown, equity curves, trade detail |
 | **Data Export (CSV/JSON)** | ✅ Complete | Download trade list, equity curve, and metrics as CSV or JSON |
@@ -1980,6 +1996,7 @@ pytest --cov            # Coverage report
 - `docs/prd-performance-alerts-simple.md` - Performance alerts (simple) PRD
 - `docs/prd-price-alerts.md` - Price alerts PRD
 - `docs/prd-copy-paste-blocks-subgraphs.md` - Copy/paste blocks & subgraphs PRD
+- `docs/prd-canvas-undo-redo.md` - Canvas undo/redo PRD
 - `docs/prd-mobile-optimized-canvas.md` - Mobile-optimized canvas PRD
 - `docs/prd-real-time-price-tickers.md` - Real-time price tickers PRD
 - `docs/prd-volatility-metrics-market-overview.md` - Volatility metrics (market overview) PRD
