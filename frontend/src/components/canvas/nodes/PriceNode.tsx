@@ -9,6 +9,10 @@ export default function PriceNode({ data, selected }: NodeProps) {
     typeof data?.validationMessage === "string"
       ? data.validationMessage
       : undefined;
+  const helpLink =
+    typeof data?.helpLink === "string"
+      ? data.helpLink
+      : undefined;
   const params = (data?.params || {}) as { source?: string };
   const isMobileMode = typeof data?.isMobileMode === "boolean" ? data.isMobileMode : false;
   return (
@@ -19,6 +23,7 @@ export default function PriceNode({ data, selected }: NodeProps) {
       blockType="price"
       hasError={hasError}
       validationMessage={validationMessage}
+      helpLink={helpLink}
       isMobileMode={isMobileMode}
     >
       <div className="text-xs text-gray-600">

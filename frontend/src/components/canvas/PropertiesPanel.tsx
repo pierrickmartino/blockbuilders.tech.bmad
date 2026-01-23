@@ -198,11 +198,23 @@ export default function PropertiesPanel({
         </div>
 
         {nodeErrors.length > 0 && (
-          <div className="rounded border border-red-200 bg-red-50 p-2">
+          <div className="space-y-2">
             {nodeErrors.map((error, i) => (
-              <p key={i} className="text-xs text-red-600">
-                {error.message}
-              </p>
+              <div key={i} className="rounded border border-red-200 bg-red-50 p-2">
+                <p className="text-xs text-red-600">
+                  {error.user_message || error.message}
+                </p>
+                {error.help_link && (
+                  <a
+                    href={error.help_link}
+                    className="mt-1 inline-block text-xs text-red-700 underline hover:text-red-900"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Learn more
+                  </a>
+                )}
+              </div>
             ))}
           </div>
         )}

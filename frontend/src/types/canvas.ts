@@ -175,6 +175,8 @@ export interface ValidationError {
   block_id?: string;
   code: string;
   message: string;
+  user_message?: string;
+  help_link?: string;
 }
 
 export interface ValidationResponse {

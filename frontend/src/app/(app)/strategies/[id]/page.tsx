@@ -327,7 +327,8 @@ export default function StrategyEditorPage({ params }: Props) {
             data: {
               ...node.data,
               hasError: nodeErrors.length > 0,
-              validationMessage: nodeErrors[0]?.message,
+              validationMessage: nodeErrors[0]?.user_message || nodeErrors[0]?.message,
+              helpLink: nodeErrors[0]?.help_link,
             },
           };
         })
@@ -341,6 +342,7 @@ export default function StrategyEditorPage({ params }: Props) {
             ...node.data,
             hasError: false,
             validationMessage: undefined,
+            helpLink: undefined,
           },
         }))
       );

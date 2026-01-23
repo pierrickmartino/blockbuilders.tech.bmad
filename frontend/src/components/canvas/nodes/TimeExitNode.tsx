@@ -8,6 +8,10 @@ export default function TimeExitNode({ data, selected }: NodeProps) {
     typeof data?.validationMessage === "string"
       ? data.validationMessage
       : undefined;
+  const helpLink =
+    typeof data?.helpLink === "string"
+      ? data.helpLink
+      : undefined;
   const params = (data?.params || {}) as { bars?: number };
   const isMobileMode = typeof data?.isMobileMode === "boolean" ? data.isMobileMode : false;
   return (
@@ -18,6 +22,7 @@ export default function TimeExitNode({ data, selected }: NodeProps) {
       blockType="time_exit"
       hasError={hasError}
       validationMessage={validationMessage}
+      helpLink={helpLink}
       isMobileMode={isMobileMode}
     >
       <div className="text-xs text-gray-600">

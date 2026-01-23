@@ -173,9 +173,21 @@ function CanvasInner({
       {globalValidationErrors && globalValidationErrors.length > 0 && (
         <div className="mb-2 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
           <p className="font-medium">Strategy Issues:</p>
-          <ul className="mt-1 list-disc pl-5 text-xs">
+          <ul className="mt-1 space-y-1 text-xs">
             {globalValidationErrors.map((err, i) => (
-              <li key={i}>{err.message}</li>
+              <li key={i} className="flex items-start gap-2">
+                <span className="flex-1">{err.user_message || err.message}</span>
+                {err.help_link && (
+                  <a
+                    href={err.help_link}
+                    className="text-red-700 underline hover:text-red-900 whitespace-nowrap"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Learn more
+                  </a>
+                )}
+              </li>
             ))}
           </ul>
         </div>

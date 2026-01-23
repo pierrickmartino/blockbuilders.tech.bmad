@@ -10,6 +10,10 @@ export default function SmaNode({ data, selected }: NodeProps) {
     typeof data?.validationMessage === "string"
       ? data.validationMessage
       : undefined;
+  const helpLink =
+    typeof data?.helpLink === "string"
+      ? data.helpLink
+      : undefined;
   const params = (data?.params || {}) as { source?: PriceSource; period?: number };
   const isMobileMode = typeof data?.isMobileMode === "boolean" ? data.isMobileMode : false;
   return (
@@ -20,6 +24,7 @@ export default function SmaNode({ data, selected }: NodeProps) {
       blockType="sma"
       hasError={hasError}
       validationMessage={validationMessage}
+      helpLink={helpLink}
       isMobileMode={isMobileMode}
     >
       <div className="space-y-0.5 text-xs text-gray-600">
