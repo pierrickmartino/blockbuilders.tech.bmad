@@ -185,7 +185,12 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
   - MACD fast: 1-50, slow: 1-200, signal: 1-50
   - Position size: 1-100%
   - Stop loss: 0.1-100%
-  - Take profit levels: 1-3, profit_pct ascending, close_pct total ≤100%
+- Take profit levels: 1-3, profit_pct ascending, close_pct total ≤100%
+
+**Planned: Plain-Language Error Messages**
+- All validation and error states are rewritten in plain language with actionable suggestions.
+- Messages include a short "what happened" + "what to do next" format.
+- Errors link to relevant help docs (e.g., Strategy Guide, validation tips) when available.
 
 **Implementation:** `backend/app/api/strategies.py`, `backend/app/backtest/interpreter.py`
 
@@ -1720,6 +1725,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Favorite Metrics (Backtest Summary)** | 📝 Planned | Users can pin/reorder the metrics shown in backtest summary cards |
 | **Strategy Notes & Annotations** | ✅ Complete | Floating text notes on canvas (280 char limit), drag to position |
 | **Visual Validation Feedback** | ✅ Complete | Inline canvas highlights and messages for validation errors |
+| **Improved Error Messages** | 📝 Planned | Plain-language, actionable validation + error copy with help doc links |
 | **Strategy Explanation Generator** | ✅ Complete | Template-based plain-English explanation from strategy JSON |
 | **Strategy Import/Export** | ✅ Complete | JSON export/download + import/upload with validation |
 | **Strategy Templates Marketplace** | ✅ Complete | Curated template library with 3 templates, clone-to-edit workflow, dedicated browser page |
@@ -1962,6 +1968,7 @@ pytest --cov            # Coverage report
 - `docs/prd-strategy-import-export.md` - Strategy import/export PRD
 - `docs/prd-strategy-templates-marketplace.md` - Strategy templates marketplace PRD
 - `docs/prd-visual-strategy-validation-feedback.md` - Visual validation feedback PRD
+- `docs/prd-improved-error-messages.md` - Improved error messages PRD
 - `docs/prd-in-app-notifications.md` - In-app notifications PRD
 - `docs/prd-multi-strategy-dashboard.md` - Multi-strategy dashboard PRD
 - `docs/prd-drawdown-chart.md` - Drawdown chart PRD

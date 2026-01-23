@@ -51,6 +51,9 @@ When writing or editing code, **always** optimize for:
 6. **Data transparency**
    - When a feature depends on market data quality, prefer explicit validation and stored metadata.
    - Warn users about known issues rather than silently hiding or failing.
+7. **Plain-language errors**
+   - Error messages must be in plain language, tell the user what went wrong, and suggest the next action.
+   - Include a relevant help doc link when available.
 
 Whenever you face a trade-off, resolve it in this order:
 
