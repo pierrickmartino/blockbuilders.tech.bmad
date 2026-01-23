@@ -14,6 +14,7 @@ import {
   Blocks,
   TrendingUp,
   Award,
+  Bell,
 } from "lucide-react"
 
 import { useAuth } from "@/context/auth"
@@ -56,6 +57,11 @@ const navItems = [
     title: "Strategies",
     url: "/strategies",
     icon: Layers,
+  },
+  {
+    title: "Alerts",
+    url: "/alerts",
+    icon: Bell,
   },
 ]
 

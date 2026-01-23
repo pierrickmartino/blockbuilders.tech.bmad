@@ -1219,7 +1219,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 
 ### 9.11. Price Alerts
 
-**Status:** Planned
+**Status:** Implemented
 
 **Purpose:** Let users monitor price levels without constantly checking charts.
 
@@ -1237,9 +1237,13 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - On trigger: create in-app notification + send optional email/webhook payload.
 - Expired alerts are skipped and marked inactive.
 
-**UI Placement (simple):**
-- Alerts page (shared with performance alerts) with a minimal create/edit form.
-- List shows pair, condition, threshold, channels, status, and last triggered time.
+**UI Placement:**
+- Dedicated Alerts page (`/alerts`) accessible from sidebar navigation.
+- Tabs separate "Price Alerts" and "Performance Alerts".
+- Price Alerts tab: list with asset, condition, threshold, status, channels, expiration; create modal for new alerts.
+- Performance Alerts tab: read-only list linking to strategy settings for configuration.
+- Filters: asset, status (active/triggered/inactive).
+- Actions: toggle active/inactive, delete with confirmation.
 
 ### 9.12. Progress Dashboard
 
@@ -1698,7 +1702,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Data Quality & Completeness Indicators** | ✅ Complete | Gap %, outlier count, volume consistency, data availability timeline, backtest warnings |
 | **Scheduled Updates** | ✅ Complete | Daily scheduler for auto-update strategies (paper trading) |
 | **Performance Alerts (Simple)** | ✅ Complete | Drawdown threshold alerts on scheduled re-backtests |
-| **Price Alerts** | 📝 Planned | Threshold alerts per pair with in-app/email/webhook delivery |
+| **Price Alerts** | ✅ Complete | Threshold alerts per pair with in-app/email/webhook delivery; dedicated Alerts page |
 | **Usage Limits** | ✅ Complete | Plan-based caps on strategies, daily backtests, and historical depth |
 | **One-Time Credit Packs** | ✅ Complete | Purchase 50 backtest credits or +5 strategy slots; credits never expire |
 | **Subscription Plans & Billing** | ✅ Complete | Free/Pro/Premium tiers with Stripe monthly/annual billing and simple caps |

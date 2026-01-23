@@ -422,6 +422,7 @@ export default function StrategyEditorPage({ params }: Props) {
         const created = await apiFetch<AlertRule>("/alerts/", {
           method: "POST",
           body: JSON.stringify({
+            alert_type: "performance",
             strategy_id: id,
             threshold_pct: alertThreshold ?? null,
             alert_on_entry: alertOnEntry,
