@@ -1,6 +1,7 @@
 """RQ job functions for backtest processing."""
 import logging
 from datetime import datetime, timedelta, timezone
+from typing import Any
 from uuid import UUID
 
 from redis import Redis
@@ -12,6 +13,7 @@ from app.core.database import engine
 from app.models.backtest_run import BacktestRun
 from app.models.candle import Candle
 from app.models.data_quality_metric import DataQualityMetric
+from app.models.alert_rule import AlertRule
 from app.models.notification import Notification
 from app.models.strategy import Strategy
 from app.models.strategy_version import StrategyVersion
