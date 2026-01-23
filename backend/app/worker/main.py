@@ -32,7 +32,7 @@ def run_scheduler():
     # Cancel existing scheduled jobs to avoid duplicates on restart
     for job in scheduler.get_jobs():
         job_id = job.id if hasattr(job, "id") else str(job)
-        if job_id in ["auto_update_daily", "data_quality_daily"]:
+        if job_id in ["auto_update_daily", "data_quality_daily", "price_alerts_monitor"]:
             logger.info(f"Removing existing scheduled job: {job_id}")
             scheduler.cancel(job)
 
@@ -53,6 +53,15 @@ def run_scheduler():
         id="data_quality_daily",
     )
     logger.info("Registered data_quality_daily cron job at 03:00 UTC")
+
+    # Schedule price alerts monitoring job every 5 minutes
+    scheduler.cron(
+        "*/5 * * * *",  # Cron expression: every 5 minutes
+        func="app.worker.jobs.evaluate_price_alerts",
+        queue_name="default",
+        id="price_alerts_monitor",
+    )
+    logger.info("Registered price_alerts_monitor cron job (every 5 minutes)")
 
     logger.info("Scheduler started successfully. Waiting for scheduled jobs...")
     scheduler.run()

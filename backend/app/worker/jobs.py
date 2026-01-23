@@ -1,8 +1,10 @@
 """RQ job functions for backtest processing."""
 import logging
 from datetime import datetime, timedelta, timezone
+from typing import Any
 from uuid import UUID
 
+import resend
 from redis import Redis
 from rq import Queue
 from sqlmodel import Session, select, func
@@ -455,3 +457,236 @@ def validate_data_quality_daily() -> None:
         session.commit()
 
     logger.info(f"validate_data_quality_daily completed: {processed} metrics computed, {skipped} skipped (recent)")
+
+
+def evaluate_price_alerts() -> None:
+    """
+    Evaluate active price alerts against current market prices.
+
+    Runs every 1-5 minutes (configured in scheduler).
+    Only triggers when price crosses threshold since last check.
+    """
+    if not settings.scheduler_enabled:
+        logger.info("Scheduler disabled, skipping evaluate_price_alerts")
+        return
+
+    logger.info("Starting evaluate_price_alerts job")
+
+    with Session(engine) as session:
+        from decimal import Decimal
+        import httpx
+        from app.models.alert_rule import AlertType, Direction
+        from app.models.user import User
+        from app.schemas.strategy import ALLOWED_ASSETS
+
+        now = datetime.now(timezone.utc)
+
+        # Get active price alerts
+        alerts = session.exec(
+            select(AlertRule).where(
+                AlertRule.alert_type == AlertType.PRICE,
+                AlertRule.is_active == True  # noqa: E712
+            ).with_for_update()  # Prevent race conditions
+        ).all()
+
+        if not alerts:
+            logger.info("No active price alerts to evaluate")
+            return
+
+        logger.info(f"Found {len(alerts)} active price alerts")
+
+        # Mark expired alerts as inactive
+        expired_count = 0
+        for alert in alerts:
+            if alert.expires_at and alert.expires_at <= now:
+                alert.is_active = False
+                session.add(alert)
+                expired_count += 1
+
+        if expired_count > 0:
+            session.commit()
+            logger.info(f"Marked {expired_count} alerts as expired")
+
+        # Filter to non-expired alerts
+        active_alerts = [a for a in alerts if a.is_active]
+
+        if not active_alerts:
+            logger.info("No non-expired alerts to evaluate")
+            return
+
+        # Fetch current prices
+        prices = _fetch_current_prices()
+        if not prices:
+            logger.error("Failed to fetch current prices, skipping evaluation")
+            return
+
+        triggered_count = 0
+
+        for alert in active_alerts:
+            current_price = prices.get(alert.asset)
+            if current_price is None:
+                logger.warning(f"No price data for {alert.asset}, skipping alert {alert.id}")
+                continue
+
+            # Check crossing condition
+            triggered = False
+            last_price = alert.last_checked_price
+
+            if alert.direction == Direction.ABOVE:
+                # Trigger if price crossed threshold from below
+                if last_price is not None and last_price < alert.threshold_price and current_price >= alert.threshold_price:
+                    triggered = True
+            elif alert.direction == Direction.BELOW:
+                # Trigger if price crossed threshold from above
+                if last_price is not None and last_price > alert.threshold_price and current_price <= alert.threshold_price:
+                    triggered = True
+
+            # Update last checked price (always, even if not triggered)
+            alert.last_checked_price = current_price
+            session.add(alert)
+
+            if not triggered:
+                continue
+
+            # Alert triggered - create notifications
+            triggered_count += 1
+            direction_text = "above" if alert.direction == Direction.ABOVE else "below"
+            body = f"{alert.asset} {direction_text} {alert.threshold_price}. Current: {current_price}."
+
+            # In-app notification (always)
+            notification = Notification(
+                user_id=alert.user_id,
+                type="price_alert",
+                title="Price alert triggered",
+                body=body,
+                link_url="/alerts",
+            )
+            session.add(notification)
+
+            # Email notification (if enabled)
+            if alert.notify_email:
+                _send_price_alert_email(alert, current_price, session)
+
+            # Webhook notification (if enabled)
+            if alert.notify_webhook and alert.webhook_url:
+                _send_price_alert_webhook(alert, current_price)
+
+            # Deactivate alert (one-shot)
+            alert.is_active = False
+            alert.last_triggered_at = now
+            session.add(alert)
+
+            logger.info(f"Price alert triggered: {alert.asset} {direction_text} {alert.threshold_price}")
+
+        session.commit()
+        logger.info(f"evaluate_price_alerts completed: {triggered_count} alerts triggered")
+
+
+def _fetch_current_prices() -> dict[str, Any]:
+    """
+    Fetch current prices for all supported assets.
+
+    Returns dict mapping asset pair (e.g., "BTC/USDT") to Decimal price.
+    Reuses CryptoCompare API logic from market.py.
+    """
+    from decimal import Decimal
+    import httpx
+    from app.schemas.strategy import ALLOWED_ASSETS
+
+    fsyms = [asset.split("/")[0] for asset in ALLOWED_ASSETS]
+    fsyms_str = ",".join(fsyms)
+
+    try:
+        with httpx.Client(timeout=10.0) as client:
+            url = f"{settings.cryptocompare_api_url}/pricemultifull"
+            params = {"fsyms": fsyms_str, "tsyms": "USDT"}
+            if settings.cryptocompare_api_key:
+                params["api_key"] = settings.cryptocompare_api_key
+
+            response = client.get(url, params=params)
+            response.raise_for_status()
+            data = response.json()
+
+            if data.get("Response") == "Error":
+                logger.error(f"CryptoCompare error: {data.get('Message')}")
+                return {}
+
+            raw_data = data.get("RAW", {})
+            prices = {}
+
+            for asset in ALLOWED_ASSETS:
+                base = asset.split("/")[0]
+                ticker_data = raw_data.get(base, {}).get("USDT")
+                if ticker_data:
+                    prices[asset] = Decimal(str(ticker_data.get("PRICE", 0.0)))
+
+            return prices
+
+    except Exception as e:
+        logger.error(f"Failed to fetch prices: {e}")
+        return {}
+
+
+def _send_price_alert_email(alert: AlertRule, current_price: Any, session: Session) -> None:
+    """Send email notification for triggered price alert."""
+    if not settings.resend_api_key:
+        logger.warning("resend_api_key not configured, skipping email")
+        return
+
+    try:
+        from app.models.user import User
+        from app.models.alert_rule import Direction
+
+        user = session.exec(select(User).where(User.id == alert.user_id)).first()
+        if not user or not user.email:
+            logger.warning(f"User email not found for alert {alert.id}")
+            return
+
+        direction_text = "above" if alert.direction == Direction.ABOVE else "below"
+        html_body = f"""
+        <p>Your price alert for <strong>{alert.asset}</strong> has been triggered:</p>
+        <ul>
+            <li>Condition: {direction_text} {alert.threshold_price}</li>
+            <li>Current price: {current_price}</li>
+        </ul>
+        <p><a href="{settings.frontend_url}/alerts">Manage your alerts</a></p>
+        """
+
+        resend.api_key = settings.resend_api_key
+        resend.Emails.send({
+            "from": "Blockbuilders <noreply@blockbuilders.tech>",
+            "to": [user.email],
+            "subject": f"Price alert triggered - {alert.asset}",
+            "html": html_body,
+        })
+        logger.info(f"Price alert email sent to {user.email}")
+
+    except Exception as e:
+        logger.error(f"Failed to send price alert email: {e}")
+
+
+def _send_price_alert_webhook(alert: AlertRule, current_price: Any) -> None:
+    """Send webhook POST for triggered price alert."""
+    try:
+        import httpx
+
+        payload = {
+            "type": "price_alert",
+            "asset": alert.asset,
+            "direction": alert.direction.value,
+            "threshold_price": float(alert.threshold_price),
+            "current_price": float(current_price),
+            "triggered_at": datetime.now(timezone.utc).isoformat(),
+        }
+
+        with httpx.Client(timeout=10.0) as client:
+            response = client.post(
+                alert.webhook_url,
+                json=payload,
+                headers={"Content-Type": "application/json"},
+            )
+            response.raise_for_status()
+            logger.info(f"Webhook sent to {alert.webhook_url} for alert {alert.id}")
+
+    except Exception as e:
+        logger.error(f"Failed to send webhook for alert {alert.id}: {e}")
