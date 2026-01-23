@@ -48,6 +48,7 @@ import InfoIcon from "@/components/InfoIcon";
 import { BacktestSentimentStrip } from "@/components/BacktestSentimentStrip";
 import { DataAvailabilitySection } from "@/components/DataAvailabilitySection";
 import { metricToGlossaryId, getTooltip } from "@/lib/tooltip-content";
+import { trackBacktestView } from "@/lib/recent-views";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   DropdownMenu,
@@ -712,6 +713,13 @@ export default function StrategyBacktestPage({ params }: Props) {
     loadStrategy();
     loadBacktests();
   }, [loadStrategy, loadBacktests]);
+
+  // Track backtest view for recently viewed section
+  useEffect(() => {
+    if (selectedRunId && strategy) {
+      trackBacktestView(id, selectedRunId);
+    }
+  }, [id, selectedRunId, strategy]);
 
   // Fetch user plan to check for premium features
   useEffect(() => {
