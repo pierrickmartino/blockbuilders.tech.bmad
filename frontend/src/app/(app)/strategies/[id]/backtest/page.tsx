@@ -784,6 +784,7 @@ export default function StrategyBacktestPage({ params }: Props) {
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (isSubmitting) return;
     setStatusMessage(null);
     setError(null);
 
@@ -839,6 +840,7 @@ export default function StrategyBacktestPage({ params }: Props) {
 
       // Run backtest: Cmd/Ctrl+R
       if (isMod && key === "r" && !e.shiftKey) {
+        if (isSubmitting) return;
         e.preventDefault();
         // Trigger form submission programmatically
         const form = document.querySelector("form");
@@ -860,7 +862,7 @@ export default function StrategyBacktestPage({ params }: Props) {
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  }, [isSubmitting]);
 
   const statusBadge = useCallback((status: BacktestStatus) => {
     const cls = statusStyles[status];

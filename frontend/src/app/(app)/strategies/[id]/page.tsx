@@ -358,6 +358,9 @@ export default function StrategyEditorPage({ params }: Props) {
   };
 
   const handleSaveVersion = useCallback(async () => {
+    if (isSavingVersion) {
+      return;
+    }
     setIsSavingVersion(true);
     setSaveMessage(null);
     setValidationErrors([]);
@@ -396,7 +399,7 @@ export default function StrategyEditorPage({ params }: Props) {
     } finally {
       setIsSavingVersion(false);
     }
-  }, [nodes, edges, id, loadVersions, loadStrategy]);
+  }, [isSavingVersion, nodes, edges, id, loadVersions, loadStrategy]);
 
   const handleAlertSave = async () => {
     // Client-side validation
