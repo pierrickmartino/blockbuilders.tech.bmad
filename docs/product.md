@@ -602,6 +602,23 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - No backend, schema, or API changes.
 - Keep state snapshots minimal (use existing canvas serialize helpers).
 
+### 4.13. Keyboard Shortcuts & Reference (Planned)
+
+**Purpose:** Speed up common strategy actions with simple keyboard shortcuts and an in-app reference modal.
+
+**Behavior:**
+- Shortcuts are active on the strategy editor/backtest screens only.
+- Save strategy: `Cmd/Ctrl+S` (prevents browser save).
+- Run backtest: `Cmd/Ctrl+R` (prevents browser refresh while in editor context).
+- Undo/redo reuse existing canvas history shortcuts.
+- `?` opens a shortcut reference modal; `Esc` closes it.
+- Shortcuts do **not** fire when typing in input/textarea/contenteditable fields.
+
+**Implementation Notes:**
+- Frontend-only: simple keydown listener wired to existing save/run/undo/redo handlers.
+- Use the existing dialog component for the shortcut reference list.
+- Keep the shortcut list minimal and in one place so it stays up to date.
+
 --- 
 
 ## 5. Backtesting Engine
@@ -1713,6 +1730,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Mobile-Optimized Canvas** | ✅ Complete | Touch-first controls, simplified palette, gesture-based connections |
 | **Copy/Paste Blocks & Subgraphs** | ✅ Complete | Multi-select blocks and copy/paste within or across strategies |
 | **Canvas Undo/Redo** | ✅ Implemented | Toolbar buttons + keyboard shortcuts for reverting canvas edits |
+| **Keyboard Shortcuts & Reference** | 📝 Planned | Cmd/Ctrl+S save, Cmd/Ctrl+R run backtest, ? help modal, editor-only |
 | **Strategy Building Wizard** | ✅ Complete | Guided Q&A that generates editable strategy JSON |
 | **Backtesting** | ✅ Complete | Full engine with TP ladder, SL, max drawdown, equity curves, trade detail |
 | **Data Export (CSV/JSON)** | ✅ Complete | Download trade list, equity curve, and metrics as CSV or JSON |
@@ -1997,6 +2015,7 @@ pytest --cov            # Coverage report
 - `docs/prd-price-alerts.md` - Price alerts PRD
 - `docs/prd-copy-paste-blocks-subgraphs.md` - Copy/paste blocks & subgraphs PRD (IMPLEMENTED)
 - `docs/prd-canvas-undo-redo.md` - Canvas undo/redo PRD (IMPLEMENTED)
+- `docs/prd-keyboard-shortcuts.md` - Keyboard shortcuts & reference PRD
 - `docs/prd-mobile-optimized-canvas.md` - Mobile-optimized canvas PRD (IMPLEMENTED)
 - `docs/prd-real-time-price-tickers.md` - Real-time price tickers PRD
 - `docs/prd-volatility-metrics-market-overview.md` - Volatility metrics (market overview) PRD
