@@ -35,6 +35,11 @@ class SubscriptionStatus(str, Enum):
     TRIALING = "trialing"
 
 
+class UserTier(str, Enum):
+    STANDARD = "standard"
+    BETA = "beta"
+
+
 class User(SQLModel, table=True):
     __tablename__ = "users"
 
@@ -76,6 +81,10 @@ class User(SQLModel, table=True):
     subscription_status: Optional[SubscriptionStatus] = Field(
         default=None,
         sa_column=Column(String(20), nullable=True),
+    )
+    user_tier: UserTier = Field(
+        default=UserTier.STANDARD,
+        sa_column=Column(String(10), nullable=False),
     )
 
     # Password reset

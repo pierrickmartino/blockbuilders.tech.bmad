@@ -46,8 +46,12 @@ def _build_profile_response(user: User, session: Session) -> ProfileResponse:
     # Calculate reset time (midnight UTC tomorrow)
     tomorrow = today_start + timedelta(days=1)
 
-    # Get plan limits
-    limits = get_plan_limits(user.plan_tier)
+    # Get effective limits (includes beta bonuses and extra slots)
+    from app.core.plans import get_effective_limits
+
+    effective_limits = get_effective_limits(
+        user.plan_tier, user.user_tier, user.extra_strategy_slots
+    )
 
     return ProfileResponse(
         id=user.id,
@@ -60,12 +64,15 @@ def _build_profile_response(user: User, session: Session) -> ProfileResponse:
             backtest_credit_balance=user.backtest_credit_balance,
             extra_strategy_slots=user.extra_strategy_slots,
             favorite_metrics=user.favorite_metrics,
+            user_tier=user.user_tier,
         ),
         usage=UsageBundle(
-            strategies=UsageItem(used=strategies_count, limit=user.max_strategies),
+            strategies=UsageItem(
+                used=strategies_count, limit=effective_limits["max_strategies"]
+            ),
             backtests_today=BacktestUsageItem(
                 used=backtests_today,
-                limit=user.max_backtests_per_day,
+                limit=effective_limits["max_backtests_per_day"],
                 resets_at_utc=tomorrow.isoformat(),
             ),
         ),
@@ -73,9 +80,9 @@ def _build_profile_response(user: User, session: Session) -> ProfileResponse:
             tier=user.plan_tier,
             interval=user.plan_interval,
             status=user.subscription_status,
-            max_strategies=limits["max_strategies"],
-            max_backtests_per_day=limits["max_backtests_per_day"],
-            max_history_days=limits["max_history_days"],
+            max_strategies=effective_limits["max_strategies"],
+            max_backtests_per_day=effective_limits["max_backtests_per_day"],
+            max_history_days=effective_limits["max_history_days"],
         ),
     )
 

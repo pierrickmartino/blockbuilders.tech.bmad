@@ -56,6 +56,7 @@ class SettingsResponse(BaseModel):
     backtest_credit_balance: int = 0
     extra_strategy_slots: int = 0
     favorite_metrics: Optional[List[str]] = None
+    user_tier: str = "standard"
 
 
 class UsageBundle(BaseModel):

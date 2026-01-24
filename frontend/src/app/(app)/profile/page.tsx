@@ -243,6 +243,21 @@ export default function ProfilePage() {
             <CardTitle>Account</CardTitle>
             <CardDescription>Email: {profile?.email}</CardDescription>
           </CardHeader>
+          {profile?.settings.user_tier === "beta" && (
+            <CardContent>
+              <div className="space-y-2">
+                <Badge
+                  variant="secondary"
+                  className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                >
+                  Beta User — Grandfathered Perks Applied
+                </Badge>
+                <p className="text-sm text-muted-foreground">
+                  +10 strategies, +50 backtests/day, 20% off paid plans
+                </p>
+              </div>
+            </CardContent>
+          )}
         </Card>
 
         {/* Section B: Backtest Defaults */}

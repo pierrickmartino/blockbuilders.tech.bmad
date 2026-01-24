@@ -83,8 +83,12 @@ def create_strategy(
             Strategy.is_archived == False,  # noqa: E712
         )
     ).one()
-    limits = get_plan_limits(user.plan_tier)
-    max_allowed = limits["max_strategies"] + user.extra_strategy_slots
+    from app.core.plans import get_effective_limits
+
+    effective_limits = get_effective_limits(
+        user.plan_tier, user.user_tier, user.extra_strategy_slots
+    )
+    max_allowed = effective_limits["max_strategies"]
     if active_count >= max_allowed:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -319,8 +323,12 @@ def duplicate_strategy(
             Strategy.is_archived == False,  # noqa: E712
         )
     ).one()
-    limits = get_plan_limits(user.plan_tier)
-    max_allowed = limits["max_strategies"] + user.extra_strategy_slots
+    from app.core.plans import get_effective_limits
+
+    effective_limits = get_effective_limits(
+        user.plan_tier, user.user_tier, user.extra_strategy_slots
+    )
+    max_allowed = effective_limits["max_strategies"]
     if active_count >= max_allowed:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
