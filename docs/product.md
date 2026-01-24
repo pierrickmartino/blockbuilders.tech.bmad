@@ -84,6 +84,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - backtest_credit_balance (non-expiring backtest credits)
 - extra_strategy_slots (non-expiring extra strategy capacity)
 - plan_tier (enum: free/pro/premium)
+- user_tier (enum: standard/beta)
 - plan_interval (enum: monthly/annual, nullable for free)
 - stripe_customer_id (nullable)
 - stripe_subscription_id (nullable)
@@ -103,8 +104,11 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Premium** | $49 | $490 | 200 | 500 | 10 years |
 
 **Notes:**
-- Free tier preserves the current beta limits (10 strategies, 50 backtests/day).
+- Free tier standard limits are 10 strategies and 50 backtests/day.
 - Paid tiers raise caps without metered usage or add-ons.
+- **Grandfathered beta users** (`user_tier=beta`) keep permanent perks:
+  - Higher caps: +10 strategies and +50 backtests/day on top of plan limits.
+  - Discounted pricing: 20% off paid plan prices.
 - One-time credit packs allow occasional extra backtests or strategy slots without a subscription:
   - **+5 Strategy Slots:** US$9 (one-time, never expires)
   - **+50 Backtest Credits:** US$15 (one-time, never expires)
@@ -112,6 +116,19 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Plan enforcement gates:
   - Strategy creation
   - Backtest creation (daily caps + max historical depth)
+
+### 2.5. Grandfathered Beta User Benefits
+
+**Purpose:** Reward early beta users with permanent perks while keeping billing logic minimal.
+
+**Eligibility:**
+- Accounts created before a configured beta cutoff date **or** manually flagged by setting `user_tier=beta`.
+
+**Perks (simple and permanent):**
+- **Higher limits:** +10 strategies and +50 backtests/day added on top of plan caps.
+- **Discounted pricing:** 20% off paid plan prices.
+
+**Implementation:** Simple conditional logic in billing/limit checks based on `user_tier`.
 
 ---
 
@@ -1746,6 +1763,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Usage Limits** | ✅ Complete | Plan-based caps on strategies, daily backtests, and historical depth |
 | **One-Time Credit Packs** | ✅ Complete | Purchase 50 backtest credits or +5 strategy slots; credits never expire |
 | **Subscription Plans & Billing** | ✅ Complete | Free/Pro/Premium tiers with Stripe monthly/annual billing and simple caps |
+| **Grandfathered Beta User Benefits** | 📝 Planned | Permanent perks (higher limits + discounted pricing) for early beta users |
 | **In-App Notifications** | ✅ Complete | Bell icon with unread count, notifications for key events |
 | **Real-Time Price Tickers** | ✅ Complete | Market overview with live price, 24h change, volume, trend; 4s polling, 3s Redis cache |
 | **Volatility Metrics (Market Overview)** | ✅ Complete | Show current + historical volatility with percentile rank per pair |
@@ -2024,6 +2042,7 @@ pytest --cov            # Coverage report
 - `docs/prd-strategy-tags-groups.md` - Strategy groups & tags PRD
 - `docs/prd-simple-tiered-subscription-plans.md` - Simple tiered subscription plans PRD
 - `docs/prd-one-time-credit-packs.md` - One-time credit packs PRD
+- `docs/prd-grandfathered-beta-user-benefits.md` - Grandfathered beta user benefits PRD
 - `docs/prd-quick-strategy-clone.md` - Quick strategy clone (list action) PRD
 - `docs/prd-progress-dashboard.md` - Progress dashboard PRD
 - `docs/prd-bulk-strategy-actions.md` - Bulk strategy actions PRD
