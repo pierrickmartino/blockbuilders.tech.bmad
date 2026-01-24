@@ -509,9 +509,12 @@ export default function StrategyEditorPage({ params }: Props) {
 
     if (snapshotTimerRef.current) {
       clearTimeout(snapshotTimerRef.current);
+      snapshotTimerRef.current = null;
     }
 
     snapshotTimerRef.current = setTimeout(() => {
+      snapshotTimerRef.current = null;
+      if (isApplyingHistoryRef.current) return;
       setHistory((h) => pushSnapshot(h, newNodes, newEdges));
     }, 500);
   }, []);
@@ -610,6 +613,11 @@ export default function StrategyEditorPage({ params }: Props) {
   const handleUndo = useCallback(() => {
     if (!canUndo(history)) return;
 
+    if (snapshotTimerRef.current) {
+      clearTimeout(snapshotTimerRef.current);
+      snapshotTimerRef.current = null;
+    }
+
     const { history: newHistory, snapshot } = undo(history);
     if (snapshot) {
       isApplyingHistoryRef.current = true;
@@ -625,6 +633,11 @@ export default function StrategyEditorPage({ params }: Props) {
   // Handle redo
   const handleRedo = useCallback(() => {
     if (!canRedo(history)) return;
+
+    if (snapshotTimerRef.current) {
+      clearTimeout(snapshotTimerRef.current);
+      snapshotTimerRef.current = null;
+    }
 
     const { history: newHistory, snapshot } = redo(history);
     if (snapshot) {
@@ -652,29 +665,30 @@ export default function StrategyEditorPage({ params }: Props) {
       }
 
       const isMod = e.metaKey || e.ctrlKey;
+      const key = e.key.toLowerCase();
 
       // Undo: Cmd/Ctrl+Z
-      if (isMod && e.key === "z" && !e.shiftKey) {
+      if (isMod && key === "z" && !e.shiftKey) {
         e.preventDefault();
         handleUndo();
         return;
       }
 
       // Redo: Cmd/Ctrl+Shift+Z or Cmd/Ctrl+Y
-      if ((isMod && e.shiftKey && e.key === "z") || (isMod && e.key === "y")) {
+      if ((isMod && e.shiftKey && key === "z") || (isMod && key === "y")) {
         e.preventDefault();
         handleRedo();
         return;
       }
 
       // Copy: Cmd/Ctrl+C
-      if (isMod && e.key === "c") {
+      if (isMod && key === "c") {
         e.preventDefault();
         copyToClipboard(selectedNodeIds, nodes, edges);
       }
 
       // Paste: Cmd/Ctrl+V
-      if (isMod && e.key === "v") {
+      if (isMod && key === "v") {
         e.preventDefault();
         const result = pasteFromClipboard(nodes, edges);
         if (result) {
