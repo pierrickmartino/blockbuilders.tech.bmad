@@ -28,6 +28,10 @@ PRICE_IDS = {
     ("premium", "monthly"): settings.stripe_price_premium_monthly,
     ("premium", "annual"): settings.stripe_price_premium_annual,
 }
+STRIPE_INTERVALS = {
+    "monthly": "month",
+    "annual": "year",
+}
 
 
 class CheckoutSessionRequest(BaseModel):
@@ -79,6 +83,7 @@ def create_checkout_session(
 
     # Check if beta discount applies
     pricing = get_plan_pricing(data.plan_tier, data.interval, user.user_tier)
+    stripe_interval = STRIPE_INTERVALS[data.interval]
 
     # Create checkout session with beta discount if applicable
     if pricing["discount_percent"] > 0:
@@ -90,7 +95,7 @@ def create_checkout_session(
                 "price_data": {
                     "currency": "usd",
                     "unit_amount": int(pricing["final_price"] * 100),
-                    "recurring": {"interval": data.interval},
+                    "recurring": {"interval": stripe_interval},
                     "product_data": {
                         "name": f"{data.plan_tier.title()} Plan (Beta Discount - 20% off)",
                     },
