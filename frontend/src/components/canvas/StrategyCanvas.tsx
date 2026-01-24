@@ -29,6 +29,10 @@ interface StrategyCanvasProps {
   onEdgesChange: (edges: Edge[]) => void;
   onSelectionChange: (selectedNodes: Node[]) => void;
   onAddNote: () => void;
+  onUndo?: () => void;
+  onRedo?: () => void;
+  canUndo?: boolean;
+  canRedo?: boolean;
   globalValidationErrors?: ValidationError[];
   isMobileMode?: boolean;
 }
@@ -44,6 +48,10 @@ function CanvasInner({
   onEdgesChange,
   onSelectionChange,
   onAddNote,
+  onUndo,
+  onRedo,
+  canUndo,
+  canRedo,
   globalValidationErrors,
   isMobileMode = false,
 }: StrategyCanvasProps) {
@@ -221,6 +229,44 @@ function CanvasInner({
       >
         <Background gap={15} size={1} />
         <Controls>
+          <ControlButton
+            onClick={onUndo}
+            title="Undo (Cmd/Ctrl+Z)"
+            disabled={!canUndo}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-4 w-4"
+            >
+              <path d="M3 7v6h6" />
+              <path d="M21 17a9 9 0 00-9-9 9 9 0 00-6 2.3L3 13" />
+            </svg>
+          </ControlButton>
+          <ControlButton
+            onClick={onRedo}
+            title="Redo (Cmd/Ctrl+Shift+Z)"
+            disabled={!canRedo}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-4 w-4"
+            >
+              <path d="M21 7v6h-6" />
+              <path d="M3 17a9 9 0 019-9 9 9 0 016 2.3l3 2.7" />
+            </svg>
+          </ControlButton>
           <ControlButton onClick={onAddNote} title="Add Note">
             <svg
               xmlns="http://www.w3.org/2000/svg"
