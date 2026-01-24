@@ -67,7 +67,9 @@ def create_backtest(
         )
 
     # Check daily backtest limit based on plan tier
-    limits = get_plan_limits(user.plan_tier)
+    from app.core.plans import get_effective_limits
+
+    effective_limits = get_effective_limits(user.plan_tier, user.user_tier)
     today_start = datetime.now(timezone.utc).replace(
         hour=0, minute=0, second=0, microsecond=0
     )
@@ -78,7 +80,7 @@ def create_backtest(
         )
     ).one()
     use_credit = False
-    if today_count >= limits["max_backtests_per_day"]:
+    if today_count >= effective_limits["max_backtests_per_day"]:
         # Daily cap reached - require credits to proceed
         if user.backtest_credit_balance > 0:
             use_credit = True
@@ -98,7 +100,7 @@ def create_backtest(
                     user_id=user.id,
                     type="usage_limit_reached",
                     title="Daily backtest limit reached",
-                    body=f"You've reached your daily limit of {limits['max_backtests_per_day']} backtests. Purchase backtest credits or upgrade your plan.",
+                    body=f"You've reached your daily limit of {effective_limits['max_backtests_per_day']} backtests. Purchase backtest credits or upgrade your plan.",
                 )
                 session.add(notification)
                 session.commit()
@@ -106,15 +108,15 @@ def create_backtest(
             tomorrow = today_start + timedelta(days=1)
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail=f"Daily backtest limit reached ({limits['max_backtests_per_day']}). Purchase credits or resets at {tomorrow.isoformat()}.",
+                detail=f"Daily backtest limit reached ({effective_limits['max_backtests_per_day']}). Purchase credits or resets at {tomorrow.isoformat()}.",
             )
 
     # Check historical data depth limit based on plan tier
     date_range_days = (data.date_to - data.date_from).days
-    if date_range_days > limits["max_history_days"]:
+    if date_range_days > effective_limits["max_history_days"]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Date range exceeds your plan's historical data limit ({limits['max_history_days']} days). Upgrade to access longer history.",
+            detail=f"Date range exceeds your plan's historical data limit ({effective_limits['max_history_days']} days). Upgrade to access longer history.",
         )
 
     # Get latest version

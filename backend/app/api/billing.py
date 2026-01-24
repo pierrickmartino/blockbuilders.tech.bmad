@@ -54,6 +54,8 @@ def create_checkout_session(
     session: Session = Depends(get_session),
 ) -> CheckoutSessionResponse:
     """Create a Stripe Checkout session for plan upgrade."""
+    from app.core.plans import get_plan_pricing
+
     # Get price ID
     price_id = PRICE_IDS.get((data.plan_tier, data.interval))
     if not price_id:
@@ -75,19 +77,49 @@ def create_checkout_session(
         session.add(user)
         session.commit()
 
-    # Create checkout session
-    checkout_session = stripe.checkout.Session.create(
-        customer=customer_id,
-        mode="subscription",
-        line_items=[{"price": price_id, "quantity": 1}],
-        success_url=f"{settings.frontend_url}/profile?billing_success=true",
-        cancel_url=f"{settings.frontend_url}/profile?billing_canceled=true",
-        metadata={
-            "user_id": str(user.id),
-            "plan_tier": data.plan_tier,
-            "interval": data.interval,
-        },
-    )
+    # Check if beta discount applies
+    pricing = get_plan_pricing(data.plan_tier, data.interval, user.user_tier)
+
+    # Create checkout session with beta discount if applicable
+    if pricing["discount_percent"] > 0:
+        # Beta user - create discounted price on-the-fly
+        checkout_session = stripe.checkout.Session.create(
+            customer=customer_id,
+            mode="subscription",
+            line_items=[{
+                "price_data": {
+                    "currency": "usd",
+                    "unit_amount": int(pricing["final_price"] * 100),
+                    "recurring": {"interval": data.interval},
+                    "product_data": {
+                        "name": f"{data.plan_tier.title()} Plan (Beta Discount - 20% off)",
+                    },
+                },
+                "quantity": 1,
+            }],
+            success_url=f"{settings.frontend_url}/profile?billing_success=true",
+            cancel_url=f"{settings.frontend_url}/profile?billing_canceled=true",
+            metadata={
+                "user_id": str(user.id),
+                "plan_tier": data.plan_tier,
+                "interval": data.interval,
+                "beta_discount": "true",
+            },
+        )
+    else:
+        # Standard pricing - use price ID
+        checkout_session = stripe.checkout.Session.create(
+            customer=customer_id,
+            mode="subscription",
+            line_items=[{"price": price_id, "quantity": 1}],
+            success_url=f"{settings.frontend_url}/profile?billing_success=true",
+            cancel_url=f"{settings.frontend_url}/profile?billing_canceled=true",
+            metadata={
+                "user_id": str(user.id),
+                "plan_tier": data.plan_tier,
+                "interval": data.interval,
+            },
+        )
 
     return CheckoutSessionResponse(url=checkout_session.url)
 

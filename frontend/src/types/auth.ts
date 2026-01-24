@@ -47,6 +47,7 @@ export interface SettingsResponse {
   backtest_credit_balance: number;
   extra_strategy_slots: number;
   favorite_metrics: string[] | null;
+  user_tier: "standard" | "beta";
 }
 
 export interface UsageBundle {

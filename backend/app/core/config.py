@@ -47,6 +47,12 @@ class Settings(BaseSettings):
     default_max_strategies: int = 10
     default_max_backtests_per_day: int = 50
 
+    # Beta user benefits
+    beta_cutoff_date: str = "2026-01-24T00:00:00Z"
+    beta_strategy_bonus: int = 10
+    beta_backtest_bonus: int = 50
+    beta_price_discount: float = 0.20  # 20% off
+
     cors_origins: str = "http://localhost:3000"  # Override in production
 
     # Password reset
