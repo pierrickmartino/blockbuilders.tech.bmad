@@ -798,6 +798,11 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Exports trade list, equity curve, and summary metrics as CSV or JSON
 - Uses existing backtest result endpoints; frontend formats files for download
 
+**Shareable Result Links (Planned)**
+- Generate read-only links for specific backtest runs (results only, not strategy logic).
+- Public results view uses token-based access with optional expiration.
+- Displays summary metrics and equity curve; no editing, no strategy blocks.
+
 **Implementation:** `backend/app/backtest/engine.py`, `backend/app/backtest/indicators.py`, `backend/app/backtest/interpreter.py`
 
 ---
@@ -1007,6 +1012,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 /forgot-password           → Password reset request (public)
 /reset-password?token=...  → Password reset confirm (public)
 /auth/callback             → OAuth callback handler (public)
+/share/backtests/[token]   → Shared backtest results (public, read-only)
 
 /dashboard                 → Multi-strategy dashboard (protected)
 /progress                  → Progress dashboard (protected)
@@ -1098,6 +1104,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Trades table with sorting and pagination
 - Trade detail drawer with surrounding candles
 - Seasonality analysis heatmap (month, quarter, weekday)
+- Planned: Share results link button (read-only public view with expiration).
 
 **Components:**
 - `frontend/src/app/(app)/strategies/[id]/backtest/page.tsx`
@@ -1751,6 +1758,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Strategy Building Wizard** | ✅ Complete | Guided Q&A that generates editable strategy JSON |
 | **Backtesting** | ✅ Complete | Full engine with TP ladder, SL, max drawdown, equity curves, trade detail |
 | **Data Export (CSV/JSON)** | ✅ Complete | Download trade list, equity curve, and metrics as CSV or JSON |
+| **Shareable Backtest Result Links** | 📝 Planned | Read-only, tokenized public results view with optional expiration |
 | **Seasonality Analysis** | ✅ Complete | Heatmap of average trade return by month, quarter, weekday |
 | **Trade Distribution Analysis** | ✅ Complete | Histograms of trade return buckets and duration distribution for risk insight |
 | **Position Analysis** | ✅ Complete | Average hold time, longest/shortest positions, average position size |
@@ -1819,7 +1827,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 
 **Not Implemented (Intentionally):**
 - Real-time trading or brokerage integration
-- Full strategy marketplace, public sharing links, or monetization (manual file export/import is allowed)
+- Full strategy marketplace, public strategy sharing links, or monetization (manual file export/import is allowed)
 - Usage-based pricing, complex metering, or add-on bundles beyond simple one-time credit packs
 - SMS alerts (no SMS for performance or price alerts)
 - Full social feeds or discovery features
@@ -1876,7 +1884,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Data quality upgrades (multi-vendor reconciliation, extended anomaly detection)
 - Improved analytics (drawdown analysis, trade tagging)
 - Email notifications for auto-updates
-- Strategy sharing (read-only links)
+- Shareable backtest result links (results only, not strategy logic)
 
 ### 15.2. Post-MVP Considerations
 
@@ -2047,6 +2055,7 @@ pytest --cov            # Coverage report
 - `docs/prd-progress-dashboard.md` - Progress dashboard PRD
 - `docs/prd-bulk-strategy-actions.md` - Bulk strategy actions PRD
 - `docs/prd-recently-viewed-dashboard-shortcuts.md` - Recently viewed dashboard shortcuts PRD
+- `docs/prd-share-backtest-results-links.md` - Shareable backtest result links PRD
 - `CLAUDE.md` - Instructions for Claude Code
 - `README.md` - Quick start guide
 
