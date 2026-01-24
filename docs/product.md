@@ -1712,7 +1712,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Visual Builder** | ✅ Complete | 20 block types, drag-drop, parameter editing, mobile-responsive |
 | **Mobile-Optimized Canvas** | ✅ Complete | Touch-first controls, simplified palette, gesture-based connections |
 | **Copy/Paste Blocks & Subgraphs** | ✅ Complete | Multi-select blocks and copy/paste within or across strategies |
-| **Canvas Undo/Redo** | 📝 Planned | Toolbar buttons + keyboard shortcuts for reverting canvas edits |
+| **Canvas Undo/Redo** | ✅ Implemented | Toolbar buttons + keyboard shortcuts for reverting canvas edits |
 | **Strategy Building Wizard** | ✅ Complete | Guided Q&A that generates editable strategy JSON |
 | **Backtesting** | ✅ Complete | Full engine with TP ladder, SL, max drawdown, equity curves, trade detail |
 | **Data Export (CSV/JSON)** | ✅ Complete | Download trade list, equity curve, and metrics as CSV or JSON |
@@ -1995,9 +1995,9 @@ pytest --cov            # Coverage report
 - `docs/prd-position-analysis.md` - Position analysis PRD
 - `docs/prd-performance-alerts-simple.md` - Performance alerts (simple) PRD
 - `docs/prd-price-alerts.md` - Price alerts PRD
-- `docs/prd-copy-paste-blocks-subgraphs.md` - Copy/paste blocks & subgraphs PRD
-- `docs/prd-canvas-undo-redo.md` - Canvas undo/redo PRD
-- `docs/prd-mobile-optimized-canvas.md` - Mobile-optimized canvas PRD
+- `docs/prd-copy-paste-blocks-subgraphs.md` - Copy/paste blocks & subgraphs PRD (IMPLEMENTED)
+- `docs/prd-canvas-undo-redo.md` - Canvas undo/redo PRD (IMPLEMENTED)
+- `docs/prd-mobile-optimized-canvas.md` - Mobile-optimized canvas PRD (IMPLEMENTED)
 - `docs/prd-real-time-price-tickers.md` - Real-time price tickers PRD
 - `docs/prd-volatility-metrics-market-overview.md` - Volatility metrics (market overview) PRD
 - `docs/prd-market-sentiment-indicators.md` - Market sentiment indicators PRD

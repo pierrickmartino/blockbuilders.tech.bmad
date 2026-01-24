@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, use, useCallback, useMemo } from "react";
+import { useEffect, useState, use, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Node, Edge } from "@xyflow/react";
@@ -25,6 +25,15 @@ import {
   generateBlockId,
 } from "@/lib/canvas-utils";
 import { copyToClipboard, pasteFromClipboard } from "@/lib/clipboard-utils";
+import {
+  resetHistory,
+  pushSnapshot,
+  undo,
+  redo,
+  canUndo,
+  canRedo,
+  type HistoryState,
+} from "@/lib/history-manager";
 import { trackStrategyView } from "@/lib/recent-views";
 import { generateExplanation } from "@/lib/explanation-generator";
 import StrategyCanvas from "@/components/canvas/StrategyCanvas";
@@ -78,6 +87,11 @@ export default function StrategyEditorPage({ params }: Props) {
   const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(new Set());
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
+
+  // History state
+  const [history, setHistory] = useState<HistoryState>(() => resetHistory([], []));
+  const snapshotTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isApplyingHistoryRef = useRef(false);
 
   // Mobile drawer state
   const [showPalette, setShowPalette] = useState(false);
@@ -137,6 +151,7 @@ export default function StrategyEditorPage({ params }: Props) {
           const { nodes: newNodes, edges: newEdges } = definitionToReactFlow(definition);
           setNodes(newNodes);
           setEdges(newEdges);
+          setHistory(resetHistory(newNodes, newEdges));
 
           // Generate explanation
           const result = generateExplanation(definition);
@@ -147,6 +162,7 @@ export default function StrategyEditorPage({ params }: Props) {
           const { nodes: newNodes, edges: newEdges } = definitionToReactFlow(defaultDef);
           setNodes(newNodes);
           setEdges(newEdges);
+          setHistory(resetHistory(newNodes, newEdges));
 
           // Generate explanation for default definition
           const result = generateExplanation(defaultDef);
@@ -189,6 +205,7 @@ export default function StrategyEditorPage({ params }: Props) {
         const { nodes: newNodes, edges: newEdges } = definitionToReactFlow(defaultDef);
         setNodes(newNodes);
         setEdges(newEdges);
+        setHistory(resetHistory(newNodes, newEdges));
       }
     } catch {
       // Versions are optional, create default canvas
@@ -196,6 +213,7 @@ export default function StrategyEditorPage({ params }: Props) {
       const { nodes: newNodes, edges: newEdges } = definitionToReactFlow(defaultDef);
       setNodes(newNodes);
       setEdges(newEdges);
+      setHistory(resetHistory(newNodes, newEdges));
     }
   }, [id, loadVersionDetail]);
 
@@ -277,44 +295,6 @@ export default function StrategyEditorPage({ params }: Props) {
     const result = generateExplanation(definition);
     setExplanation(result);
   }, [nodes, edges]);
-
-  // Handle copy/paste keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Ignore if user is typing in an input field
-      const target = e.target as HTMLElement;
-      if (
-        target.tagName === "INPUT" ||
-        target.tagName === "TEXTAREA" ||
-        target.isContentEditable
-      ) {
-        return;
-      }
-
-      const isMod = e.metaKey || e.ctrlKey;
-
-      // Copy: Cmd/Ctrl+C
-      if (isMod && e.key === "c") {
-        e.preventDefault();
-        copyToClipboard(selectedNodeIds, nodes, edges);
-      }
-
-      // Paste: Cmd/Ctrl+V
-      if (isMod && e.key === "v") {
-        e.preventDefault();
-        const result = pasteFromClipboard(nodes, edges);
-        if (result) {
-          setNodes(result.nodes);
-          setEdges(result.edges);
-          setValidationErrors([]);
-          setError(null);
-        }
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [selectedNodeIds, nodes, edges]);
 
   // Map validation errors to node data
   useEffect(() => {
@@ -523,10 +503,26 @@ export default function StrategyEditorPage({ params }: Props) {
     event.dataTransfer.effectAllowed = "move";
   };
 
+  // Debounced snapshot for history
+  const scheduleSnapshot = useCallback((newNodes: Node[], newEdges: Edge[]) => {
+    if (isApplyingHistoryRef.current) return;
+
+    if (snapshotTimerRef.current) {
+      clearTimeout(snapshotTimerRef.current);
+      snapshotTimerRef.current = null;
+    }
+
+    snapshotTimerRef.current = setTimeout(() => {
+      snapshotTimerRef.current = null;
+      if (isApplyingHistoryRef.current) return;
+      setHistory((h) => pushSnapshot(h, newNodes, newEdges));
+    }, 500);
+  }, []);
+
   // Handle parameter changes from properties panel
   const handleParamsChange = (nodeId: string, params: Record<string, unknown>) => {
-    setNodes((currentNodes) =>
-      currentNodes.map((node) => {
+    setNodes((currentNodes) => {
+      const updatedNodes = currentNodes.map((node) => {
         if (node.id === nodeId) {
           const blockMeta = getBlockMeta(node.type as BlockType);
           return {
@@ -539,8 +535,10 @@ export default function StrategyEditorPage({ params }: Props) {
           };
         }
         return node;
-      })
-    );
+      });
+      scheduleSnapshot(updatedNodes, edges);
+      return updatedNodes;
+    });
     // Clear validation errors when user makes changes
     setValidationErrors([]);
     setError(null);
@@ -548,10 +546,21 @@ export default function StrategyEditorPage({ params }: Props) {
 
   // Handle node deletion from properties panel
   const handleDeleteNode = (nodeId: string) => {
-    setNodes((currentNodes) => currentNodes.filter((node) => node.id !== nodeId));
-    setEdges((currentEdges) =>
-      currentEdges.filter((edge) => edge.source !== nodeId && edge.target !== nodeId)
-    );
+    let updatedNodes: Node[] = [];
+    let updatedEdges: Edge[] = [];
+
+    setNodes((currentNodes) => {
+      updatedNodes = currentNodes.filter((node) => node.id !== nodeId);
+      return updatedNodes;
+    });
+    setEdges((currentEdges) => {
+      updatedEdges = currentEdges.filter(
+        (edge) => edge.source !== nodeId && edge.target !== nodeId
+      );
+      return updatedEdges;
+    });
+
+    scheduleSnapshot(updatedNodes, updatedEdges);
     setSelectedNodeId(null);
     setValidationErrors([]);
     setError(null);
@@ -580,14 +589,121 @@ export default function StrategyEditorPage({ params }: Props) {
         text: "",
       },
     };
-    setNodes((currentNodes) => [...currentNodes, newNote]);
+    setNodes((currentNodes) => {
+      const updatedNodes = [...currentNodes, newNote];
+      scheduleSnapshot(updatedNodes, edges);
+      return updatedNodes;
+    });
     setSelectedNodeId(noteId);
   };
 
   // Handle nodes change
   const handleNodesChange = (newNodes: Node[]) => {
     setNodes(newNodes);
+    scheduleSnapshot(newNodes, edges);
   };
+
+  // Handle edges change
+  const handleEdgesChange = (newEdges: Edge[]) => {
+    setEdges(newEdges);
+    scheduleSnapshot(nodes, newEdges);
+  };
+
+  // Handle undo
+  const handleUndo = useCallback(() => {
+    if (!canUndo(history)) return;
+
+    if (snapshotTimerRef.current) {
+      clearTimeout(snapshotTimerRef.current);
+      snapshotTimerRef.current = null;
+    }
+
+    const { history: newHistory, snapshot } = undo(history);
+    if (snapshot) {
+      isApplyingHistoryRef.current = true;
+      setNodes(snapshot.nodes);
+      setEdges(snapshot.edges);
+      setHistory(newHistory);
+      setTimeout(() => {
+        isApplyingHistoryRef.current = false;
+      }, 0);
+    }
+  }, [history]);
+
+  // Handle redo
+  const handleRedo = useCallback(() => {
+    if (!canRedo(history)) return;
+
+    if (snapshotTimerRef.current) {
+      clearTimeout(snapshotTimerRef.current);
+      snapshotTimerRef.current = null;
+    }
+
+    const { history: newHistory, snapshot } = redo(history);
+    if (snapshot) {
+      isApplyingHistoryRef.current = true;
+      setNodes(snapshot.nodes);
+      setEdges(snapshot.edges);
+      setHistory(newHistory);
+      setTimeout(() => {
+        isApplyingHistoryRef.current = false;
+      }, 0);
+    }
+  }, [history]);
+
+  // Handle copy/paste and undo/redo keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if user is typing in an input field
+      const target = e.target as HTMLElement;
+      if (
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.isContentEditable
+      ) {
+        return;
+      }
+
+      const isMod = e.metaKey || e.ctrlKey;
+      const key = e.key.toLowerCase();
+
+      // Undo: Cmd/Ctrl+Z
+      if (isMod && key === "z" && !e.shiftKey) {
+        e.preventDefault();
+        handleUndo();
+        return;
+      }
+
+      // Redo: Cmd/Ctrl+Shift+Z or Cmd/Ctrl+Y
+      if ((isMod && e.shiftKey && key === "z") || (isMod && key === "y")) {
+        e.preventDefault();
+        handleRedo();
+        return;
+      }
+
+      // Copy: Cmd/Ctrl+C
+      if (isMod && key === "c") {
+        e.preventDefault();
+        copyToClipboard(selectedNodeIds, nodes, edges);
+      }
+
+      // Paste: Cmd/Ctrl+V
+      if (isMod && key === "v") {
+        e.preventDefault();
+        const result = pasteFromClipboard(nodes, edges);
+        if (result) {
+          setNodes(result.nodes);
+          setEdges(result.edges);
+          scheduleSnapshot(result.nodes, result.edges);
+          setValidationErrors([]);
+          setError(null);
+        }
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [selectedNodeIds, nodes, edges, handleUndo, handleRedo, scheduleSnapshot]);
 
   const handleAutoUpdateToggle = async (enabled: boolean) => {
     if (!strategy) return;
@@ -1190,9 +1306,13 @@ export default function StrategyEditorPage({ params }: Props) {
             nodes={nodesWithMobileMode}
             edges={edges}
             onNodesChange={handleNodesChange}
-            onEdgesChange={setEdges}
+            onEdgesChange={handleEdgesChange}
             onSelectionChange={handleSelectionChange}
             onAddNote={handleAddNote}
+            onUndo={handleUndo}
+            onRedo={handleRedo}
+            canUndo={canUndo(history)}
+            canRedo={canRedo(history)}
             globalValidationErrors={globalValidationErrors}
             isMobileMode={isMobileCanvasMode}
           />
