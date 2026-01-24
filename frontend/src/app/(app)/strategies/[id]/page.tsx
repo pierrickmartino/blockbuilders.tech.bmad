@@ -65,6 +65,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { KeyboardShortcutsModal } from "@/components/KeyboardShortcutsModal";
+import { isInputElement } from "@/lib/keyboard-shortcuts";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -128,6 +130,9 @@ export default function StrategyEditorPage({ params }: Props) {
   const [isSavingAlert, setIsSavingAlert] = useState(false);
   const [isEditingAlert, setIsEditingAlert] = useState(false);
   const [alertError, setAlertError] = useState<string | null>(null);
+
+  // Keyboard shortcuts modal state
+  const [showShortcutsModal, setShowShortcutsModal] = useState(false);
 
   const resetAlertForm = useCallback((rule: AlertRule | null) => {
     setAlertEnabled(rule?.is_active ?? false);
@@ -352,7 +357,7 @@ export default function StrategyEditorPage({ params }: Props) {
     }
   };
 
-  const handleSaveVersion = async () => {
+  const handleSaveVersion = useCallback(async () => {
     setIsSavingVersion(true);
     setSaveMessage(null);
     setValidationErrors([]);
@@ -391,7 +396,7 @@ export default function StrategyEditorPage({ params }: Props) {
     } finally {
       setIsSavingVersion(false);
     }
-  };
+  }, [nodes, edges, id, loadVersions, loadStrategy]);
 
   const handleAlertSave = async () => {
     // Client-side validation
@@ -651,21 +656,31 @@ export default function StrategyEditorPage({ params }: Props) {
     }
   }, [history]);
 
-  // Handle copy/paste and undo/redo keyboard shortcuts
+  // Handle keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Ignore if user is typing in an input field
       const target = e.target as HTMLElement;
-      if (
-        target.tagName === "INPUT" ||
-        target.tagName === "TEXTAREA" ||
-        target.isContentEditable
-      ) {
+      if (isInputElement(target)) {
         return;
       }
 
       const isMod = e.metaKey || e.ctrlKey;
       const key = e.key.toLowerCase();
+
+      // Save: Cmd/Ctrl+S
+      if (isMod && key === "s" && !e.shiftKey) {
+        e.preventDefault();
+        handleSaveVersion();
+        return;
+      }
+
+      // Run backtest: Cmd/Ctrl+R (navigate to backtest tab)
+      if (isMod && key === "r" && !e.shiftKey) {
+        e.preventDefault();
+        router.push(`/strategies/${id}/backtest`);
+        return;
+      }
 
       // Undo: Cmd/Ctrl+Z
       if (isMod && key === "z" && !e.shiftKey) {
@@ -685,6 +700,7 @@ export default function StrategyEditorPage({ params }: Props) {
       if (isMod && key === "c") {
         e.preventDefault();
         copyToClipboard(selectedNodeIds, nodes, edges);
+        return;
       }
 
       // Paste: Cmd/Ctrl+V
@@ -698,12 +714,20 @@ export default function StrategyEditorPage({ params }: Props) {
           setValidationErrors([]);
           setError(null);
         }
+        return;
+      }
+
+      // Show shortcuts: ?
+      if (key === "?" && !isMod) {
+        e.preventDefault();
+        setShowShortcutsModal(true);
+        return;
       }
     };
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [selectedNodeIds, nodes, edges, handleUndo, handleRedo, scheduleSnapshot]);
+  }, [selectedNodeIds, nodes, edges, handleUndo, handleRedo, scheduleSnapshot, handleSaveVersion, router, id]);
 
   const handleAutoUpdateToggle = async (enabled: boolean) => {
     if (!strategy) return;
@@ -1351,6 +1375,12 @@ export default function StrategyEditorPage({ params }: Props) {
             </div>
           </div>
         )}
+
+        {/* Keyboard Shortcuts Modal */}
+        <KeyboardShortcutsModal
+          open={showShortcutsModal}
+          onOpenChange={setShowShortcutsModal}
+        />
       </div>
     </div>
   );

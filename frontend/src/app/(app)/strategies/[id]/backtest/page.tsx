@@ -83,6 +83,8 @@ import {
   exportMetricsToCSV,
   exportMetricsToJSON,
 } from "@/lib/backtest-export";
+import { KeyboardShortcutsModal } from "@/components/KeyboardShortcutsModal";
+import { isInputElement } from "@/lib/keyboard-shortcuts";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -561,6 +563,9 @@ export default function StrategyBacktestPage({ params }: Props) {
   // Favorite metrics state
   const [savingMetrics, setSavingMetrics] = useState(false);
 
+  // Keyboard shortcuts modal state
+  const [showShortcutsModal, setShowShortcutsModal] = useState(false);
+
   // Use custom hook for backtest results (trades, equity curve, benchmark, polling)
   const handleRunDetailFetched = useCallback((detail: BacktestStatusResponse) => {
     setError(null);
@@ -819,6 +824,43 @@ export default function StrategyBacktestPage({ params }: Props) {
       setIsSubmitting(false);
     }
   };
+
+  // Handle keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if user is typing in an input field
+      const target = e.target as HTMLElement;
+      if (isInputElement(target)) {
+        return;
+      }
+
+      const isMod = e.metaKey || e.ctrlKey;
+      const key = e.key.toLowerCase();
+
+      // Run backtest: Cmd/Ctrl+R
+      if (isMod && key === "r" && !e.shiftKey) {
+        e.preventDefault();
+        // Trigger form submission programmatically
+        const form = document.querySelector("form");
+        if (form) {
+          form.dispatchEvent(
+            new Event("submit", { cancelable: true, bubbles: true })
+          );
+        }
+        return;
+      }
+
+      // Show shortcuts: ?
+      if (key === "?" && !isMod) {
+        e.preventDefault();
+        setShowShortcutsModal(true);
+        return;
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   const statusBadge = useCallback((status: BacktestStatus) => {
     const cls = statusStyles[status];
@@ -1936,6 +1978,12 @@ export default function StrategyBacktestPage({ params }: Props) {
           onClose={() => setSelectedTradeIdx(null)}
         />
       )}
+
+      {/* Keyboard Shortcuts Modal */}
+      <KeyboardShortcutsModal
+        open={showShortcutsModal}
+        onOpenChange={setShowShortcutsModal}
+      />
     </div>
   );
 }
