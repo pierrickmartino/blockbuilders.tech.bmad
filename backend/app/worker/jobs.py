@@ -118,6 +118,7 @@ def run_backtest_job(run_id: str) -> None:
                 initial_balance=run.initial_balance,
                 fee_rate=run.fee_rate,
                 slippage_rate=run.slippage_rate,
+                timeframe=run.timeframe,
             )
 
             logger.info(f"Backtest complete: {result.num_trades} trades, {result.total_return_pct}% return")
@@ -184,6 +185,10 @@ def run_backtest_job(run_id: str) -> None:
             run.benchmark_return = benchmark_return_pct
             run.alpha = alpha
             run.beta = beta
+            run.sharpe_ratio = result.sharpe_ratio
+            run.sortino_ratio = result.sortino_ratio
+            run.calmar_ratio = result.calmar_ratio
+            run.max_consecutive_losses = result.max_consecutive_losses
             run.equity_curve_key = equity_curve_key
             run.benchmark_equity_curve_key = benchmark_curve_key
             run.trades_key = trades_key

@@ -58,6 +58,10 @@ class BacktestSummary(BaseModel):
     benchmark_return_pct: float
     alpha: float
     beta: float
+    sharpe_ratio: float
+    sortino_ratio: float
+    calmar_ratio: float
+    max_consecutive_losses: int
 
 
 class DataQualityMetrics(BaseModel):

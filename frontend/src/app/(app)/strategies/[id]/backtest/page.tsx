@@ -157,6 +157,10 @@ function getOrderedMetrics(
     { key: "benchmark-return", label: "Benchmark return", getValue: s => formatPercent(s.benchmark_return_pct) },
     { key: "alpha", label: "Alpha", getValue: s => formatPercent(s.alpha) },
     { key: "beta", label: "Beta", getValue: s => s.beta.toFixed(2) },
+    { key: "sharpe-ratio", label: "Sharpe ratio", getValue: s => s.sharpe_ratio.toFixed(2) },
+    { key: "sortino-ratio", label: "Sortino ratio", getValue: s => s.sortino_ratio.toFixed(2) },
+    { key: "calmar-ratio", label: "Calmar ratio", getValue: s => s.calmar_ratio.toFixed(2) },
+    { key: "max-consec-losses", label: "Max consec. losses", getValue: s => s.max_consecutive_losses },
   ];
 
   if (!favoriteKeys || favoriteKeys.length === 0) {

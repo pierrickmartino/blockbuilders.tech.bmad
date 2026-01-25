@@ -32,6 +32,11 @@ class BacktestRun(SQLModel, table=True):
     benchmark_return: Optional[float] = None
     alpha: Optional[float] = None
     beta: Optional[float] = None
+    # Risk metrics
+    sharpe_ratio: Optional[float] = None
+    sortino_ratio: Optional[float] = None
+    calmar_ratio: Optional[float] = None
+    max_consecutive_losses: Optional[int] = None
     # Storage keys for detailed results
     equity_curve_key: Optional[str] = None
     benchmark_equity_curve_key: Optional[str] = None

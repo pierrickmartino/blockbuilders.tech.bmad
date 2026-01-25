@@ -57,6 +57,10 @@ class BacktestResult:
     max_drawdown_pct: float
     num_trades: int
     win_rate_pct: float
+    sharpe_ratio: float
+    sortino_ratio: float
+    calmar_ratio: float
+    max_consecutive_losses: int
     equity_curve: list[dict]  # [{timestamp, equity}, ...]
     trades: list[Trade]
 
@@ -140,6 +144,7 @@ def run_backtest(
     initial_balance: float,
     fee_rate: float,
     slippage_rate: float,
+    timeframe: str = "1d",
 ) -> BacktestResult:
     """
     Simulate trading over candles using signals.
@@ -154,6 +159,10 @@ def run_backtest(
             max_drawdown_pct=0.0,
             num_trades=0,
             win_rate_pct=0.0,
+            sharpe_ratio=0.0,
+            sortino_ratio=0.0,
+            calmar_ratio=0.0,
+            max_consecutive_losses=0,
             equity_curve=[],
             trades=[],
         )
@@ -451,6 +460,15 @@ def run_backtest(
     winning_trades = sum(1 for t in trades if t.pnl > 0)
     win_rate_pct = (winning_trades / num_trades * 100) if num_trades > 0 else 0.0
 
+    # Compute risk metrics
+    sharpe_ratio, sortino_ratio, calmar_ratio, max_consecutive_losses = compute_risk_metrics(
+        equity_curve=equity_curve,
+        trades=trades,
+        timeframe=timeframe,
+        cagr_pct=cagr_pct,
+        max_drawdown_pct=max_drawdown,
+    )
+
     return BacktestResult(
         initial_balance=initial_balance,
         final_balance=round(final_balance, 2),
@@ -459,6 +477,10 @@ def run_backtest(
         max_drawdown_pct=round(max_drawdown, 2),
         num_trades=num_trades,
         win_rate_pct=round(win_rate_pct, 2),
+        sharpe_ratio=sharpe_ratio,
+        sortino_ratio=sortino_ratio,
+        calmar_ratio=calmar_ratio,
+        max_consecutive_losses=max_consecutive_losses,
         equity_curve=equity_curve,
         trades=trades,
     )
@@ -540,3 +562,97 @@ def compute_benchmark_metrics(
             beta = 0.0
 
     return round(benchmark_return_pct, 2), round(alpha, 2), round(beta, 2)
+
+
+def compute_risk_metrics(
+    equity_curve: list[dict],
+    trades: list[Trade],
+    timeframe: str,
+    cagr_pct: float,
+    max_drawdown_pct: float,
+) -> tuple[float, float, float, int]:
+    """
+    Calculate risk-adjusted metrics.
+
+    Returns: (sharpe_ratio, sortino_ratio, calmar_ratio, max_consecutive_losses)
+    """
+    # Timeframe to periods per year mapping
+    periods_per_year = {
+        "1h": 365.25 * 24,      # 8766 hours/year
+        "4h": 365.25 * 6,       # 2191.5 periods/year
+        "1d": 365.25,           # 365.25 days/year
+    }
+
+    annualization_factor = periods_per_year.get(timeframe, 365.25)
+
+    # 1. Sharpe Ratio
+    sharpe_ratio = 0.0
+    if len(equity_curve) >= 2:
+        returns = []
+        for i in range(1, len(equity_curve)):
+            prev_equity = equity_curve[i-1]["equity"]
+            curr_equity = equity_curve[i]["equity"]
+            if prev_equity > 0:
+                ret = (curr_equity - prev_equity) / prev_equity
+                returns.append(ret)
+
+        if len(returns) > 0:
+            mean_return = sum(returns) / len(returns)
+            variance = sum((r - mean_return) ** 2 for r in returns) / len(returns)
+            std_dev = variance ** 0.5
+
+            if std_dev > 0:
+                # Annualize: mean * periods, std * sqrt(periods)
+                annualized_return = mean_return * annualization_factor
+                annualized_std = std_dev * (annualization_factor ** 0.5)
+                sharpe_ratio = annualized_return / annualized_std
+
+    # 2. Sortino Ratio
+    sortino_ratio = 0.0
+    if len(equity_curve) >= 2:
+        returns = []
+        for i in range(1, len(equity_curve)):
+            prev_equity = equity_curve[i-1]["equity"]
+            curr_equity = equity_curve[i]["equity"]
+            if prev_equity > 0:
+                ret = (curr_equity - prev_equity) / prev_equity
+                returns.append(ret)
+
+        if len(returns) > 0:
+            mean_return = sum(returns) / len(returns)
+            # Downside deviation: only negative returns
+            negative_returns = [r for r in returns if r < 0]
+
+            if len(negative_returns) > 0:
+                downside_variance = sum(r ** 2 for r in negative_returns) / len(returns)
+                downside_dev = downside_variance ** 0.5
+
+                if downside_dev > 0:
+                    # Annualize
+                    annualized_return = mean_return * annualization_factor
+                    annualized_downside_dev = downside_dev * (annualization_factor ** 0.5)
+                    sortino_ratio = annualized_return / annualized_downside_dev
+
+    # 3. Calmar Ratio
+    calmar_ratio = 0.0
+    if max_drawdown_pct > 0:
+        calmar_ratio = cagr_pct / max_drawdown_pct
+
+    # 4. Max Consecutive Losses
+    max_consecutive_losses = 0
+    if len(trades) > 0:
+        current_streak = 0
+        for trade in trades:
+            if trade.pnl < 0:
+                current_streak += 1
+                if current_streak > max_consecutive_losses:
+                    max_consecutive_losses = current_streak
+            else:
+                current_streak = 0
+
+    return (
+        round(sharpe_ratio, 2),
+        round(sortino_ratio, 2),
+        round(calmar_ratio, 2),
+        max_consecutive_losses,
+    )

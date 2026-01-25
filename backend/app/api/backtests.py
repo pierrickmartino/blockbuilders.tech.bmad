@@ -337,6 +337,10 @@ def get_backtest_status(
             benchmark_return_pct=run.benchmark_return or 0.0,
             alpha=run.alpha or 0.0,
             beta=run.beta or 0.0,
+            sharpe_ratio=run.sharpe_ratio or 0.0,
+            sortino_ratio=run.sortino_ratio or 0.0,
+            calmar_ratio=run.calmar_ratio or 0.0,
+            max_consecutive_losses=run.max_consecutive_losses or 0,
         )
 
     # Query data quality metrics for the run's period
