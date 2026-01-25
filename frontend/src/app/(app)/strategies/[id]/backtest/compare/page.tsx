@@ -335,7 +335,7 @@ export default function CompareBacktestsPage({ params }: Props) {
                               return (
                                 <TableCell key={run.run_id} className="text-center">
                                   {value !== null && value !== undefined
-                                    ? metric.format(value)
+                                    ? metric.format(value as number)
                                     : "—"}
                                 </TableCell>
                               );
