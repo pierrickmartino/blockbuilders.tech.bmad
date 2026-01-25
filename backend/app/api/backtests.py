@@ -1,5 +1,6 @@
 """API endpoints for backtest runs."""
 import logging
+import secrets
 from datetime import datetime, timezone, timedelta
 from uuid import UUID
 
@@ -17,6 +18,7 @@ from app.core.plans import get_plan_limits
 from app.models.backtest_run import BacktestRun
 from app.models.candle import Candle
 from app.models.notification import Notification
+from app.models.shared_backtest_link import SharedBacktestLink
 from app.models.strategy import Strategy
 from app.models.strategy_version import StrategyVersion
 from app.models.user import User
@@ -32,6 +34,9 @@ from app.schemas.backtest import (
     DataCompletenessResponse,
     DataQualityMetrics,
     EquityCurvePoint,
+    PublicBacktestView,
+    ShareLinkCreateRequest,
+    ShareLinkCreateResponse,
     Trade,
     TradeDetail,
     TradeDetailResponse,
@@ -719,4 +724,139 @@ def get_trade_detail(
         candles=candles_response,
         asset=run.asset,
         timeframe=run.timeframe,
+    )
+
+
+@router.post("/{run_id}/share-links", response_model=ShareLinkCreateResponse)
+def create_share_link(
+    run_id: UUID,
+    data: ShareLinkCreateRequest,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> ShareLinkCreateResponse:
+    """Create a shareable link for a backtest run."""
+    # Verify run exists and belongs to user
+    run = session.exec(
+        select(BacktestRun).where(
+            BacktestRun.id == run_id,
+            BacktestRun.user_id == user.id,
+        )
+    ).first()
+    if not run:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Backtest run not found",
+        )
+
+    if run.status != "completed":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Can only share completed backtest runs",
+        )
+
+    # Validate expiration is in the future
+    if data.expires_at:
+        expires_at = data.expires_at
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
+        if expires_at <= datetime.now(timezone.utc):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Expiration date must be in the future",
+            )
+
+    # Generate unique token
+    token = secrets.token_urlsafe(32)
+
+    # Create link record
+    link = SharedBacktestLink(
+        backtest_run_id=run.id,
+        token=token,
+        expires_at=data.expires_at,
+    )
+    session.add(link)
+    session.commit()
+    session.refresh(link)
+
+    # Build URL
+    frontend_url = settings.frontend_url or "http://localhost:3000"
+    url = f"{frontend_url}/share/backtests/{token}"
+
+    return ShareLinkCreateResponse(
+        url=url,
+        token=token,
+        expires_at=link.expires_at,
+    )
+
+
+@router.get("/share/{token}", response_model=PublicBacktestView)
+def get_shared_backtest(
+    token: str,
+    session: Session = Depends(get_session),
+) -> PublicBacktestView:
+    """Public, read-only view of shared backtest results."""
+    # Find link by token
+    link = session.exec(
+        select(SharedBacktestLink).where(SharedBacktestLink.token == token)
+    ).first()
+
+    if not link:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Share link not found or has expired",
+        )
+
+    # Check expiration
+    if link.expires_at:
+        expires_at = link.expires_at
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
+        if datetime.now(timezone.utc) > expires_at:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="This share link has expired",
+            )
+
+    # Load backtest run
+    run = session.exec(
+        select(BacktestRun).where(BacktestRun.id == link.backtest_run_id)
+    ).first()
+
+    if not run or run.status != "completed":
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Backtest results not available",
+        )
+
+    # Build summary
+    summary = BacktestSummary(
+        initial_balance=run.initial_balance,
+        final_balance=run.initial_balance * (1 + run.total_return / 100),
+        total_return_pct=run.total_return,
+        cagr_pct=run.cagr or 0.0,
+        max_drawdown_pct=run.max_drawdown or 0.0,
+        num_trades=run.num_trades or 0,
+        win_rate_pct=run.win_rate or 0.0,
+        benchmark_return_pct=run.benchmark_return or 0.0,
+        alpha=run.alpha or 0.0,
+        beta=run.beta or 0.0,
+    )
+
+    # Load equity curve from S3
+    equity_curve = []
+    if run.equity_curve_key:
+        try:
+            data_raw = download_json(run.equity_curve_key)
+            equity_curve = [EquityCurvePoint(**point) for point in data_raw]
+        except Exception as e:
+            logger.warning(f"Failed to load equity curve for shared link: {e}")
+            # Continue without equity curve
+
+    return PublicBacktestView(
+        asset=run.asset,
+        timeframe=run.timeframe,
+        date_from=run.date_from,
+        date_to=run.date_to,
+        summary=summary,
+        equity_curve=equity_curve,
     )

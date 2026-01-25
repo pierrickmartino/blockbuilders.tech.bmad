@@ -188,3 +188,28 @@ class DataCompletenessResponse(BaseModel):
     gap_count: int
     gap_total_hours: float
     gap_ranges: list[GapRange]
+
+
+class ShareLinkCreateRequest(BaseModel):
+    """Request to create a shareable backtest link."""
+
+    expires_at: Optional[datetime] = None
+
+
+class ShareLinkCreateResponse(BaseModel):
+    """Response after creating a shareable backtest link."""
+
+    url: str
+    token: str
+    expires_at: Optional[datetime] = None
+
+
+class PublicBacktestView(BaseModel):
+    """Public view of backtest results (no strategy logic)."""
+
+    asset: str
+    timeframe: str
+    date_from: datetime
+    date_to: datetime
+    summary: BacktestSummary
+    equity_curve: list[EquityCurvePoint]
