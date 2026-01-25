@@ -16,6 +16,10 @@ export interface BacktestSummary {
   benchmark_return_pct: number;
   alpha: number;
   beta: number;
+  sharpe_ratio: number;
+  sortino_ratio: number;
+  calmar_ratio: number;
+  max_consecutive_losses: number;
 }
 
 export interface DataQualityMetrics {
