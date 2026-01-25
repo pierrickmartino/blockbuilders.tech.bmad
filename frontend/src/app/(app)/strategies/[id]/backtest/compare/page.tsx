@@ -331,7 +331,7 @@ export default function CompareBacktestsPage({ params }: Props) {
                           <TableRow key={metric.key}>
                             <TableCell className="font-medium">{metric.label}</TableCell>
                             {compareData.runs.map((run) => {
-                              const value = run.summary ? (run.summary as Record<string, unknown>)[metric.key] : null;
+                              const value = run.summary ? (run.summary as unknown as Record<string, unknown>)[metric.key] : null;
                               return (
                                 <TableCell key={run.run_id} className="text-center">
                                   {value !== null && value !== undefined
