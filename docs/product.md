@@ -739,6 +739,8 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 
 **Stored in:** `backtest_runs` table (total_return, cagr, max_drawdown, sharpe_ratio, sortino_ratio, calmar_ratio, num_trades, win_rate, max_consecutive_losses, benchmark_return, alpha, beta)
 
+**Comparison Use:** These metrics power the backtest comparison table when multiple runs are viewed side-by-side.
+
 ### 5.5. Backtest Results
 
 **Equity Curve** (`GET /backtests/{run_id}/equity-curve`)
@@ -804,6 +806,11 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 
 **Results Summary Cards**
 - Summary panel shows return, drawdown, trade count, win rate, benchmark, alpha/beta, plus Sharpe/Sortino/Calmar ratios and max consecutive losses.
+
+**Backtest Comparison View (Planned)**
+- Compare 2–4 backtest runs side-by-side with aligned equity curves.
+- Metrics table shows key summary stats for each run in the same order.
+- Requires a multi-run query endpoint to fetch summary metrics and equity curves in a single request.
 
 **Shareable Result Links (Planned)**
 - Generate read-only links for specific backtest runs (results only, not strategy logic).
@@ -1764,6 +1771,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Keyboard Shortcuts & Reference** | 📝 Planned | Cmd/Ctrl+S save, Cmd/Ctrl+R run backtest, ? help modal, editor-only |
 | **Strategy Building Wizard** | ✅ Complete | Guided Q&A that generates editable strategy JSON |
 | **Backtesting** | ✅ Complete | Full engine with TP ladder, SL, max drawdown, equity curves, trade detail, risk-adjusted metrics |
+| **Backtest Comparison View** | 📝 Planned | Select 2–4 runs, align equity curves, compare summary metrics side-by-side |
 | **Data Export (CSV/JSON)** | ✅ Complete | Download trade list, equity curve, and metrics as CSV or JSON |
 | **Shareable Backtest Result Links** | 📝 Planned | Read-only, tokenized public results view with optional expiration |
 | **Seasonality Analysis** | ✅ Complete | Heatmap of average trade return by month, quarter, weekday |
@@ -2039,6 +2047,7 @@ pytest --cov            # Coverage report
 - `docs/prd-in-app-notifications.md` - In-app notifications PRD
 - `docs/prd-multi-strategy-dashboard.md` - Multi-strategy dashboard PRD
 - `docs/prd-drawdown-chart.md` - Drawdown chart PRD
+- `docs/prd-backtest-comparison-view.md` - Backtest comparison view PRD
 - `docs/prd-responsive-charts-mobile.md` - Responsive charts (mobile/touch) PRD
 - `docs/prd-dark-mode-theme.md` - Dark mode (theme preference) PRD
 - `docs/prd-seasonality-analysis.md` - Seasonality analysis PRD
