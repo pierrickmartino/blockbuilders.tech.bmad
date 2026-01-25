@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   LineChart,
@@ -34,11 +34,11 @@ interface PublicBacktestView {
 }
 
 interface Props {
-  params: { token: string };
+  params: Promise<{ token: string }>;
 }
 
 export default function SharedBacktestPage({ params }: Props) {
-  const { token } = params;
+  const { token } = use(params);
   const router = useRouter();
   const [data, setData] = useState<PublicBacktestView | null>(null);
   const [isLoading, setIsLoading] = useState(true);
