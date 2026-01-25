@@ -127,3 +127,22 @@ export interface DataCompletenessResponse {
   gap_total_hours: number;
   gap_ranges: GapRange[];
 }
+
+export interface ShareLinkCreateRequest {
+  expires_at: string | null;
+}
+
+export interface ShareLinkCreateResponse {
+  url: string;
+  token: string;
+  expires_at: string | null;
+}
+
+export interface PublicBacktestView {
+  asset: string;
+  timeframe: string;
+  date_from: string;
+  date_to: string;
+  summary: BacktestSummary;
+  equity_curve: EquityCurvePoint[];
+}

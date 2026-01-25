@@ -7,6 +7,7 @@ from app.models.alert_rule import AlertRule
 from app.models.strategy_tag import StrategyTag
 from app.models.strategy_tag_link import StrategyTagLink
 from app.models.stripe_webhook_event import StripeWebhookEvent
+from app.models.shared_backtest_link import SharedBacktestLink
 
 __all__ = [
     "User",
@@ -18,4 +19,5 @@ __all__ = [
     "StrategyTag",
     "StrategyTagLink",
     "StripeWebhookEvent",
+    "SharedBacktestLink",
 ]

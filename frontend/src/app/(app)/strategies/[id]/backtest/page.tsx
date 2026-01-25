@@ -47,6 +47,7 @@ import TradeDrawer from "@/components/TradeDrawer";
 import InfoIcon from "@/components/InfoIcon";
 import { BacktestSentimentStrip } from "@/components/BacktestSentimentStrip";
 import { DataAvailabilitySection } from "@/components/DataAvailabilitySection";
+import { ShareBacktestModal } from "@/components/ShareBacktestModal";
 import { metricToGlossaryId, getTooltip } from "@/lib/tooltip-content";
 import { trackBacktestView } from "@/lib/recent-views";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -556,6 +557,9 @@ export default function StrategyBacktestPage({ params }: Props) {
 
   // Trade drawer state
   const [selectedTradeIdx, setSelectedTradeIdx] = useState<number | null>(null);
+
+  // Share modal state
+  const [showShareModal, setShowShareModal] = useState(false);
 
   // Seasonality state
   const [periodType, setPeriodType] = useState<PeriodType>("month");
@@ -1197,7 +1201,15 @@ export default function StrategyBacktestPage({ params }: Props) {
                 Metrics glossary
               </Link>
               {selectedRun?.status === "completed" && selectedRun.summary && (
-                <DropdownMenu>
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowShareModal(true)}
+                  >
+                    Share Results
+                  </Button>
+                  <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" size="sm">
                       Export
@@ -1228,6 +1240,7 @@ export default function StrategyBacktestPage({ params }: Props) {
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
+                </>
               )}
               {selectedRun && statusBadge(selectedRun.status)}
             </div>
@@ -1986,6 +1999,15 @@ export default function StrategyBacktestPage({ params }: Props) {
         open={showShortcutsModal}
         onOpenChange={setShowShortcutsModal}
       />
+
+      {/* Share Backtest Modal */}
+      {selectedRunId && selectedRun?.status === "completed" && (
+        <ShareBacktestModal
+          open={showShareModal}
+          onOpenChange={setShowShareModal}
+          runId={selectedRunId}
+        />
+      )}
     </div>
   );
 }
