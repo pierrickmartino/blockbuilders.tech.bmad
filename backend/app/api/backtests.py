@@ -847,6 +847,10 @@ def get_shared_backtest(
         benchmark_return_pct=run.benchmark_return or 0.0,
         alpha=run.alpha or 0.0,
         beta=run.beta or 0.0,
+        sharpe_ratio=run.sharpe_ratio or 0.0,
+        sortino_ratio=run.sortino_ratio or 0.0,
+        calmar_ratio=run.calmar_ratio or 0.0,
+        max_consecutive_losses=run.max_consecutive_losses or 0,
     )
 
     # Load equity curve from S3
@@ -930,14 +934,14 @@ def compare_backtests(
         if run.total_return is not None:
             summary = BacktestSummary(
                 initial_balance=run.initial_balance,
-                final_balance=run.initial_balance * (1 + run.total_return),
-                total_return_pct=run.total_return * 100,
-                cagr_pct=run.cagr * 100 if run.cagr else 0,
-                max_drawdown_pct=run.max_drawdown * 100 if run.max_drawdown else 0,
+                final_balance=run.initial_balance * (1 + run.total_return / 100),
+                total_return_pct=run.total_return,
+                cagr_pct=run.cagr or 0,
+                max_drawdown_pct=run.max_drawdown or 0,
                 num_trades=run.num_trades or 0,
-                win_rate_pct=run.win_rate * 100 if run.win_rate else 0,
-                benchmark_return_pct=run.benchmark_return * 100 if run.benchmark_return else 0,
-                alpha=run.alpha * 100 if run.alpha else 0,
+                win_rate_pct=run.win_rate or 0,
+                benchmark_return_pct=run.benchmark_return or 0,
+                alpha=run.alpha or 0,
                 beta=run.beta or 0,
                 sharpe_ratio=run.sharpe_ratio or 0,
                 sortino_ratio=run.sortino_ratio or 0,
