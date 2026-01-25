@@ -150,3 +150,22 @@ export interface PublicBacktestView {
   summary: BacktestSummary;
   equity_curve: EquityCurvePoint[];
 }
+
+export interface BacktestCompareRequest {
+  run_ids: string[];
+}
+
+export interface BacktestCompareRun {
+  run_id: string;
+  asset: string;
+  timeframe: string;
+  date_from: string;
+  date_to: string;
+  created_at: string;
+  summary: BacktestSummary | null;
+  equity_curve: EquityCurvePoint[];
+}
+
+export interface BacktestCompareResponse {
+  runs: BacktestCompareRun[];
+}

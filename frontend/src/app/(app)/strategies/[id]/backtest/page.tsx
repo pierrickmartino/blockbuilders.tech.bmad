@@ -548,6 +548,7 @@ export default function StrategyBacktestPage({ params }: Props) {
   const [backtests, setBacktests] = useState<BacktestListItem[]>([]);
   const [isLoadingBacktests, setIsLoadingBacktests] = useState(false);
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
+  const [selectedRunIds, setSelectedRunIds] = useState<Set<string>>(new Set());
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -639,6 +640,21 @@ export default function StrategyBacktestPage({ params }: Props) {
       setSavingMetrics(false);
     }
   }, [user, refreshUser]);
+
+  // Comparison selection handlers
+  const handleSelectRun = useCallback((runId: string, checked: boolean) => {
+    setSelectedRunIds(prev => {
+      const next = new Set(prev);
+      if (checked) next.add(runId);
+      else next.delete(runId);
+      return next;
+    });
+  }, []);
+
+  const handleCompareClick = useCallback(() => {
+    const ids = Array.from(selectedRunIds);
+    router.push(`/strategies/${id}/backtest/compare?runs=${ids.join(',')}`);
+  }, [selectedRunIds, id, router]);
 
   const {
     selectedRun,
@@ -1152,42 +1168,74 @@ export default function StrategyBacktestPage({ params }: Props) {
           <section className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm sm:p-4">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="text-base font-semibold text-gray-900">Recent runs</h2>
-              <Button
-                variant="link"
-                size="sm"
-                onClick={loadBacktests}
-                disabled={isLoadingBacktests}
-                className="h-auto p-0"
-              >
-                {isLoadingBacktests ? "Refreshing..." : "Refresh"}
-              </Button>
+              <div className="flex items-center gap-2">
+                {selectedRunIds.size >= 2 && selectedRunIds.size <= 4 && (
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={handleCompareClick}
+                  >
+                    Compare ({selectedRunIds.size})
+                  </Button>
+                )}
+                <Button
+                  variant="link"
+                  size="sm"
+                  onClick={loadBacktests}
+                  disabled={isLoadingBacktests}
+                  className="h-auto p-0"
+                >
+                  {isLoadingBacktests ? "Refreshing..." : "Refresh"}
+                </Button>
+              </div>
             </div>
+
+            {selectedRunIds.size > 0 && selectedRunIds.size < 2 && (
+              <div className="mb-2 rounded bg-blue-50 px-3 py-2 text-sm text-blue-700">
+                Select at least 2 runs to compare (max 4)
+              </div>
+            )}
+
+            {selectedRunIds.size > 4 && (
+              <div className="mb-2 rounded bg-amber-50 px-3 py-2 text-sm text-amber-700">
+                Maximum 4 runs can be compared. Deselect some to continue.
+              </div>
+            )}
+
             {backtests.length === 0 ? (
               <p className="text-sm text-gray-500">No backtests yet. Run your first one above.</p>
             ) : (
               <div className="space-y-3">
                 {backtests.map((run) => (
-                  <button
-                    key={run.run_id}
-                    onClick={() => setSelectedRunId(run.run_id)}
-                    className={`w-full rounded border px-3 py-2 text-left transition hover:border-blue-300 ${
-                      selectedRunId === run.run_id ? "border-blue-300 bg-blue-50" : "border-gray-200 bg-white"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="text-sm font-semibold text-gray-900">{formatDateTime(run.created_at, timezone)}</div>
-                      {statusBadge(run.status)}
-                    </div>
-                    <div className="mt-1 flex items-center justify-between text-xs text-gray-600">
-                      <span>
-                        {formatDateTime(run.date_from, timezone).split(" ")[0]} →{" "}
-                        {formatDateTime(run.date_to, timezone).split(" ")[0]}
-                      </span>
-                      <span className="font-medium text-gray-900">
-                        {formatPercent(run.total_return)}
-                      </span>
-                    </div>
-                  </button>
+                  <div key={run.run_id} className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={selectedRunIds.has(run.run_id)}
+                      onChange={(e) => handleSelectRun(run.run_id, e.target.checked)}
+                      disabled={!selectedRunIds.has(run.run_id) && selectedRunIds.size >= 4}
+                      className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <button
+                      onClick={() => setSelectedRunId(run.run_id)}
+                      className={`flex-1 rounded border px-3 py-2 text-left transition hover:border-blue-300 ${
+                        selectedRunId === run.run_id ? "border-blue-300 bg-blue-50" : "border-gray-200 bg-white"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="text-sm font-semibold text-gray-900">{formatDateTime(run.created_at, timezone)}</div>
+                        {statusBadge(run.status)}
+                      </div>
+                      <div className="mt-1 flex items-center justify-between text-xs text-gray-600">
+                        <span>
+                          {formatDateTime(run.date_from, timezone).split(" ")[0]} →{" "}
+                          {formatDateTime(run.date_to, timezone).split(" ")[0]}
+                        </span>
+                        <span className="font-medium text-gray-900">
+                          {formatPercent(run.total_return)}
+                        </span>
+                      </div>
+                    </button>
+                  </div>
                 ))}
               </div>
             )}
