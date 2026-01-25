@@ -727,13 +727,17 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - **Total Return %:** (final_equity - initial_balance) / initial_balance * 100
 - **CAGR %:** Compound annual growth rate
 - **Max Drawdown %:** Peak-to-trough equity decline
+- **Sharpe Ratio:** Risk-adjusted return vs total volatility
+- **Sortino Ratio:** Risk-adjusted return vs downside volatility
+- **Calmar Ratio:** CAGR divided by max drawdown
 - **Number of Trades:** Total trades executed
 - **Win Rate %:** Profitable trades / total trades * 100
+- **Max Consecutive Losses:** Longest losing streak by trade count
 - **Benchmark Return %:** Buy-and-hold return for the same asset and period
 - **Alpha:** Strategy return minus benchmark return
 - **Beta:** Strategy return sensitivity vs benchmark returns
 
-**Stored in:** `backtest_runs` table (total_return, cagr, max_drawdown, num_trades, win_rate, benchmark_return, alpha, beta)
+**Stored in:** `backtest_runs` table (total_return, cagr, max_drawdown, sharpe_ratio, sortino_ratio, calmar_ratio, num_trades, win_rate, max_consecutive_losses, benchmark_return, alpha, beta)
 
 ### 5.5. Backtest Results
 
@@ -797,6 +801,9 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Download buttons on backtest results pages
 - Exports trade list, equity curve, and summary metrics as CSV or JSON
 - Uses existing backtest result endpoints; frontend formats files for download
+
+**Results Summary Cards**
+- Summary panel shows return, drawdown, trade count, win rate, benchmark, alpha/beta, plus Sharpe/Sortino/Calmar ratios and max consecutive losses.
 
 **Shareable Result Links (Planned)**
 - Generate read-only links for specific backtest runs (results only, not strategy logic).
@@ -1756,7 +1763,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Canvas Undo/Redo** | ✅ Implemented | Toolbar buttons + keyboard shortcuts for reverting canvas edits |
 | **Keyboard Shortcuts & Reference** | 📝 Planned | Cmd/Ctrl+S save, Cmd/Ctrl+R run backtest, ? help modal, editor-only |
 | **Strategy Building Wizard** | ✅ Complete | Guided Q&A that generates editable strategy JSON |
-| **Backtesting** | ✅ Complete | Full engine with TP ladder, SL, max drawdown, equity curves, trade detail |
+| **Backtesting** | ✅ Complete | Full engine with TP ladder, SL, max drawdown, equity curves, trade detail, risk-adjusted metrics |
 | **Data Export (CSV/JSON)** | ✅ Complete | Download trade list, equity curve, and metrics as CSV or JSON |
 | **Shareable Backtest Result Links** | 📝 Planned | Read-only, tokenized public results view with optional expiration |
 | **Seasonality Analysis** | ✅ Complete | Heatmap of average trade return by month, quarter, weekday |
@@ -2039,6 +2046,7 @@ pytest --cov            # Coverage report
 - `docs/prd-position-analysis.md` - Position analysis PRD
 - `docs/prd-performance-alerts-simple.md` - Performance alerts (simple) PRD
 - `docs/prd-price-alerts.md` - Price alerts PRD
+- `docs/prd-risk-metrics-expansion.md` - Risk metrics expansion PRD
 - `docs/prd-copy-paste-blocks-subgraphs.md` - Copy/paste blocks & subgraphs PRD (IMPLEMENTED)
 - `docs/prd-canvas-undo-redo.md` - Canvas undo/redo PRD (IMPLEMENTED)
 - `docs/prd-keyboard-shortcuts.md` - Keyboard shortcuts & reference PRD
