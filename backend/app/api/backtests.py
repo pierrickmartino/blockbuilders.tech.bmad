@@ -25,6 +25,9 @@ from app.models.user import User
 from app.backtest.data_quality import query_metrics_for_range, compute_completeness_metrics
 from app.backtest.storage import download_json
 from app.schemas.backtest import (
+    BacktestCompareRequest,
+    BacktestCompareResponse,
+    BacktestCompareRun,
     BacktestCreateRequest,
     BacktestCreateResponse,
     BacktestListItem,
@@ -864,3 +867,95 @@ def get_shared_backtest(
         summary=summary,
         equity_curve=equity_curve,
     )
+
+
+@router.post("/compare", response_model=BacktestCompareResponse)
+def compare_backtests(
+    data: BacktestCompareRequest,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> BacktestCompareResponse:
+    """Compare 2-4 backtest runs with aligned equity curves and metrics."""
+
+    # Validation
+    if len(data.run_ids) < 2:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Please select at least 2 backtest runs to compare.",
+        )
+    if len(data.run_ids) > 4:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Maximum 4 backtest runs can be compared at once.",
+        )
+
+    # Fetch all runs and verify ownership
+    runs = []
+    for run_id in data.run_ids:
+        run = session.exec(
+            select(BacktestRun).where(
+                BacktestRun.id == run_id,
+                BacktestRun.user_id == user.id,
+            )
+        ).first()
+        if not run:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Backtest run {run_id} not found or not owned by you.",
+            )
+        if run.status != "completed":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Backtest run {run_id} is not completed. Only completed runs can be compared.",
+            )
+        runs.append(run)
+
+    # Build comparison response
+    comparison_runs = []
+    for run in runs:
+        # Fetch equity curve from S3
+        equity_curve = []
+        if run.equity_curve_key:
+            try:
+                equity_data = download_json(run.equity_curve_key)
+                equity_curve = [
+                    EquityCurvePoint(timestamp=point["timestamp"], equity=point["equity"])
+                    for point in equity_data
+                ]
+            except Exception as e:
+                logger.warning(f"Failed to load equity curve for run {run.id}: {e}")
+
+        # Build summary
+        summary = None
+        if run.total_return is not None:
+            summary = BacktestSummary(
+                initial_balance=run.initial_balance,
+                final_balance=run.initial_balance * (1 + run.total_return),
+                total_return_pct=run.total_return * 100,
+                cagr_pct=run.cagr * 100 if run.cagr else 0,
+                max_drawdown_pct=run.max_drawdown * 100 if run.max_drawdown else 0,
+                num_trades=run.num_trades or 0,
+                win_rate_pct=run.win_rate * 100 if run.win_rate else 0,
+                benchmark_return_pct=run.benchmark_return * 100 if run.benchmark_return else 0,
+                alpha=run.alpha * 100 if run.alpha else 0,
+                beta=run.beta or 0,
+                sharpe_ratio=run.sharpe_ratio or 0,
+                sortino_ratio=run.sortino_ratio or 0,
+                calmar_ratio=run.calmar_ratio or 0,
+                max_consecutive_losses=run.max_consecutive_losses or 0,
+            )
+
+        comparison_runs.append(
+            BacktestCompareRun(
+                run_id=run.id,
+                asset=run.asset,
+                timeframe=run.timeframe,
+                date_from=run.date_from,
+                date_to=run.date_to,
+                created_at=run.created_at,
+                summary=summary,
+                equity_curve=equity_curve,
+            )
+        )
+
+    return BacktestCompareResponse(runs=comparison_runs)

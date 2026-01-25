@@ -217,3 +217,28 @@ class PublicBacktestView(BaseModel):
     date_to: datetime
     summary: BacktestSummary
     equity_curve: list[EquityCurvePoint]
+
+
+class BacktestCompareRequest(BaseModel):
+    """Request to compare multiple backtest runs."""
+
+    run_ids: list[UUID]
+
+
+class BacktestCompareRun(BaseModel):
+    """Single run data in comparison response."""
+
+    run_id: UUID
+    asset: str
+    timeframe: str
+    date_from: datetime
+    date_to: datetime
+    created_at: datetime
+    summary: Optional[BacktestSummary] = None
+    equity_curve: list[EquityCurvePoint]
+
+
+class BacktestCompareResponse(BaseModel):
+    """Response for comparison endpoint."""
+
+    runs: list[BacktestCompareRun]
