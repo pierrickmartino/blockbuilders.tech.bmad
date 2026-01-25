@@ -203,7 +203,7 @@ export default function CompareBacktestsPage({ params }: Props) {
       </div>
 
       <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6">
-        <StrategyTabs strategyId={id} active="backtest" />
+        <StrategyTabs strategyId={id} activeTab="backtest" />
 
         <div className="mt-6 space-y-6">
           <div className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm sm:p-4">
