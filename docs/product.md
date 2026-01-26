@@ -94,6 +94,32 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 
 **Implementation:** `backend/app/models/user.py`, `backend/app/api/auth.py`
 
+#### Public Profiles & Reputation (Planned)
+
+**Purpose:** Allow users to opt into a simple public profile that builds creator identity and community trust.
+
+**Public Profile (opt-in, user-controlled):**
+- Public page shows **published strategies**, **follower count**, and **community contributions**.
+- Users choose what to display (toggle visibility for strategies, contributions, and badges).
+- Profiles are private by default; only users who opt in appear publicly.
+
+**Badges (optional, auto-awarded):**
+- **First Public Strategy**
+- **10 Followers**
+- **100 Backtests Run**
+
+**Data Model (minimal):**
+- Extend the user profile record with:
+  - `is_public` (boolean)
+  - `display_name` (string, optional)
+  - `bio` (string, optional, short)
+  - `show_strategies`, `show_contributions`, `show_badges` (booleans)
+- Store badges as a simple list (array of badge keys) on the profile.
+
+**Privacy & Safety:**
+- Only the selected fields render on the public profile.
+- No email, billing, or private strategy data is ever exposed.
+
 ### 2.4. Subscription Plans & Billing
 
 **Plans (flat-rate, no usage-based billing):**
@@ -1791,6 +1817,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 |---|---|---|
 | **Authentication** | ✅ Complete | Email/password, OAuth (Google, GitHub), password reset |
 | **Account Management** | ✅ Complete | Profile, settings (fees, slippage, timezone), usage tracking |
+| **User Profiles & Reputation** | 📝 Planned | Opt-in public profiles, follower counts, contributions, simple badges |
 | **Strategy Management** | ✅ Complete | CRUD, versioning, validation, duplication (one-click list clone), archiving |
 | **Bulk Strategy Actions** | 📝 Planned | Multi-select strategies with checkbox selection + action dropdown for archive, tag, delete |
 | **Strategy Groups/Tags** | ✅ Complete | Custom tags, tag filtering, many-to-many strategy organization |
@@ -2102,6 +2129,7 @@ pytest --cov            # Coverage report
 - `docs/prd-grandfathered-beta-user-benefits.md` - Grandfathered beta user benefits PRD
 - `docs/prd-quick-strategy-clone.md` - Quick strategy clone (list action) PRD
 - `docs/prd-progress-dashboard.md` - Progress dashboard PRD
+- `docs/prd-user-profiles-reputation.md` - User profiles & reputation PRD
 - `docs/prd-bulk-strategy-actions.md` - Bulk strategy actions PRD
 - `docs/prd-recently-viewed-dashboard-shortcuts.md` - Recently viewed dashboard shortcuts PRD
 - `docs/prd-share-backtest-results-links.md` - Shareable backtest result links PRD
