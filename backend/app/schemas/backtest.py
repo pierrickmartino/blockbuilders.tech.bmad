@@ -14,6 +14,7 @@ class BacktestCreateRequest(BaseModel):
     date_to: datetime
     fee_rate: Optional[float] = None
     slippage_rate: Optional[float] = None
+    spread_rate: Optional[float] = None
 
     @field_validator("date_to")
     @classmethod
@@ -35,6 +36,13 @@ class BacktestCreateRequest(BaseModel):
     def validate_slippage_rate(cls, v: Optional[float]) -> Optional[float]:
         if v is not None and (v < 0 or v > 0.1):
             raise ValueError("slippage_rate must be between 0 and 0.1 (10%)")
+        return v
+
+    @field_validator("spread_rate")
+    @classmethod
+    def validate_spread_rate(cls, v: Optional[float]) -> Optional[float]:
+        if v is not None and (v < 0 or v > 0.1):
+            raise ValueError("spread_rate must be between 0 and 0.1 (10%)")
         return v
 
 
@@ -62,6 +70,14 @@ class BacktestSummary(BaseModel):
     sortino_ratio: float
     calmar_ratio: float
     max_consecutive_losses: int
+    gross_return_usd: Optional[float] = None
+    gross_return_pct: Optional[float] = None
+    total_fees_usd: Optional[float] = None
+    total_slippage_usd: Optional[float] = None
+    total_spread_usd: Optional[float] = None
+    total_costs_usd: Optional[float] = None
+    cost_pct_gross_return: Optional[float] = None
+    avg_cost_per_trade_usd: Optional[float] = None
 
 
 class DataQualityMetrics(BaseModel):
@@ -153,6 +169,11 @@ class TradeDetail(BaseModel):
     trough_price: float
     trough_ts: datetime
     duration_seconds: int
+    fee_cost_usd: Optional[float] = None
+    slippage_cost_usd: Optional[float] = None
+    spread_cost_usd: Optional[float] = None
+    total_cost_usd: Optional[float] = None
+    notional_usd: Optional[float] = None
 
 
 class CandleResponse(BaseModel):

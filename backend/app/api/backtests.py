@@ -139,14 +139,30 @@ def create_backtest(
             detail="Strategy has no saved versions",
         )
 
-    # Determine fee and slippage rates
+    # Determine fee, slippage, and spread rates
     fee_rate = data.fee_rate
     if fee_rate is None:
-        fee_rate = user.default_fee_percent if user.default_fee_percent else settings.default_fee_rate
+        fee_rate = (
+            user.default_fee_percent
+            if user.default_fee_percent is not None
+            else settings.default_fee_rate
+        )
 
     slippage_rate = data.slippage_rate
     if slippage_rate is None:
-        slippage_rate = user.default_slippage_percent if user.default_slippage_percent else settings.default_slippage_rate
+        slippage_rate = (
+            user.default_slippage_percent
+            if user.default_slippage_percent is not None
+            else settings.default_slippage_rate
+        )
+
+    spread_rate = data.spread_rate
+    if spread_rate is None:
+        spread_rate = (
+            user.default_spread_percent
+            if user.default_spread_percent is not None
+            else settings.default_spread_rate
+        )
 
     # Create backtest run record
     run = BacktestRun(
@@ -161,6 +177,7 @@ def create_backtest(
         initial_balance=settings.default_initial_balance,
         fee_rate=fee_rate,
         slippage_rate=slippage_rate,
+        spread_rate=spread_rate,
     )
     session.add(run)
     session.commit()
@@ -344,6 +361,14 @@ def get_backtest_status(
             sortino_ratio=run.sortino_ratio or 0.0,
             calmar_ratio=run.calmar_ratio or 0.0,
             max_consecutive_losses=run.max_consecutive_losses or 0,
+            gross_return_usd=run.gross_return_usd,
+            gross_return_pct=run.gross_return_pct,
+            total_fees_usd=run.total_fees_usd,
+            total_slippage_usd=run.total_slippage_usd,
+            total_spread_usd=run.total_spread_usd,
+            total_costs_usd=run.total_costs_usd,
+            cost_pct_gross_return=run.cost_pct_gross_return,
+            avg_cost_per_trade_usd=run.avg_cost_per_trade_usd,
         )
 
     # Query data quality metrics for the run's period
@@ -851,6 +876,14 @@ def get_shared_backtest(
         sortino_ratio=run.sortino_ratio or 0.0,
         calmar_ratio=run.calmar_ratio or 0.0,
         max_consecutive_losses=run.max_consecutive_losses or 0,
+        gross_return_usd=run.gross_return_usd,
+        gross_return_pct=run.gross_return_pct,
+        total_fees_usd=run.total_fees_usd,
+        total_slippage_usd=run.total_slippage_usd,
+        total_spread_usd=run.total_spread_usd,
+        total_costs_usd=run.total_costs_usd,
+        cost_pct_gross_return=run.cost_pct_gross_return,
+        avg_cost_per_trade_usd=run.avg_cost_per_trade_usd,
     )
 
     # Load equity curve from S3
@@ -947,6 +980,14 @@ def compare_backtests(
                 sortino_ratio=run.sortino_ratio or 0,
                 calmar_ratio=run.calmar_ratio or 0,
                 max_consecutive_losses=run.max_consecutive_losses or 0,
+                gross_return_usd=run.gross_return_usd,
+                gross_return_pct=run.gross_return_pct,
+                total_fees_usd=run.total_fees_usd,
+                total_slippage_usd=run.total_slippage_usd,
+                total_spread_usd=run.total_spread_usd,
+                total_costs_usd=run.total_costs_usd,
+                cost_pct_gross_return=run.cost_pct_gross_return,
+                avg_cost_per_trade_usd=run.avg_cost_per_trade_usd,
             )
 
         comparison_runs.append(

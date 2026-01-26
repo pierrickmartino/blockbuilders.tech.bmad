@@ -176,6 +176,11 @@ export const TOOLTIP_CONTENT: Record<string, TooltipContent> = {
     long: "Beta measures how much your strategy moves with the market. 1.0 = same as buy-and-hold, <1 = less volatile, >1 = more volatile. Lower beta may indicate better risk-adjusted returns.",
     category: "metric",
   },
+  "metric-cost_pct_gross_return": {
+    short: "Percentage of gross profit consumed by transaction costs.",
+    long: "Cost % of Gross Return shows what portion of your pre-cost profit went to fees, slippage, and spread. N/A when gross return is zero or negative. Lower is better—high cost ratios can eliminate profitability.",
+    category: "metric",
+  },
 
   // Parameters
   "param-period": {

@@ -118,6 +118,7 @@ def run_backtest_job(run_id: str) -> None:
                 initial_balance=run.initial_balance,
                 fee_rate=run.fee_rate,
                 slippage_rate=run.slippage_rate,
+                spread_rate=run.spread_rate,
                 timeframe=run.timeframe,
             )
 
@@ -170,6 +171,11 @@ def run_backtest_job(run_id: str) -> None:
                         "trough_price": t.trough_price,
                         "trough_ts": t.trough_ts.isoformat() if t.trough_ts else entry_time,
                         "duration_seconds": t.duration_seconds,
+                        "fee_cost_usd": t.fee_cost_usd,
+                        "slippage_cost_usd": t.slippage_cost_usd,
+                        "spread_cost_usd": t.spread_cost_usd,
+                        "total_cost_usd": t.total_cost_usd,
+                        "notional_usd": t.notional_usd,
                     }
                 )
             trades_key = generate_results_key(run.id, "trades.json")
@@ -189,6 +195,14 @@ def run_backtest_job(run_id: str) -> None:
             run.sortino_ratio = result.sortino_ratio
             run.calmar_ratio = result.calmar_ratio
             run.max_consecutive_losses = result.max_consecutive_losses
+            run.gross_return_usd = result.gross_return_usd
+            run.gross_return_pct = result.gross_return_pct
+            run.total_fees_usd = result.total_fees_usd
+            run.total_slippage_usd = result.total_slippage_usd
+            run.total_spread_usd = result.total_spread_usd
+            run.total_costs_usd = result.total_costs_usd
+            run.cost_pct_gross_return = result.cost_pct_gross_return
+            run.avg_cost_per_trade_usd = result.avg_cost_per_trade_usd
             run.equity_curve_key = equity_curve_key
             run.benchmark_equity_curve_key = benchmark_curve_key
             run.trades_key = trades_key

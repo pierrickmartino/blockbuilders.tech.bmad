@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     default_initial_balance: float = 10000.0
     default_fee_rate: float = 0.001
     default_slippage_rate: float = 0.0005
+    default_spread_rate: float = 0.0002
     max_gap_candles: int = 5
 
     # Scheduler settings

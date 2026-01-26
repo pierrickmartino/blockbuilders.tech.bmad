@@ -74,6 +74,11 @@ export function exportTradesToCSV(trades: TradeDetail[], runId: string): void {
     "trough_price",
     "trough_ts",
     "duration_seconds",
+    "fee_cost_usd",
+    "slippage_cost_usd",
+    "spread_cost_usd",
+    "total_cost_usd",
+    "notional_usd",
   ];
 
   const csvHeader = headers.join(",");
@@ -160,6 +165,14 @@ export function exportMetricsToCSV(
     "max_consecutive_losses",
     "initial_balance",
     "final_balance",
+    "gross_return_usd",
+    "gross_return_pct",
+    "total_fees_usd",
+    "total_slippage_usd",
+    "total_spread_usd",
+    "total_costs_usd",
+    "cost_pct_gross_return",
+    "avg_cost_per_trade_usd",
     "date_from",
     "date_to",
   ];
@@ -179,6 +192,14 @@ export function exportMetricsToCSV(
     summary.max_consecutive_losses,
     summary.initial_balance,
     summary.final_balance,
+    summary.gross_return_usd,
+    summary.gross_return_pct,
+    summary.total_fees_usd,
+    summary.total_slippage_usd,
+    summary.total_spread_usd,
+    summary.total_costs_usd,
+    summary.cost_pct_gross_return,
+    summary.avg_cost_per_trade_usd,
     run.date_from,
     run.date_to,
   ];
