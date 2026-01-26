@@ -94,31 +94,53 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 
 **Implementation:** `backend/app/models/user.py`, `backend/app/api/auth.py`
 
-#### Public Profiles & Reputation (Planned)
+#### Public Profiles & Reputation
 
 **Purpose:** Allow users to opt into a simple public profile that builds creator identity and community trust.
 
 **Public Profile (opt-in, user-controlled):**
-- Public page shows **published strategies**, **follower count**, and **community contributions**.
+- Public page at `/u/{handle}` shows **published strategies**, **follower count**, and **community contributions**.
 - Users choose what to display (toggle visibility for strategies, contributions, and badges).
-- Profiles are private by default; only users who opt in appear publicly.
+- Profiles are **private by default**; only users who explicitly opt in appear publicly.
+- Requires a unique handle (3-30 characters, alphanumeric + underscores).
 
-**Badges (optional, auto-awarded):**
-- **First Public Strategy**
-- **10 Followers**
-- **100 Backtests Run**
+**Badges (auto-awarded, computed on read):**
+- **First Public Strategy** — awarded when user has ≥1 published strategy
+- **10 Followers** — awarded when follower_count ≥ 10
+- **100 Backtests Run** — awarded when completed backtests ≥ 100
+- Badges are computed server-side in real-time (no storage, just threshold checks).
 
-**Data Model (minimal):**
-- Extend the user profile record with:
-  - `is_public` (boolean)
-  - `display_name` (string, optional)
-  - `bio` (string, optional, short)
-  - `show_strategies`, `show_contributions`, `show_badges` (booleans)
-- Store badges as a simple list (array of badge keys) on the profile.
+**Profile Settings** (in `/profile` page):
+- Public toggle (`is_public`)
+- Handle (unique username)
+- Display name (optional)
+- Bio (max 160 characters)
+- Visibility toggles: `show_strategies`, `show_contributions`, `show_badges`
+- Profile URL preview when public + handle set
+
+**Data Model (minimal extension to users table):**
+- `is_public` (boolean, default false)
+- `handle` (string, unique, nullable, max 50 chars, indexed)
+- `display_name` (string, nullable, max 100 chars)
+- `bio` (string, nullable, max 160 chars)
+- `show_strategies`, `show_contributions`, `show_badges` (booleans, default true)
+- `follower_count` (integer, default 0) — simple counter for v1 (no relationship table)
+
+**Strategy Publishing:**
+- Strategies have an `is_published` boolean field (default false).
+- Published strategies appear on the user's public profile (if `show_strategies` is enabled).
+
+**API Endpoints:**
+- `GET /profiles/{handle}` — public profile view (404 if not public or handle not found)
+- `GET /profiles/me/settings` — current user's profile settings
+- `PUT /profiles/me/settings` — update profile settings (validates handle uniqueness)
 
 **Privacy & Safety:**
-- Only the selected fields render on the public profile.
+- Only selected fields render on the public profile.
 - No email, billing, or private strategy data is ever exposed.
+- Non-public profiles return 404.
+
+**Implementation:** `backend/app/api/profiles.py`, `backend/app/schemas/profile.py`, `backend/app/services/badges.py`, `frontend/src/app/(app)/u/[handle]/page.tsx`, `frontend/src/app/(app)/profile/profile-settings-section.tsx`
 
 ### 2.4. Subscription Plans & Billing
 
@@ -1817,7 +1839,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 |---|---|---|
 | **Authentication** | ✅ Complete | Email/password, OAuth (Google, GitHub), password reset |
 | **Account Management** | ✅ Complete | Profile, settings (fees, slippage, timezone), usage tracking |
-| **User Profiles & Reputation** | 📝 Planned | Opt-in public profiles, follower counts, contributions, simple badges |
+| **User Profiles & Reputation** | ✅ Complete | Opt-in public profiles (/u/{handle}), follower counts, contributions, auto-awarded badges, privacy toggles |
 | **Strategy Management** | ✅ Complete | CRUD, versioning, validation, duplication (one-click list clone), archiving |
 | **Bulk Strategy Actions** | 📝 Planned | Multi-select strategies with checkbox selection + action dropdown for archive, tag, delete |
 | **Strategy Groups/Tags** | ✅ Complete | Custom tags, tag filtering, many-to-many strategy organization |

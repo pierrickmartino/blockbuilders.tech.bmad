@@ -13,6 +13,7 @@ class Strategy(SQLModel, table=True):
     asset: str  # e.g. "BTC/USDT"
     timeframe: str  # e.g. "1h", "4h"
     is_archived: bool = Field(default=False)
+    is_published: bool = Field(default=False)
     auto_update_enabled: bool = Field(default=False)
     auto_update_lookback_days: int = Field(default=365)
     last_auto_run_at: Optional[datetime] = Field(default=None)
