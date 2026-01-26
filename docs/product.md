@@ -727,7 +727,8 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 
 **Calculated Metrics:**
 - **Total Return %:** (final_equity - initial_balance) / initial_balance * 100
-- **Gross Return %:** Return before fees, slippage, and spread are applied
+- **Gross Return (USD):** Return before fees, slippage, and spread are applied, expressed in dollars
+- **Gross Return %:** Return before fees, slippage, and spread are applied, expressed as a percentage of initial balance
 - **CAGR %:** Compound annual growth rate
 - **Max Drawdown %:** Peak-to-trough equity decline
 - **Sharpe Ratio:** Risk-adjusted return vs total volatility
@@ -743,10 +744,10 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - **Total Slippage (USD):** Sum of slippage costs across all trades
 - **Total Spread (USD):** Sum of spread costs across all trades
 - **Total Costs (USD):** Fees + slippage + spread
-- **Cost % of Gross Return:** Total costs divided by gross return (pre-cost), expressed as %
+- **Cost % of Gross Return:** Total costs divided by gross return in USD (pre-cost), expressed as %
 - **Average Cost per Trade (USD):** Total costs / number of trades
 
-**Stored in:** `backtest_runs` table (total_return, gross_return, cagr, max_drawdown, sharpe_ratio, sortino_ratio, calmar_ratio, num_trades, win_rate, max_consecutive_losses, benchmark_return, alpha, beta, total_fees, total_slippage, total_spread, total_costs, cost_pct_gross_return, avg_cost_per_trade)
+**Stored in:** `backtest_runs` table (total_return, gross_return_usd, gross_return_pct, cagr, max_drawdown, sharpe_ratio, sortino_ratio, calmar_ratio, num_trades, win_rate, max_consecutive_losses, benchmark_return, alpha, beta, total_fees, total_slippage, total_spread, total_costs, cost_pct_gross_return, avg_cost_per_trade)
 
 **Comparison Use:** These metrics power the backtest comparison table when multiple runs are viewed side-by-side.
 
@@ -1586,7 +1587,8 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - slippage_rate (FLOAT)
 - spread_rate (FLOAT)
 - total_return (FLOAT, nullable)
-- gross_return (FLOAT, nullable)
+- gross_return_usd (FLOAT, nullable)
+- gross_return_pct (FLOAT, nullable)
 - benchmark_return (FLOAT, nullable)
 - alpha (FLOAT, nullable)
 - beta (FLOAT, nullable)
