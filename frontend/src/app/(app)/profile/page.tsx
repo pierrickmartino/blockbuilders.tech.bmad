@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { ProfileSettingsSection } from "./profile-settings-section";
 
 export default function ProfilePage() {
   const { timezone, setTimezone, theme, setTheme } = useDisplay();
@@ -389,6 +390,20 @@ export default function ProfilePage() {
                 </div>
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Section C.5: Public Profile */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Public Profile</CardTitle>
+            <CardDescription>
+              Make your profile visible to others and showcase your published
+              strategies.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ProfileSettingsSection />
           </CardContent>
         </Card>
 

@@ -9,6 +9,7 @@ from app.api.billing import router as billing_router
 from app.api.health import router as health_router
 from app.api.market import router as market_router
 from app.api.notifications import router as notifications_router
+from app.api.profiles import router as profiles_router
 from app.api.progress import router as progress_router
 from app.api.strategies import router as strategies_router
 from app.api.strategy_tags import router as strategy_tags_router
@@ -30,6 +31,7 @@ app.include_router(health_router)
 app.include_router(auth_router)
 app.include_router(billing_router)
 app.include_router(users_router)
+app.include_router(profiles_router)
 app.include_router(usage_router)
 app.include_router(progress_router)
 app.include_router(strategies_router)

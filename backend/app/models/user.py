@@ -95,3 +95,13 @@ class User(SQLModel, table=True):
     # OAuth
     auth_provider: Optional[str] = None  # "google", "github", or None for email/password
     provider_user_id: Optional[str] = None
+
+    # Profile fields
+    is_public: bool = Field(default=False)
+    handle: Optional[str] = Field(default=None, unique=True, max_length=50, index=True)
+    display_name: Optional[str] = Field(default=None, max_length=100)
+    bio: Optional[str] = Field(default=None, max_length=160)
+    show_strategies: bool = Field(default=True)
+    show_contributions: bool = Field(default=True)
+    show_badges: bool = Field(default=True)
+    follower_count: int = Field(default=0)
