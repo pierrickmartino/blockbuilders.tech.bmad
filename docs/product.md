@@ -68,6 +68,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Default backtest settings:
   - Fee rate (default 0.1%)
   - Slippage rate (default 0.05%)
+  - Spread rate (default 0.02%)
 - Display preferences:
   - Timezone (local or UTC)
   - **Planned:** Theme preference (system/light/dark)
@@ -75,7 +76,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 
 **User Model Fields:**
 - id, email, password_hash (nullable for OAuth)
-- default_fee_percent, default_slippage_percent
+- default_fee_percent, default_slippage_percent, default_spread_percent
 - timezone_preference (enum: local/utc)
 - favorite_metrics (JSON array of metric keys for backtest summary pinning, nullable)
 - auth_provider, provider_user_id (OAuth fields)
@@ -644,7 +645,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 
 **Create Backtest** (`POST /backtests`)
 - Required: strategy_id, date_from, date_to
-- Optional: initial_balance, fee_rate, slippage_rate
+- Optional: initial_balance, fee_rate, slippage_rate, spread_rate
 - Returns run_id and status (pending)
 - Enqueued to Redis for processing (5-minute timeout)
 
@@ -695,6 +696,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - **Data:** OHLCV candles only (no tick/order book)
 - **Fees:** Default 0.1% per trade (user-adjustable)
 - **Slippage:** Default 0.05% per trade (user-adjustable)
+- **Spread:** Default 0.02% per trade (user-adjustable)
 - **Execution:** Trades execute at next candle open after signal
 
 **Position Management:**
@@ -725,6 +727,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 
 **Calculated Metrics:**
 - **Total Return %:** (final_equity - initial_balance) / initial_balance * 100
+- **Gross Return %:** Return before fees, slippage, and spread are applied
 - **CAGR %:** Compound annual growth rate
 - **Max Drawdown %:** Peak-to-trough equity decline
 - **Sharpe Ratio:** Risk-adjusted return vs total volatility
@@ -736,8 +739,14 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - **Benchmark Return %:** Buy-and-hold return for the same asset and period
 - **Alpha:** Strategy return minus benchmark return
 - **Beta:** Strategy return sensitivity vs benchmark returns
+- **Total Fees (USD):** Sum of fee costs across all trades
+- **Total Slippage (USD):** Sum of slippage costs across all trades
+- **Total Spread (USD):** Sum of spread costs across all trades
+- **Total Costs (USD):** Fees + slippage + spread
+- **Cost % of Gross Return:** Total costs divided by gross return (pre-cost), expressed as %
+- **Average Cost per Trade (USD):** Total costs / number of trades
 
-**Stored in:** `backtest_runs` table (total_return, cagr, max_drawdown, sharpe_ratio, sortino_ratio, calmar_ratio, num_trades, win_rate, max_consecutive_losses, benchmark_return, alpha, beta)
+**Stored in:** `backtest_runs` table (total_return, gross_return, cagr, max_drawdown, sharpe_ratio, sortino_ratio, calmar_ratio, num_trades, win_rate, max_consecutive_losses, benchmark_return, alpha, beta, total_fees, total_slippage, total_spread, total_costs, cost_pct_gross_return, avg_cost_per_trade)
 
 **Comparison Use:** These metrics power the backtest comparison table when multiple runs are viewed side-by-side.
 
@@ -766,6 +775,8 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
   - entry_time, entry_price, exit_time, exit_price
   - side (always "long" in current implementation)
   - pnl (USD), pnl_pct (%)
+  - fee_cost (USD), slippage_cost (USD), spread_cost (USD)
+  - total_cost (USD)
   - qty (quantity traded)
   - stop_loss_price, take_profit_price (at entry)
   - exit_reason (tp, sl, trailing_stop, time_exit, signal, max_drawdown, end_of_data)
@@ -806,6 +817,14 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 
 **Results Summary Cards**
 - Summary panel shows return, drawdown, trade count, win rate, benchmark, alpha/beta, plus Sharpe/Sortino/Calmar ratios and max consecutive losses.
+
+**Transaction Cost Analysis**
+- Summary block that breaks out **fees**, **slippage**, and **spread** as separate totals.
+- Shows:
+  - Total costs (USD) and average cost per trade (USD)
+  - Cost % of gross return (pre-cost return)
+  - Net vs gross return callout to show impact of execution costs
+- Optional "what-if" sliders to adjust fee, slippage, and spread rates and preview net return impact without re-running the backtest.
 
 **Backtest Comparison View (Planned)**
 - Compare 2–4 backtest runs side-by-side with aligned equity curves.
@@ -1505,6 +1524,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - password_hash (VARCHAR, nullable)
 - default_fee_percent (FLOAT, nullable)
 - default_slippage_percent (FLOAT, nullable)
+- default_spread_percent (FLOAT, nullable)
 - max_strategies (INT, default 10)
 - max_backtests_per_day (INT, default 50)
 - plan_tier (ENUM: free/pro/premium, default free)
@@ -1564,7 +1584,9 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - initial_balance (FLOAT)
 - fee_rate (FLOAT)
 - slippage_rate (FLOAT)
+- spread_rate (FLOAT)
 - total_return (FLOAT, nullable)
+- gross_return (FLOAT, nullable)
 - benchmark_return (FLOAT, nullable)
 - alpha (FLOAT, nullable)
 - beta (FLOAT, nullable)
@@ -1572,6 +1594,12 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - max_drawdown (FLOAT, nullable)
 - num_trades (INT, nullable)
 - win_rate (FLOAT, nullable)
+- total_fees (FLOAT, nullable)
+- total_slippage (FLOAT, nullable)
+- total_spread (FLOAT, nullable)
+- total_costs (FLOAT, nullable)
+- cost_pct_gross_return (FLOAT, nullable)
+- avg_cost_per_trade (FLOAT, nullable)
 - equity_curve_key (VARCHAR, nullable)
 - trades_key (VARCHAR, nullable)
 - error_message (TEXT, nullable)
@@ -1771,6 +1799,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Keyboard Shortcuts & Reference** | 📝 Planned | Cmd/Ctrl+S save, Cmd/Ctrl+R run backtest, ? help modal, editor-only |
 | **Strategy Building Wizard** | ✅ Complete | Guided Q&A that generates editable strategy JSON |
 | **Backtesting** | ✅ Complete | Full engine with TP ladder, SL, max drawdown, equity curves, trade detail, risk-adjusted metrics |
+| **Transaction Cost Analysis** | 📝 Planned | Breakdown of fees/slippage/spread, cost % of gross return, and per-trade cost visibility |
 | **Backtest Comparison View** | 📝 Planned | Select 2–4 runs, align equity curves, compare summary metrics side-by-side |
 | **Data Export (CSV/JSON)** | ✅ Complete | Download trade list, equity curve, and metrics as CSV or JSON |
 | **Shareable Backtest Result Links** | 📝 Planned | Read-only, tokenized public results view with optional expiration |
@@ -2034,6 +2063,7 @@ pytest --cov            # Coverage report
 - `docs/prd-strategy-building-wizard.md` - Strategy building wizard PRD
 - `docs/prd-contextual-help-tooltips.md` - Contextual help & tooltips PRD
 - `docs/prd-backtest-data-export-csv-json.md` - Backtest data export (CSV/JSON) PRD
+- `docs/prd-transaction-cost-analysis.md` - Transaction cost analysis PRD
 - `docs/prd-data-quality-indicators.md` - Data quality indicators PRD
 - `docs/prd-data-completeness-indicators.md` - Data completeness indicators PRD
 - `docs/prd-metrics-glossary.md` - Metrics glossary PRD
