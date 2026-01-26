@@ -142,15 +142,27 @@ def create_backtest(
     # Determine fee, slippage, and spread rates
     fee_rate = data.fee_rate
     if fee_rate is None:
-        fee_rate = user.default_fee_percent if user.default_fee_percent else settings.default_fee_rate
+        fee_rate = (
+            user.default_fee_percent
+            if user.default_fee_percent is not None
+            else settings.default_fee_rate
+        )
 
     slippage_rate = data.slippage_rate
     if slippage_rate is None:
-        slippage_rate = user.default_slippage_percent if user.default_slippage_percent else settings.default_slippage_rate
+        slippage_rate = (
+            user.default_slippage_percent
+            if user.default_slippage_percent is not None
+            else settings.default_slippage_rate
+        )
 
     spread_rate = data.spread_rate
     if spread_rate is None:
-        spread_rate = user.default_spread_percent if user.default_spread_percent else settings.default_spread_rate
+        spread_rate = (
+            user.default_spread_percent
+            if user.default_spread_percent is not None
+            else settings.default_spread_rate
+        )
 
     # Create backtest run record
     run = BacktestRun(
