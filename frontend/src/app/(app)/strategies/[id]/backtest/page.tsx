@@ -2050,8 +2050,8 @@ export default function StrategyBacktestPage({ params }: Props) {
         )}
 
         {/* Transaction Cost Analysis - only show for completed runs */}
-        {selectedRun?.status === "completed" && summary && (
-          <TransactionCostAnalysis summary={summary} />
+        {selectedRun?.status === "completed" && selectedRun.summary && (
+          <TransactionCostAnalysis summary={selectedRun.summary} />
         )}
       </div>
 
