@@ -44,6 +44,12 @@ class Trade:
     trough_price: float  # Worst price during trade (lowest for long)
     trough_ts: datetime  # Timestamp of trough
     duration_seconds: int
+    # Transaction cost breakdown
+    fee_cost_usd: float
+    slippage_cost_usd: float
+    spread_cost_usd: float
+    total_cost_usd: float
+    notional_usd: float  # Entry notional for what-if analysis
 
 
 @dataclass
@@ -61,6 +67,15 @@ class BacktestResult:
     sortino_ratio: float
     calmar_ratio: float
     max_consecutive_losses: int
+    # Transaction cost breakdown
+    gross_return_usd: float
+    gross_return_pct: float
+    total_fees_usd: float
+    total_slippage_usd: float
+    total_spread_usd: float
+    total_costs_usd: float
+    cost_pct_gross_return: Optional[float]
+    avg_cost_per_trade_usd: float
     equity_curve: list[dict]  # [{timestamp, equity}, ...]
     trades: list[Trade]
 
@@ -80,12 +95,13 @@ def _create_trade(
     trough_low_ts: Optional[datetime],
     slippage_rate: float,
     fee_rate: float,
+    spread_rate: float,
 ) -> tuple[Trade, float]:
     """
     Create a Trade record and compute PnL.
     Returns (Trade, pnl) tuple.
     """
-    effective_exit = exit_price_raw * (1 - slippage_rate) * (1 - fee_rate)
+    effective_exit = exit_price_raw * (1 - slippage_rate) * (1 - fee_rate) * (1 - spread_rate / 2)
     pnl = (effective_exit - entry_price) * qty
     pnl_pct = ((effective_exit - entry_price) / entry_price) * 100
 
@@ -105,6 +121,17 @@ def _create_trade(
             r_multiple = pnl / initial_risk_usd
 
     duration_seconds = int((exit_timestamp - entry_time).total_seconds())
+
+    # Calculate transaction cost breakdown
+    # Derive clean notional values (without costs)
+    notional_entry = entry_price / (1 + slippage_rate) / (1 + fee_rate) / (1 + spread_rate / 2) * qty
+    notional_exit = exit_price_raw * qty
+
+    # Calculate per-leg costs
+    fee_cost_usd = (notional_entry + notional_exit) * fee_rate
+    slippage_cost_usd = (notional_entry + notional_exit) * slippage_rate
+    spread_cost_usd = (notional_entry + notional_exit) * (spread_rate / 2)
+    total_cost_usd = fee_cost_usd + slippage_cost_usd + spread_cost_usd
 
     # TP price for record: first level's price if available
     tp_price_record = tp_levels[0].price if tp_levels else None
@@ -134,6 +161,11 @@ def _create_trade(
         trough_price=trough_low,
         trough_ts=trough_low_ts,
         duration_seconds=duration_seconds,
+        fee_cost_usd=round(fee_cost_usd, 2),
+        slippage_cost_usd=round(slippage_cost_usd, 2),
+        spread_cost_usd=round(spread_cost_usd, 2),
+        total_cost_usd=round(total_cost_usd, 2),
+        notional_usd=round(notional_entry, 2),
     )
     return trade, pnl
 
@@ -144,6 +176,7 @@ def run_backtest(
     initial_balance: float,
     fee_rate: float,
     slippage_rate: float,
+    spread_rate: float = 0.0002,
     timeframe: str = "1d",
 ) -> BacktestResult:
     """
@@ -163,6 +196,14 @@ def run_backtest(
             sortino_ratio=0.0,
             calmar_ratio=0.0,
             max_consecutive_losses=0,
+            gross_return_usd=0.0,
+            gross_return_pct=0.0,
+            total_fees_usd=0.0,
+            total_slippage_usd=0.0,
+            total_spread_usd=0.0,
+            total_costs_usd=0.0,
+            cost_pct_gross_return=None,
+            avg_cost_per_trade_usd=0.0,
             equity_curve=[],
             trades=[],
         )
@@ -289,6 +330,7 @@ def run_backtest(
                                 trough_low_ts=trough_low_ts,
                                 slippage_rate=slippage_rate,
                                 fee_rate=fee_rate,
+                                spread_rate=spread_rate,
                             )
                             trades.append(trade)
                             equity += pnl
@@ -317,6 +359,7 @@ def run_backtest(
                     trough_low_ts=trough_low_ts,
                     slippage_rate=slippage_rate,
                     fee_rate=fee_rate,
+                    spread_rate=spread_rate,
                 )
                 trades.append(trade)
                 equity += pnl
@@ -345,8 +388,8 @@ def run_backtest(
             next_candle = candles[i + 1]
             raw_entry_price = next_candle.open
 
-            # Apply slippage and fees on entry
-            effective_entry = raw_entry_price * (1 + slippage_rate) * (1 + fee_rate)
+            # Apply slippage, fees, and spread on entry
+            effective_entry = raw_entry_price * (1 + slippage_rate) * (1 + fee_rate) * (1 + spread_rate / 2)
 
             # Calculate position size based on percentage of equity
             position_value = equity * (signals.position_size_pct / 100)
@@ -432,6 +475,7 @@ def run_backtest(
             trough_low_ts=trough_low_ts,
             slippage_rate=slippage_rate,
             fee_rate=fee_rate,
+            spread_rate=spread_rate,
         )
         trades.append(trade)
         equity += pnl
@@ -469,6 +513,22 @@ def run_backtest(
         max_drawdown_pct=max_drawdown,
     )
 
+    # Compute transaction cost breakdown
+    total_fees = sum(t.fee_cost_usd for t in trades)
+    total_slippage = sum(t.slippage_cost_usd for t in trades)
+    total_spread = sum(t.spread_cost_usd for t in trades)
+    total_costs = total_fees + total_slippage + total_spread
+
+    net_return_usd = final_balance - initial_balance
+    gross_return_usd = net_return_usd + total_costs
+    gross_return_pct = (gross_return_usd / initial_balance) * 100 if initial_balance > 0 else 0.0
+
+    cost_pct_gross_return: Optional[float] = None
+    if gross_return_usd > 0:
+        cost_pct_gross_return = (total_costs / gross_return_usd) * 100
+
+    avg_cost_per_trade = total_costs / num_trades if num_trades > 0 else 0.0
+
     return BacktestResult(
         initial_balance=initial_balance,
         final_balance=round(final_balance, 2),
@@ -481,6 +541,14 @@ def run_backtest(
         sortino_ratio=sortino_ratio,
         calmar_ratio=calmar_ratio,
         max_consecutive_losses=max_consecutive_losses,
+        gross_return_usd=round(gross_return_usd, 2),
+        gross_return_pct=round(gross_return_pct, 2),
+        total_fees_usd=round(total_fees, 2),
+        total_slippage_usd=round(total_slippage, 2),
+        total_spread_usd=round(total_spread, 2),
+        total_costs_usd=round(total_costs, 2),
+        cost_pct_gross_return=round(cost_pct_gross_return, 2) if cost_pct_gross_return is not None else None,
+        avg_cost_per_trade_usd=round(avg_cost_per_trade, 2),
         equity_curve=equity_curve,
         trades=trades,
     )

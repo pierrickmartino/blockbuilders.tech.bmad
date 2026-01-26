@@ -48,6 +48,7 @@ import InfoIcon from "@/components/InfoIcon";
 import { BacktestSentimentStrip } from "@/components/BacktestSentimentStrip";
 import { DataAvailabilitySection } from "@/components/DataAvailabilitySection";
 import { ShareBacktestModal } from "@/components/ShareBacktestModal";
+import { TransactionCostAnalysis } from "@/components/TransactionCostAnalysis";
 import { metricToGlossaryId, getTooltip } from "@/lib/tooltip-content";
 import { trackBacktestView } from "@/lib/recent-views";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -1932,6 +1933,14 @@ export default function StrategyBacktestPage({ params }: Props) {
                           {formatMoney(trade.pnl, "USDT", true)}
                         </span>
                       </div>
+                      <div className="mt-2 flex justify-between border-t border-gray-200 pt-2">
+                        <span className="text-xs text-gray-500">Costs</span>
+                        <span className="text-sm font-medium text-gray-700">
+                          {trade.total_cost_usd !== undefined && trade.total_cost_usd !== null
+                            ? formatMoney(trade.total_cost_usd, "USDT", false)
+                            : "—"}
+                        </span>
+                      </div>
                     </button>
                   ))}
                 </div>
@@ -1952,6 +1961,7 @@ export default function StrategyBacktestPage({ params }: Props) {
                         <TableHead>Side</TableHead>
                         <TableHead className="text-right">P&L</TableHead>
                         <TableHead className="text-right">P&L %</TableHead>
+                        <TableHead className="text-right">Costs</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -1997,6 +2007,11 @@ export default function StrategyBacktestPage({ params }: Props) {
                           >
                             {trade.pnl_pct >= 0 ? "+" : ""}{formatPercent(trade.pnl_pct).replace("%", "")}%
                           </TableCell>
+                          <TableCell className="text-right text-gray-700">
+                            {trade.total_cost_usd !== undefined && trade.total_cost_usd !== null
+                              ? formatMoney(trade.total_cost_usd, "USDT", false)
+                              : "—"}
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -2032,6 +2047,11 @@ export default function StrategyBacktestPage({ params }: Props) {
               </>
             )}
           </section>
+        )}
+
+        {/* Transaction Cost Analysis - only show for completed runs */}
+        {selectedRun?.status === "completed" && summary && (
+          <TransactionCostAnalysis summary={summary} />
         )}
       </div>
 

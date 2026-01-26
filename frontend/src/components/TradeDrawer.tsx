@@ -341,6 +341,31 @@ export default function TradeDrawer({
                 </div>
               </section>
 
+              {/* Transaction Costs */}
+              {trade.total_cost_usd !== undefined && trade.total_cost_usd !== null && (
+                <section>
+                  <h3 className="mb-2 text-sm font-medium text-gray-700">Transaction Costs</h3>
+                  <div className="space-y-1 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Fees:</span>
+                      <span className="font-medium">{formatMoney(trade.fee_cost_usd ?? 0, asset, false)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Slippage:</span>
+                      <span className="font-medium">{formatMoney(trade.slippage_cost_usd ?? 0, asset, false)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Spread:</span>
+                      <span className="font-medium">{formatMoney(trade.spread_cost_usd ?? 0, asset, false)}</span>
+                    </div>
+                    <div className="flex justify-between border-t border-gray-100 pt-1 font-semibold">
+                      <span className="text-gray-900">Total:</span>
+                      <span className="text-red-600">{formatMoney(trade.total_cost_usd, asset, false)}</span>
+                    </div>
+                  </div>
+                </section>
+              )}
+
               {/* Risk at Entry */}
               <section>
                 <h3 className="mb-2 text-sm font-medium text-gray-700">Risk at Entry</h3>

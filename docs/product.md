@@ -1801,7 +1801,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Keyboard Shortcuts & Reference** | 📝 Planned | Cmd/Ctrl+S save, Cmd/Ctrl+R run backtest, ? help modal, editor-only |
 | **Strategy Building Wizard** | ✅ Complete | Guided Q&A that generates editable strategy JSON |
 | **Backtesting** | ✅ Complete | Full engine with TP ladder, SL, max drawdown, equity curves, trade detail, risk-adjusted metrics |
-| **Transaction Cost Analysis** | 📝 Planned | Breakdown of fees/slippage/spread, cost % of gross return, and per-trade cost visibility |
+| **Transaction Cost Analysis** | ✅ Complete | Breakdown of fees/slippage/spread, cost % of gross return, and per-trade cost visibility |
 | **Backtest Comparison View** | 📝 Planned | Select 2–4 runs, align equity curves, compare summary metrics side-by-side |
 | **Data Export (CSV/JSON)** | ✅ Complete | Download trade list, equity curve, and metrics as CSV or JSON |
 | **Shareable Backtest Result Links** | 📝 Planned | Read-only, tokenized public results view with optional expiration |

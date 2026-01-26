@@ -48,6 +48,7 @@ class User(SQLModel, table=True):
     password_hash: Optional[str] = None  # Nullable for OAuth users
     default_fee_percent: Optional[float] = None
     default_slippage_percent: Optional[float] = None
+    default_spread_percent: Optional[float] = None
     max_strategies: int = Field(default=10)
     max_backtests_per_day: int = Field(default=50)
     backtest_credit_balance: int = Field(default=0)

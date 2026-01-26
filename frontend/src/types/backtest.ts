@@ -20,6 +20,14 @@ export interface BacktestSummary {
   sortino_ratio: number;
   calmar_ratio: number;
   max_consecutive_losses: number;
+  gross_return_usd?: number | null;
+  gross_return_pct?: number | null;
+  total_fees_usd?: number | null;
+  total_slippage_usd?: number | null;
+  total_spread_usd?: number | null;
+  total_costs_usd?: number | null;
+  cost_pct_gross_return?: number | null;
+  avg_cost_per_trade_usd?: number | null;
 }
 
 export interface DataQualityMetrics {
@@ -99,6 +107,11 @@ export interface TradeDetail {
   trough_price: number;
   trough_ts: string;
   duration_seconds: number;
+  fee_cost_usd?: number | null;
+  slippage_cost_usd?: number | null;
+  spread_cost_usd?: number | null;
+  total_cost_usd?: number | null;
+  notional_usd?: number | null;
 }
 
 export interface Candle {
