@@ -45,9 +45,11 @@ def get_public_profile(
             PublishedStrategy(id=s.id, name=s.name) for s in strategies
         ]
 
-    # Contributions (if visible)
+    # Contributions (if visible) and counts for badges (if needed)
     contributions = None
-    if user.show_contributions:
+    published_count = None
+    backtests_count = None
+    if user.show_contributions or user.show_badges:
         published_count = session.exec(
             select(func.count(Strategy.id)).where(
                 Strategy.user_id == user.id,
@@ -63,6 +65,7 @@ def get_public_profile(
             )
         ).one()
 
+    if user.show_contributions:
         contributions = Contributions(
             published_strategies=published_count,
             completed_backtests=backtests_count,
@@ -70,10 +73,10 @@ def get_public_profile(
 
     # Badges (if visible)
     badges = None
-    if user.show_badges and contributions:
+    if user.show_badges and published_count is not None and backtests_count is not None:
         badges = compute_badges(
-            published_strategies_count=contributions.published_strategies,
-            completed_backtests_count=contributions.completed_backtests,
+            published_strategies_count=published_count,
+            completed_backtests_count=backtests_count,
             follower_count=user.follower_count,
         )
 
