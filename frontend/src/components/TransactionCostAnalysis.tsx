@@ -2,7 +2,8 @@
 
 import { BacktestSummary } from "@/types/backtest";
 import { formatMoney, formatPercent } from "@/lib/format";
-import { InfoIcon } from "./InfoIcon";
+import { metricToGlossaryId, getTooltip } from "@/lib/tooltip-content";
+import InfoIcon from "./InfoIcon";
 
 interface TransactionCostAnalysisProps {
   summary: BacktestSummary;
@@ -61,7 +62,7 @@ export function TransactionCostAnalysis({ summary }: TransactionCostAnalysisProp
         <div className="flex items-center justify-between border-t border-gray-200 pt-2 text-sm">
           <span className="flex items-center gap-1 text-gray-600">
             Cost % of Gross Return
-            <InfoIcon glossaryId="cost_pct_gross_return" />
+            <InfoIcon tooltip={getTooltip(metricToGlossaryId("cost_pct_gross_return"))} />
           </span>
           <span className="font-semibold text-gray-900">
             {summary.cost_pct_gross_return !== null &&
