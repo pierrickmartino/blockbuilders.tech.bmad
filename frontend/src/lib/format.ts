@@ -220,6 +220,34 @@ export function formatVolatility(
 }
 
 /**
+ * Format a relative time string (e.g., "2h ago", "3 days ago").
+ * Example: formatRelativeTime("2025-01-27T10:00:00Z") -> "2h ago"
+ */
+export function formatRelativeTime(
+  value: string | Date | null | undefined
+): string {
+  if (value === null || value === undefined) return PLACEHOLDER;
+
+  const date = typeof value === "string" ? new Date(value) : value;
+  if (Number.isNaN(date.getTime())) return PLACEHOLDER;
+
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffSec = Math.floor(diffMs / 1000);
+  const diffMin = Math.floor(diffSec / 60);
+  const diffHours = Math.floor(diffMin / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffSec < 60) return "just now";
+  if (diffMin < 60) return `${diffMin}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`;
+
+  return formatDateTime(date).split(" ")[0]; // Fall back to date only
+}
+
+/**
  * Format sentiment value with context-specific display.
  * Example: formatSentiment(62, "fear_greed") -> "62 (Greed)"
  * Example: formatSentiment(0.0001, "funding") -> "0.01%"
