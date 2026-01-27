@@ -205,9 +205,10 @@ def _fetch_social_mentions(asset: str, days: int = 7) -> tuple[Optional[Sentimen
 
             # Extract community score (0-100) and Twitter followers
             community_data = data.get("community_data", {})
-            twitter_followers = community_data.get("twitter_followers", 0)
+            twitter_followers = community_data.get("twitter_followers")
 
-            if twitter_followers == 0:
+            # Handle None or 0 values (CoinGecko may return null)
+            if not twitter_followers:
                 logger.warning(f"CoinGecko returned no community data for {coin_id}")
                 return None, "unavailable"
 
