@@ -8,6 +8,7 @@ interface SentimentSparklineProps {
   history: HistoryPoint[];
   status: "ok" | "partial" | "unavailable";
   color?: string;
+  formatter?: (value: number) => string;
 }
 
 export function SentimentSparkline({
@@ -15,6 +16,7 @@ export function SentimentSparkline({
   history,
   status,
   color = "#2563eb",
+  formatter,
 }: SentimentSparklineProps) {
   if (status === "unavailable" || history.length === 0) {
     return (
@@ -36,7 +38,7 @@ export function SentimentSparkline({
       <CardContent className="p-3">
         <div className="text-sm font-medium text-gray-700 mb-1">{label}</div>
         <div className="text-lg font-semibold mb-2">
-          {latest.v.toLocaleString()}
+          {formatter ? formatter(latest.v) : latest.v.toLocaleString()}
         </div>
 
         <div className="h-12">

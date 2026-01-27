@@ -55,6 +55,7 @@ export function MarketSentimentPanel({ asset }: MarketSentimentPanelProps) {
           label="Social Activity (Twitter)"
           history={sentiment.mentions.history}
           status={sentiment.source_status.mentions}
+          formatter={(v) => formatSentiment(v, "mentions")}
         />
 
         <SentimentSparkline
@@ -62,6 +63,7 @@ export function MarketSentimentPanel({ asset }: MarketSentimentPanelProps) {
           history={sentiment.funding.history}
           status={sentiment.source_status.funding}
           color="#059669"
+          formatter={(v) => formatSentiment(v, "funding")}
         />
       </div>
 
@@ -80,6 +82,7 @@ export function MarketSentimentPanel({ asset }: MarketSentimentPanelProps) {
           label="Social Activity (Twitter)"
           history={sentiment.mentions.history}
           status={sentiment.source_status.mentions}
+          formatter={(v) => formatSentiment(v, "mentions")}
         />
 
         <SentimentSparkline
@@ -87,6 +90,7 @@ export function MarketSentimentPanel({ asset }: MarketSentimentPanelProps) {
           history={sentiment.funding.history}
           status={sentiment.source_status.funding}
           color="#059669"
+          formatter={(v) => formatSentiment(v, "funding")}
         />
       </div>
 
