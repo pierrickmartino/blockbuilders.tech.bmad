@@ -152,86 +152,64 @@ def _fetch_fear_greed_index(days: int = 30) -> tuple[Optional[SentimentIndicator
         return None, "unavailable"
 
 
-def _fetch_social_mentions(asset: str, days: int = 7) -> tuple[Optional[SentimentIndicator], str]:
+def _fetch_long_short_ratio(asset: str, days: int = 7) -> tuple[Optional[SentimentIndicator], str]:
     """
-    Fetch social activity score from CoinGecko.
+    Fetch Long/Short Ratio from Binance Futures.
 
     Returns:
         (SentimentIndicator | None, status: "ok" | "unavailable")
 
-    API: GET /coins/{id}?localization=false&community_data=true
-    Uses community_score (0-100) and twitter_followers as proxy for social activity.
+    API: GET /futures/data/globalLongShortAccountRatio?symbol={symbol}&period=1d&limit={days}
+    Symbol mapping: BTC/USDT -> BTCUSDT
+    Response: [{"symbol": "BTCUSDT", "longShortRatio": "1.75", "longAccount": "0.6364",
+               "shortAccount": "0.3636", "timestamp": 1672531200000}]
+
+    Interpretation:
+    - Ratio > 1: More traders are long (bullish sentiment)
+    - Ratio < 1: More traders are short (bearish sentiment)
+    - Ratio = 1: Equal long/short positions (neutral)
     """
-    # Symbol mapping for CoinGecko IDs
-    COINGECKO_SYMBOL_MAP = {
-        "BTC/USDT": "bitcoin",
-        "ETH/USDT": "ethereum",
-        "ADA/USDT": "cardano",
-        "SOL/USDT": "solana",
-        "MATIC/USDT": "matic-network",
-        "LINK/USDT": "chainlink",
-        "DOT/USDT": "polkadot",
-        "XRP/USDT": "ripple",
-        "DOGE/USDT": "dogecoin",
-        "AVAX/USDT": "avalanche-2",
-        "LTC/USDT": "litecoin",
-        "BCH/USDT": "bitcoin-cash",
-        "ATOM/USDT": "cosmos",
-        "NEAR/USDT": "near",
-        "FIL/USDT": "filecoin",
-    }
-
-    coin_id = COINGECKO_SYMBOL_MAP.get(asset)
-    if not coin_id:
-        logger.warning(f"No CoinGecko mapping for {asset}")
-        return None, "unavailable"
-
     try:
-        url = f"{settings.coingecko_api_url}/coins/{coin_id}"
+        # Binance symbol format: BTC/USDT -> BTCUSDT
+        symbol = asset.replace("/", "")
+
+        url = f"{settings.binance_futures_api_url}/futures/data/globalLongShortAccountRatio"
         params = {
-            "localization": "false",
-            "community_data": "true",
-            "developer_data": "false",
-            "sparkline": "false",
+            "symbol": symbol,
+            "period": "1d",
+            "limit": days
         }
-        headers = {}
-        if settings.coingecko_api_key and settings.coingecko_api_key != "CG-DEMO-KEY":
-            headers["x-cg-demo-api-key"] = settings.coingecko_api_key
 
         with httpx.Client(timeout=10.0) as client:
-            response = client.get(url, params=params, headers=headers)
+            response = client.get(url, params=params)
             response.raise_for_status()
             data = response.json()
 
-            # Extract community score (0-100) and Twitter followers
-            community_data = data.get("community_data", {})
-            twitter_followers = community_data.get("twitter_followers")
-
-            # Handle None or 0 values (CoinGecko may return null)
-            if not twitter_followers:
-                logger.warning(f"CoinGecko returned no community data for {coin_id}")
+            if not data or len(data) == 0:
+                logger.warning(f"Binance returned no long/short data for {symbol}")
                 return None, "unavailable"
 
-            # CoinGecko doesn't provide historical community data in free tier.
-            # Synthesize a dated history ending today so backtests can slice by date.
+            # data is ordered oldest first, last item is most recent
+            latest = data[-1]
             history = []
-            end_date = datetime.now(timezone.utc).date()
-            start_date = end_date - timedelta(days=days - 1)
-            for i in range(days):
-                day = start_date + timedelta(days=i)
+
+            for item in data:
+                timestamp = datetime.fromtimestamp(
+                    int(item["timestamp"]) / 1000, tz=timezone.utc
+                )
                 history.append(HistoryPoint(
-                    t=day.strftime("%Y-%m-%d"),
-                    v=float(twitter_followers)
+                    t=timestamp.strftime("%Y-%m-%d"),
+                    v=float(item["longShortRatio"])
                 ))
 
             indicator = SentimentIndicator(
-                value=float(twitter_followers),
+                value=float(latest["longShortRatio"]),
                 history=history
             )
             return indicator, "ok"
 
     except Exception as e:
-        logger.error(f"Failed to fetch social mentions for {asset}: {e}")
+        logger.error(f"Failed to fetch long/short ratio for {asset}: {e}")
         return None, "unavailable"
 
 
@@ -442,18 +420,18 @@ def get_market_sentiment(
         cached_data = json.loads(cached)
         cached_data["as_of"] = datetime.fromisoformat(cached_data["as_of"])
         cached_data["fear_greed"] = SentimentIndicator(**cached_data["fear_greed"])
-        cached_data["mentions"] = SentimentIndicator(**cached_data["mentions"])
+        cached_data["long_short_ratio"] = SentimentIndicator(**cached_data["long_short_ratio"])
         cached_data["funding"] = SentimentIndicator(**cached_data["funding"])
         cached_data["source_status"] = SourceStatus(**cached_data["source_status"])
         return MarketSentimentResponse(**cached_data)
 
     # Fetch from all providers
     fear_greed, fg_status = _fetch_fear_greed_index(days=30)
-    mentions, mn_status = _fetch_social_mentions(asset, days=7)
+    long_short, ls_status = _fetch_long_short_ratio(asset, days=7)
     funding, fr_status = _fetch_funding_rate(asset, days=7)
 
     # If all providers fail, return 503
-    if fg_status == "unavailable" and mn_status == "unavailable" and fr_status == "unavailable":
+    if fg_status == "unavailable" and ls_status == "unavailable" and fr_status == "unavailable":
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="All sentiment providers unavailable"
@@ -464,11 +442,11 @@ def get_market_sentiment(
         as_of=datetime.now(timezone.utc),
         asset=asset,
         fear_greed=fear_greed or SentimentIndicator(),
-        mentions=mentions or SentimentIndicator(),
+        long_short_ratio=long_short or SentimentIndicator(),
         funding=funding or SentimentIndicator(),
         source_status=SourceStatus(
             fear_greed=fg_status,
-            mentions=mn_status,
+            long_short_ratio=ls_status,
             funding=fr_status
         )
     )
@@ -517,10 +495,10 @@ def get_backtest_sentiment(
 
     # Fetch sentiment data (same as market endpoint)
     fear_greed, fg_status = _fetch_fear_greed_index(days=lookback_days)
-    mentions, mn_status = _fetch_social_mentions(run.asset, days=lookback_days)
+    long_short, ls_status = _fetch_long_short_ratio(run.asset, days=lookback_days)
     funding, fr_status = _fetch_funding_rate(run.asset, days=lookback_days)
 
-    if fg_status == "unavailable" and mn_status == "unavailable" and fr_status == "unavailable":
+    if fg_status == "unavailable" and ls_status == "unavailable" and fr_status == "unavailable":
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="All sentiment providers unavailable"
@@ -551,7 +529,7 @@ def get_backtest_sentiment(
         return start_val, end_val, avg_val
 
     fg_start, fg_end, fg_avg = get_range_stats(fear_greed, run.date_from, run.date_to)
-    _, _, mn_avg = get_range_stats(mentions, run.date_from, run.date_to)
+    _, _, ls_avg = get_range_stats(long_short, run.date_from, run.date_to)
     _, _, fr_avg = get_range_stats(funding, run.date_from, run.date_to)
 
     response_data = BacktestSentimentResponse(
@@ -562,14 +540,14 @@ def get_backtest_sentiment(
         fear_greed_start=fg_start,
         fear_greed_end=fg_end,
         fear_greed_avg=fg_avg,
-        mentions_avg=mn_avg,
+        long_short_ratio_avg=ls_avg,
         funding_avg=fr_avg,
         fear_greed_history=fear_greed.history if fear_greed else [],
-        mentions_history=mentions.history if mentions else [],
+        long_short_ratio_history=long_short.history if long_short else [],
         funding_history=funding.history if funding else [],
         source_status=SourceStatus(
             fear_greed=fg_status,
-            mentions=mn_status,
+            long_short_ratio=ls_status,
             funding=fr_status
         )
     )

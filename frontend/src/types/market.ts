@@ -25,7 +25,7 @@ export interface SentimentIndicator {
 
 export interface SourceStatus {
   fear_greed: "ok" | "partial" | "unavailable";
-  mentions: "ok" | "partial" | "unavailable";
+  long_short_ratio: "ok" | "partial" | "unavailable";
   funding: "ok" | "partial" | "unavailable";
 }
 
@@ -33,7 +33,7 @@ export interface MarketSentimentResponse {
   as_of: string;
   asset: string;
   fear_greed: SentimentIndicator;
-  mentions: SentimentIndicator;
+  long_short_ratio: SentimentIndicator;
   funding: SentimentIndicator;
   source_status: SourceStatus;
 }
@@ -46,10 +46,10 @@ export interface BacktestSentimentResponse {
   fear_greed_start: number | null;
   fear_greed_end: number | null;
   fear_greed_avg: number | null;
-  mentions_avg: number | null;
+  long_short_ratio_avg: number | null;
   funding_avg: number | null;
   fear_greed_history: HistoryPoint[];
-  mentions_history: HistoryPoint[];
+  long_short_ratio_history: HistoryPoint[];
   funding_history: HistoryPoint[];
   source_status: SourceStatus;
 }

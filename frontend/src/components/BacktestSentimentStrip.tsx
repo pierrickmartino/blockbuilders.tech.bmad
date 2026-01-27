@@ -73,12 +73,12 @@ export function BacktestSentimentStrip({ runId }: BacktestSentimentStripProps) {
           </div>
         )}
 
-        {/* Social Mentions */}
-        {sentiment.source_status.mentions === "ok" && (
+        {/* Long/Short Ratio */}
+        {sentiment.source_status.long_short_ratio === "ok" && (
           <div>
-            <div className="text-gray-600 mb-1">Avg Social Activity</div>
+            <div className="text-gray-600 mb-1">Avg Long/Short Ratio</div>
             <div className="font-medium text-lg">
-              {sentiment.mentions_avg?.toLocaleString() || "—"}
+              {formatSentiment(sentiment.long_short_ratio_avg, "long_short_ratio")}
             </div>
           </div>
         )}
@@ -99,8 +99,8 @@ export function BacktestSentimentStrip({ runId }: BacktestSentimentStripProps) {
         {sentiment.source_status.fear_greed !== "ok" && (
           <Badge variant="outline" className="text-xs">Fear & Greed unavailable</Badge>
         )}
-        {sentiment.source_status.mentions !== "ok" && (
-          <Badge variant="outline" className="text-xs">Social data unavailable</Badge>
+        {sentiment.source_status.long_short_ratio !== "ok" && (
+          <Badge variant="outline" className="text-xs">Long/Short data unavailable</Badge>
         )}
         {sentiment.source_status.funding !== "ok" && (
           <Badge variant="outline" className="text-xs">Funding unavailable</Badge>

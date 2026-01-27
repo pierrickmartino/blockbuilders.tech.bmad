@@ -9,7 +9,7 @@ Blockbuilders integrates three sentiment data sources:
 | Provider | Data | Endpoint |
 |----------|------|----------|
 | Alternative.me | Fear & Greed Index | `https://api.alternative.me/fng/` |
-| CoinGecko | Social mentions (Twitter followers) | `https://api.coingecko.com/api/v3/coins/{id}` |
+| Binance Futures | Long/Short Ratio | `https://fapi.binance.com/futures/data/globalLongShortAccountRatio` |
 | Binance Futures | Funding rates | `https://fapi.binance.com/fapi/v1/fundingRate` |
 
 ## Environment Variables
@@ -19,8 +19,6 @@ Add these to your `.env` file:
 ```bash
 # Market sentiment APIs
 ALTERNATIVE_ME_API_URL=https://api.alternative.me
-COINGECKO_API_URL=https://api.coingecko.com/api/v3
-COINGECKO_API_KEY=CG-DEMO-KEY
 BINANCE_FUTURES_API_URL=https://fapi.binance.com
 ```
 
@@ -38,31 +36,20 @@ ALTERNATIVE_ME_API_URL=https://api.alternative.me
 
 Rate limit: ~30 requests/minute (public).
 
-### 2. CoinGecko (Social Mentions)
+### 2. Binance Futures (Long/Short Ratio & Funding Rates)
 
-**Demo key works for development.** CoinGecko offers a free Demo API.
-
-```bash
-COINGECKO_API_URL=https://api.coingecko.com/api/v3
-COINGECKO_API_KEY=CG-DEMO-KEY
-```
-
-To get a demo key:
-1. Go to [CoinGecko API](https://www.coingecko.com/en/api)
-2. Sign up for free Demo API access
-3. Replace `CG-DEMO-KEY` with your actual demo key
-
-Rate limit (Demo): 10-30 calls/minute.
-
-### 3. Binance Futures (Funding Rates)
-
-**No API key required.** The public endpoint works without authentication.
+**No API key required.** Both public endpoints work without authentication.
 
 ```bash
 BINANCE_FUTURES_API_URL=https://fapi.binance.com
 ```
 
 Rate limit: 1200 requests/minute (IP-based).
+
+**Long/Short Ratio interpretation:**
+- Ratio > 1: More traders are long (bullish sentiment)
+- Ratio < 1: More traders are short (bearish sentiment)
+- Ratio = 1: Equal long/short positions (neutral)
 
 ### Testing the Integration
 
@@ -84,11 +71,11 @@ Rate limit: 1200 requests/minute (IP-based).
      "as_of": "2026-01-22T12:00:00Z",
      "asset": "BTC/USDT",
      "fear_greed": {"value": 62, "history": [...]},
-     "mentions": {"value": 12450, "history": [...]},
+     "long_short_ratio": {"value": 1.25, "history": [...]},
      "funding": {"value": 0.0001, "history": [...]},
      "source_status": {
        "fear_greed": "ok",
-       "mentions": "ok",
+       "long_short_ratio": "ok",
        "funding": "ok"
      }
    }
@@ -108,26 +95,7 @@ ALTERNATIVE_ME_API_URL=https://api.alternative.me
 
 Consider implementing additional error handling for occasional downtime.
 
-### 2. CoinGecko (Social Mentions)
-
-**Upgrade to a paid plan for production** to avoid rate limits.
-
-Options:
-- **Demo API** (free): 10-30 calls/minute - may hit limits under load
-- **Analyst Plan** (~$129/month): 500 calls/minute
-- **Pro Plan** (~$449/month): Higher limits + priority support
-
-```bash
-COINGECKO_API_URL=https://api.coingecko.com/api/v3
-COINGECKO_API_KEY=CG-xxxxxxxxxxxxxxxxxxxx  # Your paid API key
-```
-
-To get a paid key:
-1. Go to [CoinGecko API Pricing](https://www.coingecko.com/en/api/pricing)
-2. Choose a plan based on expected traffic
-3. Generate an API key from your dashboard
-
-### 3. Binance Futures (Funding Rates)
+### 2. Binance Futures (Long/Short Ratio & Funding Rates)
 
 **Same as sandbox.** No authentication needed for public data.
 
@@ -159,25 +127,25 @@ The 15-minute cache ensures:
 
 ## Supported Assets
 
-The following assets have CoinGecko mappings for social mentions:
+All trading pairs available on Binance Futures are supported for Long/Short Ratio and Funding Rate data. Common pairs include:
 
-| Trading Pair | CoinGecko ID |
-|--------------|--------------|
-| BTC/USDT | bitcoin |
-| ETH/USDT | ethereum |
-| ADA/USDT | cardano |
-| SOL/USDT | solana |
-| MATIC/USDT | matic-network |
-| LINK/USDT | chainlink |
-| DOT/USDT | polkadot |
-| XRP/USDT | ripple |
-| DOGE/USDT | dogecoin |
-| AVAX/USDT | avalanche-2 |
-| LTC/USDT | litecoin |
-| BCH/USDT | bitcoin-cash |
-| ATOM/USDT | cosmos |
-| NEAR/USDT | near |
-| FIL/USDT | filecoin |
+| Trading Pair | Binance Symbol |
+|--------------|----------------|
+| BTC/USDT | BTCUSDT |
+| ETH/USDT | ETHUSDT |
+| ADA/USDT | ADAUSDT |
+| SOL/USDT | SOLUSDT |
+| MATIC/USDT | MATICUSDT |
+| LINK/USDT | LINKUSDT |
+| DOT/USDT | DOTUSDT |
+| XRP/USDT | XRPUSDT |
+| DOGE/USDT | DOGEUSDT |
+| AVAX/USDT | AVAXUSDT |
+| LTC/USDT | LTCUSDT |
+| BCH/USDT | BCHUSDT |
+| ATOM/USDT | ATOMUSDT |
+| NEAR/USDT | NEARUSDT |
+| FIL/USDT | FILUSDT |
 
 ---
 
@@ -194,7 +162,7 @@ Example partial failure response:
 {
   "source_status": {
     "fear_greed": "ok",
-    "mentions": "unavailable",
+    "long_short_ratio": "unavailable",
     "funding": "ok"
   }
 }
@@ -211,14 +179,6 @@ Example partial failure response:
 3. Check if providers are experiencing downtime
 4. Review backend logs: `docker logs blockbuilders-api`
 
-### CoinGecko rate limit errors
-
-Symptoms: `mentions` shows `"unavailable"` frequently
-
-Solutions:
-- Upgrade to a paid CoinGecko plan
-- Increase cache TTL (edit `SENTIMENT_CACHE_TTL_SECONDS` in `backend/app/api/market.py`)
-
 ### Binance Futures returns empty data
 
 Possible causes:
@@ -232,6 +192,15 @@ Solutions:
 ### Fear & Greed history is incomplete
 
 Alternative.me limits historical data. The API returns up to 30 days by default. For longer backtest periods, the history may be shorter than the backtest range.
+
+### Long/Short Ratio shows unexpected values
+
+The Long/Short Ratio is based on Binance's global account ratio data, which measures the proportion of net long vs short positions across all accounts. Values typically range from 0.5 to 2.0:
+- Values > 1.5: Very bullish sentiment (many more longs than shorts)
+- Values 1.1 - 1.5: Bullish sentiment
+- Values 0.9 - 1.1: Neutral sentiment
+- Values 0.67 - 0.9: Bearish sentiment
+- Values < 0.67: Very bearish sentiment (many more shorts than longs)
 
 ---
 

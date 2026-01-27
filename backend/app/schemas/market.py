@@ -42,7 +42,7 @@ class SourceStatus(BaseModel):
     """Status flags for each data source."""
 
     fear_greed: Literal["ok", "partial", "unavailable"]
-    mentions: Literal["ok", "partial", "unavailable"]
+    long_short_ratio: Literal["ok", "partial", "unavailable"]
     funding: Literal["ok", "partial", "unavailable"]
 
 
@@ -52,7 +52,7 @@ class MarketSentimentResponse(BaseModel):
     as_of: datetime
     asset: str
     fear_greed: SentimentIndicator
-    mentions: SentimentIndicator
+    long_short_ratio: SentimentIndicator
     funding: SentimentIndicator
     source_status: SourceStatus
 
@@ -67,9 +67,9 @@ class BacktestSentimentResponse(BaseModel):
     fear_greed_start: Optional[float] = None
     fear_greed_end: Optional[float] = None
     fear_greed_avg: Optional[float] = None
-    mentions_avg: Optional[float] = None
+    long_short_ratio_avg: Optional[float] = None
     funding_avg: Optional[float] = None
     fear_greed_history: list[HistoryPoint] = []
-    mentions_history: list[HistoryPoint] = []
+    long_short_ratio_history: list[HistoryPoint] = []
     funding_history: list[HistoryPoint] = []
     source_status: SourceStatus
