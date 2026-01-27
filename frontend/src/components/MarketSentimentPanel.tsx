@@ -52,10 +52,11 @@ export function MarketSentimentPanel({ asset }: MarketSentimentPanelProps) {
         />
 
         <SentimentSparkline
-          label="Social Activity (Twitter)"
-          history={sentiment.mentions.history}
-          status={sentiment.source_status.mentions}
-          formatter={(v) => formatSentiment(v, "mentions")}
+          label="Long/Short Ratio (7d)"
+          history={sentiment.long_short_ratio.history}
+          status={sentiment.source_status.long_short_ratio}
+          color="#8b5cf6"
+          formatter={(v) => formatSentiment(v, "long_short_ratio")}
         />
 
         <SentimentSparkline
@@ -79,10 +80,11 @@ export function MarketSentimentPanel({ asset }: MarketSentimentPanelProps) {
         />
 
         <SentimentSparkline
-          label="Social Activity (Twitter)"
-          history={sentiment.mentions.history}
-          status={sentiment.source_status.mentions}
-          formatter={(v) => formatSentiment(v, "mentions")}
+          label="Long/Short Ratio (7d)"
+          history={sentiment.long_short_ratio.history}
+          status={sentiment.source_status.long_short_ratio}
+          color="#8b5cf6"
+          formatter={(v) => formatSentiment(v, "long_short_ratio")}
         />
 
         <SentimentSparkline

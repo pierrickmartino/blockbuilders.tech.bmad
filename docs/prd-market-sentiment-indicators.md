@@ -1,7 +1,7 @@
 # PRD: Market Sentiment Indicators (Market Overview)
 
 ## 1. Summary
-Add lightweight market sentiment indicators to give qualitative context beyond price during market overview and backtest review. Use simple gauges and trend lines for Fear & Greed Index, social mention volume, and funding rates sourced from third-party providers (Alternative.me, LunarCrush, derivatives markets). Keep the implementation minimal and read-only.
+Add lightweight market sentiment indicators to give qualitative context beyond price during market overview and backtest review. Use simple gauges and trend lines for Fear & Greed Index, Long/Short Ratio, and funding rates sourced from third-party providers (Alternative.me, Binance Futures). Keep the implementation minimal and read-only.
 
 ## 2. Goals
 - Provide a quick sentiment snapshot alongside market prices.
@@ -17,7 +17,7 @@ Add lightweight market sentiment indicators to give qualitative context beyond p
 
 ## 4. User Stories
 - As a trader, I want to see Fear & Greed so I can quickly gauge market psychology.
-- As a trader, I want to see social mention volume trends to understand hype cycles.
+- As a trader, I want to see Long/Short Ratio to understand trader positioning sentiment.
 - As a trader, I want to see funding rates to spot overly long/short positioning.
 - As a trader, I want sentiment context during a backtest so I can interpret performance beyond price alone.
 
@@ -27,24 +27,24 @@ Add a compact “Market Sentiment” panel above or alongside the tickers table.
 
 **Display:**
 - **Fear & Greed Index**: current value with a 0–100 gauge + 30-day sparkline.
-- **Social Mentions** (per selected asset): 7-day sparkline and latest value.
+- **Long/Short Ratio** (per selected asset): 7-day sparkline and latest value (>1 = bullish, <1 = bearish).
 - **Funding Rate** (per selected asset): 7-day sparkline and latest value.
-- Simple helper text: “Risk-on / Risk-off” derived from latest Fear & Greed value.
+- Simple helper text: "Risk-on / Risk-off" derived from latest Fear & Greed value.
 
 **Interaction:**
 - Use the same asset selector as market overview (default: BTC/USDT).
 - No custom filters beyond the existing asset selector.
 
 ### 5.2 Backtest Results (Context Strip)
-Add a small “Sentiment During Backtest” strip below the backtest summary:
+Add a small "Sentiment During Backtest" strip below the backtest summary:
 - Fear & Greed value at start/end of the backtest range.
-- Average social mentions and funding rate over the backtest range.
+- Average Long/Short Ratio and funding rate over the backtest range.
 - A single-line sparkline for each indicator (same 7–30 day range as available).
 
 ## 6. Data Sources & Providers
-- **Fear & Greed Index:** Alternative.me.
-- **Social Mentions:** LunarCrush (asset-level mention volume).
-- **Funding Rates:** derivatives market provider (start with a single exchange endpoint; keep it minimal).
+- **Fear & Greed Index:** Alternative.me (no API key required).
+- **Long/Short Ratio:** Binance Futures globalLongShortAccountRatio (no API key required).
+- **Funding Rates:** Binance Futures fundingRate (no API key required).
 
 ## 7. API & Data Contract (Minimal)
 ### 7.1 Endpoints
@@ -59,11 +59,11 @@ Add a small “Sentiment During Backtest” strip below the backtest summary:
   "as_of": "2026-01-01T12:00:00Z",
   "asset": "BTC/USDT",
   "fear_greed": {"value": 62, "history": [{"t": "2025-12-02", "v": 45}]},
-  "mentions": {"value": 12450, "history": [{"t": "2025-12-26", "v": 9800}]},
+  "long_short_ratio": {"value": 1.25, "history": [{"t": "2025-12-26", "v": 1.15}]},
   "funding": {"value": 0.012, "history": [{"t": "2025-12-26", "v": 0.008}]},
   "source_status": {
     "fear_greed": "ok",
-    "mentions": "ok",
+    "long_short_ratio": "ok",
     "funding": "partial"
   }
 }
@@ -79,11 +79,10 @@ Add a small “Sentiment During Backtest” strip below the backtest summary:
 - If one provider fails, still render the other indicators with a “data unavailable” badge.
 
 ## 10. Acceptance Criteria
-- Market overview shows a sentiment panel with Fear & Greed, social mentions, and funding rate using gauges/sparklines.
+- Market overview shows a sentiment panel with Fear & Greed, Long/Short Ratio, and funding rate using gauges/sparklines.
 - Backtest results show a compact sentiment strip (start/end/average values).
 - Data is cached and partial failures do not break the page.
 - UI remains responsive on mobile (stacked cards).
 
 ## 11. Open Questions
-- Final provider choice for funding rates (single-exchange vs aggregator).
-- Exact asset mapping for social mentions (symbol normalization).
+- None. All providers are now Binance (Long/Short Ratio, Funding Rates) and Alternative.me (Fear & Greed).

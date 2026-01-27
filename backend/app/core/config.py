@@ -23,8 +23,6 @@ class Settings(BaseSettings):
 
     # Market sentiment API settings
     alternative_me_api_url: str = "https://api.alternative.me"
-    coingecko_api_url: str = "https://api.coingecko.com/api/v3"
-    coingecko_api_key: str = "CG-DEMO-KEY"
     binance_futures_api_url: str = "https://fapi.binance.com"
 
     # Backtest defaults

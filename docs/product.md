@@ -1296,7 +1296,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 
 **Market Sentiment Indicators (Implemented):**
 - Fear & Greed Index (0-100 gauge from Alternative.me with 30-day history)
-- Social Activity (Twitter followers from CoinGecko, sparkline display)
+- Long/Short Ratio (Binance global account ratio, 7-day sparkline; >1 = bullish, <1 = bearish)
 - Funding Rates (Binance perpetual futures, 7-day average with sparkline)
 - Asset selector to switch between BTC/USDT and ETH/USDT
 - Simple "risk-on / risk-off" helper text based on Fear & Greed value
@@ -1321,9 +1321,9 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Redis caching: key `market:tickers`, 3-second TTL
 - Error handling: Returns 503 on vendor failure, zeros for missing pair data
 
-**Sentiment Data (Planned):**
+**Sentiment Data (Implemented):**
 - Endpoint: `GET /market/sentiment` (protected, requires auth)
-- Providers: Alternative.me (Fear & Greed Index), LunarCrush (social mentions), derivatives exchange funding rates
+- Providers: Alternative.me (Fear & Greed Index), Binance (Long/Short Ratio + Funding Rates)
 - Redis caching: 15-minute TTL (slow-changing data)
 - Error handling: Return partial data with `source_status` flags per indicator
 
@@ -1797,9 +1797,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - STRIPE_PRICE_BACKTEST_CREDITS_50: Stripe price ID for 50 backtest credits
 - STRIPE_PRICE_STRATEGY_SLOTS_5: Stripe price ID for +5 strategy slots
 - ALTERNATIVE_ME_API_URL: Alternative.me API endpoint for Fear & Greed Index (default: https://api.alternative.me)
-- COINGECKO_API_URL: CoinGecko API endpoint for social metrics (default: https://api.coingecko.com/api/v3)
-- COINGECKO_API_KEY: CoinGecko API key (default: CG-DEMO-KEY)
-- BINANCE_FUTURES_API_URL: Binance futures API endpoint for funding rates (default: https://fapi.binance.com)
+- BINANCE_FUTURES_API_URL: Binance futures API endpoint for funding rates and long/short ratio (default: https://fapi.binance.com)
 
 **Files:**
 - `.env.example`: Template with all variables
@@ -1870,7 +1868,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **In-App Notifications** | ✅ Complete | Bell icon with unread count, notifications for key events |
 | **Real-Time Price Tickers** | ✅ Complete | Market overview with live price, 24h change, volume, trend; 4s polling, 3s Redis cache |
 | **Volatility Metrics (Market Overview)** | ✅ Complete | Show current + historical volatility with percentile rank per pair |
-| **Market Sentiment Indicators (Market Overview)** | ✅ Complete | Fear & Greed Index (Alternative.me), social activity (CoinGecko), funding rates (Binance); 15min cache, partial failure support, backtest sentiment context |
+| **Market Sentiment Indicators (Market Overview)** | ✅ Complete | Fear & Greed Index (Alternative.me), Long/Short Ratio (Binance), Funding Rates (Binance); 15min cache, partial failure support, backtest sentiment context |
 | **Frontend UI** | ✅ Complete | Multi-strategy dashboard, strategy list/editor, backtest runner/results, profile |
 | **Recently Viewed Shortcuts (Dashboard)** | 📝 Planned | Quick links to recently viewed strategies and backtests from session history |
 | **Progress Dashboard** | ✅ Complete | Journey metrics, achievements, lessons learned, and next-step suggestions from usage data |

@@ -223,11 +223,11 @@ export function formatVolatility(
  * Format sentiment value with context-specific display.
  * Example: formatSentiment(62, "fear_greed") -> "62 (Greed)"
  * Example: formatSentiment(0.0001, "funding") -> "0.01%"
- * Example: formatSentiment(12450, "mentions") -> "12,450"
+ * Example: formatSentiment(1.5, "long_short_ratio") -> "1.50 (Bullish)"
  */
 export function formatSentiment(
   value: number | null | undefined,
-  type: "fear_greed" | "mentions" | "funding"
+  type: "fear_greed" | "long_short_ratio" | "funding"
 ): string {
   if (!isValidNumber(value)) return PLACEHOLDER;
 
@@ -246,6 +246,11 @@ export function formatSentiment(
     return `${(value * 100).toFixed(2)}%`;
   }
 
-  // Mentions: large integer
-  return formatNumber(value, 0);
+  // Long/Short Ratio: > 1 means more longs (bullish), < 1 means more shorts (bearish)
+  const label = value >= 1.5 ? "Very Bullish"
+              : value >= 1.1 ? "Bullish"
+              : value >= 0.9 ? "Neutral"
+              : value >= 0.67 ? "Bearish"
+              : "Very Bearish";
+  return `${value.toFixed(2)} (${label})`;
 }
