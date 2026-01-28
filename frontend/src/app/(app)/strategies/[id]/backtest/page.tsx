@@ -26,6 +26,7 @@ import {
   formatMoney,
   formatChartDate,
   formatDuration,
+  formatRelativeTime,
 } from "@/lib/format";
 import { useDisplay } from "@/context/display";
 import { useAuth } from "@/context/auth";
@@ -551,9 +552,13 @@ export default function StrategyBacktestPage({ params }: Props) {
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
   const [selectedRunIds, setSelectedRunIds] = useState<Set<string>>(new Set());
 
-  // Pagination state
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(25);
+  // Pagination state for backtest runs list
+  const [runsCurrentPage, setRunsCurrentPage] = useState(1);
+  const runsPageSize = 5;
+
+  // Pagination state for trades table
+  const [tradesCurrentPage, setTradesCurrentPage] = useState(1);
+  const [tradesPageSize, setTradesPageSize] = useState(25);
 
   // Data quality state
   const [dataQuality, setDataQuality] = useState<DataQualityMetrics | null>(null);
@@ -701,7 +706,7 @@ export default function StrategyBacktestPage({ params }: Props) {
   // Reset pagination when run changes
   useEffect(() => {
     if (selectedRun?.status === "completed") {
-      setCurrentPage(1);
+      setTradesCurrentPage(1);
     }
   }, [selectedRun?.status]);
 
@@ -725,19 +730,24 @@ export default function StrategyBacktestPage({ params }: Props) {
   const loadBacktests = useCallback(async () => {
     setIsLoadingBacktests(true);
     try {
-      const params = new URLSearchParams({ strategy_id: id });
+      const offset = (runsCurrentPage - 1) * runsPageSize;
+      const params = new URLSearchParams({
+        strategy_id: id,
+        limit: runsPageSize.toString(),
+        offset: offset.toString(),
+      });
       const data = await apiFetch<BacktestListItem[]>(`/backtests/?${params.toString()}`);
       setBacktests(data);
       setError(null);
-      if (data.length > 0) {
-        setSelectedRunId((current) => current ?? data[0].run_id);
+      if (data.length > 0 && !selectedRunId) {
+        setSelectedRunId(data[0].run_id);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load backtests");
     } finally {
       setIsLoadingBacktests(false);
     }
-  }, [id]);
+  }, [id, runsCurrentPage, selectedRunId]);
 
   useEffect(() => {
     loadStrategy();
@@ -989,10 +999,10 @@ export default function StrategyBacktestPage({ params }: Props) {
   }, [isMobile]);
 
   // Trades pagination
-  const totalPages = Math.ceil(trades.length / pageSize);
+  const totalPages = Math.ceil(trades.length / tradesPageSize);
   const paginatedTrades = trades.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize
+    (tradesCurrentPage - 1) * tradesPageSize,
+    tradesCurrentPage * tradesPageSize
   );
 
   if (isLoadingStrategy) {
@@ -1180,64 +1190,172 @@ export default function StrategyBacktestPage({ params }: Props) {
                   </Button>
                 )}
                 <Button
-                  variant="link"
+                  variant="ghost"
                   size="sm"
                   onClick={loadBacktests}
                   disabled={isLoadingBacktests}
-                  className="h-auto p-0"
+                  className="h-8 px-2 text-gray-500 hover:text-gray-700"
                 >
-                  {isLoadingBacktests ? "Refreshing..." : "Refresh"}
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={isLoadingBacktests ? "animate-spin" : ""}>
+                    <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+                    <path d="M21 3v5h-5" />
+                  </svg>
                 </Button>
               </div>
             </div>
 
             {selectedRunIds.size > 0 && selectedRunIds.size < 2 && (
-              <div className="mb-2 rounded bg-blue-50 px-3 py-2 text-sm text-blue-700">
-                Select at least 2 runs to compare (max 4)
+              <div className="mb-3 flex items-center gap-2 rounded-md bg-blue-50 px-3 py-2 text-sm text-blue-700">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M12 16v-4" />
+                  <path d="M12 8h.01" />
+                </svg>
+                Select 2-4 runs to compare
               </div>
             )}
 
             {selectedRunIds.size > 4 && (
-              <div className="mb-2 rounded bg-amber-50 px-3 py-2 text-sm text-amber-700">
-                Maximum 4 runs can be compared. Deselect some to continue.
+              <div className="mb-3 flex items-center gap-2 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-700">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
+                  <path d="M12 9v4" />
+                  <path d="M12 17h.01" />
+                </svg>
+                Max 4 runs can be compared
               </div>
             )}
 
             {backtests.length === 0 ? (
-              <p className="text-sm text-gray-500">No backtests yet. Run your first one above.</p>
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <div className="mb-3 rounded-full bg-gray-100 p-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400">
+                    <path d="M3 3v18h18" />
+                    <path d="m19 9-5 5-4-4-3 3" />
+                  </svg>
+                </div>
+                <p className="text-sm font-medium text-gray-900">No backtests yet</p>
+                <p className="mt-1 text-xs text-gray-500">Run your first backtest to see results here</p>
+              </div>
             ) : (
-              <div className="space-y-3">
-                {backtests.map((run) => (
-                  <div key={run.run_id} className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={selectedRunIds.has(run.run_id)}
-                      onChange={(e) => handleSelectRun(run.run_id, e.target.checked)}
-                      disabled={!selectedRunIds.has(run.run_id) && selectedRunIds.size >= 4}
-                      className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    <button
-                      onClick={() => setSelectedRunId(run.run_id)}
-                      className={`flex-1 rounded border px-3 py-2 text-left transition hover:border-blue-300 ${
-                        selectedRunId === run.run_id ? "border-blue-300 bg-blue-50" : "border-gray-200 bg-white"
-                      }`}
+              <div className="space-y-2">
+                {backtests.map((run) => {
+                  const isSelected = selectedRunId === run.run_id;
+                  const isPositive = (run.total_return ?? 0) >= 0;
+                  const returnValue = run.total_return ?? 0;
+
+                  // Performance color based on return
+                  const perfColor = run.status !== "completed"
+                    ? "bg-gray-200"
+                    : isPositive
+                      ? returnValue > 10 ? "bg-emerald-500" : "bg-emerald-400"
+                      : returnValue < -10 ? "bg-red-500" : "bg-red-400";
+
+                  return (
+                    <div
+                      key={run.run_id}
+                      className="flex items-stretch gap-2"
                     >
-                      <div className="flex items-center justify-between">
-                        <div className="text-sm font-semibold text-gray-900">{formatDateTime(run.created_at, timezone)}</div>
-                        {statusBadge(run.status)}
+                      <div className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={selectedRunIds.has(run.run_id)}
+                          onChange={(e) => handleSelectRun(run.run_id, e.target.checked)}
+                          disabled={!selectedRunIds.has(run.run_id) && selectedRunIds.size >= 4}
+                          className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-offset-0"
+                        />
                       </div>
-                      <div className="mt-1 flex items-center justify-between text-xs text-gray-600">
-                        <span>
-                          {formatDateTime(run.date_from, timezone).split(" ")[0]} →{" "}
-                          {formatDateTime(run.date_to, timezone).split(" ")[0]}
-                        </span>
-                        <span className="font-medium text-gray-900">
-                          {formatPercent(run.total_return)}
-                        </span>
-                      </div>
-                    </button>
-                  </div>
-                ))}
+                      <button
+                        onClick={() => setSelectedRunId(run.run_id)}
+                        className={`group relative flex flex-1 overflow-hidden rounded-lg border transition-all ${
+                          isSelected
+                            ? "border-blue-400 bg-blue-50 shadow-sm ring-1 ring-blue-100"
+                            : "border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm"
+                        }`}
+                      >
+                        {/* Performance indicator bar */}
+                        <div className={`w-1 shrink-0 ${perfColor}`} />
+
+                        <div className="flex flex-1 flex-col px-3 py-2.5">
+                          {/* Top row: Time and status */}
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              <span
+                                className="text-sm font-medium text-gray-900"
+                                title={formatDateTime(run.created_at, timezone)}
+                              >
+                                {formatRelativeTime(run.created_at)}
+                              </span>
+                              {run.triggered_by === "schedule" && (
+                                <span className="flex h-4 items-center rounded bg-purple-100 px-1.5 text-[10px] font-medium text-purple-700">
+                                  auto
+                                </span>
+                              )}
+                            </div>
+                            {/* Status badge */}
+                            <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${statusStyles[run.status]}`}>
+                              {run.status === "running" && (
+                                <span className="relative flex h-2 w-2">
+                                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-400 opacity-75" />
+                                  <span className="relative inline-flex h-2 w-2 rounded-full bg-blue-500" />
+                                </span>
+                              )}
+                              {run.status === "pending" && (
+                                <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <circle cx="12" cy="12" r="10" />
+                                  <polyline points="12 6 12 12 16 14" />
+                                </svg>
+                              )}
+                              {run.status}
+                            </span>
+                          </div>
+
+                          {/* Bottom row: Date range and return */}
+                          <div className="mt-1.5 flex items-center justify-between">
+                            <span className="text-xs text-gray-500">
+                              {formatDateTime(run.date_from, timezone).split(" ")[0]} → {formatDateTime(run.date_to, timezone).split(" ")[0]}
+                            </span>
+                            {run.status === "completed" && (
+                              <span className={`text-sm font-semibold tabular-nums ${isPositive ? "text-emerald-600" : "text-red-600"}`}>
+                                {isPositive ? "+" : ""}{formatPercent(run.total_return)}
+                              </span>
+                            )}
+                            {run.status === "failed" && (
+                              <span className="text-xs text-red-600">Error</span>
+                            )}
+                          </div>
+                        </div>
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Pagination controls */}
+            {backtests.length === runsPageSize && (
+              <div className="mt-2 flex items-center justify-center gap-1">
+                <button
+                  onClick={() => setRunsCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={runsCurrentPage === 1}
+                  className="flex h-6 w-6 items-center justify-center rounded border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-30"
+                  title="Previous page"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="m15 18-6-6 6-6" />
+                  </svg>
+                </button>
+                <span className="px-2 text-xs text-gray-500">{runsCurrentPage}</span>
+                <button
+                  onClick={() => setRunsCurrentPage((p) => p + 1)}
+                  disabled={backtests.length < runsPageSize}
+                  className="flex h-6 w-6 items-center justify-center rounded border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-30"
+                  title="Next page"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="m9 18 6-6-6-6" />
+                  </svg>
+                </button>
               </div>
             )}
           </section>
@@ -1868,10 +1986,10 @@ export default function StrategyBacktestPage({ params }: Props) {
                   <div className="flex items-center gap-2 text-sm text-gray-500">
                     <span>{trades.length} total</span>
                     <Select
-                      value={String(pageSize)}
+                      value={String(tradesPageSize)}
                       onValueChange={(value) => {
-                        setPageSize(Number(value));
-                        setCurrentPage(1);
+                        setTradesPageSize(Number(value));
+                        setTradesCurrentPage(1);
                       }}
                     >
                       <SelectTrigger className="h-8 w-[70px]">
@@ -1907,7 +2025,7 @@ export default function StrategyBacktestPage({ params }: Props) {
                     <button
                       key={`${trade.entry_time}-${idx}`}
                       className="w-full rounded-lg border border-gray-200 bg-gray-50 p-3 text-left transition hover:border-blue-300"
-                      onClick={() => setSelectedTradeIdx((currentPage - 1) * pageSize + idx)}
+                      onClick={() => setSelectedTradeIdx((tradesCurrentPage - 1) * tradesPageSize + idx)}
                     >
                       <div className="mb-2 flex items-center justify-between">
                         <span className="text-xs font-medium uppercase text-gray-500">{trade.side}</span>
@@ -1969,12 +2087,12 @@ export default function StrategyBacktestPage({ params }: Props) {
                         <TableRow
                           key={`${trade.entry_time}-${idx}`}
                           className="cursor-pointer"
-                          onClick={() => setSelectedTradeIdx((currentPage - 1) * pageSize + idx)}
+                          onClick={() => setSelectedTradeIdx((tradesCurrentPage - 1) * tradesPageSize + idx)}
                           tabIndex={0}
                           onKeyDown={(e) => {
                             if (e.key === "Enter" || e.key === " ") {
                               e.preventDefault();
-                              setSelectedTradeIdx((currentPage - 1) * pageSize + idx);
+                              setSelectedTradeIdx((tradesCurrentPage - 1) * tradesPageSize + idx);
                             }
                           }}
                         >
@@ -2022,22 +2140,22 @@ export default function StrategyBacktestPage({ params }: Props) {
                 {totalPages > 1 && (
                   <div className="mt-3 flex flex-col gap-2 border-t pt-3 sm:flex-row sm:items-center sm:justify-between">
                     <p className="text-sm text-gray-500">
-                      Page {currentPage} of {totalPages}
+                      Page {tradesCurrentPage} of {totalPages}
                     </p>
                     <div className="flex gap-2">
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                        disabled={currentPage === 1}
+                        onClick={() => setTradesCurrentPage((p) => Math.max(1, p - 1))}
+                        disabled={tradesCurrentPage === 1}
                       >
                         Previous
                       </Button>
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                        disabled={currentPage === totalPages}
+                        onClick={() => setTradesCurrentPage((p) => Math.min(totalPages, p + 1))}
+                        disabled={tradesCurrentPage === totalPages}
                       >
                         Next
                       </Button>
