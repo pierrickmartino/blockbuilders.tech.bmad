@@ -726,19 +726,24 @@ export default function StrategyBacktestPage({ params }: Props) {
   const loadBacktests = useCallback(async () => {
     setIsLoadingBacktests(true);
     try {
-      const params = new URLSearchParams({ strategy_id: id });
+      const offset = (currentPage - 1) * pageSize;
+      const params = new URLSearchParams({
+        strategy_id: id,
+        limit: pageSize.toString(),
+        offset: offset.toString(),
+      });
       const data = await apiFetch<BacktestListItem[]>(`/backtests/?${params.toString()}`);
       setBacktests(data);
       setError(null);
-      if (data.length > 0) {
-        setSelectedRunId((current) => current ?? data[0].run_id);
+      if (data.length > 0 && !selectedRunId) {
+        setSelectedRunId(data[0].run_id);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load backtests");
     } finally {
       setIsLoadingBacktests(false);
     }
-  }, [id]);
+  }, [id, currentPage, pageSize, selectedRunId]);
 
   useEffect(() => {
     loadStrategy();
@@ -1320,6 +1325,46 @@ export default function StrategyBacktestPage({ params }: Props) {
                     </div>
                   );
                 })}
+              </div>
+            )}
+
+            {/* Pagination controls */}
+            {backtests.length > 0 && (
+              <div className="mt-3 flex flex-col gap-2 border-t border-gray-200 pt-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <span>Show:</span>
+                  <select
+                    value={pageSize}
+                    onChange={(e) => {
+                      setPageSize(Number(e.target.value));
+                      setCurrentPage(1);
+                    }}
+                    className="rounded border border-gray-300 px-2 py-1 text-sm"
+                  >
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                  </select>
+                  <span>per page</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="rounded border border-gray-300 px-3 py-1 text-sm text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Previous
+                  </button>
+                  <span className="text-sm text-gray-600">Page {currentPage}</span>
+                  <button
+                    onClick={() => setCurrentPage((p) => p + 1)}
+                    disabled={backtests.length < pageSize}
+                    className="rounded border border-gray-300 px-3 py-1 text-sm text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Next
+                  </button>
+                </div>
               </div>
             )}
           </section>

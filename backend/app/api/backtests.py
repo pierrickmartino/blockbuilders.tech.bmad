@@ -604,6 +604,8 @@ def get_benchmark_equity_curve(
 @router.get("/", response_model=list[BacktestListItem])
 def list_backtests(
     strategy_id: UUID | None = None,
+    limit: int = Query(default=20, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
     user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
 ) -> list[BacktestListItem]:
@@ -613,7 +615,7 @@ def list_backtests(
     if strategy_id:
         query = query.where(BacktestRun.strategy_id == strategy_id)
 
-    query = query.order_by(BacktestRun.created_at.desc()).limit(50)
+    query = query.order_by(BacktestRun.created_at.desc()).limit(limit).offset(offset)
     runs = session.exec(query).all()
 
     return [
