@@ -552,9 +552,13 @@ export default function StrategyBacktestPage({ params }: Props) {
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
   const [selectedRunIds, setSelectedRunIds] = useState<Set<string>>(new Set());
 
-  // Pagination state
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(25);
+  // Pagination state for backtest runs list
+  const [runsCurrentPage, setRunsCurrentPage] = useState(1);
+  const runsPageSize = 5;
+
+  // Pagination state for trades table
+  const [tradesCurrentPage, setTradesCurrentPage] = useState(1);
+  const [tradesPageSize, setTradesPageSize] = useState(25);
 
   // Data quality state
   const [dataQuality, setDataQuality] = useState<DataQualityMetrics | null>(null);
@@ -702,7 +706,7 @@ export default function StrategyBacktestPage({ params }: Props) {
   // Reset pagination when run changes
   useEffect(() => {
     if (selectedRun?.status === "completed") {
-      setCurrentPage(1);
+      setTradesCurrentPage(1);
     }
   }, [selectedRun?.status]);
 
@@ -726,10 +730,10 @@ export default function StrategyBacktestPage({ params }: Props) {
   const loadBacktests = useCallback(async () => {
     setIsLoadingBacktests(true);
     try {
-      const offset = (currentPage - 1) * pageSize;
+      const offset = (runsCurrentPage - 1) * runsPageSize;
       const params = new URLSearchParams({
         strategy_id: id,
-        limit: pageSize.toString(),
+        limit: runsPageSize.toString(),
         offset: offset.toString(),
       });
       const data = await apiFetch<BacktestListItem[]>(`/backtests/?${params.toString()}`);
@@ -743,7 +747,7 @@ export default function StrategyBacktestPage({ params }: Props) {
     } finally {
       setIsLoadingBacktests(false);
     }
-  }, [id, currentPage, pageSize, selectedRunId]);
+  }, [id, runsCurrentPage, selectedRunId]);
 
   useEffect(() => {
     loadStrategy();
@@ -995,10 +999,10 @@ export default function StrategyBacktestPage({ params }: Props) {
   }, [isMobile]);
 
   // Trades pagination
-  const totalPages = Math.ceil(trades.length / pageSize);
+  const totalPages = Math.ceil(trades.length / tradesPageSize);
   const paginatedTrades = trades.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize
+    (tradesCurrentPage - 1) * tradesPageSize,
+    tradesCurrentPage * tradesPageSize
   );
 
   if (isLoadingStrategy) {
@@ -1329,42 +1333,29 @@ export default function StrategyBacktestPage({ params }: Props) {
             )}
 
             {/* Pagination controls */}
-            {backtests.length > 0 && (
-              <div className="mt-3 flex flex-col gap-2 border-t border-gray-200 pt-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <span>Show:</span>
-                  <select
-                    value={pageSize}
-                    onChange={(e) => {
-                      setPageSize(Number(e.target.value));
-                      setCurrentPage(1);
-                    }}
-                    className="rounded border border-gray-300 px-2 py-1 text-sm"
-                  >
-                    <option value={10}>10</option>
-                    <option value={20}>20</option>
-                    <option value={50}>50</option>
-                    <option value={100}>100</option>
-                  </select>
-                  <span>per page</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    disabled={currentPage === 1}
-                    className="rounded border border-gray-300 px-3 py-1 text-sm text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    Previous
-                  </button>
-                  <span className="text-sm text-gray-600">Page {currentPage}</span>
-                  <button
-                    onClick={() => setCurrentPage((p) => p + 1)}
-                    disabled={backtests.length < pageSize}
-                    className="rounded border border-gray-300 px-3 py-1 text-sm text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    Next
-                  </button>
-                </div>
+            {backtests.length === runsPageSize && (
+              <div className="mt-2 flex items-center justify-center gap-1">
+                <button
+                  onClick={() => setRunsCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={runsCurrentPage === 1}
+                  className="flex h-6 w-6 items-center justify-center rounded border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-30"
+                  title="Previous page"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="m15 18-6-6 6-6" />
+                  </svg>
+                </button>
+                <span className="px-2 text-xs text-gray-500">{runsCurrentPage}</span>
+                <button
+                  onClick={() => setRunsCurrentPage((p) => p + 1)}
+                  disabled={backtests.length < runsPageSize}
+                  className="flex h-6 w-6 items-center justify-center rounded border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-30"
+                  title="Next page"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="m9 18 6-6-6-6" />
+                  </svg>
+                </button>
               </div>
             )}
           </section>
@@ -1995,10 +1986,10 @@ export default function StrategyBacktestPage({ params }: Props) {
                   <div className="flex items-center gap-2 text-sm text-gray-500">
                     <span>{trades.length} total</span>
                     <Select
-                      value={String(pageSize)}
+                      value={String(tradesPageSize)}
                       onValueChange={(value) => {
-                        setPageSize(Number(value));
-                        setCurrentPage(1);
+                        setTradesPageSize(Number(value));
+                        setTradesCurrentPage(1);
                       }}
                     >
                       <SelectTrigger className="h-8 w-[70px]">
@@ -2034,7 +2025,7 @@ export default function StrategyBacktestPage({ params }: Props) {
                     <button
                       key={`${trade.entry_time}-${idx}`}
                       className="w-full rounded-lg border border-gray-200 bg-gray-50 p-3 text-left transition hover:border-blue-300"
-                      onClick={() => setSelectedTradeIdx((currentPage - 1) * pageSize + idx)}
+                      onClick={() => setSelectedTradeIdx((tradesCurrentPage - 1) * tradesPageSize + idx)}
                     >
                       <div className="mb-2 flex items-center justify-between">
                         <span className="text-xs font-medium uppercase text-gray-500">{trade.side}</span>
@@ -2096,12 +2087,12 @@ export default function StrategyBacktestPage({ params }: Props) {
                         <TableRow
                           key={`${trade.entry_time}-${idx}`}
                           className="cursor-pointer"
-                          onClick={() => setSelectedTradeIdx((currentPage - 1) * pageSize + idx)}
+                          onClick={() => setSelectedTradeIdx((tradesCurrentPage - 1) * tradesPageSize + idx)}
                           tabIndex={0}
                           onKeyDown={(e) => {
                             if (e.key === "Enter" || e.key === " ") {
                               e.preventDefault();
-                              setSelectedTradeIdx((currentPage - 1) * pageSize + idx);
+                              setSelectedTradeIdx((tradesCurrentPage - 1) * tradesPageSize + idx);
                             }
                           }}
                         >
@@ -2149,22 +2140,22 @@ export default function StrategyBacktestPage({ params }: Props) {
                 {totalPages > 1 && (
                   <div className="mt-3 flex flex-col gap-2 border-t pt-3 sm:flex-row sm:items-center sm:justify-between">
                     <p className="text-sm text-gray-500">
-                      Page {currentPage} of {totalPages}
+                      Page {tradesCurrentPage} of {totalPages}
                     </p>
                     <div className="flex gap-2">
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                        disabled={currentPage === 1}
+                        onClick={() => setTradesCurrentPage((p) => Math.max(1, p - 1))}
+                        disabled={tradesCurrentPage === 1}
                       >
                         Previous
                       </Button>
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                        disabled={currentPage === totalPages}
+                        onClick={() => setTradesCurrentPage((p) => Math.min(totalPages, p + 1))}
+                        disabled={tradesCurrentPage === totalPages}
                       >
                         Next
                       </Button>
