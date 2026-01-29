@@ -236,6 +236,8 @@ async def stripe_webhook(
                 event["type"],
                 session,
             )
+        elif checkout_session.get("mode") == "subscription":
+            await _handle_subscription_checkout(checkout_session, session)
 
     return {"status": "success"}
 
@@ -278,6 +280,44 @@ async def _handle_subscription_update(subscription: dict, session: Session):
     session.commit()
 
     logger.info(f"Updated user {user.id} to {plan_tier}/{plan_interval}")
+
+
+async def _handle_subscription_checkout(checkout_session: dict, session: Session):
+    """Update user plan based on checkout session metadata (for custom prices)."""
+    customer_id = checkout_session["customer"]
+    metadata = checkout_session.get("metadata", {})
+
+    # Find user by Stripe customer ID
+    user = session.exec(
+        select(User).where(User.stripe_customer_id == customer_id)
+    ).first()
+
+    if not user:
+        logger.warning(f"No user found for Stripe customer {customer_id}")
+        return
+
+    # Extract plan details from metadata
+    plan_tier = metadata.get("plan_tier")
+    plan_interval = metadata.get("interval")
+    subscription_id = checkout_session.get("subscription")
+
+    if not plan_tier or not plan_interval:
+        logger.error(f"Missing plan metadata in checkout session {checkout_session['id']}")
+        return
+
+    # Update user
+    user.plan_tier = PlanTier(plan_tier)
+    user.plan_interval = PlanInterval(plan_interval)
+    if subscription_id:
+        user.stripe_subscription_id = subscription_id
+    user.subscription_status = SubscriptionStatus.ACTIVE
+
+    session.add(user)
+    session.commit()
+
+    logger.info(
+        f"Updated user {user.id} to {plan_tier}/{plan_interval} via checkout session"
+    )
 
 
 async def _handle_subscription_deleted(subscription: dict, session: Session):
