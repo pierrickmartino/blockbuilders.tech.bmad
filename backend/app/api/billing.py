@@ -6,6 +6,7 @@ import stripe
 from sqlalchemy.exc import IntegrityError
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel
+from sqlalchemy import update
 from sqlmodel import Session, select
 
 from app.api.deps import get_current_user
@@ -350,7 +351,10 @@ async def _handle_credit_pack_purchase(
     event_type: str,
     session: Session,
 ):
-    """Credit user account after successful credit pack purchase."""
+    """Credit user account after successful credit pack purchase.
+
+    Uses atomic SQL increment to prevent race conditions with concurrent webhooks.
+    """
     customer_id = checkout_session["customer"]
     pack_type = checkout_session.get("metadata", {}).get("pack_type")
     session_id = checkout_session["id"]
@@ -364,6 +368,7 @@ async def _handle_credit_pack_purchase(
         logger.warning(f"No user found for Stripe customer {customer_id}")
         return
 
+    # Record webhook event for idempotency (insert first to detect duplicates)
     session.add(
         StripeWebhookEvent(
             event_id=event_id,
@@ -372,20 +377,9 @@ async def _handle_credit_pack_purchase(
         )
     )
 
-    # Credit the appropriate balance
-    if pack_type == "backtest_credits":
-        user.backtest_credit_balance += 50
-        logger.info(f"Credited user {user.id} with 50 backtest credits")
-    elif pack_type == "strategy_slots":
-        user.extra_strategy_slots += 5
-        logger.info(f"Credited user {user.id} with +5 strategy slots")
-    else:
-        logger.error(f"Unknown pack type {pack_type} in session {session_id}")
-        return
-
-    session.add(user)
     try:
-        session.commit()
+        # Flush to check for duplicate event before crediting
+        session.flush()
     except IntegrityError:
         session.rollback()
         logger.info(
@@ -394,3 +388,25 @@ async def _handle_credit_pack_purchase(
             session_id,
         )
         return
+
+    # Use atomic SQL increment to prevent race conditions
+    if pack_type == "backtest_credits":
+        session.execute(
+            update(User)
+            .where(User.id == user.id)
+            .values(backtest_credit_balance=User.backtest_credit_balance + 50)
+        )
+        logger.info(f"Credited user {user.id} with 50 backtest credits")
+    elif pack_type == "strategy_slots":
+        session.execute(
+            update(User)
+            .where(User.id == user.id)
+            .values(extra_strategy_slots=User.extra_strategy_slots + 5)
+        )
+        logger.info(f"Credited user {user.id} with +5 strategy slots")
+    else:
+        logger.error(f"Unknown pack type {pack_type} in session {session_id}")
+        session.rollback()
+        return
+
+    session.commit()

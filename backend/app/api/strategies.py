@@ -69,6 +69,41 @@ def load_strategy_tags(strategy_id: UUID, session: Session) -> list[StrategyTagR
     ]
 
 
+def batch_load_strategy_tags(
+    strategy_ids: list[UUID], session: Session
+) -> dict[UUID, list[StrategyTagResponse]]:
+    """Load all tags for multiple strategies in a single query.
+
+    Returns a dict mapping strategy_id -> list of tags.
+    """
+    if not strategy_ids:
+        return {}
+
+    # Single query to fetch all tags for all strategies
+    results = session.exec(
+        select(StrategyTagLink.strategy_id, StrategyTag)
+        .join(StrategyTag, StrategyTag.id == StrategyTagLink.tag_id)
+        .where(StrategyTagLink.strategy_id.in_(strategy_ids))
+        .order_by(StrategyTag.name)
+    ).all()
+
+    # Group tags by strategy_id
+    tags_by_strategy: dict[UUID, list[StrategyTagResponse]] = {
+        sid: [] for sid in strategy_ids
+    }
+    for strategy_id, tag in results:
+        tags_by_strategy[strategy_id].append(
+            StrategyTagResponse(
+                id=tag.id,
+                name=tag.name,
+                created_at=tag.created_at,
+                updated_at=tag.updated_at,
+            )
+        )
+
+    return tags_by_strategy
+
+
 @router.post("/", response_model=StrategyResponse, status_code=status.HTTP_201_CREATED)
 def create_strategy(
     data: StrategyCreateRequest,
@@ -188,6 +223,10 @@ def list_strategies(
     query = query.order_by(Strategy.updated_at.desc())
     results = session.exec(query).all()
 
+    # Batch load all tags in a single query (fixes N+1)
+    strategy_ids = [s.id for s, _ in results]
+    tags_by_strategy = batch_load_strategy_tags(strategy_ids, session)
+
     return [
         StrategyWithMetricsResponse(
             id=s.id,
@@ -205,7 +244,7 @@ def list_strategies(
             latest_win_rate_pct=backtest.win_rate if backtest else None,
             latest_num_trades=backtest.num_trades if backtest else None,
             last_run_at=backtest.created_at if backtest else None,
-            tags=load_strategy_tags(s.id, session),
+            tags=tags_by_strategy.get(s.id, []),
         )
         for s, backtest in results
     ]

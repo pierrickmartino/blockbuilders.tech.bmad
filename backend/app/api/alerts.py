@@ -1,5 +1,8 @@
+import ipaddress
+import socket
 from datetime import datetime, timezone
 from typing import Optional
+from urllib.parse import urlparse
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -17,6 +20,75 @@ from app.schemas.alert import (
 )
 
 router = APIRouter(prefix="/alerts", tags=["alerts"])
+
+# Blocked IP ranges for SSRF prevention
+BLOCKED_IP_RANGES = [
+    ipaddress.ip_network("10.0.0.0/8"),      # Private
+    ipaddress.ip_network("172.16.0.0/12"),   # Private
+    ipaddress.ip_network("192.168.0.0/16"),  # Private
+    ipaddress.ip_network("127.0.0.0/8"),     # Loopback
+    ipaddress.ip_network("169.254.0.0/16"),  # Link-local
+    ipaddress.ip_network("0.0.0.0/8"),       # Current network
+]
+
+
+def validate_webhook_url(url: str | None) -> None:
+    """Validate webhook URL to prevent SSRF attacks.
+
+    Raises HTTPException if URL is invalid or points to internal resources.
+    """
+    if not url:
+        return
+
+    try:
+        parsed = urlparse(url)
+
+        # Must be HTTPS
+        if parsed.scheme != "https":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Webhook URL must use HTTPS",
+            )
+
+        # Must have a hostname
+        if not parsed.hostname:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid webhook URL: missing hostname",
+            )
+
+        # Block localhost variants
+        hostname_lower = parsed.hostname.lower()
+        if hostname_lower in ("localhost", "127.0.0.1", "::1", "0.0.0.0"):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Webhook URL cannot point to localhost",
+            )
+
+        # Resolve hostname and check IP
+        try:
+            ip = socket.gethostbyname(parsed.hostname)
+            ip_addr = ipaddress.ip_address(ip)
+
+            for blocked_range in BLOCKED_IP_RANGES:
+                if ip_addr in blocked_range:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Webhook URL cannot point to internal network",
+                    )
+        except socket.gaierror:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid webhook URL: hostname could not be resolved",
+            )
+
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid webhook URL format",
+        )
 
 
 def get_user_alert_rule(
@@ -121,6 +193,10 @@ def create_alert(
         )
 
     elif data.alert_type == AlertType.PRICE:
+        # Validate webhook URL to prevent SSRF
+        if data.notify_webhook and data.webhook_url:
+            validate_webhook_url(data.webhook_url)
+
         # Create price alert rule (no duplicate check, multiple allowed per asset)
         rule = AlertRule(
             user_id=user.id,
@@ -167,6 +243,8 @@ def update_alert(
         if data.notify_webhook is not None:
             rule.notify_webhook = data.notify_webhook
         if data.webhook_url is not None:
+            # Validate webhook URL to prevent SSRF
+            validate_webhook_url(data.webhook_url)
             rule.webhook_url = data.webhook_url
         if data.expires_at is not None:
             rule.expires_at = data.expires_at

@@ -221,6 +221,8 @@ class TestCreditPackPurchase:
             checkout_session, "evt_123", "checkout.session.completed", session
         )
 
+        # Refresh to get updated value after atomic increment
+        session.expire(free_user)
         session.refresh(free_user)
 
         assert free_user.backtest_credit_balance == initial_balance + 50
@@ -240,6 +242,8 @@ class TestCreditPackPurchase:
             checkout_session, "evt_456", "checkout.session.completed", session
         )
 
+        # Refresh to get updated value after atomic increment
+        session.expire(free_user)
         session.refresh(free_user)
 
         assert free_user.extra_strategy_slots == initial_slots + 5
@@ -261,14 +265,17 @@ class TestCreditPackPurchase:
             checkout_session, event_id, "checkout.session.completed", session
         )
 
+        session.expire(free_user)
+        session.refresh(free_user)
         balance_after_first = free_user.backtest_credit_balance
 
         # Second call with same event_id should not add more credits
-        # (IntegrityError on StripeWebhookEvent insert)
+        # (IntegrityError on StripeWebhookEvent insert detected via flush)
         await _handle_credit_pack_purchase(
             checkout_session, event_id, "checkout.session.completed", session
         )
 
+        session.expire(free_user)
         session.refresh(free_user)
 
         # Balance should be same (idempotent)

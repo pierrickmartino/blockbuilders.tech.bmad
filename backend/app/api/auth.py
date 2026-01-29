@@ -34,6 +34,42 @@ from app.schemas.auth import (
 router = APIRouter(prefix="/auth", tags=["auth"])
 logger = logging.getLogger(__name__)
 
+# Rate limiting constants
+RESET_RATE_LIMIT_MAX = 3  # Max requests per email
+RESET_RATE_LIMIT_WINDOW = 3600  # 1 hour in seconds
+
+
+def _get_redis_client() -> Redis:
+    """Get Redis client for rate limiting."""
+    return Redis.from_url(settings.redis_url, decode_responses=True)
+
+
+def _check_rate_limit(email: str) -> bool:
+    """Check if email has exceeded rate limit for password reset.
+
+    Returns True if request should be allowed, False if rate limited.
+    """
+    try:
+        redis = _get_redis_client()
+        key = f"password_reset_rate:{email.lower()}"
+        current = redis.get(key)
+
+        if current is None:
+            # First request - set counter with TTL
+            redis.setex(key, RESET_RATE_LIMIT_WINDOW, 1)
+            return True
+
+        if int(current) >= RESET_RATE_LIMIT_MAX:
+            return False
+
+        # Increment counter
+        redis.incr(key)
+        return True
+    except Exception as e:
+        # If Redis fails, allow the request (fail open for usability)
+        logger.warning(f"Rate limit check failed: {e}")
+        return True
+
 
 def _get_redis() -> Redis:
     """Get Redis connection for OAuth state storage."""
@@ -88,8 +124,13 @@ def login(data: LoginRequest, session: Session = Depends(get_session)) -> AuthRe
 def request_password_reset(
     data: PasswordResetRequest, session: Session = Depends(get_session)
 ) -> MessageResponse:
-    # TODO: Add rate limiting (e.g., max 3 requests per email per hour)
-    # to prevent email bombing and credential stuffing attacks
+    # Rate limit: max 3 requests per email per hour
+    if not _check_rate_limit(data.email):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many password reset requests. Please try again later.",
+        )
+
     user = session.exec(select(User).where(User.email == data.email)).first()
     if user and user.password_hash:  # Only for email/password users
         token = generate_reset_token()

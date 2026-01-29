@@ -41,10 +41,14 @@ def generate_reset_token() -> str:
 
 
 def is_reset_token_valid(user: "User", token: str) -> bool:
-    """Check if the reset token is valid and not expired."""
+    """Check if the reset token is valid and not expired.
+
+    Uses constant-time comparison to prevent timing attacks.
+    """
     if not user.reset_token or not user.reset_token_expires_at:
         return False
-    if user.reset_token != token:
+    # Use constant-time comparison to prevent timing attacks
+    if not secrets.compare_digest(user.reset_token, token):
         return False
     # Ensure timezone-aware comparison
     expires_at = user.reset_token_expires_at

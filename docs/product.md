@@ -38,8 +38,10 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 
 **Password Reset Flow**
 - Request reset: `POST /auth/password-reset-request`
+  - Rate limited: max 3 requests per email per hour (Redis-based)
   - Sends reset email via Resend API
   - Token expires in 1 hour (configurable)
+  - Uses timing-safe token comparison to prevent timing attacks
 - Confirm reset: `POST /auth/password-reset-confirm`
   - Validates token and sets new password
 
@@ -1890,6 +1892,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Deployment** | ✅ Complete | Docker Compose stack (6 services) |
 | **Responsive Charts** | ✅ Complete | Pinch-to-zoom + pan for equity/drawdown charts on mobile |
 | **Backend Test Suite** | ✅ Complete | pytest with tests for security, indicators, backtest engine, auth API, billing webhooks |
+| **Security Hardening** | ✅ Complete | Rate limiting, timing-safe token comparison, SSRF prevention, atomic DB operations |
 
 **Current State:** Fully functional MVP with post-MVP enhancements (OAuth, scheduled updates, advanced risk management, timezone support, strategy building wizard, in-app notifications).
 
