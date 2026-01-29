@@ -155,12 +155,13 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 **Notes:**
 - Free tier standard limits are 10 strategies and 50 backtests/day.
 - Paid tiers raise caps without metered usage or add-ons.
+- Annual billing offers a **15–20% discount** versus monthly (shown as savings in the billing UI).
 - **Grandfathered beta users** (`user_tier=beta`) keep permanent perks:
   - Higher caps: +10 strategies and +50 backtests/day on top of plan limits.
   - Discounted pricing: 20% off paid plan prices.
 - One-time credit packs allow occasional extra backtests or strategy slots without a subscription:
   - **+5 Strategy Slots:** US$9 (one-time, never expires)
-  - **+50 Backtest Credits:** US$15 (one-time, never expires)
+- **+50 Backtest Credits:** US$15 (one-time, never expires)
 - Billing is handled by Stripe with simple monthly/annual subscriptions.
 - Plan enforcement gates:
   - Strategy creation
@@ -1864,6 +1865,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Usage Limits** | ✅ Complete | Plan-based caps on strategies, daily backtests, and historical depth |
 | **One-Time Credit Packs** | ✅ Complete | Purchase 50 backtest credits or +5 strategy slots; credits never expire |
 | **Subscription Plans & Billing** | ✅ Complete | Free/Pro/Premium tiers with Stripe monthly/annual billing and simple caps |
+| **Annual Subscription Discounts** | 📝 Planned | 15–20% annual savings vs monthly, shown in billing UI with separate Stripe price IDs |
 | **Grandfathered Beta User Benefits** | 📝 Planned | Permanent perks (higher limits + discounted pricing) for early beta users |
 | **In-App Notifications** | ✅ Complete | Bell icon with unread count, notifications for key events |
 | **Real-Time Price Tickers** | ✅ Complete | Market overview with live price, 24h change, volume, trend; 4s polling, 3s Redis cache |
@@ -2145,6 +2147,7 @@ pytest --cov            # Coverage report
 - `docs/product.md` - This document (current product truth)
 - `docs/prd-strategy-tags-groups.md` - Strategy groups & tags PRD
 - `docs/prd-simple-tiered-subscription-plans.md` - Simple tiered subscription plans PRD
+- `docs/prd-annual-subscription-discounts.md` - Annual subscription discounts PRD
 - `docs/prd-one-time-credit-packs.md` - One-time credit packs PRD
 - `docs/prd-grandfathered-beta-user-benefits.md` - Grandfathered beta user benefits PRD
 - `docs/prd-quick-strategy-clone.md` - Quick strategy clone (list action) PRD
