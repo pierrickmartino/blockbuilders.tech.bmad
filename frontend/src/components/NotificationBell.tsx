@@ -18,7 +18,7 @@ import {
  * Validate that a notification link is a safe internal link.
  * Only allows relative paths starting with /.
  */
-function isValidInternalLink(url: string | null | undefined): boolean {
+function isValidInternalLink(url: string | null | undefined): url is string {
   if (!url) return false;
   // Only allow relative paths starting with /
   // Block any URL that could redirect externally
