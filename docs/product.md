@@ -1889,6 +1889,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Database** | ✅ Complete | PostgreSQL with 11 migrations, indexed queries |
 | **Deployment** | ✅ Complete | Docker Compose stack (6 services) |
 | **Responsive Charts** | ✅ Complete | Pinch-to-zoom + pan for equity/drawdown charts on mobile |
+| **Backend Test Suite** | ✅ Complete | pytest with tests for security, indicators, backtest engine, auth API, billing webhooks |
 
 **Current State:** Fully functional MVP with post-MVP enhancements (OAuth, scheduled updates, advanced risk management, timezone support, strategy building wizard, in-app notifications).
 
@@ -2083,24 +2084,37 @@ docker compose exec api alembic current           # Show current version
 
 ### 16.4. Testing
 
-**Frontend Tests:**
-```bash
-cd frontend
-npm test              # Run Jest tests
-npm run test:watch    # Watch mode
-npm run test:coverage # Coverage report
-```
-
 **Backend Tests:**
 ```bash
 cd backend
-pytest                  # Run all tests
-pytest tests/test_api/  # Run specific test directory
-pytest -v               # Verbose output
-pytest --cov            # Coverage report
+pytest                           # Run all tests
+pytest tests/test_security.py    # Run specific test file
+pytest -v                        # Verbose output
+pytest --cov=app                 # Coverage report
+pytest -k "test_sma"             # Run tests matching pattern
 ```
 
-**Note:** Test coverage is currently minimal. Focus on critical paths (backtest engine, strategy validation).
+**Test Modules:**
+- `tests/test_security.py` - Password hashing, JWT tokens, reset token validation
+- `tests/test_indicators.py` - SMA, EMA, RSI, MACD, Bollinger Bands, ATR calculations
+- `tests/test_backtest_engine.py` - Trade execution, exit priorities, TP ladder, risk metrics
+- `tests/test_api_auth.py` - Signup, login, password reset, token validation endpoints
+- `tests/test_billing.py` - Stripe webhooks, subscription handling, credit pack idempotency
+
+**Test Configuration:**
+- pytest.ini defines test environment variables (test DB, test secrets)
+- Tests use in-memory SQLite for isolation
+- Fixtures in `tests/conftest.py` provide sample candles and users
+
+**Frontend Tests:**
+```bash
+cd frontend
+npm test              # Run tests (if configured)
+npm run lint          # ESLint checks
+npm run type-check    # TypeScript validation
+```
+
+**Note:** Frontend test infrastructure is not yet configured. Priority is on backend tests for financial calculations.
 
 ---
 
