@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { apiFetch } from "@/lib/api";
 import type { TickerListResponse, TickerItem } from "@/types/market";
 
@@ -9,29 +9,41 @@ export function useMarketTickers() {
   const [asOf, setAsOf] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const isMountedRef = useRef(true);
 
   const fetchTickers = useCallback(async () => {
     try {
       const response = await apiFetch<TickerListResponse>("/market/tickers");
-      setTickers(response.items);
-      setAsOf(response.as_of);
-      setError(null);
+      // Only update state if component is still mounted
+      if (isMountedRef.current) {
+        setTickers(response.items);
+        setAsOf(response.as_of);
+        setError(null);
+      }
     } catch (err) {
-      console.error("Failed to fetch tickers:", err);
-      setError(
-        err instanceof Error ? err.message : "Failed to fetch market data"
-      );
+      if (isMountedRef.current) {
+        console.error("Failed to fetch tickers:", err);
+        setError(
+          err instanceof Error ? err.message : "Failed to fetch market data"
+        );
+      }
     } finally {
-      setIsLoading(false);
+      if (isMountedRef.current) {
+        setIsLoading(false);
+      }
     }
   }, []);
 
   useEffect(() => {
+    isMountedRef.current = true;
     fetchTickers();
 
     const interval = setInterval(fetchTickers, POLL_INTERVAL_MS);
 
-    return () => clearInterval(interval);
+    return () => {
+      isMountedRef.current = false;
+      clearInterval(interval);
+    };
   }, [fetchTickers]);
 
   return {

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useDisplay } from "@/context/display";
-import { apiFetch, ApiError } from "@/lib/api";
+import { apiFetch, ApiError, safeRedirect } from "@/lib/api";
 import { ProfileResponse, UserUpdateRequest } from "@/types/auth";
 import {
   Card,
@@ -138,7 +138,7 @@ export default function ProfilePage() {
           body: JSON.stringify({ plan_tier: tier, interval }),
         }
       );
-      window.location.href = response.url;
+      safeRedirect(response.url);
     } catch (err) {
       setBillingError(
         err instanceof ApiError ? err.message : "Failed to start checkout"
@@ -159,7 +159,7 @@ export default function ProfilePage() {
           method: "POST",
         }
       );
-      window.location.href = response.url;
+      safeRedirect(response.url);
     } catch (err) {
       setBillingError(
         err instanceof ApiError
@@ -185,7 +185,7 @@ export default function ProfilePage() {
           body: JSON.stringify({ pack }),
         }
       );
-      window.location.href = response.url;
+      safeRedirect(response.url);
     } catch (err) {
       setBillingError(
         err instanceof ApiError ? err.message : "Failed to start checkout"

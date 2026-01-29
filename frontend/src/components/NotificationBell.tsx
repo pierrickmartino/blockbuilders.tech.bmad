@@ -14,6 +14,17 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+/**
+ * Validate that a notification link is a safe internal link.
+ * Only allows relative paths starting with /.
+ */
+function isValidInternalLink(url: string | null | undefined): boolean {
+  if (!url) return false;
+  // Only allow relative paths starting with /
+  // Block any URL that could redirect externally
+  return url.startsWith("/") && !url.startsWith("//");
+}
+
 export default function NotificationBell() {
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
   const { timezone } = useDisplay();
@@ -87,7 +98,8 @@ export default function NotificationBell() {
                 </div>
               );
 
-              if (notification.link_url) {
+              // Only render as link if URL is a valid internal path
+              if (isValidInternalLink(notification.link_url)) {
                 return (
                   <Link key={notification.id} href={notification.link_url} className="block">
                     {content}

@@ -1815,6 +1815,10 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Enable SSL/TLS (HTTPS)
 - Configure firewall rules
 
+**Security Hardening (implemented):**
+- Backend: Rate limiting on password reset (3/hour/email), timing-safe token comparison, SSRF prevention for webhook URLs, atomic credit increments, restricted CORS methods
+- Frontend: Request timeouts (30s), redirect URL validation (Stripe/same-origin only), OAuth URL validation, error boundaries, race condition prevention in polling hooks
+
 **Backup:**
 - PostgreSQL volume backups (pg_dump)
 - MinIO bucket backups (s3 sync)
@@ -1892,7 +1896,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Deployment** | ✅ Complete | Docker Compose stack (6 services) |
 | **Responsive Charts** | ✅ Complete | Pinch-to-zoom + pan for equity/drawdown charts on mobile |
 | **Backend Test Suite** | ✅ Complete | pytest with tests for security, indicators, backtest engine, auth API, billing webhooks |
-| **Security Hardening** | ✅ Complete | Rate limiting, timing-safe token comparison, SSRF prevention, atomic DB operations |
+| **Security Hardening** | ✅ Complete | Rate limiting, timing-safe token comparison, SSRF prevention, atomic DB operations, redirect validation, request timeouts |
 
 **Current State:** Fully functional MVP with post-MVP enhancements (OAuth, scheduled updates, advanced risk management, timezone support, strategy building wizard, in-app notifications).
 

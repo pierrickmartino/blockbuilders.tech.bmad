@@ -8,7 +8,7 @@ import {
   useCallback,
   ReactNode,
 } from "react";
-import { apiFetch, ApiError } from "@/lib/api";
+import { apiFetch, ApiError, isValidRedirectUrl } from "@/lib/api";
 import { User, AuthResponse, Usage, ProfileResponse } from "@/types/auth";
 
 interface OAuthStartResponse {
@@ -125,6 +125,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const startOAuth = async (provider: "google" | "github"): Promise<void> => {
     const response = await apiFetch<OAuthStartResponse>(`/auth/oauth/${provider}/start`);
+
+    // Validate OAuth redirect URL (should be Google or GitHub)
+    const url = new URL(response.auth_url);
+    const allowedHosts = ["accounts.google.com", "github.com"];
+    if (!allowedHosts.some((host) => url.hostname === host || url.hostname.endsWith(`.${host}`))) {
+      throw new Error("Invalid OAuth provider URL");
+    }
+
     localStorage.setItem("oauth_provider", provider);
     window.location.href = response.auth_url;
   };
