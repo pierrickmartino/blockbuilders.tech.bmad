@@ -99,8 +99,8 @@ def get_plan_pricing(plan_tier: str, interval: str, user_tier: str) -> dict:
     # Base monthly prices (in USD)
     base_monthly_prices = {
         "free": 0.0,
-        "pro": 29.0,
-        "premium": 79.0,
+        "pro": 19.0,
+        "premium": 49.0,
     }
 
     # Annual discount: ~20% off (10 months price for 12 months)
