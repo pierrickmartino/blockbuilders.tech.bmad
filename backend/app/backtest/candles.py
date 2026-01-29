@@ -68,27 +68,36 @@ def fetch_candles(
     logger.info(f"Fetching candles from vendor: {asset} {timeframe} {date_from} - {date_to}")
     vendor_candles = _fetch_from_vendor(asset, timeframe, date_from, date_to)
 
-    # Store fetched candles to DB (upsert pattern)
-    for candle_data in vendor_candles:
-        existing = session.exec(
-            select(Candle)
+    # Store fetched candles to DB (batch upsert pattern)
+    if vendor_candles:
+        # Batch lookup: get all existing timestamps in one query
+        vendor_timestamps = [c["timestamp"] for c in vendor_candles]
+        existing_stmt = (
+            select(Candle.timestamp)
             .where(Candle.asset == asset)
             .where(Candle.timeframe == timeframe)
-            .where(Candle.timestamp == candle_data["timestamp"])
-        ).first()
-        if not existing:
-            candle = Candle(
+            .where(Candle.timestamp.in_(vendor_timestamps))
+        )
+        existing_timestamps = set(session.exec(existing_stmt).all())
+
+        # Only insert candles that don't already exist
+        new_candles = [
+            Candle(
                 asset=asset,
                 timeframe=timeframe,
-                timestamp=candle_data["timestamp"],
-                open=candle_data["open"],
-                high=candle_data["high"],
-                low=candle_data["low"],
-                close=candle_data["close"],
-                volume=candle_data["volume"],
+                timestamp=c["timestamp"],
+                open=c["open"],
+                high=c["high"],
+                low=c["low"],
+                close=c["close"],
+                volume=c["volume"],
             )
-            session.add(candle)
-    session.commit()
+            for c in vendor_candles
+            if c["timestamp"] not in existing_timestamps
+        ]
+        if new_candles:
+            session.add_all(new_candles)
+            session.commit()
 
     # Re-query to get all candles sorted
     db_candles = list(session.exec(stmt).all())

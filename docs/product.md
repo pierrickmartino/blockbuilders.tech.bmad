@@ -1712,7 +1712,20 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 9. `009_add_data_quality_metrics_table` - Data quality metrics table
 10. `010_add_notifications_table` - Notifications table
 11. `011_add_alert_rules_table` - Performance alert rules table
-12. `012_add_subscription_fields` - Subscription plan fields + Stripe IDs
+12. `012_add_strategy_tags` - Strategy tags and links tables
+13. `013_add_subscription_fields` - Subscription plan fields + Stripe IDs
+14. `014_add_credit_packs_fields` - Backtest credits and strategy slot add-ons
+15. `015_add_stripe_webhook_events_table` - Stripe event idempotency tracking
+16. `016_add_favorite_metrics` - User favorite metrics preferences
+17. `017_add_strategy_templates` - Strategy templates marketplace table
+18. `018_add_theme_preference` - Dark/light theme preference
+19. `019_add_price_alert_fields` - Price alerts with multi-channel delivery
+20. `020_add_user_tier` - User tier field for special pricing
+21. `021_add_shared_backtest_links` - Shareable backtest result links
+22. `022_add_risk_metrics` - Extended risk metrics on backtest runs
+23. `023_add_transaction_cost_fields` - Transaction cost analysis fields
+24. `024_add_profile_fields` - Public profile and follower fields
+25. `025_add_performance_indexes` - Composite indexes for query optimization
 
 **Migration Commands:**
 - `alembic upgrade head` - Apply all pending migrations
@@ -1819,6 +1832,12 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Backend: Rate limiting on password reset (3/hour/email), timing-safe token comparison, SSRF prevention for webhook URLs, atomic credit increments, restricted CORS methods
 - Frontend: Request timeouts (30s), redirect URL validation (Stripe/same-origin only), OAuth URL validation, error boundaries, race condition prevention in polling hooks
 
+**Database Optimizations (implemented):**
+- Composite indexes: candles(asset, timeframe, timestamp), alert_rules(alert_type, is_active), strategies(user_id, created_at)
+- Status indexes: backtest_runs(status), alert_rules(user_id, is_active)
+- Pagination indexes: notifications(user_id, created_at), backtest_runs(user_id, created_at)
+- Batch queries: Candle upserts use single lookup instead of per-row queries, bulk strategy delete uses batched operations
+
 **Backup:**
 - PostgreSQL volume backups (pg_dump)
 - MinIO bucket backups (s3 sync)
@@ -1892,7 +1911,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Strategy Templates Marketplace** | ✅ Complete | Curated template library with 3 templates, clone-to-edit workflow, dedicated browser page |
 | **Worker Infrastructure** | ✅ Complete | RQ job queue, scheduler, background processing |
 | **API** | ✅ Complete | RESTful endpoints, JWT auth, OpenAPI docs |
-| **Database** | ✅ Complete | PostgreSQL with 11 migrations, indexed queries |
+| **Database** | ✅ Complete | PostgreSQL with 25 migrations, performance indexes, batch query optimizations |
 | **Deployment** | ✅ Complete | Docker Compose stack (6 services) |
 | **Responsive Charts** | ✅ Complete | Pinch-to-zoom + pan for equity/drawdown charts on mobile |
 | **Backend Test Suite** | ✅ Complete | pytest with tests for security, indicators, backtest engine, auth API, billing webhooks |

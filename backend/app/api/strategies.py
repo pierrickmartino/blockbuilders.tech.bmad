@@ -313,15 +313,10 @@ def update_strategy(
                     detail="One or more tags do not exist or do not belong to you"
                 )
 
-        # Delete existing links
-        session.exec(
-            select(StrategyTagLink).where(StrategyTagLink.strategy_id == strategy_id)
-        )
-        existing_links = session.exec(
-            select(StrategyTagLink).where(StrategyTagLink.strategy_id == strategy_id)
-        ).all()
-        for link in existing_links:
-            session.delete(link)
+        # Delete existing links in bulk
+        session.query(StrategyTagLink).filter(
+            StrategyTagLink.strategy_id == strategy_id
+        ).delete()
 
         # Create new links
         for tag_id in unique_tag_ids:
@@ -1017,34 +1012,58 @@ def bulk_delete_strategies(
     session: Session = Depends(get_session),
 ) -> BulkStrategyResponse:
     """Permanently delete multiple strategies and all related data."""
-    success_count = 0
+    # First pass: verify ownership for all strategies, collect valid ones
+    valid_strategies = []
     failed_ids = []
 
     for strategy_id in data.strategy_ids:
         try:
             strategy = get_user_strategy(strategy_id, user, session)
-
-            # Explicitly delete dependent rows (no FK cascades for versions/backtests).
-            session.query(AlertRule).filter(AlertRule.strategy_id == strategy_id).delete()
-            session.query(BacktestRun).filter(BacktestRun.strategy_id == strategy_id).delete()
-            session.query(StrategyVersion).filter(
-                StrategyVersion.strategy_id == strategy_id
-            ).delete()
-            session.query(StrategyTagLink).filter(
-                StrategyTagLink.strategy_id == strategy_id
-            ).delete()
-
-            session.delete(strategy)
-            session.commit()
-            success_count += 1
+            valid_strategies.append((strategy_id, strategy))
         except HTTPException:
             failed_ids.append(strategy_id)
-        except Exception:
-            session.rollback()
-            failed_ids.append(strategy_id)
 
-    return BulkStrategyResponse(
-        success_count=success_count,
-        failed_count=len(failed_ids),
-        failed_ids=failed_ids,
-    )
+    if not valid_strategies:
+        return BulkStrategyResponse(
+            success_count=0,
+            failed_count=len(failed_ids),
+            failed_ids=failed_ids,
+        )
+
+    # Second pass: delete all valid strategies in batched operations
+    valid_ids = [sid for sid, _ in valid_strategies]
+    try:
+        # Bulk delete dependent rows
+        session.query(AlertRule).filter(AlertRule.strategy_id.in_(valid_ids)).delete(
+            synchronize_session=False
+        )
+        session.query(BacktestRun).filter(BacktestRun.strategy_id.in_(valid_ids)).delete(
+            synchronize_session=False
+        )
+        session.query(StrategyVersion).filter(
+            StrategyVersion.strategy_id.in_(valid_ids)
+        ).delete(synchronize_session=False)
+        session.query(StrategyTagLink).filter(
+            StrategyTagLink.strategy_id.in_(valid_ids)
+        ).delete(synchronize_session=False)
+
+        # Delete the strategies themselves
+        session.query(Strategy).filter(Strategy.id.in_(valid_ids)).delete(
+            synchronize_session=False
+        )
+        session.commit()
+
+        return BulkStrategyResponse(
+            success_count=len(valid_strategies),
+            failed_count=len(failed_ids),
+            failed_ids=failed_ids,
+        )
+    except Exception:
+        session.rollback()
+        # If bulk delete fails, all valid strategies are marked as failed
+        failed_ids.extend(valid_ids)
+        return BulkStrategyResponse(
+            success_count=0,
+            failed_count=len(failed_ids),
+            failed_ids=failed_ids,
+        )
