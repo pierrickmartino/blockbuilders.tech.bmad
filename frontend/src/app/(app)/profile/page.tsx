@@ -712,9 +712,12 @@ function PlanCard({
           <span className="text-3xl font-bold">{price}</span>
           <span className="text-sm text-muted-foreground">/{interval}</span>
           {annualPrice && (
-            <p className="mt-1 text-xs text-muted-foreground">
-              or {annualPrice}
-            </p>
+            <div className="mt-1">
+              <p className="text-xs text-muted-foreground">or {annualPrice}</p>
+              <p className="text-xs font-medium text-green-600">
+                Save 2 months
+              </p>
+            </div>
           )}
         </div>
         <ul className="mb-4 space-y-2 text-sm">

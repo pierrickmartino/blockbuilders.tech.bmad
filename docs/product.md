@@ -1865,7 +1865,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Usage Limits** | ✅ Complete | Plan-based caps on strategies, daily backtests, and historical depth |
 | **One-Time Credit Packs** | ✅ Complete | Purchase 50 backtest credits or +5 strategy slots; credits never expire |
 | **Subscription Plans & Billing** | ✅ Complete | Free/Pro/Premium tiers with Stripe monthly/annual billing and simple caps |
-| **Annual Subscription Discounts** | 📝 Planned | 15–20% annual savings vs monthly, shown in billing UI with separate Stripe price IDs |
+| **Annual Subscription Discounts** | ✅ Complete | 15–20% annual savings vs monthly, shown in billing UI with separate Stripe price IDs |
 | **Grandfathered Beta User Benefits** | 📝 Planned | Permanent perks (higher limits + discounted pricing) for early beta users |
 | **In-App Notifications** | ✅ Complete | Bell icon with unread count, notifications for key events |
 | **Real-Time Price Tickers** | ✅ Complete | Market overview with live price, 24h change, volume, trend; 4s polling, 3s Redis cache |
