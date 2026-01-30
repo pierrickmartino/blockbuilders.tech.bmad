@@ -4,7 +4,20 @@ from typing import Optional
 
 import pytest
 
-from app.backtest.indicators import sma, ema, rsi, macd, bollinger, atr
+from app.backtest.indicators import (
+    sma,
+    ema,
+    rsi,
+    macd,
+    bollinger,
+    atr,
+    stochastic,
+    adx,
+    ichimoku,
+    obv,
+    fibonacci_retracements,
+    price_variation_pct,
+)
 
 
 class TestSMA:
@@ -308,3 +321,307 @@ class TestIndicatorEdgeCases:
 
         ema_result = ema(closes, period=10)
         assert all(v is None for v in ema_result)
+
+
+class TestStochastic:
+    """Tests for Stochastic Oscillator."""
+
+    def test_stochastic_returns_two_lists(self):
+        """Stochastic should return %K and %D."""
+        highs = [110.0] * 50
+        lows = [100.0] * 50
+        closes = [105.0] * 50
+        k_line, d_line = stochastic(highs, lows, closes, k_period=14, d_period=3, smooth=3)
+
+        assert len(k_line) == 50
+        assert len(d_line) == 50
+
+    def test_stochastic_warmup_period(self):
+        """Stochastic should have None values during warmup."""
+        highs = [110.0] * 50
+        lows = [100.0] * 50
+        closes = [105.0] * 50
+        k_line, d_line = stochastic(highs, lows, closes, k_period=14, d_period=3, smooth=3)
+
+        # %K warmup: k_period - 1 = 13, then smooth - 1 = 2, total = 15
+        for i in range(15):
+            assert k_line[i] is None
+        # %D has additional d_period - 1 warmup = 17
+        for i in range(17):
+            assert d_line[i] is None
+
+    def test_stochastic_range_0_to_100(self):
+        """Stochastic values should be between 0 and 100."""
+        highs = [110 + i for i in range(50)]
+        lows = [100 + i for i in range(50)]
+        closes = [105 + i for i in range(50)]
+        k_line, d_line = stochastic(highs, lows, closes)
+
+        for k in k_line:
+            if k is not None:
+                assert 0 <= k <= 100
+        for d in d_line:
+            if d is not None:
+                assert 0 <= d <= 100
+
+    def test_stochastic_flat_price(self):
+        """Stochastic should handle flat prices (no range)."""
+        highs = [100.0] * 50
+        lows = [100.0] * 50
+        closes = [100.0] * 50
+        k_line, d_line = stochastic(highs, lows, closes)
+
+        # When highest == lowest, should return 50
+        for k in k_line:
+            if k is not None:
+                assert k == 50.0
+
+
+class TestADX:
+    """Tests for Average Directional Index."""
+
+    def test_adx_returns_three_lists(self):
+        """ADX should return ADX, +DI, -DI."""
+        highs = [110.0] * 50
+        lows = [100.0] * 50
+        closes = [105.0] * 50
+        adx_line, plus_di, minus_di = adx(highs, lows, closes, period=14)
+
+        assert len(adx_line) == 50
+        assert len(plus_di) == 50
+        assert len(minus_di) == 50
+
+    def test_adx_warmup_period(self):
+        """ADX should have None values during warmup."""
+        highs = [110.0] * 50
+        lows = [100.0] * 50
+        closes = [105.0] * 50
+        adx_line, plus_di, minus_di = adx(highs, lows, closes, period=14)
+
+        # DI warmup: period - 1 = 13
+        for i in range(13):
+            assert plus_di[i] is None
+            assert minus_di[i] is None
+        # ADX has longer warmup (needs period DI + period DX)
+        for i in range(27):
+            assert adx_line[i] is None
+
+    def test_adx_uptrend(self, uptrend_candles):
+        """ADX should show directional movement in uptrend."""
+        highs = [c["high"] for c in uptrend_candles]
+        lows = [c["low"] for c in uptrend_candles]
+        closes = [c["close"] for c in uptrend_candles]
+        adx_line, plus_di, minus_di = adx(highs, lows, closes, period=14)
+
+        # In uptrend, +DI should generally be higher than -DI
+        valid_indices = [i for i in range(len(plus_di)) if plus_di[i] is not None and minus_di[i] is not None]
+        if valid_indices:
+            # Check at least one point where +DI > -DI
+            assert any(plus_di[i] > minus_di[i] for i in valid_indices)
+
+
+class TestIchimoku:
+    """Tests for Ichimoku Cloud."""
+
+    def test_ichimoku_returns_four_lists(self):
+        """Ichimoku should return 4 lines."""
+        highs = [110.0] * 100
+        lows = [100.0] * 100
+        closes = [105.0] * 100
+        conv, base, span_a, span_b = ichimoku(highs, lows, closes)
+
+        assert len(conv) == 100
+        assert len(base) == 100
+        assert len(span_a) == 100
+        assert len(span_b) == 100
+
+    def test_ichimoku_warmup_periods(self):
+        """Ichimoku lines should have appropriate warmup."""
+        highs = [110.0] * 100
+        lows = [100.0] * 100
+        closes = [105.0] * 100
+        conv, base, span_a, span_b = ichimoku(highs, lows, closes)
+
+        # Conversion warmup: conversion - 1 = 8
+        for i in range(8):
+            assert conv[i] is None
+        # Base warmup: base - 1 = 25
+        for i in range(25):
+            assert base[i] is None
+        # Span B warmup: span_b - 1 = 51
+        for i in range(51):
+            assert span_b[i] is None
+
+    def test_ichimoku_flat_price(self):
+        """Ichimoku should handle flat prices."""
+        highs = [100.0] * 100
+        lows = [100.0] * 100
+        closes = [100.0] * 100
+        conv, base, span_a, span_b = ichimoku(highs, lows, closes)
+
+        # All values should be 100 after warmup
+        for i in range(52, 100):
+            assert conv[i] == 100.0
+            assert base[i] == 100.0
+            assert span_a[i] == 100.0
+            assert span_b[i] == 100.0
+
+
+class TestOBV:
+    """Tests for On-Balance Volume."""
+
+    def test_obv_basic_calculation(self):
+        """OBV should accumulate volume based on price direction."""
+        closes = [100.0, 105.0, 103.0, 108.0, 108.0]
+        volumes = [1000.0, 1500.0, 1200.0, 1800.0, 1000.0]
+        result = obv(closes, volumes)
+
+        assert len(result) == 5
+        assert result[0] is None  # No previous close
+        # Index 1: price up, add volume = +1500
+        assert result[1] == 1500.0
+        # Index 2: price down, subtract volume = 1500 - 1200 = 300
+        assert result[2] == 300.0
+        # Index 3: price up, add volume = 300 + 1800 = 2100
+        assert result[3] == 2100.0
+        # Index 4: price same, no change = 2100
+        assert result[4] == 2100.0
+
+    def test_obv_all_gains(self):
+        """OBV should increase when all prices rise."""
+        closes = [100.0 + i for i in range(10)]
+        volumes = [1000.0] * 10
+        result = obv(closes, volumes)
+
+        # Each step should add 1000
+        for i in range(1, len(result)):
+            if result[i] is not None and result[i - 1] is not None:
+                assert result[i] > result[i - 1]
+
+    def test_obv_handles_none(self):
+        """OBV should handle None values."""
+        closes = [100.0, None, 105.0]
+        volumes = [1000.0, 1000.0, 1000.0]
+        result = obv(closes, volumes)
+
+        assert result[0] is None
+        assert result[1] is None
+        assert result[2] is None  # Can't calculate without previous valid close
+
+
+class TestFibonacci:
+    """Tests for Fibonacci Retracements."""
+
+    def test_fibonacci_returns_five_levels(self):
+        """Fibonacci should return 5 retracement levels."""
+        highs = [110.0] * 100
+        lows = [100.0] * 100
+        level_236, level_382, level_5, level_618, level_786 = fibonacci_retracements(
+            highs, lows, lookback=50
+        )
+
+        assert len(level_236) == 100
+        assert len(level_382) == 100
+        assert len(level_5) == 100
+        assert len(level_618) == 100
+        assert len(level_786) == 100
+
+    def test_fibonacci_warmup_period(self):
+        """Fibonacci should have None during warmup."""
+        highs = [110.0] * 100
+        lows = [100.0] * 100
+        level_236, _, _, _, _ = fibonacci_retracements(highs, lows, lookback=50)
+
+        # Warmup: lookback - 1 = 49
+        for i in range(49):
+            assert level_236[i] is None
+
+    def test_fibonacci_levels_ordering(self):
+        """Fibonacci levels should be ordered correctly."""
+        highs = [120.0] * 100
+        lows = [100.0] * 100
+        level_236, level_382, level_5, level_618, level_786 = fibonacci_retracements(
+            highs, lows, lookback=50
+        )
+
+        # For a range of 100-120 (20 units):
+        # Levels are retracements from high: 0.786 lowest, 0.236 highest
+        for i in range(50, 100):
+            if all(
+                x is not None
+                for x in [level_236[i], level_382[i], level_5[i], level_618[i], level_786[i]]
+            ):
+                assert level_786[i] < level_618[i] < level_5[i] < level_382[i] < level_236[i]
+
+    def test_fibonacci_known_values(self):
+        """Fibonacci should calculate correct retracement values."""
+        highs = [120.0] * 100
+        lows = [100.0] * 100
+        level_236, level_382, level_5, level_618, level_786 = fibonacci_retracements(
+            highs, lows, lookback=50
+        )
+
+        # Range = 120 - 100 = 20
+        # Level 0.5 = 120 - 20 * 0.5 = 110
+        assert abs(level_5[50] - 110.0) < 0.01
+
+    def test_fibonacci_no_range(self):
+        """Fibonacci should handle flat prices (no range)."""
+        highs = [100.0] * 100
+        lows = [100.0] * 100
+        level_236, level_382, level_5, level_618, level_786 = fibonacci_retracements(
+            highs, lows, lookback=50
+        )
+
+        # All levels should equal the price
+        for i in range(50, 100):
+            assert level_236[i] == 100.0
+            assert level_382[i] == 100.0
+            assert level_5[i] == 100.0
+            assert level_618[i] == 100.0
+            assert level_786[i] == 100.0
+
+
+class TestPriceVariationPct:
+    """Tests for Price Variation %."""
+
+    def test_price_variation_basic_calculation(self):
+        """Price variation should calculate correct percentage."""
+        closes = [100.0, 105.0, 100.0, 110.0]
+        result = price_variation_pct(closes)
+
+        assert result[0] is None  # No previous
+        assert abs(result[1] - 5.0) < 0.01  # (105-100)/100 * 100 = 5%
+        assert abs(result[2] - (-4.761904761904762)) < 0.01  # (100-105)/105 * 100
+        assert abs(result[3] - 10.0) < 0.01  # (110-100)/100 * 100 = 10%
+
+    def test_price_variation_negative_values(self):
+        """Price variation should return negative for price drops."""
+        closes = [100.0, 90.0]
+        result = price_variation_pct(closes)
+
+        assert result[1] == -10.0  # (90-100)/100 * 100 = -10%
+
+    def test_price_variation_handles_zero(self):
+        """Price variation should handle zero previous close."""
+        closes = [0.0, 100.0]
+        result = price_variation_pct(closes)
+
+        assert result[0] is None
+        assert result[1] is None  # Division by zero
+
+    def test_price_variation_handles_none(self):
+        """Price variation should handle None values."""
+        closes = [100.0, None, 105.0]
+        result = price_variation_pct(closes)
+
+        assert result[0] is None
+        assert result[1] is None
+        assert result[2] is None  # Previous was None
+
+    def test_price_variation_no_change(self):
+        """Price variation should return 0% for no change."""
+        closes = [100.0, 100.0]
+        result = price_variation_pct(closes)
+
+        assert result[1] == 0.0

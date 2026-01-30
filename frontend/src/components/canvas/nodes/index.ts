@@ -8,6 +8,12 @@ import RsiNode from "./RsiNode";
 import MacdNode from "./MacdNode";
 import BollingerNode from "./BollingerNode";
 import AtrNode from "./AtrNode";
+import StochasticNode from "./StochasticNode";
+import AdxNode from "./AdxNode";
+import IchimokuNode from "./IchimokuNode";
+import ObvNode from "./ObvNode";
+import FibonacciNode from "./FibonacciNode";
+import PriceVariationPctNode from "./PriceVariationPctNode";
 import CompareNode from "./CompareNode";
 import CrossoverNode from "./CrossoverNode";
 import AndNode from "./AndNode";
@@ -29,12 +35,18 @@ export const nodeTypes = {
   volume: VolumeNode,
   constant: ConstantNode,
   yesterday_close: YesterdayCloseNode,
+  price_variation_pct: PriceVariationPctNode,
   sma: SmaNode,
   ema: EmaNode,
   rsi: RsiNode,
   macd: MacdNode,
   bollinger: BollingerNode,
   atr: AtrNode,
+  stochastic: StochasticNode,
+  adx: AdxNode,
+  ichimoku: IchimokuNode,
+  obv: ObvNode,
+  fibonacci: FibonacciNode,
   compare: CompareNode,
   crossover: CrossoverNode,
   and: AndNode,
@@ -56,12 +68,18 @@ export {
   VolumeNode,
   ConstantNode,
   YesterdayCloseNode,
+  PriceVariationPctNode,
   SmaNode,
   EmaNode,
   RsiNode,
   MacdNode,
   BollingerNode,
   AtrNode,
+  StochasticNode,
+  AdxNode,
+  IchimokuNode,
+  ObvNode,
+  FibonacciNode,
   CompareNode,
   CrossoverNode,
   AndNode,

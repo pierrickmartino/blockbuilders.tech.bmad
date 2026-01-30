@@ -378,7 +378,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 
 ### 4.2. Block Types (20 Total)
 
-#### Input Blocks (4)
+#### Input Blocks (5)
 
 **Price** (`price`)
 - Outputs OHLCV price array
@@ -396,7 +396,12 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Outputs previous candle's close price
 - No parameters
 
-#### Indicator Blocks (6)
+**Price Variation %** (`price_variation_pct`)
+- Outputs % change from previous close
+- Formula: ((close - prev_close) / prev_close) * 100
+- No parameters
+
+#### Indicator Blocks (11)
 
 **SMA** (`sma`)
 - Simple Moving Average
@@ -432,6 +437,36 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Parameters: period (1-500)
 - Input: price array
 - Output: ATR array
+
+**Stochastic** (`stochastic`)
+- Stochastic Oscillator
+- Parameters: k_period (1-100), d_period (1-50), smooth (1-20)
+- Input: high, low, close arrays
+- Outputs: %K, %D
+
+**ADX** (`adx`)
+- Average Directional Index
+- Parameters: period (1-100)
+- Input: high, low, close arrays
+- Outputs: ADX, +DI, -DI
+
+**Ichimoku Cloud** (`ichimoku`)
+- Ichimoku indicator
+- Parameters: conversion (1-100), base (1-200), span_b (1-200), displacement (1-100)
+- Input: high, low, close arrays
+- Outputs: conversion_line, base_line, span_a, span_b
+
+**OBV** (`obv`)
+- On-Balance Volume
+- No parameters
+- Input: close, volume arrays
+- Output: cumulative volume
+
+**Fibonacci** (`fibonacci`)
+- Fibonacci Retracement Levels
+- Parameters: lookback (10-500)
+- Input: high, low arrays
+- Outputs: level_236, level_382, level_5, level_618, level_786
 
 #### Logic Blocks (5)
 
@@ -1161,7 +1196,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Visual canvas with drag-drop blocks
 - Block palette drawer (mobile-responsive)
 - Properties panel for selected block
-- Curated indicator palette (SMA, EMA, RSI, MACD, Bollinger Bands, ATR)
+- Curated indicator palette (SMA, EMA, RSI, MACD, Bollinger Bands, ATR, Stochastic, ADX, Ichimoku Cloud, OBV, Fibonacci)
 - Version tabs and switcher
 - Save button (creates new version)
 - Validate button
@@ -1869,7 +1904,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Bulk Strategy Actions** | 📝 Planned | Multi-select strategies with checkbox selection + action dropdown for archive, tag, delete |
 | **Strategy Groups/Tags** | ✅ Complete | Custom tags, tag filtering, many-to-many strategy organization |
 | **Visual Builder** | ✅ Complete | 20 block types, drag-drop, parameter editing, mobile-responsive |
-| **Expanded Indicator Palette & Price Variation Input** | 📝 Planned | Add Stochastic, ADX, Ichimoku Cloud, OBV, Fibonacci retracements, and price variation % input block |
+| **Expanded Indicator Palette & Price Variation Input** | ✅ Complete | Stochastic, ADX, Ichimoku Cloud, OBV, Fibonacci retracements, and price variation % input block |
 | **Mobile-Optimized Canvas** | ✅ Complete | Touch-first controls, simplified palette, gesture-based connections |
 | **Copy/Paste Blocks & Subgraphs** | ✅ Complete | Multi-select blocks and copy/paste within or across strategies |
 | **Canvas Undo/Redo** | ✅ Implemented | Toolbar buttons + keyboard shortcuts for reverting canvas edits |

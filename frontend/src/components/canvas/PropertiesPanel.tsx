@@ -446,6 +446,100 @@ function getParamConfigs(blockType: BlockType): ParamConfig[] {
           help: "Uses High/Low/Close for True Range",
         },
       ];
+    case "stochastic":
+      return [
+        {
+          key: "k_period",
+          label: "%K Period",
+          type: "number",
+          defaultValue: 14,
+          min: 1,
+          max: 100,
+          help: "Fast stochastic period (1-100)",
+        },
+        {
+          key: "d_period",
+          label: "%D Period",
+          type: "number",
+          defaultValue: 3,
+          min: 1,
+          max: 50,
+          help: "Slow stochastic period (1-50)",
+        },
+        {
+          key: "smooth",
+          label: "Smoothing",
+          type: "number",
+          defaultValue: 3,
+          min: 1,
+          max: 20,
+          help: "Smoothing period for %K (1-20)",
+        },
+      ];
+    case "adx":
+      return [
+        {
+          key: "period",
+          label: "Period",
+          type: "number",
+          defaultValue: 14,
+          min: 1,
+          max: 100,
+          help: "ADX calculation period (1-100)",
+        },
+      ];
+    case "ichimoku":
+      return [
+        {
+          key: "conversion",
+          label: "Conversion Period",
+          type: "number",
+          defaultValue: 9,
+          min: 1,
+          max: 100,
+        },
+        {
+          key: "base",
+          label: "Base Period",
+          type: "number",
+          defaultValue: 26,
+          min: 1,
+          max: 200,
+        },
+        {
+          key: "span_b",
+          label: "Span B Period",
+          type: "number",
+          defaultValue: 52,
+          min: 1,
+          max: 200,
+        },
+        {
+          key: "displacement",
+          label: "Displacement",
+          type: "number",
+          defaultValue: 26,
+          min: 1,
+          max: 100,
+          help: "Forward displacement for cloud spans",
+        },
+      ];
+    case "obv":
+      return [];
+    case "fibonacci":
+      return [
+        {
+          key: "lookback",
+          label: "Lookback Period",
+          type: "number",
+          defaultValue: 50,
+          min: 10,
+          max: 500,
+          help: "Period to find high/low range (10-500)",
+        },
+      ];
+    case "price_variation_pct":
+      return [];
     case "compare":
       return [
         {

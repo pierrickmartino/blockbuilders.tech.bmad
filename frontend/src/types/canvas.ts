@@ -2,8 +2,8 @@
 export type BlockCategory = "input" | "indicator" | "logic" | "signal" | "risk";
 
 // Block types by category
-export type InputBlockType = "price" | "volume" | "constant" | "yesterday_close";
-export type IndicatorBlockType = "sma" | "ema" | "rsi" | "macd" | "bollinger" | "atr";
+export type InputBlockType = "price" | "volume" | "constant" | "yesterday_close" | "price_variation_pct";
+export type IndicatorBlockType = "sma" | "ema" | "rsi" | "macd" | "bollinger" | "atr" | "stochastic" | "adx" | "ichimoku" | "obv" | "fibonacci";
 export type LogicBlockType = "compare" | "crossover" | "and" | "or" | "not";
 export type SignalBlockType = "entry_signal" | "exit_signal";
 export type RiskBlockType = "position_size" | "take_profit" | "stop_loss" | "max_drawdown" | "time_exit" | "trailing_stop";
@@ -63,6 +63,31 @@ export interface AtrParams {
   // ATR uses high/low/close internally, no source selection needed
 }
 
+export interface StochasticParams {
+  k_period: number;
+  d_period: number;
+  smooth: number;
+}
+
+export interface AdxParams {
+  period: number;
+}
+
+export interface IchimokuParams {
+  conversion: number;
+  base: number;
+  span_b: number;
+  displacement: number;
+}
+
+export type ObvParams = Record<string, never>;
+
+export interface FibonacciParams {
+  lookback: number;
+}
+
+export type PriceVariationPctParams = Record<string, never>;
+
 export interface CompareParams {
   operator: ">" | "<" | ">=" | "<=";
 }
@@ -121,6 +146,12 @@ export type BlockParams =
   | MacdParams
   | BollingerParams
   | AtrParams
+  | StochasticParams
+  | AdxParams
+  | IchimokuParams
+  | ObvParams
+  | FibonacciParams
+  | PriceVariationPctParams
   | CompareParams
   | CrossoverParams
   | AndParams
@@ -234,6 +265,15 @@ export const BLOCK_REGISTRY: BlockMeta[] = [
     outputs: ["output"],
     defaultParams: {},
   },
+  {
+    type: "price_variation_pct",
+    category: "input",
+    label: "Price Variation %",
+    description: "% change from previous close",
+    inputs: [],
+    outputs: ["output"],
+    defaultParams: {},
+  },
   // Indicators
   {
     type: "sma",
@@ -288,6 +328,51 @@ export const BLOCK_REGISTRY: BlockMeta[] = [
     inputs: [],
     outputs: ["output"],
     defaultParams: { period: 14 },
+  },
+  {
+    type: "stochastic",
+    category: "indicator",
+    label: "Stochastic",
+    description: "Stochastic Oscillator (%K, %D)",
+    inputs: [],
+    outputs: ["k", "d"],
+    defaultParams: { k_period: 14, d_period: 3, smooth: 3 },
+  },
+  {
+    type: "adx",
+    category: "indicator",
+    label: "ADX",
+    description: "Average Directional Index",
+    inputs: [],
+    outputs: ["adx", "plus_di", "minus_di"],
+    defaultParams: { period: 14 },
+  },
+  {
+    type: "ichimoku",
+    category: "indicator",
+    label: "Ichimoku Cloud",
+    description: "Ichimoku Cloud indicator",
+    inputs: [],
+    outputs: ["conversion", "base", "span_a", "span_b"],
+    defaultParams: { conversion: 9, base: 26, span_b: 52, displacement: 26 },
+  },
+  {
+    type: "obv",
+    category: "indicator",
+    label: "OBV",
+    description: "On-Balance Volume",
+    inputs: [],
+    outputs: ["output"],
+    defaultParams: {},
+  },
+  {
+    type: "fibonacci",
+    category: "indicator",
+    label: "Fibonacci",
+    description: "Fibonacci Retracement Levels",
+    inputs: [],
+    outputs: ["level_236", "level_382", "level_5", "level_618", "level_786"],
+    defaultParams: { lookback: 50 },
   },
   // Logic
   {
