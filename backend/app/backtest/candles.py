@@ -78,7 +78,14 @@ def fetch_candles(
             .where(Candle.timeframe == timeframe)
             .where(Candle.timestamp.in_(vendor_timestamps))
         )
-        existing_timestamps = set(session.exec(existing_stmt).all())
+        # Normalize to naive UTC for comparison (DB may return naive datetimes)
+        existing_timestamps = set()
+        for ts in session.exec(existing_stmt).all():
+            # Strip timezone info for consistent comparison
+            if ts.tzinfo is not None:
+                existing_timestamps.add(ts.replace(tzinfo=None))
+            else:
+                existing_timestamps.add(ts)
 
         # Only insert candles that don't already exist
         new_candles = [
@@ -93,7 +100,8 @@ def fetch_candles(
                 volume=c["volume"],
             )
             for c in vendor_candles
-            if c["timestamp"] not in existing_timestamps
+            # Normalize vendor timestamp for comparison
+            if c["timestamp"].replace(tzinfo=None) not in existing_timestamps
         ]
         if new_candles:
             session.add_all(new_candles)
