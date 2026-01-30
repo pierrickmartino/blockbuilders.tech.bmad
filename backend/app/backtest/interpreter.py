@@ -180,6 +180,57 @@ def interpret_strategy(
             result = indicators.atr(highs, lows, closes, period)
             block_outputs[block_id]["output"] = result
 
+        elif block_type == "stochastic":
+            k_period = int(params.get("k_period", 14))
+            d_period = int(params.get("d_period", 3))
+            smooth = int(params.get("smooth", 3))
+            k_line, d_line = indicators.stochastic(highs, lows, closes, k_period, d_period, smooth)
+            block_outputs[block_id]["k"] = k_line
+            block_outputs[block_id]["d"] = d_line
+            block_outputs[block_id]["output"] = k_line  # Default output
+
+        elif block_type == "adx":
+            period = int(params.get("period", 14))
+            adx_line, plus_di, minus_di = indicators.adx(highs, lows, closes, period)
+            block_outputs[block_id]["adx"] = adx_line
+            block_outputs[block_id]["plus_di"] = plus_di
+            block_outputs[block_id]["minus_di"] = minus_di
+            block_outputs[block_id]["output"] = adx_line  # Default output
+
+        elif block_type == "ichimoku":
+            conversion = int(params.get("conversion", 9))
+            base = int(params.get("base", 26))
+            span_b = int(params.get("span_b", 52))
+            displacement = int(params.get("displacement", 26))
+            conv_line, base_line, span_a, span_b_line = indicators.ichimoku(
+                highs, lows, closes, conversion, base, span_b, displacement
+            )
+            block_outputs[block_id]["conversion"] = conv_line
+            block_outputs[block_id]["base"] = base_line
+            block_outputs[block_id]["span_a"] = span_a
+            block_outputs[block_id]["span_b"] = span_b_line
+            block_outputs[block_id]["output"] = conv_line  # Default output
+
+        elif block_type == "obv":
+            result = indicators.obv(closes, volumes)
+            block_outputs[block_id]["output"] = result
+
+        elif block_type == "fibonacci":
+            lookback = int(params.get("lookback", 50))
+            level_236, level_382, level_5, level_618, level_786 = indicators.fibonacci_retracements(
+                highs, lows, lookback
+            )
+            block_outputs[block_id]["level_236"] = level_236
+            block_outputs[block_id]["level_382"] = level_382
+            block_outputs[block_id]["level_5"] = level_5
+            block_outputs[block_id]["level_618"] = level_618
+            block_outputs[block_id]["level_786"] = level_786
+            block_outputs[block_id]["output"] = level_5  # Default to 0.5 level
+
+        elif block_type == "price_variation_pct":
+            result = indicators.price_variation_pct(closes)
+            block_outputs[block_id]["output"] = result
+
         elif block_type == "compare":
             left = _get_input(inputs, "left", get_block_output, [0.0] * n)
             right = _get_input(inputs, "right", get_block_output, [0.0] * n)
