@@ -1161,6 +1161,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Visual canvas with drag-drop blocks
 - Block palette drawer (mobile-responsive)
 - Properties panel for selected block
+- Curated indicator palette (SMA, EMA, RSI, MACD, Bollinger Bands, ATR)
 - Version tabs and switcher
 - Save button (creates new version)
 - Validate button
@@ -1868,6 +1869,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Bulk Strategy Actions** | 📝 Planned | Multi-select strategies with checkbox selection + action dropdown for archive, tag, delete |
 | **Strategy Groups/Tags** | ✅ Complete | Custom tags, tag filtering, many-to-many strategy organization |
 | **Visual Builder** | ✅ Complete | 20 block types, drag-drop, parameter editing, mobile-responsive |
+| **Expanded Indicator Palette & Price Variation Input** | 📝 Planned | Add Stochastic, ADX, Ichimoku Cloud, OBV, Fibonacci retracements, and price variation % input block |
 | **Mobile-Optimized Canvas** | ✅ Complete | Touch-first controls, simplified palette, gesture-based connections |
 | **Copy/Paste Blocks & Subgraphs** | ✅ Complete | Multi-select blocks and copy/paste within or across strategies |
 | **Canvas Undo/Redo** | ✅ Implemented | Toolbar buttons + keyboard shortcuts for reverting canvas edits |
@@ -1998,7 +2000,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 
 **Proposed (Not Yet Implemented):**
 - Multi-timeframe strategies (Phase 2+)
-- More indicators (Stochastic, CCI, ADX)
+- Expanded indicator palette (Stochastic, ADX, Ichimoku Cloud, OBV, Fibonacci retracements) + price variation % input block
 - Short selling support
 - Advanced order types (limit, stop-limit)
 - Strategy templates marketplace (curated library with clone-to-edit)
@@ -2177,6 +2179,7 @@ npm run type-check    # TypeScript validation
 - `docs/prd-performance-alerts-simple.md` - Performance alerts (simple) PRD
 - `docs/prd-price-alerts.md` - Price alerts PRD
 - `docs/prd-risk-metrics-expansion.md` - Risk metrics expansion PRD
+- `docs/prd-expanded-indicator-palette-price-variation-input.md` - Expanded indicator palette + price variation input PRD
 - `docs/prd-copy-paste-blocks-subgraphs.md` - Copy/paste blocks & subgraphs PRD (IMPLEMENTED)
 - `docs/prd-canvas-undo-redo.md` - Canvas undo/redo PRD (IMPLEMENTED)
 - `docs/prd-keyboard-shortcuts.md` - Keyboard shortcuts & reference PRD
