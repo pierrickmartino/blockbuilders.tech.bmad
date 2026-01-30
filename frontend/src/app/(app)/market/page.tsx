@@ -36,32 +36,40 @@ export default function MarketPage() {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto p-4">
-        <h1 className="text-2xl font-bold mb-4">Market Overview</h1>
+      <main className="container mx-auto max-w-6xl space-y-6 p-4 md:p-6">
+        <div>
+          <h1 className="text-2xl font-bold">Market Overview</h1>
+        </div>
         <p className="text-muted-foreground">Loading market data...</p>
-      </div>
+      </main>
     );
   }
 
   if (error) {
     return (
-      <div className="container mx-auto p-4">
-        <h1 className="text-2xl font-bold mb-4">Market Overview</h1>
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-          <p className="text-red-800">
-            Market data temporarily unavailable. Please try again later.
-          </p>
+      <main className="container mx-auto max-w-6xl space-y-6 p-4 md:p-6">
+        <div>
+          <h1 className="text-2xl font-bold">Market Overview</h1>
         </div>
-      </div>
+        <div className="rounded border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+          Market data temporarily unavailable. Please try again later.
+        </div>
+      </main>
     );
   }
 
   return (
     <TooltipProvider>
-      <div className="container mx-auto p-4">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-4">
-          <h1 className="text-2xl font-bold">Market Overview</h1>
+      <main className="container mx-auto max-w-6xl space-y-6 p-4 md:p-6">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">Market Overview</h1>
+            {asOf && (
+              <p className="text-sm text-muted-foreground">
+                Last updated: {formatDateTime(asOf, timezone)}
+              </p>
+            )}
+          </div>
           <Select value={selectedAsset} onValueChange={setSelectedAsset}>
             <SelectTrigger className="w-40">
               <SelectValue />
@@ -72,18 +80,12 @@ export default function MarketPage() {
             </SelectContent>
           </Select>
         </div>
-        {asOf && (
-          <p className="text-sm text-muted-foreground">
-            Last updated: {formatDateTime(asOf, timezone)}
-          </p>
-        )}
-      </div>
 
       {/* Market Sentiment Panel */}
       <MarketSentimentPanel asset={selectedAsset} />
 
       {/* Desktop: Table */}
-      <div className="hidden md:block rounded-lg border">
+      <div className="hidden md:block">
         <Table>
           <TableHeader>
             <TableRow>
@@ -149,7 +151,7 @@ export default function MarketPage() {
       </div>
 
       {/* Mobile: Cards */}
-      <div className="md:hidden space-y-3">
+      <div className="space-y-3 md:hidden">
         {tickers.map((ticker) => (
           <Card key={ticker.pair}>
             <CardContent className="p-4">
@@ -217,7 +219,7 @@ export default function MarketPage() {
           </Card>
         ))}
       </div>
-      </div>
+      </main>
     </TooltipProvider>
   );
 }

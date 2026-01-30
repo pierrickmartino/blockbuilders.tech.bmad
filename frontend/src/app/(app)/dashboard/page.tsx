@@ -10,6 +10,7 @@ import { Strategy } from "@/types/strategy";
 import { BacktestStatusResponse } from "@/types/backtest";
 import { getRecentStrategies, getRecentBacktests } from "@/lib/recent-views";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -107,10 +108,13 @@ export default function DashboardPage() {
   const recentStrategies = strategies.slice(0, 5);
 
   return (
-    <div className="mx-auto max-w-4xl">
-      <h1 className="mb-6 text-2xl font-bold text-gray-900">Dashboard</h1>
+    <main className="container mx-auto max-w-6xl space-y-6 p-4 md:p-6">
+      <div>
+        <h1 className="text-2xl font-bold">Dashboard</h1>
+      </div>
 
-      <div className="rounded-lg bg-white p-4 shadow-sm sm:p-6">
+      <Card>
+        <CardContent className="p-4 sm:p-6">
         <h2 className="mb-4 text-lg font-semibold text-gray-900">
           Welcome, {user?.email}
         </h2>
@@ -143,23 +147,23 @@ export default function DashboardPage() {
             </div>
             <div className="space-y-2">
               {recentStrategiesData.map((strategy) => (
-                <Link
-                  key={strategy.id}
-                  href={`/strategies/${strategy.id}`}
-                  className="flex flex-col gap-1 rounded-lg border border-gray-200 p-4 hover:bg-gray-50 sm:flex-row sm:items-center sm:justify-between"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate font-medium text-gray-900">
-                      {strategy.name}
-                    </div>
-                    <div className="text-sm text-gray-500">
-                      {strategy.asset} &middot; {strategy.timeframe}
-                    </div>
-                  </div>
-                  <div className="text-sm text-gray-400">
-                    {formatDateTime(strategy.updated_at, timezone)}
-                  </div>
-                </Link>
+                <Card key={strategy.id} className="hover:bg-gray-50">
+                  <Link href={`/strategies/${strategy.id}`}>
+                    <CardContent className="flex flex-col gap-1 p-4 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate font-medium text-gray-900">
+                          {strategy.name}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {strategy.asset} &middot; {strategy.timeframe}
+                        </div>
+                      </div>
+                      <div className="text-sm text-gray-400">
+                        {formatDateTime(strategy.updated_at, timezone)}
+                      </div>
+                    </CardContent>
+                  </Link>
+                </Card>
               ))}
             </div>
           </div>
@@ -173,27 +177,27 @@ export default function DashboardPage() {
             </div>
             <div className="space-y-2">
               {recentBacktestsData.map((run) => (
-                <Link
-                  key={run.run_id}
-                  href={`/strategies/${run.strategy_id}/backtest`}
-                  className="flex flex-col gap-1 rounded-lg border border-gray-200 p-4 hover:bg-gray-50 sm:flex-row sm:items-center sm:justify-between"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="text-sm text-gray-900">
-                      {formatDateTime(run.date_from, timezone).split(" ")[0]}{" "}
-                      &rarr;{" "}
-                      {formatDateTime(run.date_to, timezone).split(" ")[0]}
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      {run.asset} &middot; {run.timeframe}
-                    </div>
-                  </div>
-                  {run.summary && (
-                    <div className="text-sm font-medium text-gray-900">
-                      {formatPercent(run.summary.total_return_pct)}
-                    </div>
-                  )}
-                </Link>
+                <Card key={run.run_id} className="hover:bg-gray-50">
+                  <Link href={`/strategies/${run.strategy_id}/backtest`}>
+                    <CardContent className="flex flex-col gap-1 p-4 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm text-gray-900">
+                          {formatDateTime(run.date_from, timezone).split(" ")[0]}{" "}
+                          &rarr;{" "}
+                          {formatDateTime(run.date_to, timezone).split(" ")[0]}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {run.asset} &middot; {run.timeframe}
+                        </div>
+                      </div>
+                      {run.summary && (
+                        <div className="text-sm font-medium text-gray-900">
+                          {formatPercent(run.summary.total_return_pct)}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Link>
+                </Card>
               ))}
             </div>
           </div>
@@ -219,45 +223,46 @@ export default function DashboardPage() {
           {isLoading ? (
             <div className="text-sm text-gray-500">Loading...</div>
           ) : strategies.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-8 text-center">
-              <p className="text-gray-500">
-                No strategies yet.{" "}
-                <Link href="/strategies" className="text-blue-600 hover:text-blue-800">
-                  Create your first strategy
-                </Link>{" "}
-                to get started.
-              </p>
-            </div>
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center p-12 text-center">
+                <p className="text-gray-500">
+                  No strategies yet.{" "}
+                  <Link href="/strategies" className="text-blue-600 hover:text-blue-800">
+                    Create your first strategy
+                  </Link>{" "}
+                  to get started.
+                </p>
+              </CardContent>
+            </Card>
           ) : (
             <div className="space-y-2">
               {recentStrategies.map((strategy) => (
-                <div
-                  key={strategy.id}
-                  className="flex flex-col gap-1 rounded-lg border border-gray-200 p-4 hover:bg-gray-50 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
-                >
-                  <Link
-                    href={`/strategies/${strategy.id}`}
-                    className="min-w-0 flex-1"
-                  >
-                    <div className="truncate font-medium text-gray-900">{strategy.name}</div>
-                    <div className="text-sm text-gray-500">
-                      {strategy.asset} &middot; {strategy.timeframe}
-                    </div>
-                  </Link>
-                  <div className="flex items-center gap-3">
-                    <div className="text-sm text-gray-400">
-                      {formatDateTime(strategy.updated_at, timezone)}
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleClone(strategy.id)}
-                      disabled={actionLoading === strategy.id}
+                <Card key={strategy.id} className="hover:bg-gray-50">
+                  <CardContent className="flex flex-col gap-1 p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+                    <Link
+                      href={`/strategies/${strategy.id}`}
+                      className="min-w-0 flex-1"
                     >
-                      {actionLoading === strategy.id ? "Cloning..." : "Clone"}
-                    </Button>
-                  </div>
-                </div>
+                      <div className="truncate font-medium text-gray-900">{strategy.name}</div>
+                      <div className="text-sm text-gray-500">
+                        {strategy.asset} &middot; {strategy.timeframe}
+                      </div>
+                    </Link>
+                    <div className="flex items-center gap-3">
+                      <div className="text-sm text-gray-400">
+                        {formatDateTime(strategy.updated_at, timezone)}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleClone(strategy.id)}
+                        disabled={actionLoading === strategy.id}
+                      >
+                        {actionLoading === strategy.id ? "Cloning..." : "Clone"}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
               ))}
               {strategies.length > 5 && (
                 <div className="pt-2 text-center text-sm text-gray-500">
@@ -267,7 +272,8 @@ export default function DashboardPage() {
             </div>
           )}
         </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
+    </main>
   );
 }

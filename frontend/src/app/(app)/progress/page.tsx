@@ -38,17 +38,21 @@ export default function ProgressPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="text-muted-foreground">Loading progress...</div>
-      </div>
+      <main className="container mx-auto max-w-6xl space-y-6 p-4 md:p-6">
+        <div className="flex items-center justify-center py-12">
+          <div className="text-muted-foreground">Loading progress...</div>
+        </div>
+      </main>
     );
   }
 
   if (error) {
     return (
-      <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4">
-        <p className="text-sm text-destructive">{error}</p>
-      </div>
+      <main className="container mx-auto max-w-6xl space-y-6 p-4 md:p-6">
+        <div className="rounded border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+          {error}
+        </div>
+      </main>
     );
   }
 
@@ -57,11 +61,11 @@ export default function ProgressPage() {
   }
 
   return (
-    <div className="w-full">
+    <main className="container mx-auto max-w-6xl space-y-6 p-4 md:p-6">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">Your Progress</h1>
-        <p className="text-muted-foreground">
+      <div>
+        <h1 className="text-2xl font-bold">Your Progress</h1>
+        <p className="text-sm text-muted-foreground">
           Building momentum one strategy at a time
         </p>
       </div>
@@ -300,6 +304,6 @@ export default function ProgressPage() {
           </Card>
         </div>
       </div>
-    </div>
+    </main>
   );
 }

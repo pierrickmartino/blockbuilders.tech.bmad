@@ -572,15 +572,17 @@ export default function StrategiesPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="text-gray-500">Loading strategies...</div>
-      </div>
+      <main className="container mx-auto max-w-6xl space-y-6 p-4 md:p-6">
+        <div className="flex items-center justify-center py-12">
+          <div className="text-gray-500">Loading strategies...</div>
+        </div>
+      </main>
     );
   }
 
   return (
-    <div>
-      <div className="mb-6 flex items-center justify-between">
+    <main className="container mx-auto max-w-6xl space-y-6 p-4 md:p-6">
+      <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Strategies</h1>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => router.push("/strategies/templates")}>
@@ -594,13 +596,13 @@ export default function StrategiesPage() {
       </div>
 
       {error && (
-        <div className="mb-4 rounded border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+        <div className="rounded border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
           {error}
         </div>
       )}
 
       {bulkResult && (
-        <div className={`mb-4 rounded border p-3 text-sm ${
+        <div className={`rounded border p-3 text-sm ${
           bulkResult.type === 'success'
             ? 'border-green-500/50 bg-green-50 text-green-900 dark:bg-green-900/20 dark:text-green-100'
             : bulkResult.type === 'partial'
@@ -611,7 +613,7 @@ export default function StrategiesPage() {
         </div>
       )}
 
-      <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <Input
           type="text"
           placeholder="Search strategies..."
@@ -631,7 +633,7 @@ export default function StrategiesPage() {
       </div>
 
       {/* Filter Controls */}
-      <div className="mb-4 grid grid-cols-2 gap-3 sm:flex sm:flex-wrap">
+      <div className="flex flex-wrap gap-2">
         <Select value={assetFilter} onValueChange={setAssetFilter}>
           <SelectTrigger className="w-full sm:w-[150px]">
             <SelectValue />
@@ -716,7 +718,6 @@ export default function StrategiesPage() {
           <Button
             variant="outline"
             size="sm"
-            className="col-span-2 sm:col-span-1"
             onClick={() => {
               setSearch("");
               setAssetFilter("all");
@@ -731,7 +732,7 @@ export default function StrategiesPage() {
       </div>
 
       {selectedIds.size > 0 && (
-        <div className="mb-4 flex items-center justify-between rounded-lg border bg-muted/50 p-3">
+        <div className="flex items-center justify-between rounded-lg border bg-muted/50 p-3">
           <span className="text-sm text-muted-foreground">
             {selectedIds.size} {selectedIds.size === 1 ? 'strategy' : 'strategies'} selected
           </span>
@@ -764,17 +765,19 @@ export default function StrategiesPage() {
       )}
 
       {filteredAndSortedStrategies.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-8 text-center">
-          <p className="text-gray-500">
-            {strategies.length === 0
-              ? "No strategies yet. Create your first strategy to get started."
-              : "No strategies match your search or filters."}
-          </p>
-        </div>
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center p-12 text-center">
+            <p className="text-muted-foreground">
+              {strategies.length === 0
+                ? "No strategies yet. Create your first strategy to get started."
+                : "No strategies match your search or filters."}
+            </p>
+          </CardContent>
+        </Card>
       ) : (
         <>
           {/* Desktop Table */}
-          <div className="hidden rounded-lg border md:block">
+          <div className="hidden md:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -923,7 +926,7 @@ export default function StrategiesPage() {
           </div>
 
           {/* Mobile Cards */}
-          <div className="space-y-4 md:hidden">
+          <div className="space-y-3 md:hidden">
             {filteredAndSortedStrategies.map((strategy) => (
               <Card
                 key={strategy.id}
@@ -1189,6 +1192,6 @@ export default function StrategiesPage() {
           )}
         </DialogContent>
       </Dialog>
-    </div>
+    </main>
   );
 }
