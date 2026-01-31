@@ -12,7 +12,11 @@ export default function MaxDrawdownNode({ data, selected }: NodeProps) {
     typeof data?.helpLink === "string"
       ? data.helpLink
       : undefined;
-  const params = (data?.params || {}) as { percent?: number };
+  const params = (data?.params || {}) as {
+    percent?: number;
+    max_drawdown_pct?: number;
+  };
+  const maxDrawdown = params.max_drawdown_pct ?? params.percent ?? 10;
   const isMobileMode = typeof data?.isMobileMode === "boolean" ? data.isMobileMode : false;
   return (
     <BaseNode
@@ -26,7 +30,7 @@ export default function MaxDrawdownNode({ data, selected }: NodeProps) {
       isMobileMode={isMobileMode}
     >
       <div className="text-xs text-gray-600">
-        Max DD: {params.percent || 10}%
+        Max DD: {maxDrawdown}%
       </div>
     </BaseNode>
   );
