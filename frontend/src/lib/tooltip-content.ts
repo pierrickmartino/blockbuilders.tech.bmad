@@ -26,6 +26,11 @@ export const TOOLTIP_CONTENT: Record<string, TooltipContent> = {
     long: "Yesterday Close provides the closing price from the previous time period, useful for comparing current price to recent history.",
     category: "block",
   },
+  "block-price_variation_pct": {
+    short: "Percent change from the previous close.",
+    long: "Price Variation % outputs the percentage change between the current close and the previous close, useful for momentum and volatility checks.",
+    category: "block",
+  },
 
   // Indicator Blocks
   "block-sma": {
@@ -56,6 +61,31 @@ export const TOOLTIP_CONTENT: Record<string, TooltipContent> = {
   "block-atr": {
     short: "Average True Range: measures market volatility over N periods.",
     long: "ATR calculates the average range between high and low prices over a period. Higher ATR indicates higher volatility, useful for position sizing and stop placement.",
+    category: "block",
+  },
+  "block-stochastic": {
+    short: "Stochastic Oscillator: compares the close to recent trading range.",
+    long: "Stochastic measures momentum by comparing the closing price to the high-low range over a period. %K is the main line and %D is the signal line.",
+    category: "block",
+  },
+  "block-adx": {
+    short: "Average Directional Index: gauges trend strength.",
+    long: "ADX measures the strength of a trend regardless of direction. Higher values indicate a stronger trend, often used with +DI and -DI.",
+    category: "block",
+  },
+  "block-ichimoku": {
+    short: "Ichimoku Cloud: multi-line indicator for trend and support/resistance.",
+    long: "Ichimoku Cloud combines multiple averages to show trend direction, momentum, and support/resistance levels at a glance.",
+    category: "block",
+  },
+  "block-obv": {
+    short: "On-Balance Volume: tracks volume flow to gauge momentum.",
+    long: "OBV adds volume on up days and subtracts on down days, helping assess whether volume supports a price move.",
+    category: "block",
+  },
+  "block-fibonacci": {
+    short: "Fibonacci retracement levels from recent highs/lows.",
+    long: "Fibonacci outputs key retracement levels based on a recent lookback range, often used to identify potential support and resistance zones.",
     category: "block",
   },
 
