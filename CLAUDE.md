@@ -244,6 +244,53 @@ Use **shadcn/ui** for common UI elements. Components are in `frontend/src/compon
 - Canvas nodes (BaseNode.tsx, all node types) — specialized color-coded category system
 - Components with complex internal state where migration adds no value
 
+#### 6.2.2. Design System Compliance
+
+All frontend development **must** comply with the design documentation:
+
+- `docs/design_concept.json` — **Design concept and creative direction** (brand identity, design philosophy, color strategy, typography strategy)
+- `docs/design-system.json` — **Design system specification** (tokens, components, patterns, guidelines)
+
+**Before implementing any frontend UI:**
+1. Review the design concept for guiding principles (clarity over complexity, functional minimalism, progressive disclosure)
+2. Use existing design tokens from the design system (colors, typography, spacing, border-radius, shadows)
+3. Follow component specifications for buttons, inputs, cards, badges, dialogs, tables, etc.
+4. Apply layout patterns defined in the system (page containers, grids, forms, lists, states)
+
+**Color usage:**
+- Use semantic colors via CSS variables (`--primary`, `--secondary`, `--muted`, `--destructive`, etc.)
+- Canvas nodes use the five-category color system: input (purple), indicator (blue), logic (amber), signal (green), risk (red)
+- Feedback colors: success (green), error (red), warning (yellow), info (blue)
+- Never create new color values outside the token system
+
+**Typography:**
+- Use the defined hierarchy: page title (2xl/bold), section title (lg/semibold), subsection (base/medium), body (sm/normal), small (xs)
+- Limit to 2-3 font weights per view
+- Use system UI font stack (already configured in Tailwind)
+
+**Spacing & Layout:**
+- Follow the 4px base scale (0.5, 1, 1.5, 2, 3, 4, 6, 8 in Tailwind)
+- Card padding: `p-6` (24px), form gaps: `space-y-4` (16px)
+- Page container: `container mx-auto max-w-6xl p-4 md:p-6`
+- Mobile-first responsive design with breakpoints: sm (640px), md (768px), lg (1024px)
+
+**Component states:**
+- Hover: subtle background change
+- Focus: 1px ring in primary color (`focus-visible:ring-1 focus-visible:ring-ring`)
+- Disabled: 50% opacity, no pointer events
+
+**Animation:**
+- Fast (150ms): button clicks, toggles
+- Normal (200ms): modal open/close, dropdowns
+- Never exceed 300ms for UI feedback
+
+**Do NOT:**
+- Create arbitrary color values when tokens exist
+- Skip dark mode support (use `dark:` prefix)
+- Ignore mobile responsiveness
+- Add animations longer than 300ms
+- Use `!important` except for react-flow handle overrides
+
 ### 6.3. Backend specifics
 
 - Prefer explicit, flat **FastAPI routers** and simple dependency injection.
