@@ -691,6 +691,19 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Reuse existing canvas components and React Flow APIs; avoid new dependencies.
 - Ensure desktop behavior remains unchanged unless mobile mode is active.
 
+#### 4.11.1. Bottom Action Bar for Canvas Tools (Planned)
+
+**Purpose:** Improve touch usability and reclaim horizontal canvas space by moving core tools into a bottom action bar on mobile.
+
+**Behavior:**
+- Replace the left vertical tool stack (zoom/hand/select) with a bottom action bar on small screens.
+- Larger, horizontally arranged tap targets for: Pan/Select, Zoom In/Out, Fit to Screen, Undo/Redo.
+- Pure layout change for mobile; desktop tool placement remains unchanged.
+
+**Implementation Notes:**
+- Frontend-only; no backend impact.
+- Keep controls minimal and consistent with existing canvas actions.
+
 ### 4.12. Canvas Undo/Redo History
 
 **Purpose:** Let users reverse or reapply recent canvas edits to reduce anxiety when building strategies.
@@ -1906,6 +1919,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Visual Builder** | ✅ Complete | 20 block types, drag-drop, parameter editing, mobile-responsive |
 | **Expanded Indicator Palette & Price Variation Input** | ✅ Complete | Stochastic, ADX, Ichimoku Cloud, OBV, Fibonacci retracements, and price variation % input block |
 | **Mobile-Optimized Canvas** | ✅ Complete | Touch-first controls, simplified palette, gesture-based connections |
+| **Bottom Action Bar for Canvas Tools** | 📝 Planned | Replace left tool stack with a mobile bottom action bar for core canvas tools |
 | **Copy/Paste Blocks & Subgraphs** | ✅ Complete | Multi-select blocks and copy/paste within or across strategies |
 | **Canvas Undo/Redo** | ✅ Implemented | Toolbar buttons + keyboard shortcuts for reverting canvas edits |
 | **Keyboard Shortcuts & Reference** | 📝 Planned | Cmd/Ctrl+S save, Cmd/Ctrl+R run backtest, ? help modal, editor-only |
@@ -2219,6 +2233,7 @@ npm run type-check    # TypeScript validation
 - `docs/prd-canvas-undo-redo.md` - Canvas undo/redo PRD (IMPLEMENTED)
 - `docs/prd-keyboard-shortcuts.md` - Keyboard shortcuts & reference PRD
 - `docs/prd-mobile-optimized-canvas.md` - Mobile-optimized canvas PRD (IMPLEMENTED)
+- `docs/prd-canvas-bottom-action-bar.md` - Bottom action bar for canvas tools PRD
 - `docs/prd-real-time-price-tickers.md` - Real-time price tickers PRD
 - `docs/prd-volatility-metrics-market-overview.md` - Volatility metrics (market overview) PRD
 - `docs/prd-market-sentiment-indicators.md` - Market sentiment indicators PRD
