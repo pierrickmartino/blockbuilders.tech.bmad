@@ -58,7 +58,7 @@ export default function PublicProfilePage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="mb-2 text-3xl font-bold">
+        <h1 className="mb-2 text-2xl font-bold">
           {profile.display_name || `@${profile.handle}`}
         </h1>
         {profile.display_name && (

@@ -161,18 +161,18 @@ export default function CompareBacktestsPage({ params }: Props) {
 
   if (isLoadingStrategy) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="text-gray-500">Loading strategy...</div>
+      <div className="flex min-h-[200px] items-center justify-center">
+        <p className="text-muted-foreground">Loading strategy...</p>
       </div>
     );
   }
 
   if (!strategy) {
     return (
-      <div className="flex h-screen items-center justify-center">
+      <div className="flex min-h-[200px] items-center justify-center">
         <div className="text-center">
-          <p className="text-gray-500">Strategy not found</p>
-          <Link href="/strategies" className="mt-4 text-blue-600 hover:text-blue-800">
+          <p className="text-muted-foreground">Strategy not found</p>
+          <Link href="/strategies" className="mt-4 text-primary hover:underline">
             Back to strategies
           </Link>
         </div>
@@ -181,13 +181,13 @@ export default function CompareBacktestsPage({ params }: Props) {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-gray-50 pb-8">
-      <div className="border-b border-gray-200 bg-white px-4 py-3 shadow-sm sm:px-6">
+    <div className="flex min-h-screen flex-col bg-background pb-8">
+      <div className="border-b border-border bg-card px-4 py-3 shadow-sm sm:px-6">
         <div className="mx-auto max-w-7xl">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h1 className="text-xl font-semibold text-gray-900 sm:text-2xl">{strategy.name}</h1>
-              <p className="mt-1 text-sm text-gray-600">
+              <h1 className="text-xl font-semibold text-foreground sm:text-2xl">{strategy.name}</h1>
+              <p className="mt-1 text-sm text-muted-foreground">
                 {strategy.asset} · {strategy.timeframe}
               </p>
             </div>
@@ -206,37 +206,37 @@ export default function CompareBacktestsPage({ params }: Props) {
         <StrategyTabs strategyId={id} activeTab="backtest" />
 
         <div className="mt-6 space-y-6">
-          <div className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm sm:p-4">
-            <h2 className="mb-4 text-lg font-semibold text-gray-900">
+          <div className="rounded-lg border border-border bg-card p-3 shadow-sm sm:p-4">
+            <h2 className="mb-4 text-lg font-semibold text-foreground">
               Compare Backtests ({runIds.length})
             </h2>
 
             {error && (
-              <div className="mb-4 rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              <div className="mb-4 rounded border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
                 {error}
               </div>
             )}
 
             {isLoading ? (
               <div className="flex h-64 items-center justify-center">
-                <p className="text-sm text-gray-500">Loading comparison...</p>
+                <p className="text-sm text-muted-foreground">Loading comparison...</p>
               </div>
             ) : !compareData || compareData.runs.length === 0 ? (
               <div className="flex h-64 items-center justify-center">
-                <p className="text-sm text-gray-500">No data to display</p>
+                <p className="text-sm text-muted-foreground">No data to display</p>
               </div>
             ) : (
               <>
                 {/* Aligned Equity Curves */}
                 <section className="mb-6">
                   <div className="mb-3 flex items-center gap-2">
-                    <h3 className="text-base font-semibold text-gray-900">Equity Curves</h3>
-                    {isMobile && <span className="text-xs text-gray-500">(Pinch to zoom)</span>}
+                    <h3 className="text-base font-semibold text-foreground">Equity Curves</h3>
+                    {isMobile && <span className="text-xs text-muted-foreground">(Pinch to zoom)</span>}
                   </div>
 
                   {alignedChartData.length === 0 ? (
                     <div className="flex h-64 items-center justify-center">
-                      <p className="text-sm text-gray-500">No equity data available</p>
+                      <p className="text-sm text-muted-foreground">No equity data available</p>
                     </div>
                   ) : (
                     <div className="h-64 sm:h-72 md:h-96">
@@ -303,7 +303,7 @@ export default function CompareBacktestsPage({ params }: Props) {
 
                 {/* Metrics Comparison Table */}
                 <section>
-                  <h3 className="mb-3 text-base font-semibold text-gray-900">Metrics Comparison</h3>
+                  <h3 className="mb-3 text-base font-semibold text-foreground">Metrics Comparison</h3>
                   <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
@@ -318,7 +318,7 @@ export default function CompareBacktestsPage({ params }: Props) {
                               <div className="mt-1 text-xs">
                                 {formatDateTime(run.created_at, timezone)}
                               </div>
-                              <div className="text-xs text-gray-500">
+                              <div className="text-xs text-muted-foreground">
                                 {formatDateTime(run.date_from, timezone).split(" ")[0]} →{" "}
                                 {formatDateTime(run.date_to, timezone).split(" ")[0]}
                               </div>
