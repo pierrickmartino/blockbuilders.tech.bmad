@@ -12,6 +12,10 @@ import type {
   MacdParams,
   BollingerParams,
   AtrParams,
+  StochasticParams,
+  AdxParams,
+  IchimokuParams,
+  FibonacciParams,
   CompareParams,
   CrossoverParams,
   PositionSizeParams,
@@ -192,6 +196,8 @@ function resolveBlockPhrase(
         return String((block.params as unknown as ConstantParams).value);
       case "yesterday_close":
         return "yesterday's close";
+      case "price_variation_pct":
+        return "price variation %";
 
       // Indicator blocks
       case "sma":
@@ -206,6 +212,16 @@ function resolveBlockPhrase(
         return formatBollingerBlock(block.params as unknown as BollingerParams, portName);
       case "atr":
         return formatAtrBlock(block.params as unknown as AtrParams);
+      case "stochastic":
+        return formatStochasticBlock(block.params as unknown as StochasticParams, portName);
+      case "adx":
+        return formatAdxBlock(block.params as unknown as AdxParams, portName);
+      case "ichimoku":
+        return formatIchimokuBlock(block.params as unknown as IchimokuParams, portName);
+      case "obv":
+        return "OBV";
+      case "fibonacci":
+        return formatFibonacciBlock(block.params as unknown as FibonacciParams, portName);
 
       // Logic blocks
       case "compare":
@@ -301,6 +317,76 @@ function formatBollingerBlock(params: BollingerParams, portName: string): string
  */
 function formatAtrBlock(params: AtrParams): string {
   return `ATR(${params.period})`;
+}
+
+/**
+ * Format Stochastic block (port-aware)
+ */
+function formatStochasticBlock(params: StochasticParams, portName: string): string {
+  const { k_period, d_period, smooth } = params;
+  const base = `${k_period},${d_period},${smooth}`;
+
+  if (portName === "k") {
+    return `Stochastic %K(${base})`;
+  } else if (portName === "d") {
+    return `Stochastic %D(${base})`;
+  }
+  return `Stochastic(${base})`;
+}
+
+/**
+ * Format ADX block (port-aware)
+ */
+function formatAdxBlock(params: AdxParams, portName: string): string {
+  const { period } = params;
+
+  if (portName === "adx") {
+    return `ADX(${period})`;
+  } else if (portName === "plus_di") {
+    return `+DI(${period})`;
+  } else if (portName === "minus_di") {
+    return `-DI(${period})`;
+  }
+  return `ADX(${period})`;
+}
+
+/**
+ * Format Ichimoku block (port-aware)
+ */
+function formatIchimokuBlock(params: IchimokuParams, portName: string): string {
+  const { conversion, base, span_b, displacement } = params;
+  const paramStr = `${conversion},${base},${span_b},${displacement}`;
+
+  if (portName === "conversion") {
+    return `Ichimoku Conversion(${paramStr})`;
+  } else if (portName === "base") {
+    return `Ichimoku Base(${paramStr})`;
+  } else if (portName === "span_a") {
+    return `Ichimoku Span A(${paramStr})`;
+  } else if (portName === "span_b") {
+    return `Ichimoku Span B(${paramStr})`;
+  }
+  return `Ichimoku(${paramStr})`;
+}
+
+/**
+ * Format Fibonacci block (port-aware)
+ */
+function formatFibonacciBlock(params: FibonacciParams, portName: string): string {
+  const { lookback } = params;
+
+  if (portName === "level_236") {
+    return `Fib 23.6%(${lookback})`;
+  } else if (portName === "level_382") {
+    return `Fib 38.2%(${lookback})`;
+  } else if (portName === "level_5") {
+    return `Fib 50%(${lookback})`;
+  } else if (portName === "level_618") {
+    return `Fib 61.8%(${lookback})`;
+  } else if (portName === "level_786") {
+    return `Fib 78.6%(${lookback})`;
+  }
+  return `Fibonacci(${lookback})`;
 }
 
 /**
