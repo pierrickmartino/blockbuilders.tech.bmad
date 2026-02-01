@@ -27,8 +27,8 @@ export default function MetricsGlossaryPage() {
   });
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-8">
-      <h1 className="mb-2 text-3xl font-bold">
+    <div className="mx-auto max-w-4xl p-4 md:p-6">
+      <h1 className="text-2xl font-bold">
         Metrics Glossary
       </h1>
       <p className="mb-6 text-muted-foreground">

@@ -7,10 +7,13 @@ import {
 
 export default function StrategyGuidePage() {
   return (
-    <div className="mx-auto max-w-3xl">
-      <h1 className="mb-6 text-2xl font-bold">
+    <div className="mx-auto max-w-3xl p-4 md:p-6">
+      <h1 className="text-2xl font-bold">
         Strategy Building Guide
       </h1>
+      <p className="mb-6 text-muted-foreground">
+        Learn how to build effective trading strategies
+      </p>
 
       <div className="space-y-6">
         <Card id="entry-signals">

@@ -561,20 +561,20 @@ export default function StrategiesPage() {
   };
 
   const getReturnColorClass = (value: number | null | undefined): string => {
-    if (value === null || value === undefined) return "text-gray-900";
-    return value > 0 ? "text-green-600" : value < 0 ? "text-red-600" : "text-gray-900";
+    if (value === null || value === undefined) return "text-foreground";
+    return value > 0 ? "text-green-600" : value < 0 ? "text-red-600" : "text-foreground";
   };
 
   const SortIcon = ({ field }: { field: SortField }) => {
-    if (sortField !== field) return <span className="ml-1 text-gray-400">↕</span>;
+    if (sortField !== field) return <span className="ml-1 text-muted-foreground">↕</span>;
     return <span className="ml-1">{sortOrder === "asc" ? "↑" : "↓"}</span>;
   };
 
   if (isLoading) {
     return (
       <main className="container mx-auto max-w-6xl space-y-6 p-4 md:p-6">
-        <div className="flex items-center justify-center py-12">
-          <div className="text-gray-500">Loading strategies...</div>
+        <div className="flex min-h-[200px] items-center justify-center">
+          <p className="text-muted-foreground">Loading strategies...</p>
         </div>
       </main>
     );
@@ -689,7 +689,7 @@ export default function StrategiesPage() {
                 {availableTags.map((tag) => (
                   <div
                     key={tag.id}
-                    className="flex items-center gap-2 px-2 py-1.5 hover:bg-gray-100 cursor-pointer"
+                    className="flex items-center gap-2 px-2 py-1.5 hover:bg-muted/50 cursor-pointer"
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();

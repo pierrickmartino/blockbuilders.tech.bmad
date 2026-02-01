@@ -55,31 +55,31 @@ export default function TemplatesPage() {
 
   if (isLoading) {
     return (
-      <div className="container py-8">
-        <div className="text-center text-muted-foreground">
-          Loading templates...
+      <div className="container mx-auto max-w-6xl p-4 md:p-6">
+        <div className="flex min-h-[200px] items-center justify-center">
+          <p className="text-muted-foreground">Loading templates...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Strategy Templates</h1>
+    <div className="container mx-auto max-w-6xl space-y-6 p-4 md:p-6">
+      <div>
+        <h1 className="text-2xl font-bold">Strategy Templates</h1>
         <p className="text-muted-foreground">
           Start with a proven strategy and customize it to your needs
         </p>
       </div>
 
       {error && (
-        <div className="mb-6 rounded border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+        <div className="rounded border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
           {error}
         </div>
       )}
 
       {templates.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">
+        <div className="flex flex-col items-center justify-center p-12 text-center text-muted-foreground">
           No templates available yet
         </div>
       ) : (
