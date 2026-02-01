@@ -1,0 +1,720 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "name": "Blockbuilders Design System",
+  "version": "1.0.0",
+  "description": "Comprehensive design system specification for the Blockbuilders application",
+
+  "tokens": {
+    "colors": {
+      "semantic": {
+        "background": {
+          "light": "hsl(0 0% 100%)",
+          "dark": "hsl(224 71.4% 4.1%)",
+          "cssVariable": "--background"
+        },
+        "foreground": {
+          "light": "hsl(224 71.4% 4.1%)",
+          "dark": "hsl(210 20% 98%)",
+          "cssVariable": "--foreground"
+        },
+        "card": {
+          "light": "hsl(0 0% 100%)",
+          "dark": "hsl(224 71.4% 4.1%)",
+          "cssVariable": "--card"
+        },
+        "cardForeground": {
+          "light": "hsl(224 71.4% 4.1%)",
+          "dark": "hsl(210 20% 98%)",
+          "cssVariable": "--card-foreground"
+        },
+        "popover": {
+          "light": "hsl(0 0% 100%)",
+          "dark": "hsl(224 71.4% 4.1%)",
+          "cssVariable": "--popover"
+        },
+        "popoverForeground": {
+          "light": "hsl(224 71.4% 4.1%)",
+          "dark": "hsl(210 20% 98%)",
+          "cssVariable": "--popover-foreground"
+        },
+        "primary": {
+          "light": "hsl(262.1 83.3% 57.8%)",
+          "dark": "hsl(263.4 70% 50.4%)",
+          "cssVariable": "--primary"
+        },
+        "primaryForeground": {
+          "light": "hsl(210 20% 98%)",
+          "dark": "hsl(210 20% 98%)",
+          "cssVariable": "--primary-foreground"
+        },
+        "secondary": {
+          "light": "hsl(220 14.3% 95.9%)",
+          "dark": "hsl(215 27.9% 16.9%)",
+          "cssVariable": "--secondary"
+        },
+        "secondaryForeground": {
+          "light": "hsl(220.9 39.3% 11%)",
+          "dark": "hsl(210 20% 98%)",
+          "cssVariable": "--secondary-foreground"
+        },
+        "muted": {
+          "light": "hsl(220 14.3% 95.9%)",
+          "dark": "hsl(215 27.9% 16.9%)",
+          "cssVariable": "--muted"
+        },
+        "mutedForeground": {
+          "light": "hsl(220 8.9% 46.1%)",
+          "dark": "hsl(217.9 10.6% 64.9%)",
+          "cssVariable": "--muted-foreground"
+        },
+        "accent": {
+          "light": "hsl(220 14.3% 95.9%)",
+          "dark": "hsl(215 27.9% 16.9%)",
+          "cssVariable": "--accent"
+        },
+        "accentForeground": {
+          "light": "hsl(220.9 39.3% 11%)",
+          "dark": "hsl(210 20% 98%)",
+          "cssVariable": "--accent-foreground"
+        },
+        "destructive": {
+          "light": "hsl(0 84.2% 60.2%)",
+          "dark": "hsl(0 62.8% 30.6%)",
+          "cssVariable": "--destructive"
+        },
+        "destructiveForeground": {
+          "light": "hsl(210 20% 98%)",
+          "dark": "hsl(210 20% 98%)",
+          "cssVariable": "--destructive-foreground"
+        },
+        "border": {
+          "light": "hsl(0 0% 89.8%)",
+          "dark": "hsl(215 27.9% 16.9%)",
+          "cssVariable": "--border"
+        },
+        "input": {
+          "light": "hsl(0 0% 89.8%)",
+          "dark": "hsl(215 27.9% 16.9%)",
+          "cssVariable": "--input"
+        },
+        "ring": {
+          "light": "hsl(262.1 83.3% 57.8%)",
+          "dark": "hsl(263.4 70% 50.4%)",
+          "cssVariable": "--ring"
+        }
+      },
+      "chart": {
+        "chart1": {
+          "light": "hsl(262.1 83.3% 57.8%)",
+          "dark": "hsl(263.4 70% 50.4%)",
+          "cssVariable": "--chart-1"
+        },
+        "chart2": {
+          "light": "hsl(273 72% 50%)",
+          "dark": "hsl(279 65% 55%)",
+          "cssVariable": "--chart-2"
+        },
+        "chart3": {
+          "light": "hsl(291 70% 55%)",
+          "dark": "hsl(293 60% 60%)",
+          "cssVariable": "--chart-3"
+        },
+        "chart4": {
+          "light": "hsl(250 80% 65%)",
+          "dark": "hsl(250 70% 60%)",
+          "cssVariable": "--chart-4"
+        },
+        "chart5": {
+          "light": "hsl(230 70% 60%)",
+          "dark": "hsl(230 60% 55%)",
+          "cssVariable": "--chart-5"
+        }
+      },
+      "sidebar": {
+        "background": {
+          "light": "hsl(0 0% 98%)",
+          "dark": "hsl(224 71.4% 4.1%)",
+          "cssVariable": "--sidebar-background"
+        },
+        "foreground": {
+          "light": "hsl(224 71.4% 4.1%)",
+          "dark": "hsl(210 20% 98%)",
+          "cssVariable": "--sidebar-foreground"
+        },
+        "primary": {
+          "light": "hsl(262.1 83.3% 57.8%)",
+          "dark": "hsl(263.4 70% 50.4%)",
+          "cssVariable": "--sidebar-primary"
+        },
+        "primaryForeground": {
+          "light": "hsl(210 20% 98%)",
+          "dark": "hsl(210 20% 98%)",
+          "cssVariable": "--sidebar-primary-foreground"
+        },
+        "accent": {
+          "light": "hsl(220 14.3% 95.9%)",
+          "dark": "hsl(215 27.9% 16.9%)",
+          "cssVariable": "--sidebar-accent"
+        },
+        "accentForeground": {
+          "light": "hsl(220.9 39.3% 11%)",
+          "dark": "hsl(210 20% 98%)",
+          "cssVariable": "--sidebar-accent-foreground"
+        },
+        "border": {
+          "light": "hsl(220 13% 91%)",
+          "dark": "hsl(215 27.9% 16.9%)",
+          "cssVariable": "--sidebar-border"
+        },
+        "ring": {
+          "light": "hsl(262.1 83.3% 57.8%)",
+          "dark": "hsl(263.4 70% 50.4%)",
+          "cssVariable": "--sidebar-ring"
+        }
+      },
+      "canvas": {
+        "categories": {
+          "input": {
+            "border": {
+              "default": "border-purple-300 dark:border-purple-600",
+              "selected": "border-purple-500 dark:border-purple-400"
+            },
+            "background": "bg-purple-50 dark:bg-purple-950/30",
+            "header": "bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300",
+            "handle": "!bg-purple-500"
+          },
+          "indicator": {
+            "border": {
+              "default": "border-blue-300 dark:border-blue-600",
+              "selected": "border-blue-500 dark:border-blue-400"
+            },
+            "background": "bg-blue-50 dark:bg-blue-950/30",
+            "header": "bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300",
+            "handle": "!bg-blue-500"
+          },
+          "logic": {
+            "border": {
+              "default": "border-amber-300 dark:border-amber-600",
+              "selected": "border-amber-500 dark:border-amber-400"
+            },
+            "background": "bg-amber-50 dark:bg-amber-950/30",
+            "header": "bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300",
+            "handle": "!bg-amber-500"
+          },
+          "signal": {
+            "border": {
+              "default": "border-green-300 dark:border-green-600",
+              "selected": "border-green-500 dark:border-green-400"
+            },
+            "background": "bg-green-50 dark:bg-green-950/30",
+            "header": "bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300",
+            "handle": "!bg-green-500"
+          },
+          "risk": {
+            "border": {
+              "default": "border-red-300 dark:border-red-600",
+              "selected": "border-red-500 dark:border-red-400"
+            },
+            "background": "bg-red-50 dark:bg-red-950/30",
+            "header": "bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300",
+            "handle": "!bg-red-500"
+          }
+        },
+        "error": {
+          "border": "border-red-500",
+          "ring": "ring-2 ring-red-200 dark:ring-red-900/50"
+        }
+      },
+      "feedback": {
+        "success": {
+          "background": "bg-green-50",
+          "border": "border-green-200",
+          "text": "text-green-600 dark:text-green-400"
+        },
+        "error": {
+          "background": "bg-red-50",
+          "border": "border-red-200",
+          "text": "text-red-600 dark:text-red-400"
+        },
+        "warning": {
+          "background": "bg-yellow-50",
+          "border": "border-yellow-200",
+          "text": "text-yellow-800 dark:text-yellow-400"
+        },
+        "info": {
+          "background": "bg-blue-50",
+          "border": "border-blue-200",
+          "text": "text-blue-900 dark:text-blue-400"
+        }
+      }
+    },
+    "typography": {
+      "fontFamily": {
+        "sans": "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+        "mono": "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace"
+      },
+      "fontSize": {
+        "xs": { "size": "0.75rem", "lineHeight": "1rem" },
+        "sm": { "size": "0.875rem", "lineHeight": "1.25rem" },
+        "base": { "size": "1rem", "lineHeight": "1.5rem" },
+        "lg": { "size": "1.125rem", "lineHeight": "1.75rem" },
+        "xl": { "size": "1.25rem", "lineHeight": "1.75rem" },
+        "2xl": { "size": "1.5rem", "lineHeight": "2rem" },
+        "3xl": { "size": "1.875rem", "lineHeight": "2.25rem" }
+      },
+      "fontWeight": {
+        "normal": "400",
+        "medium": "500",
+        "semibold": "600",
+        "bold": "700"
+      }
+    },
+    "spacing": {
+      "0": "0",
+      "0.5": "0.125rem",
+      "1": "0.25rem",
+      "1.5": "0.375rem",
+      "2": "0.5rem",
+      "2.5": "0.625rem",
+      "3": "0.75rem",
+      "4": "1rem",
+      "5": "1.25rem",
+      "6": "1.5rem",
+      "8": "2rem",
+      "10": "2.5rem",
+      "12": "3rem",
+      "16": "4rem"
+    },
+    "borderRadius": {
+      "none": "0",
+      "sm": "calc(var(--radius) - 4px)",
+      "md": "calc(var(--radius) - 2px)",
+      "lg": "var(--radius)",
+      "xl": "0.75rem",
+      "full": "9999px",
+      "baseValue": "0.5rem"
+    },
+    "shadows": {
+      "sm": "0 1px 2px 0 rgb(0 0 0 / 0.05)",
+      "DEFAULT": "0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)",
+      "md": "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
+      "lg": "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)"
+    },
+    "animation": {
+      "duration": {
+        "fast": "150ms",
+        "normal": "200ms",
+        "slow": "300ms",
+        "slower": "500ms"
+      },
+      "easing": {
+        "default": "cubic-bezier(0.4, 0, 0.2, 1)",
+        "in": "cubic-bezier(0.4, 0, 1, 1)",
+        "out": "cubic-bezier(0, 0, 0.2, 1)",
+        "inOut": "cubic-bezier(0.4, 0, 0.2, 1)"
+      }
+    },
+    "breakpoints": {
+      "sm": "640px",
+      "md": "768px",
+      "lg": "1024px",
+      "xl": "1280px",
+      "2xl": "1536px"
+    }
+  },
+
+  "components": {
+    "button": {
+      "base": "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+      "variants": {
+        "default": {
+          "classes": "bg-primary text-primary-foreground shadow hover:bg-primary/90",
+          "description": "Primary action button"
+        },
+        "destructive": {
+          "classes": "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
+          "description": "Destructive/danger action"
+        },
+        "outline": {
+          "classes": "border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground",
+          "description": "Secondary action with border"
+        },
+        "secondary": {
+          "classes": "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80",
+          "description": "Secondary action"
+        },
+        "ghost": {
+          "classes": "hover:bg-accent hover:text-accent-foreground",
+          "description": "Tertiary action, no background"
+        },
+        "link": {
+          "classes": "text-primary underline-offset-4 hover:underline",
+          "description": "Text link style"
+        }
+      },
+      "sizes": {
+        "default": {
+          "classes": "h-9 px-4 py-2",
+          "description": "Standard button size"
+        },
+        "sm": {
+          "classes": "h-8 rounded-md px-3 text-xs",
+          "description": "Small button"
+        },
+        "lg": {
+          "classes": "h-10 rounded-md px-8",
+          "description": "Large button"
+        },
+        "icon": {
+          "classes": "h-9 w-9",
+          "description": "Icon-only button"
+        }
+      }
+    },
+    "input": {
+      "base": "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+      "description": "Standard text input field"
+    },
+    "card": {
+      "container": {
+        "classes": "rounded-xl border bg-card text-card-foreground shadow",
+        "description": "Main card container"
+      },
+      "header": {
+        "classes": "flex flex-col space-y-1.5 p-6",
+        "description": "Card header section"
+      },
+      "title": {
+        "classes": "font-semibold leading-none tracking-tight",
+        "description": "Card title text"
+      },
+      "description": {
+        "classes": "text-sm text-muted-foreground",
+        "description": "Card description text"
+      },
+      "content": {
+        "classes": "p-6 pt-0",
+        "description": "Card content area"
+      },
+      "footer": {
+        "classes": "flex items-center p-6 pt-0",
+        "description": "Card footer section"
+      }
+    },
+    "badge": {
+      "base": "inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+      "variants": {
+        "default": {
+          "classes": "border-transparent bg-primary text-primary-foreground shadow hover:bg-primary/80",
+          "description": "Primary badge"
+        },
+        "secondary": {
+          "classes": "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
+          "description": "Secondary badge"
+        },
+        "destructive": {
+          "classes": "border-transparent bg-destructive text-destructive-foreground shadow hover:bg-destructive/80",
+          "description": "Destructive/error badge"
+        },
+        "outline": {
+          "classes": "text-foreground",
+          "description": "Outline badge"
+        }
+      }
+    },
+    "dialog": {
+      "overlay": {
+        "classes": "fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+        "description": "Modal overlay/backdrop"
+      },
+      "content": {
+        "classes": "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg",
+        "description": "Modal content container"
+      },
+      "header": {
+        "classes": "flex flex-col space-y-1.5 text-center sm:text-left",
+        "description": "Dialog header section"
+      },
+      "footer": {
+        "classes": "flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2",
+        "description": "Dialog footer with actions"
+      },
+      "title": {
+        "classes": "text-lg font-semibold leading-none tracking-tight",
+        "description": "Dialog title"
+      },
+      "description": {
+        "classes": "text-sm text-muted-foreground",
+        "description": "Dialog description"
+      },
+      "closeButton": {
+        "classes": "absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground",
+        "description": "Close button in top right"
+      }
+    },
+    "table": {
+      "wrapper": {
+        "classes": "relative w-full overflow-auto",
+        "description": "Table container with scroll"
+      },
+      "table": {
+        "classes": "w-full caption-bottom text-sm",
+        "description": "Base table element"
+      },
+      "header": {
+        "classes": "[&_tr]:border-b",
+        "description": "Table header section"
+      },
+      "body": {
+        "classes": "[&_tr:last-child]:border-0",
+        "description": "Table body section"
+      },
+      "row": {
+        "classes": "border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted",
+        "description": "Table row with hover"
+      },
+      "head": {
+        "classes": "h-10 px-2 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
+        "description": "Table header cell"
+      },
+      "cell": {
+        "classes": "p-2 align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
+        "description": "Table data cell"
+      }
+    },
+    "canvasNode": {
+      "container": {
+        "base": "relative rounded-lg border-2 shadow-sm",
+        "minWidth": {
+          "default": "min-w-[120px]",
+          "mobile": "min-w-[150px]"
+        },
+        "description": "Base node container"
+      },
+      "header": {
+        "base": "flex items-center justify-between gap-1 rounded-t-md text-xs font-semibold",
+        "padding": {
+          "default": "px-3 py-1.5",
+          "mobile": "px-4 py-2"
+        },
+        "description": "Node header with label"
+      },
+      "content": {
+        "classes": "px-3 py-2",
+        "description": "Node content area"
+      },
+      "handle": {
+        "size": {
+          "default": "h-3 w-3",
+          "mobile": "h-5 w-5"
+        },
+        "description": "Connection handle circle"
+      },
+      "error": {
+        "icon": "h-4 w-4 flex-shrink-0 text-red-500",
+        "message": "text-xs text-red-600 dark:text-red-400",
+        "helpLink": "text-xs text-red-700 underline hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+      }
+    },
+    "sidebar": {
+      "width": {
+        "expanded": "16rem",
+        "mobile": "18rem",
+        "collapsed": "3rem"
+      },
+      "menuButton": {
+        "classes": "flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-none ring-sidebar-ring transition-[width,height,padding] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50",
+        "description": "Sidebar navigation button"
+      }
+    },
+    "tooltip": {
+      "content": {
+        "classes": "z-50 overflow-hidden rounded-md bg-primary px-3 py-1.5 text-xs text-primary-foreground animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
+        "description": "Tooltip popup content"
+      }
+    },
+    "skeleton": {
+      "base": "animate-pulse rounded-md bg-primary/10",
+      "description": "Loading skeleton placeholder"
+    },
+    "separator": {
+      "base": "shrink-0 bg-border",
+      "orientations": {
+        "horizontal": "h-[1px] w-full",
+        "vertical": "h-full w-[1px]"
+      }
+    },
+    "progressBar": {
+      "container": "h-2 w-full overflow-hidden rounded-full bg-muted",
+      "fill": "h-2 rounded-full transition-all",
+      "colors": {
+        "default": "bg-primary",
+        "warning": "bg-yellow-500",
+        "danger": "bg-red-500"
+      }
+    },
+    "alert": {
+      "base": "rounded border p-3 text-sm",
+      "variants": {
+        "success": {
+          "classes": "border-green-200 bg-green-50 text-green-600",
+          "darkClasses": "dark:border-green-800 dark:bg-green-950 dark:text-green-400"
+        },
+        "error": {
+          "classes": "border-red-200 bg-red-50 text-red-600",
+          "darkClasses": "dark:border-red-800 dark:bg-red-950 dark:text-red-400"
+        },
+        "warning": {
+          "classes": "border-yellow-200 bg-yellow-50 text-yellow-800",
+          "darkClasses": "dark:border-yellow-800 dark:bg-yellow-950 dark:text-yellow-400"
+        },
+        "info": {
+          "classes": "border-blue-200 bg-blue-50 text-blue-900",
+          "darkClasses": "dark:border-blue-800 dark:bg-blue-950 dark:text-blue-400"
+        }
+      }
+    }
+  },
+
+  "patterns": {
+    "layout": {
+      "page": {
+        "container": "container mx-auto max-w-6xl p-4 md:p-6",
+        "heading": "text-2xl font-bold",
+        "subheading": "text-muted-foreground",
+        "sections": "space-y-6"
+      },
+      "grid": {
+        "responsive2col": "grid gap-4 sm:grid-cols-2",
+        "responsive3col": "grid gap-4 sm:grid-cols-2 lg:grid-cols-3",
+        "mobileStack": "flex flex-col gap-4 md:flex-row"
+      }
+    },
+    "forms": {
+      "field": {
+        "container": "space-y-2",
+        "label": "mb-2 block text-sm font-medium",
+        "helpText": "mt-1 text-xs text-muted-foreground"
+      },
+      "section": {
+        "container": "max-w-md space-y-4",
+        "description": "Form section with constrained width"
+      }
+    },
+    "lists": {
+      "stack": {
+        "container": "space-y-2",
+        "item": "rounded-lg border p-4 hover:bg-muted/50"
+      },
+      "inline": {
+        "container": "flex flex-wrap gap-2",
+        "item": "inline-flex items-center"
+      }
+    },
+    "states": {
+      "loading": {
+        "container": "flex min-h-[200px] items-center justify-center",
+        "text": "text-muted-foreground"
+      },
+      "empty": {
+        "container": "flex flex-col items-center justify-center p-12 text-center",
+        "text": "text-gray-500"
+      },
+      "error": {
+        "container": "rounded-lg border border-red-200 bg-red-50 p-4 text-red-600",
+        "retryLink": "ml-2 h-auto p-0 text-red-600 underline"
+      }
+    },
+    "links": {
+      "primary": "text-blue-600 hover:text-blue-800 hover:underline",
+      "muted": "text-muted-foreground hover:text-foreground",
+      "destructive": "text-red-600 hover:text-red-800"
+    }
+  },
+
+  "icons": {
+    "library": "lucide-react",
+    "defaultSize": "h-4 w-4",
+    "sizes": {
+      "sm": "h-3 w-3",
+      "md": "h-4 w-4",
+      "lg": "h-5 w-5",
+      "xl": "h-6 w-6",
+      "2xl": "h-8 w-8"
+    },
+    "commonIcons": {
+      "close": "X",
+      "check": "Check",
+      "chevronDown": "ChevronDown",
+      "chevronRight": "ChevronRight",
+      "plus": "Plus",
+      "trash": "Trash2",
+      "edit": "Pencil",
+      "copy": "Copy",
+      "settings": "Settings",
+      "user": "User",
+      "menu": "Menu",
+      "search": "Search",
+      "info": "Info",
+      "warning": "AlertTriangle",
+      "error": "AlertCircle"
+    }
+  },
+
+  "utilities": {
+    "cn": {
+      "import": "import { cn } from '@/lib/utils'",
+      "description": "Utility function combining clsx and tailwind-merge for conditional class names",
+      "usage": "cn('base-classes', condition && 'conditional-classes', className)"
+    },
+    "cva": {
+      "import": "import { cva, type VariantProps } from 'class-variance-authority'",
+      "description": "Class Variance Authority for component variants",
+      "usage": "Create variant definitions with base styles and variant options"
+    }
+  },
+
+  "themeConfiguration": {
+    "darkMode": {
+      "strategy": "class",
+      "className": "dark",
+      "appliedTo": "document.documentElement"
+    },
+    "cssVariables": {
+      "location": "frontend/src/app/globals.css",
+      "rootSelector": ":root",
+      "darkSelector": ".dark"
+    },
+    "tailwindConfig": {
+      "location": "frontend/tailwind.config.ts",
+      "colorFormat": "hsl(var(--color-name))"
+    }
+  },
+
+  "guidelines": {
+    "newComponents": [
+      "Use existing tokens and patterns before creating new ones",
+      "Prefer shadcn/ui base components for common UI elements",
+      "Canvas nodes use custom Tailwind - do NOT use shadcn/ui there",
+      "Include dark mode support using Tailwind's dark: prefix",
+      "Use CVA for components with multiple variants",
+      "Always use the cn() utility for className composition",
+      "Test on mobile (768px) and desktop viewports"
+    ],
+    "doNot": [
+      "Create new color values outside the token system",
+      "Use arbitrary values when a token exists",
+      "Ignore mobile responsiveness",
+      "Skip dark mode support",
+      "Add animations longer than 300ms for UI feedback",
+      "Use !important except for react-flow handle overrides"
+    ],
+    "accessibility": [
+      "Maintain minimum 4.5:1 contrast ratio for text",
+      "Include visible focus indicators (ring)",
+      "Use semantic HTML elements",
+      "Add ARIA labels where needed",
+      "Ensure keyboard navigability"
+    ]
+  }
+}
