@@ -1,0 +1,336 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "name": "Blockbuilders Design Concept",
+  "version": "1.0.0",
+  "description": "High-level design concept and creative direction for the Blockbuilders visual strategy builder application",
+
+  "brandIdentity": {
+    "name": "Blockbuilders",
+    "tagline": "Visual Strategy Lab for Crypto Traders",
+    "personality": [
+      "Approachable",
+      "Professional",
+      "Technical yet accessible",
+      "Modern and clean"
+    ],
+    "targetAudience": "Non-technical retail crypto traders who want to build and backtest strategies visually"
+  },
+
+  "designPhilosophy": {
+    "corePrinciples": [
+      {
+        "name": "Clarity Over Complexity",
+        "description": "Every element should communicate its purpose immediately. Trading is complex enough; the interface should simplify, not add confusion."
+      },
+      {
+        "name": "Visual Hierarchy Through Color",
+        "description": "Use color purposefully to categorize, distinguish, and guide. The canvas node system uses semantic color-coding to help users understand block types at a glance."
+      },
+      {
+        "name": "Functional Minimalism",
+        "description": "Include only what's necessary. White space is valued. Every component earns its place by serving a clear function."
+      },
+      {
+        "name": "Progressive Disclosure",
+        "description": "Show essential information first; reveal complexity only when needed. Tooltips, expandable sections, and contextual help support without overwhelming."
+      },
+      {
+        "name": "Consistent Patterns",
+        "description": "Reuse established patterns across the application. Familiarity reduces cognitive load and speeds up user workflows."
+      }
+    ],
+    "designMood": "Professional fintech with an approachable, modern edge. Think: serious about trading, welcoming to beginners."
+  },
+
+  "colorStrategy": {
+    "philosophy": "Purple as the primary brand color conveys creativity and innovation. The palette balances professionalism with approachability through careful use of neutrals and semantic colors.",
+
+    "brandColors": {
+      "primary": {
+        "description": "Vibrant purple - represents creativity, innovation, and the building blocks concept",
+        "lightMode": "HSL(262.1, 83.3%, 57.8%)",
+        "darkMode": "HSL(263.4, 70%, 50.4%)",
+        "usage": "Primary actions, brand elements, active states, focus rings"
+      }
+    },
+
+    "semanticColors": {
+      "categories": {
+        "description": "Five distinct colors for canvas block categories, enabling instant visual recognition",
+        "input": {
+          "color": "Purple",
+          "meaning": "Data inputs - price, asset selection",
+          "psychology": "Creativity, source, origin"
+        },
+        "indicator": {
+          "color": "Blue",
+          "meaning": "Technical indicators - MA, RSI, MACD",
+          "psychology": "Trust, analysis, intelligence"
+        },
+        "logic": {
+          "color": "Amber/Yellow",
+          "meaning": "Logic operations - comparisons, boolean gates",
+          "psychology": "Caution, decision-making, thought"
+        },
+        "signal": {
+          "color": "Green",
+          "meaning": "Trade signals - entry, exit triggers",
+          "psychology": "Action, go, success"
+        },
+        "risk": {
+          "color": "Red",
+          "meaning": "Risk management - stop-loss, take-profit, position sizing",
+          "psychology": "Warning, protection, importance"
+        }
+      },
+      "feedback": {
+        "success": "Green - positive outcomes, confirmations",
+        "error": "Red - errors, validation failures, destructive actions",
+        "warning": "Yellow/Amber - cautions, near-limit states",
+        "info": "Blue - informational messages, help content"
+      }
+    },
+
+    "neutrals": {
+      "philosophy": "Clean grays with slight cool undertones create a professional backdrop that doesn't compete with semantic colors",
+      "background": {
+        "lightMode": "Pure white (#FFFFFF)",
+        "darkMode": "Deep navy-gray (HSL 224, 71.4%, 4.1%)"
+      },
+      "surfaces": {
+        "lightMode": "Off-white to light gray for elevated surfaces",
+        "darkMode": "Slightly lighter navy-gray for elevated surfaces"
+      },
+      "text": {
+        "primary": "Near-black in light mode, near-white in dark mode",
+        "secondary": "Medium gray for supporting text",
+        "muted": "Light gray for hints and disabled states"
+      }
+    },
+
+    "darkModeStrategy": {
+      "approach": "True dark mode with inverted luminance, maintaining color relationships and semantic meaning",
+      "principles": [
+        "Background becomes dark, text becomes light",
+        "Accent colors slightly adjust saturation/lightness for proper contrast",
+        "Category colors maintain their hue but adapt brightness for dark backgrounds",
+        "Shadows become more subtle, borders more prominent"
+      ]
+    }
+  },
+
+  "typographyStrategy": {
+    "philosophy": "System fonts for performance and familiarity. Clear hierarchy through size and weight, not decorative flourishes.",
+
+    "fontFamily": {
+      "primary": "System UI font stack (San Francisco, Segoe UI, Roboto)",
+      "monospace": "System monospace for code and numeric values"
+    },
+
+    "hierarchy": {
+      "pageTitle": {
+        "size": "2xl (1.5rem / 24px)",
+        "weight": "Bold (700)",
+        "usage": "Main page headings"
+      },
+      "sectionTitle": {
+        "size": "lg (1.125rem / 18px)",
+        "weight": "Semibold (600)",
+        "usage": "Card titles, section headers"
+      },
+      "subsectionTitle": {
+        "size": "base (1rem / 16px)",
+        "weight": "Medium (500)",
+        "usage": "Subsection headers, form section labels"
+      },
+      "body": {
+        "size": "sm (0.875rem / 14px)",
+        "weight": "Normal (400)",
+        "usage": "Body text, descriptions, form fields"
+      },
+      "small": {
+        "size": "xs (0.75rem / 12px)",
+        "weight": "Normal (400) or Semibold (600)",
+        "usage": "Badges, timestamps, canvas node labels, help text"
+      }
+    },
+
+    "principles": [
+      "Limit to 2-3 font weights per view to maintain visual calm",
+      "Use size + weight together for hierarchy, not color alone",
+      "Ensure adequate line-height for readability (typically 1.5)"
+    ]
+  },
+
+  "spacingStrategy": {
+    "philosophy": "Consistent spacing creates rhythm and reduces visual chaos. Use a base-4 scale for predictable, harmonious layouts.",
+
+    "scale": {
+      "description": "4px base unit, scaling by factors of 2",
+      "values": {
+        "0.5": "2px - minimal gaps",
+        "1": "4px - tight spacing",
+        "1.5": "6px - small gaps",
+        "2": "8px - default small spacing",
+        "3": "12px - medium spacing",
+        "4": "16px - default component padding",
+        "6": "24px - section padding",
+        "8": "32px - large section gaps"
+      }
+    },
+
+    "componentSpacing": {
+      "cardPadding": "24px (p-6)",
+      "formGap": "16px (space-y-4)",
+      "buttonPadding": "8px vertical, 16px horizontal",
+      "inputPadding": "4px vertical, 12px horizontal"
+    },
+
+    "layoutSpacing": {
+      "pageMargin": "16px mobile, 24px desktop",
+      "sectionGap": "24px (space-y-6)",
+      "gridGap": "16px (gap-4)"
+    }
+  },
+
+  "layoutStrategy": {
+    "philosophy": "Mobile-first responsive design. Layouts gracefully adapt from single-column mobile to multi-column desktop.",
+
+    "containerWidth": {
+      "max": "1152px (max-w-6xl)",
+      "usage": "Main content area, centered with auto margins"
+    },
+
+    "responsiveBreakpoints": {
+      "sm": "640px - Small tablets, larger phones",
+      "md": "768px - Tablets, primary mobile/desktop breakpoint",
+      "lg": "1024px - Desktops, laptops"
+    },
+
+    "patterns": {
+      "stack": "Vertical stacking for mobile, primary layout pattern",
+      "grid": "2-3 column grids on desktop for related items",
+      "sidebar": "Collapsible sidebar on mobile (off-canvas), fixed on desktop"
+    },
+
+    "mobileConsiderations": [
+      "Touch targets minimum 44px (h-11)",
+      "Single-column layouts for primary flows",
+      "Larger padding and font sizes for touch interaction",
+      "Canvas nodes scale up handles and padding in mobile mode"
+    ]
+  },
+
+  "componentDesignLanguage": {
+    "borders": {
+      "style": "Solid, 1px default",
+      "radius": {
+        "none": "0 - rarely used",
+        "sm": "2px - badges, small elements",
+        "md": "6px - buttons, inputs, dropdowns",
+        "lg": "8px - cards, modals",
+        "xl": "12px - primary cards, containers"
+      },
+      "color": "Light gray in light mode, dark gray in dark mode"
+    },
+
+    "shadows": {
+      "philosophy": "Subtle shadows for elevation. Never heavy or dramatic.",
+      "levels": {
+        "sm": "Slight lift - nodes, small cards",
+        "default": "Standard elevation - cards, dropdowns",
+        "lg": "Modal/dialog elevation"
+      }
+    },
+
+    "states": {
+      "hover": "Subtle background change, never jarring",
+      "focus": "1px ring in primary color, clear but not overwhelming",
+      "active": "Slightly darker/lighter than hover",
+      "disabled": "50% opacity, no pointer events"
+    },
+
+    "animations": {
+      "philosophy": "Purposeful, brief animations that provide feedback without slowing users down",
+      "duration": {
+        "fast": "150ms - button clicks, toggles",
+        "normal": "200ms - modal open/close, dropdown",
+        "slow": "300-500ms - complex transitions"
+      },
+      "easing": "ease-out for entrances, ease-in for exits",
+      "types": [
+        "Fade - opacity transitions for appearing/disappearing",
+        "Scale - slight zoom for modals and popovers",
+        "Slide - directional movement for sheets and drawers"
+      ]
+    }
+  },
+
+  "iconography": {
+    "library": "Lucide React",
+    "philosophy": "Simple, consistent line icons that complement rather than dominate",
+    "sizing": {
+      "default": "16px (size-4, h-4 w-4)",
+      "small": "14px - inline with small text",
+      "medium": "20px (size-5) - standalone or navigation",
+      "large": "32px (size-8) - logo, empty states"
+    },
+    "style": "Stroke-based, 2px stroke width, rounded line caps"
+  },
+
+  "specialDomains": {
+    "strategyCanvas": {
+      "description": "The visual node-based strategy builder is a core differentiator and has its own design subsystem",
+      "principles": [
+        "Nodes are color-coded by category for instant recognition",
+        "Connections use smooth curves, colored to match source node",
+        "Selected state uses stronger border color",
+        "Error state adds red border with glow ring",
+        "Mobile mode increases touch targets and padding"
+      ],
+      "nodeAnatomy": {
+        "header": "Colored background, small text, icon for info",
+        "body": "Light tinted background, parameter inputs",
+        "handles": "Circular connection points, category-colored"
+      }
+    },
+    "dataVisualization": {
+      "description": "Charts and graphs for backtest results",
+      "colorPalette": [
+        "Primary purple for main series",
+        "Purple/violet spectrum for additional series",
+        "Blue tones for secondary data"
+      ],
+      "principles": [
+        "Clear axis labels and legends",
+        "Responsive sizing, touch-friendly tooltips",
+        "Consistent color meaning across views"
+      ]
+    }
+  },
+
+  "accessibilityCommitments": [
+    "WCAG 2.1 AA compliance target",
+    "Visible focus indicators on all interactive elements",
+    "Color is never the only means of conveying information",
+    "Screen reader friendly with proper ARIA labels",
+    "Keyboard navigable interfaces"
+  ],
+
+  "designDecisionGuide": {
+    "whenInDoubt": [
+      "Choose the simpler option",
+      "Match existing patterns before inventing new ones",
+      "Prioritize clarity over cleverness",
+      "Test on mobile first",
+      "Ask: does this serve the user's task?"
+    ],
+    "antiPatterns": [
+      "Decorative elements that don't serve a purpose",
+      "Color used for emphasis without semantic meaning",
+      "Animations longer than 300ms for UI feedback",
+      "New patterns when existing ones would work",
+      "Desktop-only designs"
+    ]
+  }
+}
