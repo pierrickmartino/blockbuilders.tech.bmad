@@ -740,6 +740,22 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Use the existing dialog component for the shortcut reference list.
 - Keep the shortcut list minimal and in one place so it stays up to date.
 
+### 4.14. Block Library Bottom Sheet with Search (Planned)
+
+**Purpose:** Replace the small floating "+" button with a modern bottom sheet that surfaces blocks faster via search, categories, and recent/favorite lists.
+
+**Behavior:**
+- Tap the "+" trigger to slide up a bottom sheet; swipe down or tap outside to close.
+- Search input filters blocks by name and keywords (e.g., "EMA", "crossover", "stop loss").
+- Sections: Indicators, Logic, Risk, Signals, Data, plus a Recent/Favorites strip at the top.
+- Blocks can be dragged from the sheet onto the canvas or tapped to auto-place at the current cursor focus.
+- Uses existing block definitions; no new block types or backend changes.
+
+**Implementation Notes:**
+- Frontend-only enhancement to the block library UI.
+- Keep the layout minimal and mobile-friendly (maps/Spotify-style sheet).
+- Use existing block metadata for labels, categories, and search keywords.
+
 --- 
 
 ## 5. Backtesting Engine
@@ -1211,7 +1227,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 
 **Strategy Editor** (`/strategies/[id]`)
 - Visual canvas with drag-drop blocks
-- Block palette drawer (mobile-responsive)
+- Block palette drawer (mobile-responsive); planned bottom sheet block library with search, categories, and recent/favorite blocks to replace the floating + button
 - Properties panel for selected block
 - Curated indicator palette (SMA, EMA, RSI, MACD, Bollinger Bands, ATR, Stochastic, ADX, Ichimoku Cloud, OBV, Fibonacci)
 - Version tabs and switcher
@@ -1924,6 +1940,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Expanded Indicator Palette & Price Variation Input** | ✅ Complete | Stochastic, ADX, Ichimoku Cloud, OBV, Fibonacci retracements, and price variation % input block |
 | **Mobile-Optimized Canvas** | ✅ Complete | Touch-first controls, simplified palette, gesture-based connections |
 | **Bottom Action Bar for Canvas Tools** | ✅ Complete | Replace left tool stack with a mobile bottom action bar for core canvas tools (Pan/Select, Zoom In/Out, Fit to Screen, Undo/Redo) with 44px tap targets |
+| **Block Library Bottom Sheet with Search** | 📝 Planned | Replace floating + button with bottom sheet block library, search, categories, and recent/favorite blocks |
 | **Copy/Paste Blocks & Subgraphs** | ✅ Complete | Multi-select blocks and copy/paste within or across strategies |
 | **Canvas Undo/Redo** | ✅ Implemented | Toolbar buttons + keyboard shortcuts for reverting canvas edits |
 | **Keyboard Shortcuts & Reference** | 📝 Planned | Cmd/Ctrl+S save, Cmd/Ctrl+R run backtest, ? help modal, editor-only |
@@ -2238,6 +2255,7 @@ npm run type-check    # TypeScript validation
 - `docs/prd-keyboard-shortcuts.md` - Keyboard shortcuts & reference PRD
 - `docs/prd-mobile-optimized-canvas.md` - Mobile-optimized canvas PRD (IMPLEMENTED)
 - `docs/prd-canvas-bottom-action-bar.md` - Bottom action bar for canvas tools PRD
+- `docs/prd-block-library-bottom-sheet-search.md` - Block library bottom sheet with search PRD
 - `docs/prd-real-time-price-tickers.md` - Real-time price tickers PRD
 - `docs/prd-volatility-metrics-market-overview.md` - Volatility metrics (market overview) PRD
 - `docs/prd-market-sentiment-indicators.md` - Market sentiment indicators PRD
