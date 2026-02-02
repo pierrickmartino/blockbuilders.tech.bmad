@@ -97,7 +97,7 @@ export function getParamConfigs(blockType: BlockType): ParamConfig[] {
           defaultValue: 14,
           min: 2,
           max: 100,
-          presets: [14, 20, 50, 200],  // Period presets
+          presets: [14, 20, 50],  // Period presets
           help: "RSI period (2-100)",
         },
       ];
