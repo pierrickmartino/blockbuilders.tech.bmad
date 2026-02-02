@@ -15,12 +15,14 @@ import {
   applyNodeChanges,
   applyEdgeChanges,
   SelectionMode,
+  useReactFlow,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
 import { nodeTypes } from "./nodes";
 import { BlockMeta, BlockType, getBlockMeta, ValidationError } from "@/types/canvas";
 import { generateBlockId } from "@/lib/canvas-utils";
+import { MobileBottomBar } from "./MobileBottomBar";
 
 interface StrategyCanvasProps {
   nodes: Node[];
@@ -60,6 +62,22 @@ function CanvasInner({
   const [connectionState, setConnectionState] = useState<ConnectionState>({
     mode: "idle",
   });
+
+  // ReactFlow instance for zoom/fit controls
+  const reactFlow = useReactFlow();
+
+  // Zoom and fit handlers for mobile bottom bar
+  const handleZoomIn = useCallback(() => {
+    reactFlow.zoomIn();
+  }, [reactFlow]);
+
+  const handleZoomOut = useCallback(() => {
+    reactFlow.zoomOut();
+  }, [reactFlow]);
+
+  const handleFitView = useCallback(() => {
+    reactFlow.fitView();
+  }, [reactFlow]);
 
   // Handle new connections
   const onConnect = useCallback(
@@ -200,7 +218,7 @@ function CanvasInner({
           </ul>
         </div>
       )}
-      <div className="flex-1">
+      <div className={`flex-1 ${isMobileMode ? "pb-14" : ""}`}>
         <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -228,61 +246,63 @@ function CanvasInner({
         }}
       >
         <Background gap={15} size={1} />
-        <Controls>
-          <ControlButton
-            onClick={onUndo}
-            title="Undo (Cmd/Ctrl+Z)"
-            disabled={!canUndo}
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="h-4 w-4"
+        {!isMobileMode && (
+          <Controls>
+            <ControlButton
+              onClick={onUndo}
+              title="Undo (Cmd/Ctrl+Z)"
+              disabled={!canUndo}
             >
-              <path d="M3 7v6h6" />
-              <path d="M21 17a9 9 0 00-9-9 9 9 0 00-6 2.3L3 13" />
-            </svg>
-          </ControlButton>
-          <ControlButton
-            onClick={onRedo}
-            title="Redo (Cmd/Ctrl+Shift+Z)"
-            disabled={!canRedo}
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="h-4 w-4"
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-4 w-4"
+              >
+                <path d="M3 7v6h6" />
+                <path d="M21 17a9 9 0 00-9-9 9 9 0 00-6 2.3L3 13" />
+              </svg>
+            </ControlButton>
+            <ControlButton
+              onClick={onRedo}
+              title="Redo (Cmd/Ctrl+Shift+Z)"
+              disabled={!canRedo}
             >
-              <path d="M21 7v6h-6" />
-              <path d="M3 17a9 9 0 019-9 9 9 0 016 2.3l3 2.7" />
-            </svg>
-          </ControlButton>
-          <ControlButton onClick={onAddNote} title="Add Note">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="h-4 w-4"
-            >
-              <path d="M12 20h9" />
-              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-            </svg>
-          </ControlButton>
-        </Controls>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-4 w-4"
+              >
+                <path d="M21 7v6h-6" />
+                <path d="M3 17a9 9 0 019-9 9 9 0 016 2.3l3 2.7" />
+              </svg>
+            </ControlButton>
+            <ControlButton onClick={onAddNote} title="Add Note">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-4 w-4"
+              >
+                <path d="M12 20h9" />
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+              </svg>
+            </ControlButton>
+          </Controls>
+        )}
       </ReactFlow>
 
       {/* Tap-to-connect feedback overlay */}
@@ -290,6 +310,20 @@ function CanvasInner({
         <div className="pointer-events-none absolute bottom-4 left-1/2 z-10 -translate-x-1/2 rounded-lg bg-blue-600 px-4 py-2 text-sm text-white shadow-lg">
           Tap target port, or tap outside to cancel
         </div>
+      )}
+
+      {/* Mobile bottom action bar */}
+      {isMobileMode && (
+        <MobileBottomBar
+          onZoomIn={handleZoomIn}
+          onZoomOut={handleZoomOut}
+          onFitView={handleFitView}
+          onAddNote={onAddNote}
+          onUndo={onUndo || (() => {})}
+          onRedo={onRedo || (() => {})}
+          canUndo={canUndo || false}
+          canRedo={canRedo || false}
+        />
       )}
       </div>
     </div>
