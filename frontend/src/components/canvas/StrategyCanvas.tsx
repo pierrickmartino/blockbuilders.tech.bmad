@@ -318,6 +318,7 @@ function CanvasInner({
           onZoomIn={handleZoomIn}
           onZoomOut={handleZoomOut}
           onFitView={handleFitView}
+          onAddNote={onAddNote}
           onUndo={onUndo || (() => {})}
           onRedo={onRedo || (() => {})}
           canUndo={canUndo || false}
