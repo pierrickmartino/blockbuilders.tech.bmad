@@ -39,7 +39,7 @@ import { generateExplanation } from "@/lib/explanation-generator";
 import StrategyCanvas from "@/components/canvas/StrategyCanvas";
 import BlockPalette from "@/components/canvas/BlockPalette";
 import BlockLibrarySheet from "@/components/canvas/BlockLibrarySheet";
-import PropertiesPanel from "@/components/canvas/PropertiesPanel";
+import InspectorPanel from "@/components/canvas/InspectorPanel";
 import { StrategyTabs } from "@/components/StrategyTabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -1337,9 +1337,9 @@ export default function StrategyEditorPage({ params }: Props) {
           />
         </div>
 
-        {/* Right Panel - Properties (hidden on mobile, drawer) */}
+        {/* Right Panel - Inspector (hidden on mobile, drawer) */}
         <div className="hidden w-72 flex-shrink-0 border-l lg:block">
-          <PropertiesPanel
+          <InspectorPanel
             selectedNode={selectedNode}
             onParamsChange={handleParamsChange}
             onDeleteNode={handleDeleteNode}
@@ -1348,28 +1348,18 @@ export default function StrategyEditorPage({ params }: Props) {
           />
         </div>
 
-        {/* Mobile Properties Drawer */}
-        {showProperties && (
-          <div className="fixed inset-0 z-50 lg:hidden">
-            <div className="absolute inset-0 bg-black/50" onClick={() => setShowProperties(false)} />
-            <div className="absolute right-0 top-0 h-full w-full bg-white shadow-xl sm:w-80">
-              <div className="flex items-center justify-between border-b px-4 py-3">
-                <span className="font-semibold">Properties</span>
-                <button onClick={() => setShowProperties(false)} className="text-gray-500">
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-              <PropertiesPanel
-                selectedNode={selectedNode}
-                onParamsChange={handleParamsChange}
-                onDeleteNode={handleDeleteNode}
-                validationErrors={validationErrors}
-              />
-            </div>
-          </div>
-        )}
+        {/* Mobile Inspector Sheet */}
+        <Sheet open={showProperties} onOpenChange={setShowProperties}>
+          <SheetContent side="bottom" className="max-h-[70vh] p-0 lg:hidden">
+            <InspectorPanel
+              selectedNode={selectedNode}
+              onParamsChange={handleParamsChange}
+              onDeleteNode={handleDeleteNode}
+              validationErrors={validationErrors}
+              isMobileMode={true}
+            />
+          </SheetContent>
+        </Sheet>
 
         {/* Keyboard Shortcuts Modal */}
         <KeyboardShortcutsModal

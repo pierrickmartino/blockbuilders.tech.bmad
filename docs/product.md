@@ -373,7 +373,8 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 **Components:**
 - `StrategyCanvas`: Main visual editor (`frontend/src/components/canvas/StrategyCanvas.tsx`)
 - `BlockPalette`: Draggable block library
-- `InspectorPanel` (PropertiesPanel): Dedicated parameter inspector for selected blocks
+- `InspectorPanel`: Enhanced parameter inspector with period presets (14/20/50/200), source quick-swap controls (close/prev_close), and responsive mobile Sheet layout
+- `BlockLibrarySheet`: Bottom sheet with search, categories, favorites, and recent blocks
 - `StrategyTabs`: Version switcher and metadata editor
 
 ### 4.2. Block Types (20 Total)
@@ -1936,11 +1937,11 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Strategy Management** | ✅ Complete | CRUD, versioning, validation, duplication (one-click list clone), archiving |
 | **Bulk Strategy Actions** | 📝 Planned | Multi-select strategies with checkbox selection + action dropdown for archive, tag, delete |
 | **Strategy Groups/Tags** | ✅ Complete | Custom tags, tag filtering, many-to-many strategy organization |
-| **Visual Builder** | ✅ Complete | 20 block types, drag-drop, inspector panel for parameter editing, mobile-responsive |
+| **Visual Builder** | ✅ Complete | 20 block types, drag-drop, enhanced Inspector panel with period presets and source quick-swaps, mobile-responsive |
 | **Expanded Indicator Palette & Price Variation Input** | ✅ Complete | Stochastic, ADX, Ichimoku Cloud, OBV, Fibonacci retracements, and price variation % input block |
 | **Mobile-Optimized Canvas** | ✅ Complete | Touch-first controls, simplified palette, gesture-based connections |
 | **Bottom Action Bar for Canvas Tools** | ✅ Complete | Replace left tool stack with a mobile bottom action bar for core canvas tools (Pan/Select, Zoom In/Out, Fit to Screen, Undo/Redo) with 44px tap targets |
-| **Block Library Bottom Sheet with Search** | 📝 Planned | Replace floating + button with bottom sheet block library, search, categories, and recent/favorite blocks |
+| **Block Library Bottom Sheet with Search** | ✅ Complete | Bottom sheet block library with search, categories, and recent/favorite blocks |
 | **Copy/Paste Blocks & Subgraphs** | ✅ Complete | Multi-select blocks and copy/paste within or across strategies |
 | **Canvas Undo/Redo** | ✅ Implemented | Toolbar buttons + keyboard shortcuts for reverting canvas edits |
 | **Keyboard Shortcuts & Reference** | 📝 Planned | Cmd/Ctrl+S save, Cmd/Ctrl+R run backtest, ? help modal, editor-only |
