@@ -3,7 +3,7 @@
 import { useEffect, useState, use, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Node, Edge } from "@xyflow/react";
+import { Node, Edge, ReactFlowInstance } from "@xyflow/react";
 import { apiFetch } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
 import { useDisplay } from "@/context/display";
@@ -38,6 +38,7 @@ import { trackStrategyView } from "@/lib/recent-views";
 import { generateExplanation } from "@/lib/explanation-generator";
 import StrategyCanvas from "@/components/canvas/StrategyCanvas";
 import BlockPalette from "@/components/canvas/BlockPalette";
+import BlockLibrarySheet from "@/components/canvas/BlockLibrarySheet";
 import PropertiesPanel from "@/components/canvas/PropertiesPanel";
 import { StrategyTabs } from "@/components/StrategyTabs";
 import { Badge } from "@/components/ui/badge";
@@ -96,8 +97,10 @@ export default function StrategyEditorPage({ params }: Props) {
   const isApplyingHistoryRef = useRef(false);
 
   // Mobile drawer state
-  const [showPalette, setShowPalette] = useState(false);
   const [showProperties, setShowProperties] = useState(false);
+
+  // ReactFlow instance ref for block library sheet
+  const reactFlowRef = useRef<ReactFlowInstance | null>(null);
 
   // Editable name state
   const [editingName, setEditingName] = useState(false);
@@ -510,6 +513,14 @@ export default function StrategyEditorPage({ params }: Props) {
     event.dataTransfer.setData("application/blockMeta", JSON.stringify(blockMeta));
     event.dataTransfer.effectAllowed = "move";
   };
+
+  // Handle adding node from block library sheet (tap-to-place)
+  const handleAddNode = useCallback(
+    (node: Node) => {
+      setNodes([...nodes, node]);
+    },
+    [nodes]
+  );
 
   // Debounced snapshot for history
   const scheduleSnapshot = useCallback((newNodes: Node[], newEdges: Edge[]) => {
@@ -1285,36 +1296,16 @@ export default function StrategyEditorPage({ params }: Props) {
           <BlockPalette onDragStart={handlePaletteDragStart} isMobileMode={isMobileCanvasMode} />
         </div>
 
-        {/* Mobile Palette Drawer */}
-        {showPalette && (
-          <div className="fixed inset-0 z-50 lg:hidden">
-            <div className="absolute inset-0 bg-black/50" onClick={() => setShowPalette(false)} />
-            <div className="absolute left-0 top-0 h-full w-72 bg-white shadow-xl">
-              <div className="flex items-center justify-between border-b px-4 py-3">
-                <span className="font-semibold">Blocks</span>
-                <button onClick={() => setShowPalette(false)} className="text-gray-500">
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-              <BlockPalette onDragStart={handlePaletteDragStart} isMobileMode={isMobileCanvasMode} />
-            </div>
-          </div>
-        )}
-
         {/* Center - Canvas */}
         <div className="relative flex-1">
           {/* Mobile floating buttons */}
-          <div className="absolute left-4 top-4 z-10 flex gap-2 lg:hidden">
-            <button
-              onClick={() => setShowPalette(true)}
-              className="rounded-full bg-white p-2 shadow-md"
-            >
-              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-              </svg>
-            </button>
+          <div className="absolute left-4 top-4 z-10 flex gap-2">
+            <BlockLibrarySheet
+              onDragStart={handlePaletteDragStart}
+              onAddNode={handleAddNode}
+              reactFlowInstance={reactFlowRef}
+              isMobileMode={isMobileCanvasMode}
+            />
           </div>
           <div className="absolute right-4 top-4 z-10 lg:hidden">
             <button
@@ -1342,6 +1333,7 @@ export default function StrategyEditorPage({ params }: Props) {
             canRedo={canRedo(history)}
             globalValidationErrors={globalValidationErrors}
             isMobileMode={isMobileCanvasMode}
+            onInit={(instance) => (reactFlowRef.current = instance)}
           />
         </div>
 

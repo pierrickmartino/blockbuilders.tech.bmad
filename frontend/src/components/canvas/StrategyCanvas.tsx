@@ -37,6 +37,7 @@ interface StrategyCanvasProps {
   canRedo?: boolean;
   globalValidationErrors?: ValidationError[];
   isMobileMode?: boolean;
+  onInit?: (instance: ReactFlowInstance) => void;
 }
 
 type ConnectionState =
@@ -56,6 +57,7 @@ function CanvasInner({
   canRedo,
   globalValidationErrors,
   isMobileMode = false,
+  onInit: onInitProp,
 }: StrategyCanvasProps) {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const reactFlowInstance = useRef<ReactFlowInstance | null>(null);
@@ -176,9 +178,13 @@ function CanvasInner({
     [nodes, onNodesChange]
   );
 
-  const onInit = useCallback((instance: ReactFlowInstance) => {
-    reactFlowInstance.current = instance;
-  }, []);
+  const onInit = useCallback(
+    (instance: ReactFlowInstance) => {
+      reactFlowInstance.current = instance;
+      onInitProp?.(instance);
+    },
+    [onInitProp]
+  );
 
   const handleNodesChange = useCallback(
     (changes: Parameters<typeof applyNodeChanges>[0]) => {
