@@ -691,18 +691,22 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Reuse existing canvas components and React Flow APIs; avoid new dependencies.
 - Ensure desktop behavior remains unchanged unless mobile mode is active.
 
-#### 4.11.1. Bottom Action Bar for Canvas Tools (Planned)
+#### 4.11.1. Bottom Action Bar for Canvas Tools (Implemented)
 
 **Purpose:** Improve touch usability and reclaim horizontal canvas space by moving core tools into a bottom action bar on mobile.
 
 **Behavior:**
-- Replace the left vertical tool stack (zoom/hand/select) with a bottom action bar on small screens.
-- Larger, horizontally arranged tap targets for: Pan/Select, Zoom In/Out, Fit to Screen, Undo/Redo.
-- Pure layout change for mobile; desktop tool placement remains unchanged.
+- Replace the left vertical tool stack (zoom/hand/select) with a bottom action bar on small screens (<768px breakpoint).
+- Fixed bottom bar with 6 horizontally arranged tools: Pan/Select (status indicator), Zoom In, Zoom Out, Fit to Screen, Undo, Redo.
+- Minimum 44px tap targets for comfortable mobile touch interaction.
+- Pure layout change for mobile; desktop tool placement remains unchanged (top-left controls).
+- Desktop users continue to see ReactFlow's default Controls component.
 
 **Implementation Notes:**
 - Frontend-only; no backend impact.
-- Keep controls minimal and consistent with existing canvas actions.
+- Conditional rendering based on `isMobileMode` flag from DisplayContext.
+- Uses existing zoom/fit methods from ReactFlow's `useReactFlow()` hook.
+- Bottom padding added to canvas wrapper on mobile to prevent content overlap.
 
 ### 4.12. Canvas Undo/Redo History
 
@@ -1919,7 +1923,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Visual Builder** | ✅ Complete | 20 block types, drag-drop, parameter editing, mobile-responsive |
 | **Expanded Indicator Palette & Price Variation Input** | ✅ Complete | Stochastic, ADX, Ichimoku Cloud, OBV, Fibonacci retracements, and price variation % input block |
 | **Mobile-Optimized Canvas** | ✅ Complete | Touch-first controls, simplified palette, gesture-based connections |
-| **Bottom Action Bar for Canvas Tools** | 📝 Planned | Replace left tool stack with a mobile bottom action bar for core canvas tools |
+| **Bottom Action Bar for Canvas Tools** | ✅ Complete | Replace left tool stack with a mobile bottom action bar for core canvas tools (Pan/Select, Zoom In/Out, Fit to Screen, Undo/Redo) with 44px tap targets |
 | **Copy/Paste Blocks & Subgraphs** | ✅ Complete | Multi-select blocks and copy/paste within or across strategies |
 | **Canvas Undo/Redo** | ✅ Implemented | Toolbar buttons + keyboard shortcuts for reverting canvas edits |
 | **Keyboard Shortcuts & Reference** | 📝 Planned | Cmd/Ctrl+S save, Cmd/Ctrl+R run backtest, ? help modal, editor-only |
