@@ -373,7 +373,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 **Components:**
 - `StrategyCanvas`: Main visual editor (`frontend/src/components/canvas/StrategyCanvas.tsx`)
 - `BlockPalette`: Draggable block library
-- `PropertiesPanel`: Parameter editing for selected block
+- `InspectorPanel` (PropertiesPanel): Dedicated parameter inspector for selected blocks
 - `StrategyTabs`: Version switcher and metadata editor
 
 ### 4.2. Block Types (20 Total)
@@ -1228,7 +1228,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 **Strategy Editor** (`/strategies/[id]`)
 - Visual canvas with drag-drop blocks
 - Block palette drawer (mobile-responsive); planned bottom sheet block library with search, categories, and recent/favorite blocks to replace the floating + button
-- Properties panel for selected block
+- Inspector panel opens on block tap for touch-friendly parameter editing, presets, and inline validation
 - Curated indicator palette (SMA, EMA, RSI, MACD, Bollinger Bands, ATR, Stochastic, ADX, Ichimoku Cloud, OBV, Fibonacci)
 - Version tabs and switcher
 - Save button (creates new version)
@@ -1239,7 +1239,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - `frontend/src/app/(app)/strategies/[id]/page.tsx`
 - `frontend/src/components/canvas/StrategyCanvas.tsx`
 - `frontend/src/components/canvas/BlockPalette.tsx`
-- `frontend/src/components/canvas/PropertiesPanel.tsx`
+- `frontend/src/components/canvas/PropertiesPanel.tsx` (Inspector panel UI)
 
 ### 9.4. Backtest Pages
 
@@ -1936,7 +1936,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Strategy Management** | ✅ Complete | CRUD, versioning, validation, duplication (one-click list clone), archiving |
 | **Bulk Strategy Actions** | 📝 Planned | Multi-select strategies with checkbox selection + action dropdown for archive, tag, delete |
 | **Strategy Groups/Tags** | ✅ Complete | Custom tags, tag filtering, many-to-many strategy organization |
-| **Visual Builder** | ✅ Complete | 20 block types, drag-drop, parameter editing, mobile-responsive |
+| **Visual Builder** | ✅ Complete | 20 block types, drag-drop, inspector panel for parameter editing, mobile-responsive |
 | **Expanded Indicator Palette & Price Variation Input** | ✅ Complete | Stochastic, ADX, Ichimoku Cloud, OBV, Fibonacci retracements, and price variation % input block |
 | **Mobile-Optimized Canvas** | ✅ Complete | Touch-first controls, simplified palette, gesture-based connections |
 | **Bottom Action Bar for Canvas Tools** | ✅ Complete | Replace left tool stack with a mobile bottom action bar for core canvas tools (Pan/Select, Zoom In/Out, Fit to Screen, Undo/Redo) with 44px tap targets |
@@ -2255,6 +2255,7 @@ npm run type-check    # TypeScript validation
 - `docs/prd-keyboard-shortcuts.md` - Keyboard shortcuts & reference PRD
 - `docs/prd-mobile-optimized-canvas.md` - Mobile-optimized canvas PRD (IMPLEMENTED)
 - `docs/prd-canvas-bottom-action-bar.md` - Bottom action bar for canvas tools PRD
+- `docs/prd-inspector-panel-block-parameters.md` - Inspector panel for block parameters PRD
 - `docs/prd-block-library-bottom-sheet-search.md` - Block library bottom sheet with search PRD
 - `docs/prd-real-time-price-tickers.md` - Real-time price tickers PRD
 - `docs/prd-volatility-metrics-market-overview.md` - Volatility metrics (market overview) PRD
