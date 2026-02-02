@@ -108,14 +108,14 @@ export default function InspectorPanel({
     // Select with quick-swap segmented control (for close/prev_close)
     if (config.type === "select" && config.quickSwap && config.options) {
       return (
-        <div className="flex gap-1 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-1">
+        <div className="grid grid-cols-2 gap-1 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-1 sm:grid-cols-3">
           {config.options.map((option) => (
             <button
               key={option.value}
               type="button"
               onClick={() => handleChange(key, option.value)}
               className={cn(
-                "flex-1 rounded-md px-3 text-sm font-medium transition-all",
+                "min-w-0 rounded-md px-2 text-center text-sm font-medium leading-tight transition-all whitespace-normal",
                 isMobileMode ? "py-2.5" : "py-2",
                 String(value) === option.value
                   ? "bg-white dark:bg-gray-900 shadow-sm text-gray-900 dark:text-gray-100"
