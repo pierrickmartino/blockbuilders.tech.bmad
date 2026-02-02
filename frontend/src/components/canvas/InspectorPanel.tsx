@@ -259,7 +259,7 @@ export default function InspectorPanel({
     <div className="h-full overflow-y-auto bg-white dark:bg-gray-900">
       {/* Header */}
       <div className="border-b border-gray-200 dark:border-gray-700 p-4">
-        <div className="flex items-center justify-between">
+        <div className={cn("flex items-center justify-between", isMobileMode && "pr-12")}>
           <div>
             <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Inspector</h3>
             <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
