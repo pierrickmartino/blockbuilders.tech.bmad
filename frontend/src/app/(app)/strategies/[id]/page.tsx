@@ -517,9 +517,9 @@ export default function StrategyEditorPage({ params }: Props) {
   // Handle adding node from block library sheet (tap-to-place)
   const handleAddNode = useCallback(
     (node: Node) => {
-      setNodes([...nodes, node]);
+      setNodes((prevNodes) => [...prevNodes, node]);
     },
-    [nodes]
+    []
   );
 
   // Debounced snapshot for history
