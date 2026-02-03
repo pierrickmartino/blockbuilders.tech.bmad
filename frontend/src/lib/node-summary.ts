@@ -84,8 +84,15 @@ export function generateNodeSummary(
     }
 
     // Crossover Logic
-    case "crossover": {
-      const dir = direction === "below" ? "below" : "above";
+    case "crossover":
+    case "cross_over": {
+      const dirMap: Record<string, string> = {
+        crosses_above: "crosses above",
+        crosses_below: "crosses below",
+        above: "above",
+        below: "below",
+      };
+      const dir = direction ? dirMap[direction] ?? direction.replace("_", " ") : "crosses above";
       return `Crossover: ${dir}`;
     }
 
