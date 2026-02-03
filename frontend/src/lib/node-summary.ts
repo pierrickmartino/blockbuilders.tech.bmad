@@ -12,6 +12,11 @@ export function generateNodeSummary(
   const period = params.period ? Number(params.period) : undefined;
   const threshold = params.threshold ? Number(params.threshold) : undefined;
   const percent = params.percent ? Number(params.percent) : undefined;
+  const trailPct = params.trail_pct !== undefined ? Number(params.trail_pct) : undefined;
+  const stopLossPct =
+    params.stop_loss_pct !== undefined ? Number(params.stop_loss_pct) : undefined;
+  const maxDrawdownPct =
+    params.max_drawdown_pct !== undefined ? Number(params.max_drawdown_pct) : undefined;
   const operator = params.operator ? String(params.operator) : undefined;
   const direction = params.direction ? String(params.direction) : undefined;
   const value = params.value ? Number(params.value) : undefined;
@@ -100,7 +105,7 @@ export function generateNodeSummary(
 
     // Risk Management
     case "stop_loss":
-      return `Stop Loss: ${percent !== undefined ? percent + "%" : threshold !== undefined ? threshold : ""}`;
+      return `Stop Loss: ${percent !== undefined ? percent + "%" : stopLossPct !== undefined ? stopLossPct + "%" : threshold !== undefined ? threshold : ""}`;
     case "take_profit": {
       const levels = params.levels as Array<{ percent: number }> | undefined;
       if (levels && levels.length > 0) {
@@ -109,16 +114,16 @@ export function generateNodeSummary(
       return `Take Profit`;
     }
     case "trailing_stop":
-      return `Trailing Stop: ${percent !== undefined ? percent + "%" : ""}`;
+      return `Trailing Stop: ${trailPct !== undefined ? trailPct + "%" : percent !== undefined ? percent + "%" : ""}`;
     case "position_size":
       return `Position: ${percent || 100}%`;
     case "max_drawdown":
-      return `Max Drawdown: ${percent || 20}%`;
+      return `Max Drawdown: ${maxDrawdownPct ?? percent ?? 20}%`;
 
     // Time-based Exit
     case "time_exit": {
-      const hours = params.hours ? Number(params.hours) : undefined;
-      return `Time Exit: ${hours !== undefined ? hours + "h" : ""}`;
+      const bars = params.bars ? Number(params.bars) : undefined;
+      return `Time Exit: ${bars !== undefined ? bars + " bars" : ""}`;
     }
 
     // Notes

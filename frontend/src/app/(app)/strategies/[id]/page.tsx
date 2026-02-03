@@ -701,6 +701,24 @@ export default function StrategyEditorPage({ params }: Props) {
     });
   }, []);
 
+  // Update expanded nodes when display mode changes
+  useEffect(() => {
+    if (nodeDisplayMode === "compact") {
+      // Collapse all nodes when entering compact mode
+      setExpandedNodeIds(new Set());
+    } else {
+      // Expand all nodes when exiting compact mode
+      setExpandedNodeIds((prev) => {
+        // Only expand if not already expanded
+        if (prev.size === 0) {
+          return new Set(nodes.map(n => n.id));
+        }
+        return prev;
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nodeDisplayMode]);
+
   // Handle keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

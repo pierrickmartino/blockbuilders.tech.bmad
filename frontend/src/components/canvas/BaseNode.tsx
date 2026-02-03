@@ -1,9 +1,11 @@
-import { ReactNode } from "react";
+import { ReactNode, Children, isValidElement } from "react";
+import { Handle } from "@xyflow/react";
 import InfoIcon from "@/components/InfoIcon";
 import { blockToGlossaryId, getTooltip } from "@/lib/tooltip-content";
 import { cn } from "@/lib/utils";
 
 interface BaseNodeProps {
+  id?: string;
   label: string;
   selected: boolean;
   category: "input" | "indicator" | "logic" | "signal" | "risk";
@@ -16,6 +18,26 @@ interface BaseNodeProps {
   isCompact?: boolean;
   isExpanded?: boolean;
   summary?: string;
+}
+
+// Helper function to separate React Flow Handles from other content
+function separateHandlesAndContent(children: ReactNode) {
+  const childArray = Children.toArray(children);
+  const handles: ReactNode[] = [];
+  const content: ReactNode[] = [];
+
+  childArray.forEach(child => {
+    if (
+      isValidElement(child) &&
+      child.type === Handle
+    ) {
+      handles.push(child);
+    } else {
+      content.push(child);
+    }
+  });
+
+  return { handles, content };
 }
 
 const categoryStyles = {
@@ -52,6 +74,7 @@ const categoryStyles = {
 };
 
 export default function BaseNode({
+  id,
   label,
   selected,
   category,
@@ -70,6 +93,9 @@ export default function BaseNode({
   const errorBorder = hasError ? "border-red-500 ring-2 ring-red-200 dark:ring-red-900/50" : "";
   const tooltip = blockType ? getTooltip(blockToGlossaryId(blockType)) : null;
   const showCompact = isCompact && !isExpanded;
+
+  // Separate handles from content to ensure handles are always rendered
+  const { handles, content } = separateHandlesAndContent(children);
 
   return (
     <div
@@ -103,7 +129,8 @@ export default function BaseNode({
               />
             </svg>
           )}
-          <span>{label}</span>
+          {/* Show summary in title when collapsed, otherwise show label */}
+          <span>{showCompact && summary ? summary : label}</span>
         </div>
         {blockType && (
           <InfoIcon
@@ -112,13 +139,11 @@ export default function BaseNode({
           />
         )}
       </div>
-      {(children || validationMessage || (showCompact && summary)) && (
-        <div className="px-3 py-2">
-          {showCompact && summary ? (
-            <div className="text-xs text-gray-600 dark:text-gray-400">{summary}</div>
-          ) : (
-            children
-          )}
+
+      {/* Content area - only show when expanded */}
+      {!showCompact && (content.length > 0 || validationMessage) && (
+        <div className={cn(isMobileMode ? "px-4 py-2" : "px-3 py-2")}>
+          {content}
           {validationMessage && (
             <div className="mt-1">
               <div className="text-xs text-red-600 dark:text-red-400">{validationMessage}</div>
@@ -136,6 +161,9 @@ export default function BaseNode({
           )}
         </div>
       )}
+
+      {/* Always render handles for React Flow edge connections */}
+      {handles}
     </div>
   );
 }

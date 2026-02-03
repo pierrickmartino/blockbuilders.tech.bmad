@@ -100,12 +100,15 @@ function CanvasInner({
 
       if (!handle) {
         // Clicked node body (not a handle)
+        // Don't toggle expansion if clicking on interactive elements
+        const isInteractive = target.closest('input, button, select, textarea, [data-no-toggle]');
+
         // For mobile: cancel if connecting
         if (isMobileMode && connectionState.mode === "connecting") {
           setConnectionState({ mode: "idle" });
         }
-        // For compact mode: call expand/collapse handler
-        if (onNodeClickProp) {
+        // For compact mode: call expand/collapse handler (but not when clicking interactive elements)
+        if (onNodeClickProp && !isInteractive) {
           onNodeClickProp(node.id);
         }
         return;
