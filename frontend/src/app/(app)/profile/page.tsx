@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 import { ProfileSettingsSection } from "./profile-settings-section";
 
 export default function ProfilePage() {
-  const { timezone, setTimezone, theme, setTheme } = useDisplay();
+  const { timezone, setTimezone, theme, setTheme, nodeDisplayMode, setNodeDisplayMode } = useDisplay();
   const [profile, setProfile] = useState<ProfileResponse | null>(null);
   const [feePercent, setFeePercent] = useState("");
   const [slippagePercent, setSlippagePercent] = useState("");
@@ -120,6 +120,11 @@ export default function ProfilePage() {
       // Revert on error
       setTheme(previousTheme);
     }
+  }
+
+  // Handle node display mode change (localStorage only - frontend preference)
+  function handleNodeDisplayModeChange(mode: "compact" | "expanded") {
+    setNodeDisplayMode(mode);
   }
 
   // Handle upgrade click
@@ -388,6 +393,31 @@ export default function ProfilePage() {
                     Dark
                   </Button>
                 </div>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium">
+                  Node Display Mode
+                </label>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant={nodeDisplayMode === "compact" ? "default" : "secondary"}
+                    onClick={() => handleNodeDisplayModeChange("compact")}
+                  >
+                    Compact
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={nodeDisplayMode === "expanded" ? "default" : "secondary"}
+                    onClick={() => handleNodeDisplayModeChange("expanded")}
+                  >
+                    Expanded
+                  </Button>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Compact mode shows one-line summaries. Click nodes to expand details.
+                </p>
               </div>
             </div>
           </CardContent>

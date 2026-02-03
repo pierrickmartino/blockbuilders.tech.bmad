@@ -14,10 +14,12 @@ import { useIsMobile } from "@/hooks/use-mobile";
 const STORAGE_KEY_TIMEZONE = "bb.display.timezone";
 const STORAGE_KEY_MOBILE_CANVAS = "bb.display.mobileCanvasMode";
 const STORAGE_KEY_THEME = "bb.display.theme";
+const STORAGE_KEY_NODE_DISPLAY = "bb.display.nodeDisplayMode";
 
 export type MobileCanvasMode = "auto" | "mobile" | "desktop";
 export type ThemePreference = "system" | "light" | "dark";
 export type ResolvedTheme = "light" | "dark";
+export type NodeDisplayMode = "compact" | "expanded";
 
 interface DisplayContextType {
   timezone: TimezoneMode;
@@ -28,6 +30,8 @@ interface DisplayContextType {
   theme: ThemePreference;
   resolvedTheme: ResolvedTheme;
   setTheme: (theme: ThemePreference) => void;
+  nodeDisplayMode: NodeDisplayMode;
+  setNodeDisplayMode: (mode: NodeDisplayMode) => void;
 }
 
 const DisplayContext = createContext<DisplayContextType | undefined>(undefined);
@@ -36,6 +40,8 @@ export function DisplayProvider({ children }: { children: ReactNode }) {
   const [timezone, setTimezoneState] = useState<TimezoneMode>("local");
   const [mobileCanvasMode, setMobileCanvasModeState] =
     useState<MobileCanvasMode>("auto");
+  const [nodeDisplayMode, setNodeDisplayModeState] =
+    useState<NodeDisplayMode>("compact");
   const [theme, setThemeState] = useState<ThemePreference>(() => {
     if (typeof window === "undefined") return "system";
     const stored = localStorage.getItem(STORAGE_KEY_THEME);
@@ -80,6 +86,16 @@ export function DisplayProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // Load node display mode from localStorage on mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem(STORAGE_KEY_NODE_DISPLAY);
+      if (stored === "compact" || stored === "expanded") {
+        setNodeDisplayModeState(stored);
+      }
+    }
+  }, []);
+
   // Persist timezone to localStorage on change
   const setTimezone = useCallback((tz: TimezoneMode) => {
     setTimezoneState(tz);
@@ -93,6 +109,14 @@ export function DisplayProvider({ children }: { children: ReactNode }) {
     setMobileCanvasModeState(mode);
     if (typeof window !== "undefined") {
       localStorage.setItem(STORAGE_KEY_MOBILE_CANVAS, mode);
+    }
+  }, []);
+
+  // Persist node display mode to localStorage on change
+  const setNodeDisplayMode = useCallback((mode: NodeDisplayMode) => {
+    setNodeDisplayModeState(mode);
+    if (typeof window !== "undefined") {
+      localStorage.setItem(STORAGE_KEY_NODE_DISPLAY, mode);
     }
   }, []);
 
@@ -145,6 +169,8 @@ export function DisplayProvider({ children }: { children: ReactNode }) {
         theme,
         resolvedTheme,
         setTheme,
+        nodeDisplayMode,
+        setNodeDisplayMode,
       }}
     >
       {children}

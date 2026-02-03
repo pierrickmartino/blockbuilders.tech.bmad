@@ -18,6 +18,9 @@ export default function StochasticNode({ data, selected }: NodeProps) {
   };
   const isMobileMode =
     typeof data?.isMobileMode === "boolean" ? data.isMobileMode : false;
+  const isCompact = typeof data?.isCompact === "boolean" ? data.isCompact : false;
+  const isExpanded = typeof data?.isExpanded === "boolean" ? data.isExpanded : false;
+  const summary = typeof data?.summary === "string" ? data.summary : undefined;
 
   return (
     <BaseNode
@@ -29,6 +32,9 @@ export default function StochasticNode({ data, selected }: NodeProps) {
       validationMessage={validationMessage}
       helpLink={helpLink}
       isMobileMode={isMobileMode}
+      isCompact={isCompact}
+      isExpanded={isExpanded}
+      summary={summary}
     >
       <div className="space-y-0.5 text-xs text-gray-600">
         <div>%K Period: {params.k_period || 14}</div>

@@ -38,6 +38,7 @@ interface StrategyCanvasProps {
   globalValidationErrors?: ValidationError[];
   isMobileMode?: boolean;
   onInit?: (instance: ReactFlowInstance) => void;
+  onNodeClick?: (nodeId: string) => void;
 }
 
 type ConnectionState =
@@ -58,6 +59,7 @@ function CanvasInner({
   globalValidationErrors,
   isMobileMode = false,
   onInit: onInitProp,
+  onNodeClick: onNodeClickProp,
 }: StrategyCanvasProps) {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const reactFlowInstance = useRef<ReactFlowInstance | null>(null);
@@ -90,21 +92,27 @@ function CanvasInner({
     [edges, onEdgesChange]
   );
 
-  // Handle tap-to-connect for mobile
+  // Handle tap-to-connect for mobile and compact mode expand/collapse
   const handleNodeClick = useCallback(
     (event: React.MouseEvent, node: Node) => {
-      if (!isMobileMode) return;
-
       const target = event.target as HTMLElement;
       const handle = target.closest('[data-handleid]') as HTMLElement | null;
 
       if (!handle) {
-        // Clicked node body, cancel if connecting
-        if (connectionState.mode === "connecting") {
+        // Clicked node body (not a handle)
+        // For mobile: cancel if connecting
+        if (isMobileMode && connectionState.mode === "connecting") {
           setConnectionState({ mode: "idle" });
+        }
+        // For compact mode: call expand/collapse handler
+        if (onNodeClickProp) {
+          onNodeClickProp(node.id);
         }
         return;
       }
+
+      // Handle click is for mobile tap-to-connect only
+      if (!isMobileMode) return;
 
       const handleId = handle.getAttribute("data-handleid");
       const handleType = handle.getAttribute("data-handletype");
@@ -132,7 +140,7 @@ function CanvasInner({
         }
       }
     },
-    [isMobileMode, connectionState, edges, onEdgesChange]
+    [isMobileMode, connectionState, edges, onEdgesChange, onNodeClickProp]
   );
 
   // Handle node selection
@@ -235,7 +243,7 @@ function CanvasInner({
         onDragOver={onDragOver}
         onDrop={onDrop}
         onInit={onInit}
-        onNodeClick={isMobileMode ? handleNodeClick : undefined}
+        onNodeClick={handleNodeClick}
         nodeTypes={nodeTypes}
         fitView
         snapToGrid

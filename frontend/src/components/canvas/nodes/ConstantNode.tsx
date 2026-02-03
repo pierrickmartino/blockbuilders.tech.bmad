@@ -16,6 +16,9 @@ export default function ConstantNode({ data, selected }: NodeProps) {
   const params = (data?.params || {}) as { value?: number };
   const value = params.value ?? 0;
   const isMobileMode = typeof data?.isMobileMode === "boolean" ? data.isMobileMode : false;
+  const isCompact = typeof data?.isCompact === "boolean" ? data.isCompact : false;
+  const isExpanded = typeof data?.isExpanded === "boolean" ? data.isExpanded : false;
+  const summary = typeof data?.summary === "string" ? data.summary : undefined;
 
   return (
     <BaseNode
@@ -27,6 +30,9 @@ export default function ConstantNode({ data, selected }: NodeProps) {
       validationMessage={validationMessage}
       helpLink={helpLink}
       isMobileMode={isMobileMode}
+      isCompact={isCompact}
+      isExpanded={isExpanded}
+      summary={summary}
     >
       <div className="text-xs text-gray-600">Value: {value}</div>
       <Handle

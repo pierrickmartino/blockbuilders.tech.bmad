@@ -36,6 +36,7 @@ import {
 } from "@/lib/history-manager";
 import { trackStrategyView } from "@/lib/recent-views";
 import { generateExplanation } from "@/lib/explanation-generator";
+import { generateNodeSummary } from "@/lib/node-summary";
 import StrategyCanvas from "@/components/canvas/StrategyCanvas";
 import BlockPalette from "@/components/canvas/BlockPalette";
 import BlockLibrarySheet from "@/components/canvas/BlockLibrarySheet";
@@ -76,7 +77,7 @@ interface Props {
 export default function StrategyEditorPage({ params }: Props) {
   const { id } = use(params);
   const router = useRouter();
-  const { timezone, mobileCanvasMode, setMobileCanvasMode, isMobileCanvasMode } = useDisplay();
+  const { timezone, mobileCanvasMode, setMobileCanvasMode, isMobileCanvasMode, nodeDisplayMode } = useDisplay();
 
   const [strategy, setStrategy] = useState<Strategy | null>(null);
   const [versions, setVersions] = useState<StrategyVersion[]>([]);
@@ -90,6 +91,7 @@ export default function StrategyEditorPage({ params }: Props) {
   const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(new Set());
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
+  const [expandedNodeIds, setExpandedNodeIds] = useState<Set<string>>(new Set());
 
   // History state
   const [history, setHistory] = useState<HistoryState>(() => resetHistory([], []));
@@ -271,14 +273,30 @@ export default function StrategyEditorPage({ params }: Props) {
     fetchAlert();
   }, [id, resetAlertForm]);
 
-  // Enrich nodes with mobile mode flag
+  // Enrich nodes with mobile mode flag and compact mode data
   const nodesWithMobileMode = useMemo(
     () =>
-      nodes.map((node) => ({
-        ...node,
-        data: { ...node.data, isMobileMode: isMobileCanvasMode },
-      })),
-    [nodes, isMobileCanvasMode]
+      nodes.map((node) => {
+        const isCompact = nodeDisplayMode === "compact";
+        const isExpanded = expandedNodeIds.has(node.id);
+        const summary = generateNodeSummary(
+          node.type || "",
+          (node.data?.params as Record<string, unknown>) || {},
+          String(node.data?.label || "")
+        );
+
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            isMobileMode: isMobileCanvasMode,
+            isCompact,
+            isExpanded,
+            summary,
+          },
+        };
+      }),
+    [nodes, isMobileCanvasMode, nodeDisplayMode, expandedNodeIds]
   );
 
   const selectedNode = useMemo(
@@ -669,6 +687,19 @@ export default function StrategyEditorPage({ params }: Props) {
       }, 0);
     }
   }, [history]);
+
+  // Handle node click for compact mode expand/collapse
+  const handleNodeClick = useCallback((nodeId: string) => {
+    setExpandedNodeIds(prev => {
+      const next = new Set(prev);
+      if (next.has(nodeId)) {
+        next.delete(nodeId);
+      } else {
+        next.add(nodeId);
+      }
+      return next;
+    });
+  }, []);
 
   // Handle keyboard shortcuts
   useEffect(() => {
@@ -1334,6 +1365,7 @@ export default function StrategyEditorPage({ params }: Props) {
             globalValidationErrors={globalValidationErrors}
             isMobileMode={isMobileCanvasMode}
             onInit={(instance) => (reactFlowRef.current = instance)}
+            onNodeClick={handleNodeClick}
           />
         </div>
 

@@ -18,6 +18,9 @@ export default function MaxDrawdownNode({ data, selected }: NodeProps) {
   };
   const maxDrawdown = params.max_drawdown_pct ?? params.percent ?? 10;
   const isMobileMode = typeof data?.isMobileMode === "boolean" ? data.isMobileMode : false;
+  const isCompact = typeof data?.isCompact === "boolean" ? data.isCompact : false;
+  const isExpanded = typeof data?.isExpanded === "boolean" ? data.isExpanded : false;
+  const summary = typeof data?.summary === "string" ? data.summary : undefined;
   return (
     <BaseNode
       label={label}
@@ -28,6 +31,9 @@ export default function MaxDrawdownNode({ data, selected }: NodeProps) {
       validationMessage={validationMessage}
       helpLink={helpLink}
       isMobileMode={isMobileMode}
+      isCompact={isCompact}
+      isExpanded={isExpanded}
+      summary={summary}
     >
       <div className="text-xs text-gray-600">
         Max DD: {maxDrawdown}%

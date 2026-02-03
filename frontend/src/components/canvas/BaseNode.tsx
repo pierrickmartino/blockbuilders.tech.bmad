@@ -13,6 +13,9 @@ interface BaseNodeProps {
   validationMessage?: string;
   helpLink?: string;
   isMobileMode?: boolean;
+  isCompact?: boolean;
+  isExpanded?: boolean;
+  summary?: string;
 }
 
 const categoryStyles = {
@@ -58,11 +61,15 @@ export default function BaseNode({
   validationMessage,
   helpLink,
   isMobileMode = false,
+  isCompact = false,
+  isExpanded = false,
+  summary,
 }: BaseNodeProps) {
   const styles = categoryStyles[category];
   const borderClass = selected ? styles.borderSelected : styles.border;
   const errorBorder = hasError ? "border-red-500 ring-2 ring-red-200 dark:ring-red-900/50" : "";
   const tooltip = blockType ? getTooltip(blockToGlossaryId(blockType)) : null;
+  const showCompact = isCompact && !isExpanded;
 
   return (
     <div
@@ -105,9 +112,13 @@ export default function BaseNode({
           />
         )}
       </div>
-      {(children || validationMessage) && (
+      {(children || validationMessage || (showCompact && summary)) && (
         <div className="px-3 py-2">
-          {children}
+          {showCompact && summary ? (
+            <div className="text-xs text-gray-600 dark:text-gray-400">{summary}</div>
+          ) : (
+            children
+          )}
           {validationMessage && (
             <div className="mt-1">
               <div className="text-xs text-red-600 dark:text-red-400">{validationMessage}</div>
