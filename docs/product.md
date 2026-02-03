@@ -74,6 +74,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Display preferences:
   - Timezone (local or UTC)
   - **Planned:** Theme preference (system/light/dark)
+  - **Planned:** Compact node display mode (compact/expanded, default compact)
   - Applied to all timestamps in UI
 
 **User Model Fields:**
@@ -709,7 +710,22 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Uses existing zoom/fit methods from ReactFlow's `useReactFlow()` hook.
 - Bottom padding added to canvas wrapper on mobile to prevent content overlap.
 
-### 4.12. Canvas Undo/Redo History
+### 4.12. Compact Node Display Mode (Planned)
+
+**Purpose:** Reduce visual clutter on small screens by defaulting nodes to a single-line summary while keeping full details accessible.
+
+**Behavior:**
+- Nodes render in **compact mode** by default, showing a one-line summary (e.g., `EMA (24, prev_close)`, `RSI (14)`, `Compare: > 5%`).
+- Tap/click a node to **expand** and reveal the full multi-line details.
+- Inspector panel always shows the full parameter set regardless of compact/expanded state.
+- Users can toggle **Compact vs Expanded** in Settings to set a persistent preference.
+
+**Implementation Notes:**
+- Frontend-only rendering change; no strategy JSON or backend changes.
+- Compact text is generated from existing node metadata and params.
+- Expansion is a purely visual state (per-node, local UI state).
+
+### 4.13. Canvas Undo/Redo History
 
 **Purpose:** Let users reverse or reapply recent canvas edits to reduce anxiety when building strategies.
 
@@ -724,7 +740,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - No backend, schema, or API changes.
 - Keep state snapshots minimal (use existing canvas serialize helpers).
 
-### 4.13. Keyboard Shortcuts & Reference (Planned)
+### 4.14. Keyboard Shortcuts & Reference (Planned)
 
 **Purpose:** Speed up common strategy actions with simple keyboard shortcuts and an in-app reference modal.
 
@@ -741,7 +757,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Use the existing dialog component for the shortcut reference list.
 - Keep the shortcut list minimal and in one place so it stays up to date.
 
-### 4.14. Block Library Bottom Sheet with Search (Planned)
+### 4.15. Block Library Bottom Sheet with Search (Planned)
 
 **Purpose:** Replace the small floating "+" button with a modern bottom sheet that surfaces blocks faster via search, categories, and recent/favorite lists.
 
@@ -1231,6 +1247,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Block palette drawer (mobile-responsive); planned bottom sheet block library with search, categories, and recent/favorite blocks to replace the floating + button
 - Inspector panel opens on block tap for touch-friendly parameter editing, presets, and inline validation
 - Curated indicator palette (SMA, EMA, RSI, MACD, Bollinger Bands, ATR, Stochastic, ADX, Ichimoku Cloud, OBV, Fibonacci)
+- Planned compact node display mode with one-line summaries and tap-to-expand details
 - Version tabs and switcher
 - Save button (creates new version)
 - Validate button
@@ -1276,6 +1293,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Display Preferences:
   - Timezone toggle (local or UTC)
   - **Planned:** Theme toggle (system/light/dark)
+  - **Planned:** Compact node display toggle (compact/expanded, default compact)
 - Usage section:
   - Strategies progress bar (X / 10)
   - Daily backtests progress bar (X / 50)
@@ -1294,6 +1312,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 
 **DisplayContext** (`frontend/src/context/display.tsx`)
 - Manages timezone preference (local/UTC)
+- Planned: manages compact node display preference (compact/expanded)
 - Applied to all timestamp displays
 - Persists to user profile
 
@@ -1941,6 +1960,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Expanded Indicator Palette & Price Variation Input** | ✅ Complete | Stochastic, ADX, Ichimoku Cloud, OBV, Fibonacci retracements, and price variation % input block |
 | **Mobile-Optimized Canvas** | ✅ Complete | Touch-first controls, simplified palette, gesture-based connections |
 | **Bottom Action Bar for Canvas Tools** | ✅ Complete | Replace left tool stack with a mobile bottom action bar for core canvas tools (Pan/Select, Zoom In/Out, Fit to Screen, Undo/Redo) with 44px tap targets |
+| **Compact Node Display Mode** | 📝 Planned | One-line node summaries by default with tap-to-expand details and a settings toggle |
 | **Block Library Bottom Sheet with Search** | ✅ Complete | Bottom sheet block library with search, categories, and recent/favorite blocks |
 | **Copy/Paste Blocks & Subgraphs** | ✅ Complete | Multi-select blocks and copy/paste within or across strategies |
 | **Canvas Undo/Redo** | ✅ Implemented | Toolbar buttons + keyboard shortcuts for reverting canvas edits |
@@ -2256,6 +2276,7 @@ npm run type-check    # TypeScript validation
 - `docs/prd-keyboard-shortcuts.md` - Keyboard shortcuts & reference PRD
 - `docs/prd-mobile-optimized-canvas.md` - Mobile-optimized canvas PRD (IMPLEMENTED)
 - `docs/prd-canvas-bottom-action-bar.md` - Bottom action bar for canvas tools PRD
+- `docs/prd-compact-node-display-mode.md` - Compact node display mode PRD
 - `docs/prd-inspector-panel-block-parameters.md` - Inspector panel for block parameters PRD
 - `docs/prd-block-library-bottom-sheet-search.md` - Block library bottom sheet with search PRD
 - `docs/prd-real-time-price-tickers.md` - Real-time price tickers PRD
