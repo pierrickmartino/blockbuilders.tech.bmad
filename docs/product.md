@@ -773,6 +773,22 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Keep the layout minimal and mobile-friendly (maps/Spotify-style sheet).
 - Use existing block metadata for labels, categories, and search keywords.
 
+### 4.16. Auto-Layout & Connection Tidying (Planned)
+
+**Purpose:** Fix messy graphs by auto-arranging blocks into a clean flow or tidying wire paths without moving blocks.
+
+**Behavior:**
+- Add an **Auto-arrange** button in the canvas toolbar.
+- Auto-arrange supports **Left → Right** and **Top → Bottom** flows.
+- Blocks snap to a simple grid with aligned ports and minimal wire crossings.
+- Add a **Tidy connections** option that straightens existing wires **without moving blocks**.
+- Defaults should be safe and predictable on small screens.
+
+**Implementation Notes:**
+- Frontend-only; uses existing node/edge data.
+- Prefer lightweight layout heuristics (no new dependencies unless already in use).
+- No strategy JSON changes required.
+
 --- 
 
 ## 5. Backtesting Engine
@@ -1963,6 +1979,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Compact Node Display Mode** | 📝 Planned | One-line node summaries by default with tap-to-expand details and a settings toggle |
 | **Block Library Bottom Sheet with Search** | ✅ Complete | Bottom sheet block library with search, categories, and recent/favorite blocks |
 | **Copy/Paste Blocks & Subgraphs** | ✅ Complete | Multi-select blocks and copy/paste within or across strategies |
+| **Auto-Layout & Connection Tidying** | 📝 Planned | Auto-arrange blocks left-to-right or top-to-bottom and tidy wire paths without moving blocks |
 | **Canvas Undo/Redo** | ✅ Implemented | Toolbar buttons + keyboard shortcuts for reverting canvas edits |
 | **Keyboard Shortcuts & Reference** | 📝 Planned | Cmd/Ctrl+S save, Cmd/Ctrl+R run backtest, ? help modal, editor-only |
 | **Strategy Building Wizard** | ✅ Complete | Guided Q&A that generates editable strategy JSON |
@@ -2276,6 +2293,7 @@ npm run type-check    # TypeScript validation
 - `docs/prd-keyboard-shortcuts.md` - Keyboard shortcuts & reference PRD
 - `docs/prd-mobile-optimized-canvas.md` - Mobile-optimized canvas PRD (IMPLEMENTED)
 - `docs/prd-canvas-bottom-action-bar.md` - Bottom action bar for canvas tools PRD
+- `docs/prd-canvas-auto-layout-connection-tidying.md` - Auto-layout & connection tidying PRD
 - `docs/prd-compact-node-display-mode.md` - Compact node display mode PRD
 - `docs/prd-inspector-panel-block-parameters.md` - Inspector panel for block parameters PRD
 - `docs/prd-block-library-bottom-sheet-search.md` - Block library bottom sheet with search PRD
