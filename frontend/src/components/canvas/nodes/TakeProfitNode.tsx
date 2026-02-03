@@ -31,6 +31,9 @@ export default function TakeProfitNode({ data, selected }: NodeProps) {
         ? [{ percent: params.take_profit_pct, ratio: 100 }]
         : [{ percent: 5, ratio: 100 }];
   const isMobileMode = typeof data?.isMobileMode === "boolean" ? data.isMobileMode : false;
+  const isCompact = typeof data?.isCompact === "boolean" ? data.isCompact : false;
+  const isExpanded = typeof data?.isExpanded === "boolean" ? data.isExpanded : false;
+  const summary = typeof data?.summary === "string" ? data.summary : undefined;
 
   return (
     <BaseNode
@@ -42,6 +45,9 @@ export default function TakeProfitNode({ data, selected }: NodeProps) {
       validationMessage={validationMessage}
       helpLink={helpLink}
       isMobileMode={isMobileMode}
+      isCompact={isCompact}
+      isExpanded={isExpanded}
+      summary={summary}
     >
       <div className="space-y-0.5 text-xs text-gray-600">
         {levels.map((level, i) => (

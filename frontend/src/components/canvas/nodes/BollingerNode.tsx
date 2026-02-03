@@ -16,6 +16,9 @@ export default function BollingerNode({ data, selected }: NodeProps) {
       : undefined;
   const params = (data?.params || {}) as { source?: PriceSource; period?: number; stddev?: number };
   const isMobileMode = typeof data?.isMobileMode === "boolean" ? data.isMobileMode : false;
+  const isCompact = typeof data?.isCompact === "boolean" ? data.isCompact : false;
+  const isExpanded = typeof data?.isExpanded === "boolean" ? data.isExpanded : false;
+  const summary = typeof data?.summary === "string" ? data.summary : undefined;
   return (
     <BaseNode
       label={label}
@@ -26,6 +29,9 @@ export default function BollingerNode({ data, selected }: NodeProps) {
       validationMessage={validationMessage}
       helpLink={helpLink}
       isMobileMode={isMobileMode}
+      isCompact={isCompact}
+      isExpanded={isExpanded}
+      summary={summary}
     >
       <div className="space-y-0.5 text-xs text-gray-600">
         <div>Source: {params.source || "close"}</div>
