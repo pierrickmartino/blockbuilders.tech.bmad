@@ -2,6 +2,7 @@ import type { Node, Edge } from "@xyflow/react";
 import ELK from "elkjs/lib/elk.bundled.js";
 
 export type LayoutDirection = "LR" | "TB";
+type ElkDirection = "RIGHT" | "DOWN";
 
 interface LayoutConfig {
   direction: LayoutDirection;
@@ -33,9 +34,9 @@ export async function autoArrangeLayout(
 
   const config: LayoutConfig = {
     direction,
-    nodeSpacing: 80,
-    layerSpacing: 250,
-    nodePadding: 40,
+    nodeSpacing: 60,
+    layerSpacing: 200,
+    nodePadding: 30,
     gridSnap: 15,
   };
 
@@ -62,7 +63,8 @@ function buildElkGraph(
     id: "strategy",
     layoutOptions: {
       "elk.algorithm": "org.eclipse.elk.mrtree",
-      "elk.direction": config.direction,
+      // ELK expects cardinal directions, not Dagre-style LR/TB shorthands.
+      "elk.direction": toElkDirection(config.direction),
       "elk.spacing.nodeNode": String(config.nodeSpacing),
       "elk.layered.spacing.nodeNodeBetweenLayers": String(
         config.layerSpacing
@@ -82,6 +84,10 @@ function buildElkGraph(
       targets: [edge.target],
     })),
   };
+}
+
+function toElkDirection(direction: LayoutDirection): ElkDirection {
+  return direction === "TB" ? "DOWN" : "RIGHT";
 }
 
 function mapElkPositions(
