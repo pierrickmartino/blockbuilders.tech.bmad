@@ -705,9 +705,9 @@ export default function StrategyEditorPage({ params }: Props) {
   }, []);
 
   // Handle auto-arrange layout
-  const handleAutoArrange = useCallback((direction: "LR" | "TB") => {
+  const handleAutoArrange = useCallback(async (direction: "LR" | "TB") => {
     // Apply layout algorithm
-    const newPositions = autoArrangeLayout(nodes, edges, direction);
+    const newPositions = await autoArrangeLayout(nodes, edges, direction);
 
     // Update nodes with new positions
     const updatedNodes = nodes.map(node => ({
