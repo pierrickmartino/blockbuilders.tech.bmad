@@ -47,9 +47,9 @@ export default function IchimokuNode({ data, selected }: NodeProps) {
         type="source"
         position={Position.Right}
         id="conversion"
-        style={{ top: "25%" }}
+        style={{ top: "24%" }}
         className={cn(
-          isMobileMode ? "!h-5 !w-5" : "!h-3 !w-3",
+          isMobileMode ? "!h-[18px] !w-[18px]" : "!h-[11px] !w-[11px]",
           "!bg-blue-500"
         )}
       />
@@ -57,9 +57,9 @@ export default function IchimokuNode({ data, selected }: NodeProps) {
         type="source"
         position={Position.Right}
         id="base"
-        style={{ top: "45%" }}
+        style={{ top: "42%" }}
         className={cn(
-          isMobileMode ? "!h-5 !w-5" : "!h-3 !w-3",
+          isMobileMode ? "!h-[18px] !w-[18px]" : "!h-[11px] !w-[11px]",
           "!bg-blue-500"
         )}
       />
@@ -67,9 +67,9 @@ export default function IchimokuNode({ data, selected }: NodeProps) {
         type="source"
         position={Position.Right}
         id="span_a"
-        style={{ top: "65%" }}
+        style={{ top: "60%" }}
         className={cn(
-          isMobileMode ? "!h-5 !w-5" : "!h-3 !w-3",
+          isMobileMode ? "!h-[18px] !w-[18px]" : "!h-[11px] !w-[11px]",
           "!bg-blue-500"
         )}
       />
@@ -77,9 +77,9 @@ export default function IchimokuNode({ data, selected }: NodeProps) {
         type="source"
         position={Position.Right}
         id="span_b"
-        style={{ top: "85%" }}
+        style={{ top: "78%" }}
         className={cn(
-          isMobileMode ? "!h-5 !w-5" : "!h-3 !w-3",
+          isMobileMode ? "!h-[18px] !w-[18px]" : "!h-[11px] !w-[11px]",
           "!bg-blue-500"
         )}
       />

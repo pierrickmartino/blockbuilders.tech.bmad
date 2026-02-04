@@ -36,9 +36,9 @@ export default function CompareNode({ data, selected }: NodeProps) {
         type="target"
         position={Position.Left}
         id="left"
-        style={{ top: "35%" }}
+        style={{ top: "38%" }}
         className={cn(
-          isMobileMode ? "!h-5 !w-5" : "!h-3 !w-3",
+          isMobileMode ? "!h-[18px] !w-[18px]" : "!h-[11px] !w-[11px]",
           "!bg-amber-500"
         )}
       />
@@ -46,9 +46,9 @@ export default function CompareNode({ data, selected }: NodeProps) {
         type="target"
         position={Position.Left}
         id="right"
-        style={{ top: "65%" }}
+        style={{ top: "66%" }}
         className={cn(
-          isMobileMode ? "!h-5 !w-5" : "!h-3 !w-3",
+          isMobileMode ? "!h-[18px] !w-[18px]" : "!h-[11px] !w-[11px]",
           "!bg-amber-500"
         )}
       />
@@ -60,7 +60,7 @@ export default function CompareNode({ data, selected }: NodeProps) {
         position={Position.Right}
         id="output"
         className={cn(
-          isMobileMode ? "!h-5 !w-5" : "!h-3 !w-3",
+          isMobileMode ? "!h-[18px] !w-[18px]" : "!h-[11px] !w-[11px]",
           "!bg-amber-500"
         )}
       />

@@ -4,6 +4,7 @@ import { useCallback, useRef, useState } from "react";
 import {
   ReactFlow,
   Background,
+  BackgroundVariant,
   Controls,
   ControlButton,
   Node,
@@ -227,7 +228,7 @@ function CanvasInner({
   return (
     <div ref={reactFlowWrapper} className="flex h-full w-full flex-col">
       {globalValidationErrors && globalValidationErrors.length > 0 && (
-        <div className="mb-2 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+        <div className="mb-3 rounded-xl border border-rose-200/70 bg-white/90 px-4 py-3 text-sm text-rose-700 shadow-[0_10px_30px_-20px_rgba(15,23,42,0.45)] backdrop-blur-sm">
           <p className="font-medium">Strategy Issues:</p>
           <ul className="mt-1 space-y-1 text-xs">
             {globalValidationErrors.map((err, i) => (
@@ -249,10 +250,11 @@ function CanvasInner({
         </div>
       )}
       <div
-        className={`relative flex-1 overflow-hidden rounded-lg border border-slate-200/70 bg-slate-50/80 shadow-sm ${isMobileMode ? "pb-14" : ""}`}
+        className={`relative flex-1 overflow-hidden rounded-2xl border border-slate-200/70 bg-gradient-to-br from-slate-50 via-white to-slate-100/80 shadow-[0_25px_60px_-35px_rgba(15,23,42,0.5)] ${isMobileMode ? "pb-14" : ""}`}
       >
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_16%,rgba(148,163,184,0.16),transparent_45%),radial-gradient(circle_at_88%_14%,rgba(99,102,241,0.09),transparent_38%),radial-gradient(circle_at_52%_86%,rgba(15,23,42,0.05),transparent_45%)]" />
         <ReactFlow
-          className="h-full w-full bg-transparent text-slate-900"
+          className="relative z-10 h-full w-full bg-transparent text-slate-900 [&_.react-flow__pane]:cursor-grab [&_.react-flow__pane]:active:cursor-grabbing [&_.react-flow__selection]:border-indigo-300/90 [&_.react-flow__selection]:bg-indigo-100/25 [&_.react-flow__controls]:m-4 [&_.react-flow__controls]:overflow-hidden [&_.react-flow__controls]:rounded-xl [&_.react-flow__controls]:border [&_.react-flow__controls]:border-slate-200 [&_.react-flow__controls]:bg-white/90 [&_.react-flow__controls]:backdrop-blur-xl [&_.react-flow__controls]:shadow-[0_20px_50px_-35px_rgba(15,23,42,0.8)] [&_.react-flow__controls-button]:h-10 [&_.react-flow__controls-button]:w-10 [&_.react-flow__controls-button]:border-slate-200/90 [&_.react-flow__controls-button]:bg-transparent [&_.react-flow__controls-button]:text-slate-700 [&_.react-flow__controls-button:hover]:bg-slate-50 [&_.react-flow__node]:transition-all [&_.react-flow__node]:duration-200 [&_.react-flow__node:hover]:-translate-y-0.5 [&_.react-flow__node:hover]:drop-shadow-[0_14px_30px_-18px_rgba(15,23,42,0.45)] [&_.react-flow__node.selected]:drop-shadow-[0_16px_36px_-20px_rgba(79,70,229,0.45)] [&_.react-flow__handle]:border-2 [&_.react-flow__handle]:border-white [&_.react-flow__handle]:shadow-[0_0_0_2px_rgba(15,23,42,0.14)] [&_.react-flow__handle]:transition-transform [&_.react-flow__handle:hover]:scale-105 [&_.react-flow__edge.animated_.react-flow__edge-path]:stroke-dasharray-[6_6] [&_.react-flow__edge.animated_.react-flow__edge-path]:drop-shadow-[0_0_7px_rgba(99,102,241,0.4)]"
           nodes={nodes}
           edges={edges}
           onNodesChange={handleNodesChange}
@@ -275,10 +277,27 @@ function CanvasInner({
           panOnDrag={isMobileMode ? [1, 2] : [1]}
           defaultEdgeOptions={{
             type: "smoothstep",
-            style: { strokeWidth: 2 },
+            animated: true,
+            style: {
+              strokeWidth: 2.2,
+              stroke: "#6366f1",
+              strokeOpacity: 0.9,
+              strokeLinecap: "round",
+            },
+          }}
+          connectionLineStyle={{
+            strokeWidth: 2.2,
+            stroke: "#6366f1",
+            strokeDasharray: "3 5",
           }}
         >
-          <Background gap={15} size={1} className="text-slate-300" />
+          <Background
+            variant={BackgroundVariant.Dots}
+            gap={26}
+            size={1.1}
+            color="#cbd5e1"
+            className="opacity-70"
+          />
           {!isMobileMode && (
             <Controls>
               <ControlButton
@@ -381,7 +400,7 @@ function CanvasInner({
 
         {/* Tap-to-connect feedback overlay */}
         {isMobileMode && connectionState.mode === "connecting" && (
-          <div className="pointer-events-none absolute bottom-4 left-1/2 z-10 -translate-x-1/2 rounded-lg bg-blue-600 px-4 py-2 text-sm text-white shadow-lg">
+          <div className="pointer-events-none absolute bottom-4 left-1/2 z-20 -translate-x-1/2 rounded-xl border border-slate-200/80 bg-white/95 px-4 py-2 text-sm text-slate-700 shadow-[0_16px_35px_-20px_rgba(15,23,42,0.45)] backdrop-blur">
             Tap target port, or tap outside to cancel
           </div>
         )}
