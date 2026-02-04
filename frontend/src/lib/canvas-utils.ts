@@ -137,3 +137,12 @@ export function createDefaultDefinition(): StrategyDefinition {
     meta: { version: 1 },
   };
 }
+
+// Tidy connections by resetting edges to clean smoothstep type
+export function tidyConnections(edges: Edge[]): Edge[] {
+  return edges.map((edge) => ({
+    ...edge,
+    type: "smoothstep" as const,
+    style: { strokeWidth: 2 },
+  }));
+}

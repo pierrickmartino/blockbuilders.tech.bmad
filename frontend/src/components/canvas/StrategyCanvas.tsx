@@ -23,6 +23,13 @@ import { nodeTypes } from "./nodes";
 import { BlockMeta, BlockType, getBlockMeta, ValidationError } from "@/types/canvas";
 import { generateBlockId } from "@/lib/canvas-utils";
 import { MobileBottomBar } from "./MobileBottomBar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface StrategyCanvasProps {
   nodes: Node[];
@@ -39,6 +46,9 @@ interface StrategyCanvasProps {
   isMobileMode?: boolean;
   onInit?: (instance: ReactFlowInstance) => void;
   onNodeClick?: (nodeId: string) => void;
+  onAutoArrange?: (direction: "LR" | "TB") => void;
+  onTidyConnections?: () => void;
+  onLayoutMenu?: () => void;
 }
 
 type ConnectionState =
@@ -60,6 +70,9 @@ function CanvasInner({
   isMobileMode = false,
   onInit: onInitProp,
   onNodeClick: onNodeClickProp,
+  onAutoArrange,
+  onTidyConnections,
+  onLayoutMenu,
 }: StrategyCanvasProps) {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const reactFlowInstance = useRef<ReactFlowInstance | null>(null);
@@ -318,6 +331,47 @@ function CanvasInner({
                 <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
               </svg>
             </ControlButton>
+            {(onAutoArrange || onTidyConnections) && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <ControlButton title="Auto-arrange">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="h-4 w-4"
+                    >
+                      <rect x="3" y="3" width="7" height="7" />
+                      <rect x="14" y="3" width="7" height="7" />
+                      <rect x="14" y="14" width="7" height="7" />
+                      <rect x="3" y="14" width="7" height="7" />
+                    </svg>
+                  </ControlButton>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {onAutoArrange && (
+                    <>
+                      <DropdownMenuItem onClick={() => onAutoArrange("LR")}>
+                        Left → Right
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onAutoArrange("TB")}>
+                        Top → Bottom
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                  {onAutoArrange && onTidyConnections && <DropdownMenuSeparator />}
+                  {onTidyConnections && (
+                    <DropdownMenuItem onClick={onTidyConnections}>
+                      Tidy connections
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </Controls>
         )}
       </ReactFlow>
@@ -340,6 +394,7 @@ function CanvasInner({
           onRedo={onRedo || (() => {})}
           canUndo={canUndo || false}
           canRedo={canRedo || false}
+          onLayoutMenu={onLayoutMenu || (() => {})}
         />
       )}
       </div>

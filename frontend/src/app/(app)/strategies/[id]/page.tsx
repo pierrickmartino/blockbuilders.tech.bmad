@@ -23,7 +23,9 @@ import {
   reactFlowToDefinition,
   createDefaultDefinition,
   generateBlockId,
+  tidyConnections,
 } from "@/lib/canvas-utils";
+import { autoArrangeLayout } from "@/lib/layout-algorithm";
 import { copyToClipboard, pasteFromClipboard } from "@/lib/clipboard-utils";
 import {
   resetHistory,
@@ -100,6 +102,7 @@ export default function StrategyEditorPage({ params }: Props) {
 
   // Mobile drawer state
   const [showProperties, setShowProperties] = useState(false);
+  const [showLayoutMenu, setShowLayoutMenu] = useState(false);
 
   // ReactFlow instance ref for block library sheet
   const reactFlowRef = useRef<ReactFlowInstance | null>(null);
@@ -700,6 +703,36 @@ export default function StrategyEditorPage({ params }: Props) {
       return next;
     });
   }, []);
+
+  // Handle auto-arrange layout
+  const handleAutoArrange = useCallback((direction: "LR" | "TB") => {
+    // Apply layout algorithm
+    const newPositions = autoArrangeLayout(nodes, edges, direction);
+
+    // Update nodes with new positions
+    const updatedNodes = nodes.map(node => ({
+      ...node,
+      position: newPositions.get(node.id) || node.position
+    }));
+
+    // Update state and history
+    setNodes(updatedNodes);
+    scheduleSnapshot(updatedNodes, edges);
+
+    // Fit view with animation
+    reactFlowRef.current?.fitView({ padding: 0.2, duration: 300 });
+
+    // Close mobile sheet if open
+    setShowLayoutMenu(false);
+  }, [nodes, edges, scheduleSnapshot]);
+
+  // Handle tidy connections
+  const handleTidyConnections = useCallback(() => {
+    const tidiedEdges = tidyConnections(edges);
+    setEdges(tidiedEdges);
+    scheduleSnapshot(nodes, tidiedEdges);
+    setShowLayoutMenu(false);
+  }, [nodes, edges, scheduleSnapshot]);
 
   // Update expanded nodes when display mode changes
   useEffect(() => {
@@ -1384,6 +1417,9 @@ export default function StrategyEditorPage({ params }: Props) {
             isMobileMode={isMobileCanvasMode}
             onInit={(instance) => (reactFlowRef.current = instance)}
             onNodeClick={handleNodeClick}
+            onAutoArrange={handleAutoArrange}
+            onTidyConnections={handleTidyConnections}
+            onLayoutMenu={() => setShowLayoutMenu(true)}
           />
         </div>
 
@@ -1408,6 +1444,38 @@ export default function StrategyEditorPage({ params }: Props) {
               validationErrors={validationErrors}
               isMobileMode={true}
             />
+          </SheetContent>
+        </Sheet>
+
+        {/* Mobile Layout Menu */}
+        <Sheet open={showLayoutMenu} onOpenChange={setShowLayoutMenu}>
+          <SheetContent side="bottom" className="lg:hidden">
+            <SheetHeader>
+              <SheetTitle>Layout Options</SheetTitle>
+            </SheetHeader>
+            <div className="mt-4 space-y-2">
+              <Button
+                onClick={() => handleAutoArrange("LR")}
+                className="w-full"
+                variant="outline"
+              >
+                Arrange: Left → Right
+              </Button>
+              <Button
+                onClick={() => handleAutoArrange("TB")}
+                className="w-full"
+                variant="outline"
+              >
+                Arrange: Top → Bottom
+              </Button>
+              <Button
+                onClick={handleTidyConnections}
+                className="w-full"
+                variant="outline"
+              >
+                Tidy connections
+              </Button>
+            </div>
           </SheetContent>
         </Sheet>
 
