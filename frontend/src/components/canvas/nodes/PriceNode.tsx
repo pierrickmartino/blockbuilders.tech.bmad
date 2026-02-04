@@ -40,7 +40,7 @@ export default function PriceNode({ data, selected }: NodeProps) {
         position={Position.Right}
         id="output"
         className={cn(
-          isMobileMode ? "!h-5 !w-5" : "!h-3 !w-3",
+          isMobileMode ? "!h-[18px] !w-[18px]" : "!h-[11px] !w-[11px]",
           "!bg-purple-500"
         )}
       />

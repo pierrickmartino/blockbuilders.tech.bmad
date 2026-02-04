@@ -39,9 +39,9 @@ export default function FibonacciNode({ data, selected }: NodeProps) {
         type="source"
         position={Position.Right}
         id="level_236"
-        style={{ top: "20%" }}
+        style={{ top: "22%" }}
         className={cn(
-          isMobileMode ? "!h-5 !w-5" : "!h-3 !w-3",
+          isMobileMode ? "!h-[18px] !w-[18px]" : "!h-[11px] !w-[11px]",
           "!bg-blue-500"
         )}
       />
@@ -49,9 +49,9 @@ export default function FibonacciNode({ data, selected }: NodeProps) {
         type="source"
         position={Position.Right}
         id="level_382"
-        style={{ top: "35%" }}
+        style={{ top: "37%" }}
         className={cn(
-          isMobileMode ? "!h-5 !w-5" : "!h-3 !w-3",
+          isMobileMode ? "!h-[18px] !w-[18px]" : "!h-[11px] !w-[11px]",
           "!bg-blue-500"
         )}
       />
@@ -59,9 +59,9 @@ export default function FibonacciNode({ data, selected }: NodeProps) {
         type="source"
         position={Position.Right}
         id="level_5"
-        style={{ top: "50%" }}
+        style={{ top: "52%" }}
         className={cn(
-          isMobileMode ? "!h-5 !w-5" : "!h-3 !w-3",
+          isMobileMode ? "!h-[18px] !w-[18px]" : "!h-[11px] !w-[11px]",
           "!bg-blue-500"
         )}
       />
@@ -69,9 +69,9 @@ export default function FibonacciNode({ data, selected }: NodeProps) {
         type="source"
         position={Position.Right}
         id="level_618"
-        style={{ top: "65%" }}
+        style={{ top: "67%" }}
         className={cn(
-          isMobileMode ? "!h-5 !w-5" : "!h-3 !w-3",
+          isMobileMode ? "!h-[18px] !w-[18px]" : "!h-[11px] !w-[11px]",
           "!bg-blue-500"
         )}
       />
@@ -79,9 +79,9 @@ export default function FibonacciNode({ data, selected }: NodeProps) {
         type="source"
         position={Position.Right}
         id="level_786"
-        style={{ top: "80%" }}
+        style={{ top: "82%" }}
         className={cn(
-          isMobileMode ? "!h-5 !w-5" : "!h-3 !w-3",
+          isMobileMode ? "!h-[18px] !w-[18px]" : "!h-[11px] !w-[11px]",
           "!bg-blue-500"
         )}
       />

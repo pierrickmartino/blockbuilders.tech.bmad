@@ -36,7 +36,7 @@ export default function EntrySignalNode({ data, selected }: NodeProps) {
         position={Position.Left}
         id="signal"
         className={cn(
-          isMobileMode ? "!h-5 !w-5" : "!h-3 !w-3",
+          isMobileMode ? "!h-[18px] !w-[18px]" : "!h-[11px] !w-[11px]",
           "!bg-green-500"
         )}
       />
