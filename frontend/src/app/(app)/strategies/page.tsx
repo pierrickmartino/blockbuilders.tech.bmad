@@ -582,16 +582,28 @@ export default function StrategiesPage() {
 
   return (
     <main className="container mx-auto max-w-6xl space-y-6 p-4 md:p-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold">Strategies</h1>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => router.push("/strategies/templates")}>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="sm:h-9 sm:px-4 sm:text-sm"
+            onClick={() => router.push("/strategies/templates")}
+          >
             Browse Templates
           </Button>
-          <Button variant="outline" onClick={() => setShowImportModal(true)}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="sm:h-9 sm:px-4 sm:text-sm"
+            onClick={() => setShowImportModal(true)}
+          >
             Import
           </Button>
-          <Button onClick={() => setShowModal(true)}>New Strategy</Button>
+          <Button size="sm" className="sm:h-9 sm:px-4 sm:text-sm" onClick={() => setShowModal(true)}>
+            New Strategy
+          </Button>
         </div>
       </div>
 
