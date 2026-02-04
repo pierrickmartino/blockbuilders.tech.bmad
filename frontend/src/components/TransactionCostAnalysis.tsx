@@ -73,17 +73,23 @@ export function TransactionCostAnalysis({ summary }: TransactionCostAnalysisProp
         </div>
       </div>
 
-      {/* Callout: Gross → Net */}
-      <div className="rounded-md bg-blue-50 p-3 text-sm">
-        <div className="flex items-start gap-2">
-          <span className="text-blue-600">ℹ</span>
-          <div className="text-blue-900">
-            <span className="font-medium">Gross return: </span>
-            {formatMoney(summary.gross_return_usd ?? 0, "USDT", true)}
-            {" → "}
-            <span className="font-medium">Net return: </span>
-            {formatMoney(summary.final_balance - summary.initial_balance, "USDT", true)}
-            {" (after costs)"}
+      {/* Callout: Gross vs Net */}
+      <div className="rounded-md border border-blue-100 bg-blue-50/60 p-3 text-sm">
+        <div className="text-xs font-semibold uppercase tracking-wide text-blue-900">
+          Gross vs Net Return
+        </div>
+        <div className="mt-2 grid gap-2 sm:grid-cols-2">
+          <div className="rounded-md bg-white/70 p-2">
+            <div className="text-xs text-gray-500">Gross return</div>
+            <div className="text-sm font-semibold text-gray-900">
+              {formatMoney(summary.gross_return_usd ?? 0, "USDT", true)}
+            </div>
+          </div>
+          <div className="rounded-md bg-white/70 p-2">
+            <div className="text-xs text-gray-500">Net return (after costs)</div>
+            <div className="text-sm font-semibold text-gray-900">
+              {formatMoney(summary.final_balance - summary.initial_balance, "USDT", true)}
+            </div>
           </div>
         </div>
       </div>
