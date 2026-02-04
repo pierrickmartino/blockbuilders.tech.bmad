@@ -550,9 +550,9 @@ export default function StrategiesPage() {
   };
 
   // Helper functions for metric formatting
-  const formatMetric = (value: number | null | undefined, suffix = ""): string => {
+  const formatMetric = (value: number | null | undefined, suffix = "", decimals = 2): string => {
     if (value === null || value === undefined) return "—";
-    return `${value.toFixed(2)}${suffix}`;
+    return `${value.toFixed(decimals)}${suffix}`;
   };
 
   const formatDate = (date: string | null | undefined): string => {
@@ -879,7 +879,7 @@ export default function StrategiesPage() {
                       {formatMetric(strategy.latest_win_rate_pct, "%")}
                     </TableCell>
                     <TableCell>
-                      {formatMetric(strategy.latest_num_trades)}
+                      {formatMetric(strategy.latest_num_trades, "", 0)}
                     </TableCell>
                     <TableCell className="text-muted-foreground">
                       {formatDate(strategy.last_run_at)}
@@ -1024,7 +1024,7 @@ export default function StrategiesPage() {
                     <div>
                       <div className="text-xs text-muted-foreground">Trades</div>
                       <div className="font-semibold">
-                        {formatMetric(strategy.latest_num_trades)}
+                        {formatMetric(strategy.latest_num_trades, "", 0)}
                       </div>
                     </div>
                   </div>
