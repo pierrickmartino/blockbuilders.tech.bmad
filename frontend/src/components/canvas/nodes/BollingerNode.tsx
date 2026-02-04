@@ -42,9 +42,9 @@ export default function BollingerNode({ data, selected }: NodeProps) {
         type="source"
         position={Position.Right}
         id="upper"
-        style={{ top: "30%" }}
+        style={{ top: "32%" }}
         className={cn(
-          isMobileMode ? "!h-5 !w-5" : "!h-3 !w-3",
+          isMobileMode ? "!h-[18px] !w-[18px]" : "!h-[11px] !w-[11px]",
           "!bg-blue-500"
         )}
       />
@@ -52,9 +52,9 @@ export default function BollingerNode({ data, selected }: NodeProps) {
         type="source"
         position={Position.Right}
         id="middle"
-        style={{ top: "55%" }}
+        style={{ top: "52%" }}
         className={cn(
-          isMobileMode ? "!h-5 !w-5" : "!h-3 !w-3",
+          isMobileMode ? "!h-[18px] !w-[18px]" : "!h-[11px] !w-[11px]",
           "!bg-blue-500"
         )}
       />
@@ -62,9 +62,9 @@ export default function BollingerNode({ data, selected }: NodeProps) {
         type="source"
         position={Position.Right}
         id="lower"
-        style={{ top: "80%" }}
+        style={{ top: "72%" }}
         className={cn(
-          isMobileMode ? "!h-5 !w-5" : "!h-3 !w-3",
+          isMobileMode ? "!h-[18px] !w-[18px]" : "!h-[11px] !w-[11px]",
           "!bg-blue-500"
         )}
       />

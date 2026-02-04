@@ -42,39 +42,53 @@ function separateHandlesAndContent(children: ReactNode) {
 
 const categoryStyles = {
   input: {
-    border: "border-purple-300 dark:border-purple-600",
-    borderSelected: "border-purple-500 dark:border-purple-400",
-    bg: "bg-purple-50 dark:bg-purple-950/30",
-    header: "bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300",
+    border: "border-slate-200/90",
+    borderSelected: "border-violet-300",
+    bg: "bg-gradient-to-br from-white via-slate-50/95 to-violet-50/55",
+    header:
+      "bg-gradient-to-r from-violet-500/12 via-violet-400/7 to-transparent text-slate-700",
+    glow: "shadow-[0_18px_40px_-28px_rgba(15,23,42,0.55)]",
+    selectedGlow: "shadow-[0_24px_48px_-30px_rgba(109,40,217,0.6)]",
   },
   indicator: {
-    border: "border-blue-300 dark:border-blue-600",
-    borderSelected: "border-blue-500 dark:border-blue-400",
-    bg: "bg-blue-50 dark:bg-blue-950/30",
-    header: "bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300",
+    border: "border-slate-200/90",
+    borderSelected: "border-sky-300",
+    bg: "bg-gradient-to-br from-white via-slate-50/95 to-sky-50/55",
+    header:
+      "bg-gradient-to-r from-sky-500/12 via-sky-400/7 to-transparent text-slate-700",
+    glow: "shadow-[0_18px_40px_-28px_rgba(15,23,42,0.55)]",
+    selectedGlow: "shadow-[0_24px_48px_-30px_rgba(3,105,161,0.55)]",
   },
   logic: {
-    border: "border-amber-300 dark:border-amber-600",
-    borderSelected: "border-amber-500 dark:border-amber-400",
-    bg: "bg-amber-50 dark:bg-amber-950/30",
-    header: "bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300",
+    border: "border-slate-200/90",
+    borderSelected: "border-amber-300",
+    bg: "bg-gradient-to-br from-white via-slate-50/95 to-amber-50/55",
+    header:
+      "bg-gradient-to-r from-amber-500/12 via-amber-400/7 to-transparent text-slate-700",
+    glow: "shadow-[0_18px_40px_-28px_rgba(15,23,42,0.55)]",
+    selectedGlow: "shadow-[0_24px_48px_-30px_rgba(180,83,9,0.52)]",
   },
   signal: {
-    border: "border-green-300 dark:border-green-600",
-    borderSelected: "border-green-500 dark:border-green-400",
-    bg: "bg-green-50 dark:bg-green-950/30",
-    header: "bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300",
+    border: "border-slate-200/90",
+    borderSelected: "border-emerald-300",
+    bg: "bg-gradient-to-br from-white via-slate-50/95 to-emerald-50/55",
+    header:
+      "bg-gradient-to-r from-emerald-500/12 via-emerald-400/7 to-transparent text-slate-700",
+    glow: "shadow-[0_18px_40px_-28px_rgba(15,23,42,0.55)]",
+    selectedGlow: "shadow-[0_24px_48px_-30px_rgba(4,120,87,0.52)]",
   },
   risk: {
-    border: "border-red-300 dark:border-red-600",
-    borderSelected: "border-red-500 dark:border-red-400",
-    bg: "bg-red-50 dark:bg-red-950/30",
-    header: "bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300",
+    border: "border-slate-200/90",
+    borderSelected: "border-rose-300",
+    bg: "bg-gradient-to-br from-white via-slate-50/95 to-rose-50/55",
+    header:
+      "bg-gradient-to-r from-rose-500/12 via-rose-400/7 to-transparent text-slate-700",
+    glow: "shadow-[0_18px_40px_-28px_rgba(15,23,42,0.55)]",
+    selectedGlow: "shadow-[0_24px_48px_-30px_rgba(190,24,93,0.52)]",
   },
 };
 
 export default function BaseNode({
-  id,
   label,
   selected,
   category,
@@ -90,7 +104,7 @@ export default function BaseNode({
 }: BaseNodeProps) {
   const styles = categoryStyles[category];
   const borderClass = selected ? styles.borderSelected : styles.border;
-  const errorBorder = hasError ? "border-red-500 ring-2 ring-red-200 dark:ring-red-900/50" : "";
+  const errorBorder = hasError ? "border-rose-400 ring-2 ring-rose-200/80" : "";
   const tooltip = blockType ? getTooltip(blockToGlossaryId(blockType)) : null;
   const showCompact = isCompact && !isExpanded;
 
@@ -100,16 +114,20 @@ export default function BaseNode({
   return (
     <div
       className={cn(
-        "relative rounded-lg border-2 shadow-sm",
+        "group relative overflow-visible rounded-2xl border-2 bg-white/85 backdrop-blur-sm transition-all duration-200",
         isMobileMode ? "min-w-[150px]" : "min-w-[120px]",
         borderClass,
         styles.bg,
+        styles.glow,
+        selected && styles.selectedGlow,
+        selected && "-translate-y-0.5 ring-1 ring-slate-300/60",
         errorBorder
       )}
     >
+      <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100 bg-[radial-gradient(circle_at_12%_6%,rgba(255,255,255,0.55),transparent_42%)]" />
       <div
         className={cn(
-          "flex items-center justify-between gap-1 rounded-t-md text-xs font-semibold",
+          "relative z-10 flex items-center justify-between gap-1 rounded-t-xl border-b border-slate-200/65 text-[11px] font-medium tracking-[0.01em]",
           isMobileMode ? "px-4 py-2" : "px-3 py-1.5",
           styles.header
         )}
@@ -130,27 +148,34 @@ export default function BaseNode({
             </svg>
           )}
           {/* Show summary in title when collapsed, otherwise show label */}
-          <span>{showCompact && summary ? summary : label}</span>
+          <span className="text-[12px] font-semibold tracking-tight text-slate-800">
+            {showCompact && summary ? summary : label}
+          </span>
         </div>
         {blockType && (
           <InfoIcon
             tooltip={tooltip || undefined}
-            className="flex-shrink-0"
+            className="flex-shrink-0 opacity-70 transition-opacity group-hover:opacity-100"
           />
         )}
       </div>
 
       {/* Content area - only show when expanded */}
       {!showCompact && (content.length > 0 || validationMessage) && (
-        <div className={cn(isMobileMode ? "px-4 py-2" : "px-3 py-2")}>
+        <div
+          className={cn(
+            "relative z-10 text-[12px] font-medium leading-[1.45] tracking-[0.004em] text-slate-600 [&_.font-bold]:font-semibold [&_.font-mono]:font-semibold [&_.font-mono]:tracking-normal [&_.text-gray-600]:text-slate-600 [&_.text-gray-700]:text-slate-700 [&_.text-sm]:text-[12.5px] [&_.text-xs]:text-[11.5px]",
+            isMobileMode ? "px-4 py-2.5" : "px-3 py-2.5"
+          )}
+        >
           {content}
           {validationMessage && (
             <div className="mt-1">
-              <div className="text-xs text-red-600 dark:text-red-400">{validationMessage}</div>
+              <div className="text-[11.5px] font-medium text-rose-600">{validationMessage}</div>
               {helpLink && (
                 <a
                   href={helpLink}
-                  className="mt-1 inline-block text-xs text-red-700 underline hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+                  className="mt-1 inline-block text-[11.5px] font-medium text-rose-700 underline decoration-rose-300 underline-offset-2 hover:text-rose-900"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
