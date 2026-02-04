@@ -1111,7 +1111,7 @@ export default function StrategyBacktestPage({ params }: Props) {
                   </SelectContent>
                 </Select>
               </div>
-              <div>
+              <div className="min-w-0">
                 <label className="block text-sm font-medium text-gray-700">Date from</label>
                 <Input
                   type="date"
@@ -1121,11 +1121,11 @@ export default function StrategyBacktestPage({ params }: Props) {
                     setDateFrom(e.target.value);
                     setPeriodPreset("custom");
                   }}
-                  className="mt-1"
+                  className="mt-1 w-full min-w-0"
                   required
                 />
               </div>
-              <div>
+              <div className="min-w-0">
                 <label className="block text-sm font-medium text-gray-700">Date to</label>
                 <Input
                   type="date"
@@ -1135,7 +1135,7 @@ export default function StrategyBacktestPage({ params }: Props) {
                     setDateTo(e.target.value);
                     setPeriodPreset("custom");
                   }}
-                  className="mt-1"
+                  className="mt-1 w-full min-w-0"
                   required
                 />
               </div>
