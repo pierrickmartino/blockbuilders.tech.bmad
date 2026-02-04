@@ -248,155 +248,158 @@ function CanvasInner({
           </ul>
         </div>
       )}
-      <div className={`flex-1 ${isMobileMode ? "pb-14" : ""}`}>
-        <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={handleNodesChange}
-        onEdgesChange={handleEdgesChange}
-        onConnect={onConnect}
-        onSelectionChange={handleSelectionChange}
-        onDragOver={onDragOver}
-        onDrop={onDrop}
-        onInit={onInit}
-        onNodeClick={handleNodeClick}
-        nodeTypes={nodeTypes}
-        fitView
-        snapToGrid
-        snapGrid={[15, 15]}
-        selectionMode={SelectionMode.Partial}
-        multiSelectionKeyCode={null}
-        selectNodesOnDrag={!isMobileMode}
-        panOnScroll={!isMobileMode}
-        zoomOnScroll={!isMobileMode}
-        panOnDrag={isMobileMode ? [1, 2] : [1]}
-        defaultEdgeOptions={{
-          type: "smoothstep",
-          style: { strokeWidth: 2 },
-        }}
+      <div
+        className={`relative flex-1 overflow-hidden rounded-lg border border-slate-200/70 bg-slate-50/80 shadow-sm ${isMobileMode ? "pb-14" : ""}`}
       >
-        <Background gap={15} size={1} />
-        {!isMobileMode && (
-          <Controls>
-            <ControlButton
-              onClick={onUndo}
-              title="Undo (Cmd/Ctrl+Z)"
-              disabled={!canUndo}
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="h-4 w-4"
+        <ReactFlow
+          className="h-full w-full bg-transparent text-slate-900"
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={handleNodesChange}
+          onEdgesChange={handleEdgesChange}
+          onConnect={onConnect}
+          onSelectionChange={handleSelectionChange}
+          onDragOver={onDragOver}
+          onDrop={onDrop}
+          onInit={onInit}
+          onNodeClick={handleNodeClick}
+          nodeTypes={nodeTypes}
+          fitView
+          snapToGrid
+          snapGrid={[15, 15]}
+          selectionMode={SelectionMode.Partial}
+          multiSelectionKeyCode={null}
+          selectNodesOnDrag={!isMobileMode}
+          panOnScroll={!isMobileMode}
+          zoomOnScroll={!isMobileMode}
+          panOnDrag={isMobileMode ? [1, 2] : [1]}
+          defaultEdgeOptions={{
+            type: "smoothstep",
+            style: { strokeWidth: 2 },
+          }}
+        >
+          <Background gap={15} size={1} className="text-slate-300" />
+          {!isMobileMode && (
+            <Controls>
+              <ControlButton
+                onClick={onUndo}
+                title="Undo (Cmd/Ctrl+Z)"
+                disabled={!canUndo}
               >
-                <path d="M3 7v6h6" />
-                <path d="M21 17a9 9 0 00-9-9 9 9 0 00-6 2.3L3 13" />
-              </svg>
-            </ControlButton>
-            <ControlButton
-              onClick={onRedo}
-              title="Redo (Cmd/Ctrl+Shift+Z)"
-              disabled={!canRedo}
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="h-4 w-4"
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-4 w-4"
+                >
+                  <path d="M3 7v6h6" />
+                  <path d="M21 17a9 9 0 00-9-9 9 9 0 00-6 2.3L3 13" />
+                </svg>
+              </ControlButton>
+              <ControlButton
+                onClick={onRedo}
+                title="Redo (Cmd/Ctrl+Shift+Z)"
+                disabled={!canRedo}
               >
-                <path d="M21 7v6h-6" />
-                <path d="M3 17a9 9 0 019-9 9 9 0 016 2.3l3 2.7" />
-              </svg>
-            </ControlButton>
-            <ControlButton onClick={onAddNote} title="Add Note">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="h-4 w-4"
-              >
-                <path d="M12 20h9" />
-                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-              </svg>
-            </ControlButton>
-            {(onAutoArrange || onTidyConnections) && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <ControlButton title="Auto-arrange">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="h-4 w-4"
-                    >
-                      <rect x="3" y="3" width="7" height="7" />
-                      <rect x="14" y="3" width="7" height="7" />
-                      <rect x="14" y="14" width="7" height="7" />
-                      <rect x="3" y="14" width="7" height="7" />
-                    </svg>
-                  </ControlButton>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  {onAutoArrange && (
-                    <>
-                      <DropdownMenuItem onClick={() => onAutoArrange("LR")}>
-                        Left → Right
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-4 w-4"
+                >
+                  <path d="M21 7v6h-6" />
+                  <path d="M3 17a9 9 0 019-9 9 9 0 016 2.3l3 2.7" />
+                </svg>
+              </ControlButton>
+              <ControlButton onClick={onAddNote} title="Add Note">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-4 w-4"
+                >
+                  <path d="M12 20h9" />
+                  <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                </svg>
+              </ControlButton>
+              {(onAutoArrange || onTidyConnections) && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <ControlButton title="Auto-arrange">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="h-4 w-4"
+                      >
+                        <rect x="3" y="3" width="7" height="7" />
+                        <rect x="14" y="3" width="7" height="7" />
+                        <rect x="14" y="14" width="7" height="7" />
+                        <rect x="3" y="14" width="7" height="7" />
+                      </svg>
+                    </ControlButton>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {onAutoArrange && (
+                      <>
+                        <DropdownMenuItem onClick={() => onAutoArrange("LR")}>
+                          Left → Right
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onAutoArrange("TB")}>
+                          Top → Bottom
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                    {onAutoArrange && onTidyConnections && <DropdownMenuSeparator />}
+                    {onTidyConnections && (
+                      <DropdownMenuItem onClick={onTidyConnections}>
+                        Tidy connections
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onAutoArrange("TB")}>
-                        Top → Bottom
-                      </DropdownMenuItem>
-                    </>
-                  )}
-                  {onAutoArrange && onTidyConnections && <DropdownMenuSeparator />}
-                  {onTidyConnections && (
-                    <DropdownMenuItem onClick={onTidyConnections}>
-                      Tidy connections
-                    </DropdownMenuItem>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
-          </Controls>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+            </Controls>
+          )}
+        </ReactFlow>
+
+        {/* Tap-to-connect feedback overlay */}
+        {isMobileMode && connectionState.mode === "connecting" && (
+          <div className="pointer-events-none absolute bottom-4 left-1/2 z-10 -translate-x-1/2 rounded-lg bg-blue-600 px-4 py-2 text-sm text-white shadow-lg">
+            Tap target port, or tap outside to cancel
+          </div>
         )}
-      </ReactFlow>
 
-      {/* Tap-to-connect feedback overlay */}
-      {isMobileMode && connectionState.mode === "connecting" && (
-        <div className="pointer-events-none absolute bottom-4 left-1/2 z-10 -translate-x-1/2 rounded-lg bg-blue-600 px-4 py-2 text-sm text-white shadow-lg">
-          Tap target port, or tap outside to cancel
-        </div>
-      )}
-
-      {/* Mobile bottom action bar */}
-      {isMobileMode && (
-        <MobileBottomBar
-          onZoomIn={handleZoomIn}
-          onZoomOut={handleZoomOut}
-          onFitView={handleFitView}
-          onAddNote={onAddNote}
-          onUndo={onUndo || (() => {})}
-          onRedo={onRedo || (() => {})}
-          canUndo={canUndo || false}
-          canRedo={canRedo || false}
-          onLayoutMenu={onLayoutMenu || (() => {})}
-        />
-      )}
+        {/* Mobile bottom action bar */}
+        {isMobileMode && (
+          <MobileBottomBar
+            onZoomIn={handleZoomIn}
+            onZoomOut={handleZoomOut}
+            onFitView={handleFitView}
+            onAddNote={onAddNote}
+            onUndo={onUndo || (() => {})}
+            onRedo={onRedo || (() => {})}
+            canUndo={canUndo || false}
+            canRedo={canRedo || false}
+            onLayoutMenu={onLayoutMenu || (() => {})}
+          />
+        )}
       </div>
     </div>
   );
