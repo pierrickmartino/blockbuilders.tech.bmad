@@ -45,8 +45,16 @@ Add an **Auto-arrange** button to reorganize blocks into a clean left-to-right o
 - Prefer a lightweight DAG layout approach with a fallback:
   - If graph is acyclic, run a simple topological layout.
   - If cycles exist, group by depth from inputs and place cyclic nodes together.
-- Apply a **fixed grid spacing** (e.g., 40–60px increments) for alignment.
-- Use consistent padding between node columns/rows for readability.
+- Apply **generous spacing** for readability:
+  - Node spacing: 80px
+  - Layer spacing: 250px
+  - Node padding: 40px
+  - Grid snap: 15px
+- **Branch-aware ordering**:
+  - Order first layer by outgoing connections (main sources first).
+  - Order subsequent layers by average parent position to minimize crossings.
+  - Detect and separate disconnected branches with extra spacing.
+- Keep connected nodes visually grouped as distinct branches.
 
 ## Edge Cases
 - **Isolated blocks**: place in a compact cluster off to the side/bottom.

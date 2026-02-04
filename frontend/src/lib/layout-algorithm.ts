@@ -6,14 +6,9 @@ interface LayoutConfig {
   direction: LayoutDirection;
   nodeSpacing: number;
   layerSpacing: number;
+  nodePadding: number;
   gridSnap: number;
   isolatedNodeSpacing: number;
-}
-
-interface GraphAnalysis {
-  layers: string[][];
-  isolated: string[];
-  hasCycles: boolean;
 }
 
 /**
@@ -36,41 +31,59 @@ export function autoArrangeLayout(
 
   const config: LayoutConfig = {
     direction,
-    nodeSpacing: 60,
-    layerSpacing: 200,
+    nodeSpacing: 80,
+    layerSpacing: 250,
+    nodePadding: 40,
     gridSnap: 15,
     isolatedNodeSpacing: 40,
   };
 
-  // Analyze graph structure
-  const analysis = analyzeGraph(nodes, edges);
+  // Build adjacency lists
+  const edgeMap = buildEdgeMap(nodes, edges);
 
-  // Calculate positions for layered nodes
-  const positions = calculateLayeredPositions(
-    analysis.layers,
-    nodes,
-    config
+  // Identify independent branches (paths to terminals)
+  const branches = identifyBranches(nodes, edgeMap);
+
+  // Layout each branch separately
+  const positions = layoutBranches(branches, nodes, edgeMap, config);
+
+  // Handle isolated nodes
+  const allBranchNodes = new Set(
+    branches.flatMap((b) => b.nodes.map((n) => n.id))
   );
+  const isolated = nodes.filter((n) => !allBranchNodes.has(n.id));
 
-  // Calculate positions for isolated nodes
-  const isolatedPositions = calculateIsolatedPositions(
-    analysis.isolated,
-    nodes,
-    analysis.layers,
-    config
-  );
+  if (isolated.length > 0) {
+    const isolatedPositions = layoutIsolatedNodes(
+      isolated,
+      positions,
+      config
+    );
+    for (const [id, pos] of isolatedPositions) {
+      positions.set(id, pos);
+    }
+  }
 
-  // Merge and return all positions
-  return new Map([...positions, ...isolatedPositions]);
+  return positions;
+}
+
+interface Branch {
+  terminal: Node;
+  nodes: Node[];
+  layers: Map<string, number>; // node ID -> layer depth
 }
 
 /**
- * Analyze graph structure: find layers, isolated nodes, detect cycles
+ * Build edge maps for quick lookup
  */
-function analyzeGraph(nodes: Node[], edges: Edge[]): GraphAnalysis {
+function buildEdgeMap(
+  nodes: Node[],
+  edges: Edge[]
+): {
+  outgoing: Map<string, string[]>;
+  incoming: Map<string, string[]>;
+} {
   const nodeIds = new Set(nodes.map((n) => n.id));
-
-  // Build adjacency lists
   const outgoing = new Map<string, string[]>();
   const incoming = new Map<string, string[]>();
 
@@ -80,260 +93,232 @@ function analyzeGraph(nodes: Node[], edges: Edge[]): GraphAnalysis {
   }
 
   for (const edge of edges) {
-    const source = edge.source;
-    const target = edge.target;
-
-    if (nodeIds.has(source) && nodeIds.has(target)) {
-      outgoing.get(source)?.push(target);
-      incoming.get(target)?.push(source);
+    if (nodeIds.has(edge.source) && nodeIds.has(edge.target)) {
+      outgoing.get(edge.source)?.push(edge.target);
+      incoming.get(edge.target)?.push(edge.source);
     }
   }
 
-  // Find isolated nodes (no connections)
-  const isolated: string[] = [];
-  for (const node of nodes) {
-    const hasOut = (outgoing.get(node.id)?.length ?? 0) > 0;
-    const hasIn = (incoming.get(node.id)?.length ?? 0) > 0;
-    if (!hasOut && !hasIn) {
-      isolated.push(node.id);
-    }
-  }
-
-  // Try topological sort
-  const connectedNodes = nodes.filter((n) => !isolated.includes(n.id));
-  const topoResult = topologicalSort(connectedNodes, outgoing, incoming);
-
-  let layers: string[][];
-  let hasCycles = false;
-
-  if (topoResult.sorted) {
-    // Acyclic: assign layers by longest path from sources
-    layers = assignLayersByTopologicalOrder(
-      topoResult.sorted,
-      incoming
-    );
-  } else {
-    // Cyclic: fallback to depth-based BFS layering
-    hasCycles = true;
-    layers = assignLayersByDepth(connectedNodes, outgoing, incoming);
-  }
-
-  return { layers, isolated, hasCycles };
+  return { outgoing, incoming };
 }
 
 /**
- * Topological sort using Kahn's algorithm
- * Returns sorted list if acyclic, null if cycles detected
+ * Identify independent branches by tracing backward from terminal nodes
  */
-function topologicalSort(
+function identifyBranches(
   nodes: Node[],
-  outgoing: Map<string, string[]>,
-  incoming: Map<string, string[]>
-): { sorted: string[] | null; hasCycles: boolean } {
-  const inDegree = new Map<string, number>();
-  const queue: string[] = [];
-
-  // Initialize in-degrees
-  for (const node of nodes) {
-    const degree = incoming.get(node.id)?.length ?? 0;
-    inDegree.set(node.id, degree);
-    if (degree === 0) {
-      queue.push(node.id);
-    }
+  edgeMap: {
+    outgoing: Map<string, string[]>;
+    incoming: Map<string, string[]>;
   }
+): Branch[] {
+  const nodeById = new Map(nodes.map((n) => [n.id, n]));
 
-  const sorted: string[] = [];
+  // Find terminal nodes (entry_signal, exit_signal, or nodes with no outgoing edges)
+  const terminals = nodes.filter((node) => {
+    const isSignal =
+      node.type === "entry_signal" || node.type === "exit_signal";
+    const hasOutgoing = (edgeMap.outgoing.get(node.id)?.length ?? 0) > 0;
+    return isSignal || !hasOutgoing;
+  });
 
-  while (queue.length > 0) {
-    const current = queue.shift()!;
-    sorted.push(current);
+  // For each terminal, trace backward to find its branch
+  const branches: Branch[] = [];
+  const claimed = new Set<string>();
 
-    for (const neighbor of outgoing.get(current) ?? []) {
-      const newDegree = (inDegree.get(neighbor) ?? 0) - 1;
-      inDegree.set(neighbor, newDegree);
-      if (newDegree === 0) {
-        queue.push(neighbor);
+  for (const terminal of terminals) {
+    const branchNodes = new Set<string>();
+    const layers = new Map<string, number>();
+    const queue: Array<{ id: string; depth: number }> = [
+      { id: terminal.id, depth: 0 },
+    ];
+
+    branchNodes.add(terminal.id);
+    layers.set(terminal.id, 0);
+
+    // BFS backward through incoming edges
+    while (queue.length > 0) {
+      const { id, depth } = queue.shift()!;
+      const parents = edgeMap.incoming.get(id) ?? [];
+
+      for (const parentId of parents) {
+        if (!branchNodes.has(parentId)) {
+          branchNodes.add(parentId);
+          layers.set(parentId, depth + 1);
+          queue.push({ id: parentId, depth: depth + 1 });
+        }
       }
     }
-  }
 
-  const hasCycles = sorted.length !== nodes.length;
-  return { sorted: hasCycles ? null : sorted, hasCycles };
-}
-
-/**
- * Assign layers by topological order (for acyclic graphs)
- */
-function assignLayersByTopologicalOrder(
-  sorted: string[],
-  incoming: Map<string, string[]>
-): string[][] {
-  const layerMap = new Map<string, number>();
-
-  // Assign each node to the maximum layer of its predecessors + 1
-  for (const nodeId of sorted) {
-    const predecessors = incoming.get(nodeId) ?? [];
-    const maxPredLayer = predecessors.reduce(
-      (max, pred) => Math.max(max, layerMap.get(pred) ?? -1),
-      -1
-    );
-    layerMap.set(nodeId, maxPredLayer + 1);
-  }
-
-  // Group nodes by layer
-  const maxLayer = Math.max(...Array.from(layerMap.values()), 0);
-  const layers: string[][] = Array.from({ length: maxLayer + 1 }, () => []);
-
-  for (const [nodeId, layer] of layerMap) {
-    layers[layer].push(nodeId);
-  }
-
-  return layers;
-}
-
-/**
- * Assign layers by BFS depth (fallback for cyclic graphs)
- */
-function assignLayersByDepth(
-  nodes: Node[],
-  outgoing: Map<string, string[]>,
-  incoming: Map<string, string[]>
-): string[][] {
-  // Start from source nodes (nodes with no incoming edges)
-  const sources = nodes.filter(
-    (n) => (incoming.get(n.id)?.length ?? 0) === 0
-  );
-
-  // If no sources, pick arbitrary starting nodes
-  const startNodes = sources.length > 0 ? sources : nodes.slice(0, 1);
-
-  const visited = new Set<string>();
-  const layerMap = new Map<string, number>();
-  const queue: Array<{ id: string; depth: number }> = [];
-
-  for (const node of startNodes) {
-    queue.push({ id: node.id, depth: 0 });
-    visited.add(node.id);
-    layerMap.set(node.id, 0);
-  }
-
-  // BFS to assign depths
-  while (queue.length > 0) {
-    const { id, depth } = queue.shift()!;
-
-    for (const neighbor of outgoing.get(id) ?? []) {
-      if (!visited.has(neighbor)) {
-        visited.add(neighbor);
-        layerMap.set(neighbor, depth + 1);
-        queue.push({ id: neighbor, depth: depth + 1 });
+    // Convert to node objects
+    const branchNodeList: Node[] = [];
+    for (const nodeId of branchNodes) {
+      const node = nodeById.get(nodeId);
+      if (node) {
+        branchNodeList.push(node);
+        claimed.add(nodeId);
       }
     }
-  }
 
-  // Add unvisited nodes (disconnected components)
-  for (const node of nodes) {
-    if (!visited.has(node.id)) {
-      layerMap.set(node.id, 0);
+    if (branchNodeList.length > 0) {
+      branches.push({
+        terminal,
+        nodes: branchNodeList,
+        layers,
+      });
     }
   }
 
-  // Group by layer
-  const maxLayer = Math.max(...Array.from(layerMap.values()), 0);
-  const layers: string[][] = Array.from({ length: maxLayer + 1 }, () => []);
-
-  for (const [nodeId, layer] of layerMap) {
-    layers[layer].push(nodeId);
-  }
-
-  return layers;
+  return branches;
 }
 
 /**
- * Calculate positions for layered nodes
+ * Layout branches in separate vertical zones
  */
-function calculateLayeredPositions(
-  layers: string[][],
-  nodes: Node[],
+function layoutBranches(
+  branches: Branch[],
+  allNodes: Node[],
+  edgeMap: {
+    outgoing: Map<string, string[]>;
+    incoming: Map<string, string[]>;
+  },
   config: LayoutConfig
 ): Map<string, { x: number; y: number }> {
   const positions = new Map<string, { x: number; y: number }>();
 
-  for (let layerIndex = 0; layerIndex < layers.length; layerIndex++) {
-    const layer = layers[layerIndex];
+  let currentYOffset = 0;
 
-    for (let nodeIndex = 0; nodeIndex < layer.length; nodeIndex++) {
-      const nodeId = layer[nodeIndex];
-      let position: { x: number; y: number };
+  for (const branch of branches) {
+    // Find max depth (layer)
+    const maxDepth = Math.max(...Array.from(branch.layers.values()));
 
-      if (config.direction === "LR") {
-        // Left to right: X increases with layers, Y increases within layer
-        position = {
-          x: layerIndex * config.layerSpacing,
-          y: nodeIndex * config.nodeSpacing,
-        };
-      } else {
-        // Top to bottom: Y increases with layers, X increases within layer
-        position = {
-          x: nodeIndex * config.nodeSpacing,
-          y: layerIndex * config.layerSpacing,
-        };
-      }
-
-      positions.set(nodeId, snapToGrid(position, config.gridSnap));
+    // Invert layers (so sources are at layer 0, terminals at max)
+    const invertedLayers = new Map<string, number>();
+    for (const [nodeId, depth] of branch.layers) {
+      invertedLayers.set(nodeId, maxDepth - depth);
     }
+
+    // Group nodes by layer
+    const layerGroups = new Map<number, string[]>();
+    for (const [nodeId, layer] of invertedLayers) {
+      if (!layerGroups.has(layer)) {
+        layerGroups.set(layer, []);
+      }
+      layerGroups.get(layer)!.push(nodeId);
+    }
+
+    // Sort layers and layout left-to-right
+    const sortedLayers = Array.from(layerGroups.keys()).sort((a, b) => a - b);
+
+    let maxBranchHeight = 0;
+
+    for (const layer of sortedLayers) {
+      const layerNodes = layerGroups.get(layer) ?? [];
+
+      // Sort nodes within layer by their connections
+      const sortedLayerNodes = sortNodesInLayer(
+        layerNodes,
+        invertedLayers,
+        edgeMap
+      );
+
+      for (let i = 0; i < sortedLayerNodes.length; i++) {
+        const nodeId = sortedLayerNodes[i];
+        const node = allNodes.find((n) => n.id === nodeId);
+        if (!node) continue;
+
+        const nodeHeight = getNodeHeight(node);
+        const yPos = currentYOffset + i * config.nodeSpacing;
+        const xPos = layer * config.layerSpacing;
+
+        positions.set(
+          nodeId,
+          snapToGrid({ x: xPos, y: yPos }, config.gridSnap)
+        );
+
+        maxBranchHeight = Math.max(maxBranchHeight, yPos + nodeHeight);
+      }
+    }
+
+    // Add spacing between branches
+    currentYOffset = maxBranchHeight + config.nodeSpacing * 0.8;
   }
 
   return positions;
 }
 
 /**
- * Calculate positions for isolated nodes (compact grid off to the side)
+ * Sort nodes within a layer to minimize crossings
  */
-function calculateIsolatedPositions(
-  isolated: string[],
-  nodes: Node[],
-  layers: string[][],
+function sortNodesInLayer(
+  nodeIds: string[],
+  layers: Map<string, number>,
+  edgeMap: {
+    outgoing: Map<string, string[]>;
+    incoming: Map<string, string[]>;
+  }
+): string[] {
+  // Sort by average position of parents (if any)
+  return [...nodeIds].sort((a, b) => {
+    const aParents = edgeMap.incoming.get(a) ?? [];
+    const bParents = edgeMap.incoming.get(b) ?? [];
+
+    if (aParents.length === 0 && bParents.length === 0) return 0;
+    if (aParents.length === 0) return -1;
+    if (bParents.length === 0) return 1;
+
+    const aAvg =
+      aParents.reduce((sum, p) => sum + (layers.get(p) ?? 0), 0) /
+      aParents.length;
+    const bAvg =
+      bParents.reduce((sum, p) => sum + (layers.get(p) ?? 0), 0) /
+      bParents.length;
+
+    return aAvg - bAvg;
+  });
+}
+
+/**
+ * Layout isolated nodes (not in any branch)
+ */
+function layoutIsolatedNodes(
+  isolated: Node[],
+  existingPositions: Map<string, { x: number; y: number }>,
   config: LayoutConfig
 ): Map<string, { x: number; y: number }> {
   const positions = new Map<string, { x: number; y: number }>();
 
-  if (isolated.length === 0) {
-    return positions;
+  // Find max Y position from existing nodes
+  let maxY = 0;
+  for (const pos of existingPositions.values()) {
+    maxY = Math.max(maxY, pos.y);
   }
 
-  // Calculate offset based on layered nodes extent
-  const maxLayerIndex = layers.length;
-
-  let offsetX: number;
-  let offsetY: number;
-
-  if (config.direction === "LR") {
-    // Place isolated nodes to the right of main graph
-    offsetX = (maxLayerIndex + 1) * config.layerSpacing;
-    offsetY = 0;
-  } else {
-    // Place isolated nodes below main graph
-    offsetX = 0;
-    offsetY = (maxLayerIndex + 1) * config.layerSpacing;
-  }
-
-  // Arrange in compact grid (4 nodes per row)
-  const nodesPerRow = 4;
+  // Place isolated nodes in a row below
+  const startY = maxY + config.nodeSpacing * 3;
 
   for (let i = 0; i < isolated.length; i++) {
-    const row = Math.floor(i / nodesPerRow);
-    const col = i % nodesPerRow;
-
     const position = {
-      x: offsetX + col * config.isolatedNodeSpacing,
-      y: offsetY + row * config.isolatedNodeSpacing,
+      x: i * (config.nodeSpacing + 100),
+      y: startY,
     };
-
-    positions.set(isolated[i], snapToGrid(position, config.gridSnap));
+    positions.set(isolated[i].id, snapToGrid(position, config.gridSnap));
   }
 
   return positions;
 }
+
+
+/**
+ * Estimate node height from React Flow data
+ */
+function getNodeHeight(node?: Node): number {
+  const MIN_NODE_HEIGHT = 60;
+  if (!node) return MIN_NODE_HEIGHT;
+  const height = node.height ?? node.measured?.height ?? MIN_NODE_HEIGHT;
+  return Math.max(height, MIN_NODE_HEIGHT);
+}
+
 
 /**
  * Snap position to grid
