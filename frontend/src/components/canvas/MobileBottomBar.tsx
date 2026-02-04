@@ -7,6 +7,7 @@ interface MobileBottomBarProps {
   onRedo: () => void;
   canUndo: boolean;
   canRedo: boolean;
+  onLayoutMenu: () => void;
 }
 
 export function MobileBottomBar({
@@ -18,6 +19,7 @@ export function MobileBottomBar({
   onRedo,
   canUndo,
   canRedo,
+  onLayoutMenu,
 }: MobileBottomBarProps) {
   return (
     <div className="fixed bottom-0 left-0 right-0 z-10 bg-white dark:bg-background border-t border-border">
@@ -141,6 +143,31 @@ export function MobileBottomBar({
           >
             <path d="M12 20h9" />
             <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+          </svg>
+        </button>
+
+        {/* Layout */}
+        <button
+          type="button"
+          onClick={onLayoutMenu}
+          className="h-11 w-11 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:ring-1 focus-visible:ring-ring ring-offset-2"
+          aria-label="Layout options"
+          title="Layout"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-5 w-5"
+          >
+            <rect x="3" y="3" width="7" height="7" />
+            <rect x="14" y="3" width="7" height="7" />
+            <rect x="14" y="14" width="7" height="7" />
+            <rect x="3" y="14" width="7" height="7" />
           </svg>
         </button>
 
