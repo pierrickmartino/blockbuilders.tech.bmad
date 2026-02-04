@@ -40,51 +40,47 @@ function separateHandlesAndContent(children: ReactNode) {
   return { handles, content };
 }
 
+// Glass morphism category styles with frosted glass effect
 const categoryStyles = {
   input: {
-    border: "border-slate-200/90",
-    borderSelected: "border-violet-300",
-    bg: "bg-gradient-to-br from-white via-slate-50/95 to-violet-50/55",
-    header:
-      "bg-gradient-to-r from-violet-500/12 via-violet-400/7 to-transparent text-slate-700",
-    glow: "shadow-[0_18px_40px_-28px_rgba(15,23,42,0.55)]",
-    selectedGlow: "shadow-[0_24px_48px_-30px_rgba(109,40,217,0.6)]",
+    border: "border-white/40",
+    borderSelected: "border-violet-400/80",
+    bg: "bg-gradient-to-br from-white/70 via-white/50 to-violet-100/40",
+    header: "bg-gradient-to-r from-violet-500/20 via-violet-400/10 to-white/5 text-violet-900",
+    glow: "shadow-[0_8px_32px_-8px_rgba(0,0,0,0.12),0_4px_16px_-4px_rgba(139,92,246,0.08)]",
+    selectedGlow: "shadow-[0_12px_40px_-8px_rgba(139,92,246,0.25),0_4px_20px_-4px_rgba(139,92,246,0.15)]",
   },
   indicator: {
-    border: "border-slate-200/90",
-    borderSelected: "border-sky-300",
-    bg: "bg-gradient-to-br from-white via-slate-50/95 to-sky-50/55",
-    header:
-      "bg-gradient-to-r from-sky-500/12 via-sky-400/7 to-transparent text-slate-700",
-    glow: "shadow-[0_18px_40px_-28px_rgba(15,23,42,0.55)]",
-    selectedGlow: "shadow-[0_24px_48px_-30px_rgba(3,105,161,0.55)]",
+    border: "border-white/40",
+    borderSelected: "border-sky-400/80",
+    bg: "bg-gradient-to-br from-white/70 via-white/50 to-sky-100/40",
+    header: "bg-gradient-to-r from-sky-500/20 via-sky-400/10 to-white/5 text-sky-900",
+    glow: "shadow-[0_8px_32px_-8px_rgba(0,0,0,0.12),0_4px_16px_-4px_rgba(14,165,233,0.08)]",
+    selectedGlow: "shadow-[0_12px_40px_-8px_rgba(14,165,233,0.25),0_4px_20px_-4px_rgba(14,165,233,0.15)]",
   },
   logic: {
-    border: "border-slate-200/90",
-    borderSelected: "border-amber-300",
-    bg: "bg-gradient-to-br from-white via-slate-50/95 to-amber-50/55",
-    header:
-      "bg-gradient-to-r from-amber-500/12 via-amber-400/7 to-transparent text-slate-700",
-    glow: "shadow-[0_18px_40px_-28px_rgba(15,23,42,0.55)]",
-    selectedGlow: "shadow-[0_24px_48px_-30px_rgba(180,83,9,0.52)]",
+    border: "border-white/40",
+    borderSelected: "border-amber-400/80",
+    bg: "bg-gradient-to-br from-white/70 via-white/50 to-amber-100/40",
+    header: "bg-gradient-to-r from-amber-500/20 via-amber-400/10 to-white/5 text-amber-900",
+    glow: "shadow-[0_8px_32px_-8px_rgba(0,0,0,0.12),0_4px_16px_-4px_rgba(245,158,11,0.08)]",
+    selectedGlow: "shadow-[0_12px_40px_-8px_rgba(245,158,11,0.25),0_4px_20px_-4px_rgba(245,158,11,0.15)]",
   },
   signal: {
-    border: "border-slate-200/90",
-    borderSelected: "border-emerald-300",
-    bg: "bg-gradient-to-br from-white via-slate-50/95 to-emerald-50/55",
-    header:
-      "bg-gradient-to-r from-emerald-500/12 via-emerald-400/7 to-transparent text-slate-700",
-    glow: "shadow-[0_18px_40px_-28px_rgba(15,23,42,0.55)]",
-    selectedGlow: "shadow-[0_24px_48px_-30px_rgba(4,120,87,0.52)]",
+    border: "border-white/40",
+    borderSelected: "border-emerald-400/80",
+    bg: "bg-gradient-to-br from-white/70 via-white/50 to-emerald-100/40",
+    header: "bg-gradient-to-r from-emerald-500/20 via-emerald-400/10 to-white/5 text-emerald-900",
+    glow: "shadow-[0_8px_32px_-8px_rgba(0,0,0,0.12),0_4px_16px_-4px_rgba(16,185,129,0.08)]",
+    selectedGlow: "shadow-[0_12px_40px_-8px_rgba(16,185,129,0.25),0_4px_20px_-4px_rgba(16,185,129,0.15)]",
   },
   risk: {
-    border: "border-slate-200/90",
-    borderSelected: "border-rose-300",
-    bg: "bg-gradient-to-br from-white via-slate-50/95 to-rose-50/55",
-    header:
-      "bg-gradient-to-r from-rose-500/12 via-rose-400/7 to-transparent text-slate-700",
-    glow: "shadow-[0_18px_40px_-28px_rgba(15,23,42,0.55)]",
-    selectedGlow: "shadow-[0_24px_48px_-30px_rgba(190,24,93,0.52)]",
+    border: "border-white/40",
+    borderSelected: "border-rose-400/80",
+    bg: "bg-gradient-to-br from-white/70 via-white/50 to-rose-100/40",
+    header: "bg-gradient-to-r from-rose-500/20 via-rose-400/10 to-white/5 text-rose-900",
+    glow: "shadow-[0_8px_32px_-8px_rgba(0,0,0,0.12),0_4px_16px_-4px_rgba(244,63,94,0.08)]",
+    selectedGlow: "shadow-[0_12px_40px_-8px_rgba(244,63,94,0.25),0_4px_20px_-4px_rgba(244,63,94,0.15)]",
   },
 };
 
@@ -114,21 +110,22 @@ export default function BaseNode({
   return (
     <div
       className={cn(
-        "group relative overflow-visible rounded-2xl border-2 bg-white/85 backdrop-blur-sm transition-all duration-200",
-        isMobileMode ? "min-w-[150px]" : "min-w-[120px]",
+        "group relative overflow-visible rounded-2xl border backdrop-blur-xl transition-all duration-200",
+        isMobileMode ? "min-w-[160px]" : "min-w-[140px]",
         borderClass,
         styles.bg,
         styles.glow,
         selected && styles.selectedGlow,
-        selected && "-translate-y-0.5 ring-1 ring-slate-300/60",
+        selected && "-translate-y-1 ring-1 ring-white/50",
         errorBorder
       )}
     >
-      <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100 bg-[radial-gradient(circle_at_12%_6%,rgba(255,255,255,0.55),transparent_42%)]" />
+      {/* Light-catching top edge highlight */}
+      <div className="pointer-events-none absolute inset-0 rounded-2xl opacity-60 group-hover:opacity-100 transition-opacity duration-300 bg-[linear-gradient(135deg,rgba(255,255,255,0.4)_0%,transparent_40%,transparent_60%,rgba(255,255,255,0.1)_100%)]" />
       <div
         className={cn(
-          "relative z-10 flex items-center justify-between gap-1 rounded-t-xl border-b border-slate-200/65 text-[11px] font-medium tracking-[0.01em]",
-          isMobileMode ? "px-4 py-2" : "px-3 py-1.5",
+          "relative z-10 flex items-center justify-between gap-1.5 rounded-t-xl border-b border-white/30 text-[13px] font-semibold tracking-tight",
+          isMobileMode ? "px-4 py-2.5" : "px-3.5 py-2",
           styles.header
         )}
         title={tooltip?.short}
@@ -148,7 +145,7 @@ export default function BaseNode({
             </svg>
           )}
           {/* Show summary in title when collapsed, otherwise show label */}
-          <span className="text-[12px] font-semibold tracking-tight text-slate-800">
+          <span className="text-[13px] font-semibold tracking-tight drop-shadow-[0_1px_1px_rgba(255,255,255,0.5)]">
             {showCompact && summary ? summary : label}
           </span>
         </div>
@@ -164,18 +161,18 @@ export default function BaseNode({
       {!showCompact && (content.length > 0 || validationMessage) && (
         <div
           className={cn(
-            "relative z-10 text-[12px] font-medium leading-[1.45] tracking-[0.004em] text-slate-600 [&_.font-bold]:font-semibold [&_.font-mono]:font-semibold [&_.font-mono]:tracking-normal [&_.text-gray-600]:text-slate-600 [&_.text-gray-700]:text-slate-700 [&_.text-sm]:text-[12.5px] [&_.text-xs]:text-[11.5px]",
-            isMobileMode ? "px-4 py-2.5" : "px-3 py-2.5"
+            "relative z-10 text-[13px] font-medium leading-relaxed tracking-normal text-slate-700 [&_.font-bold]:font-semibold [&_.font-mono]:font-semibold [&_.text-gray-600]:text-slate-600 [&_.text-gray-700]:text-slate-700 [&_.text-sm]:text-[13px] [&_.text-xs]:text-[12px]",
+            isMobileMode ? "px-4 py-3" : "px-3.5 py-2.5"
           )}
         >
           {content}
           {validationMessage && (
-            <div className="mt-1">
-              <div className="text-[11.5px] font-medium text-rose-600">{validationMessage}</div>
+            <div className="mt-1.5">
+              <div className="text-[12px] font-medium text-rose-600">{validationMessage}</div>
               {helpLink && (
                 <a
                   href={helpLink}
-                  className="mt-1 inline-block text-[11.5px] font-medium text-rose-700 underline decoration-rose-300 underline-offset-2 hover:text-rose-900"
+                  className="mt-1 inline-block text-[12px] font-medium text-rose-700 underline decoration-rose-300 underline-offset-2 hover:text-rose-900"
                   target="_blank"
                   rel="noopener noreferrer"
                 >

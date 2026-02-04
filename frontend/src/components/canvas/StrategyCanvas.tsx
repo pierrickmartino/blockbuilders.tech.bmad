@@ -228,7 +228,7 @@ function CanvasInner({
   return (
     <div ref={reactFlowWrapper} className="flex h-full w-full flex-col">
       {globalValidationErrors && globalValidationErrors.length > 0 && (
-        <div className="mb-3 rounded-xl border border-rose-200/70 bg-white/90 px-4 py-3 text-sm text-rose-700 shadow-[0_10px_30px_-20px_rgba(15,23,42,0.45)] backdrop-blur-sm">
+        <div className="mb-3 rounded-2xl border border-rose-200/50 bg-white/70 px-4 py-3 text-sm text-rose-700 shadow-[0_8px_32px_-8px_rgba(244,63,94,0.15)] backdrop-blur-xl">
           <p className="font-medium">Strategy Issues:</p>
           <ul className="mt-1 space-y-1 text-xs">
             {globalValidationErrors.map((err, i) => (
@@ -250,11 +250,12 @@ function CanvasInner({
         </div>
       )}
       <div
-        className={`relative flex-1 overflow-hidden rounded-2xl border border-slate-200/70 bg-gradient-to-br from-slate-50 via-white to-slate-100/80 shadow-[0_25px_60px_-35px_rgba(15,23,42,0.5)] ${isMobileMode ? "pb-14" : ""}`}
+        className={`relative flex-1 overflow-hidden rounded-2xl border border-white/50 bg-gradient-to-br from-slate-50/90 via-white/80 to-indigo-50/60 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.15),0_12px_24px_-8px_rgba(99,102,241,0.08)] ${isMobileMode ? "pb-14" : ""}`}
       >
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_16%,rgba(148,163,184,0.16),transparent_45%),radial-gradient(circle_at_88%_14%,rgba(99,102,241,0.09),transparent_38%),radial-gradient(circle_at_52%_86%,rgba(15,23,42,0.05),transparent_45%)]" />
+        {/* Premium ambient light gradients */}
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_20%_20%,rgba(139,92,246,0.12),transparent_50%),radial-gradient(ellipse_60%_40%_at_80%_15%,rgba(59,130,246,0.1),transparent_45%),radial-gradient(ellipse_70%_60%_at_50%_90%,rgba(99,102,241,0.06),transparent_50%)]" />
         <ReactFlow
-          className="relative z-10 h-full w-full bg-transparent text-slate-900 [&_.react-flow__pane]:cursor-grab [&_.react-flow__pane]:active:cursor-grabbing [&_.react-flow__selection]:border-indigo-300/90 [&_.react-flow__selection]:bg-indigo-100/25 [&_.react-flow__controls]:m-4 [&_.react-flow__controls]:overflow-hidden [&_.react-flow__controls]:rounded-xl [&_.react-flow__controls]:border [&_.react-flow__controls]:border-slate-200 [&_.react-flow__controls]:bg-white/90 [&_.react-flow__controls]:backdrop-blur-xl [&_.react-flow__controls]:shadow-[0_20px_50px_-35px_rgba(15,23,42,0.8)] [&_.react-flow__controls-button]:h-10 [&_.react-flow__controls-button]:w-10 [&_.react-flow__controls-button]:border-slate-200/90 [&_.react-flow__controls-button]:bg-transparent [&_.react-flow__controls-button]:text-slate-700 [&_.react-flow__controls-button:hover]:bg-slate-50 [&_.react-flow__node]:bg-transparent [&_.react-flow__node]:border-0 [&_.react-flow__node]:p-0 [&_.react-flow__node]:transition-all [&_.react-flow__node]:duration-200 [&_.react-flow__node:hover]:-translate-y-0.5 [&_.react-flow__node:hover]:drop-shadow-[0_14px_30px_-18px_rgba(15,23,42,0.45)] [&_.react-flow__node.selected]:drop-shadow-[0_16px_36px_-20px_rgba(79,70,229,0.45)] [&_.react-flow__handle]:border-2 [&_.react-flow__handle]:border-white [&_.react-flow__handle]:shadow-[0_0_0_2px_rgba(15,23,42,0.14)] [&_.react-flow__handle]:transition-transform [&_.react-flow__handle:hover]:scale-105 [&_.react-flow__edge.animated_.react-flow__edge-path]:stroke-dasharray-[6_6] [&_.react-flow__edge.animated_.react-flow__edge-path]:drop-shadow-[0_0_7px_rgba(99,102,241,0.4)]"
+          className="relative z-10 h-full w-full bg-transparent text-slate-900 [&_.react-flow__pane]:cursor-grab [&_.react-flow__pane]:active:cursor-grabbing [&_.react-flow__selection]:border-violet-400/60 [&_.react-flow__selection]:bg-violet-100/20 [&_.react-flow__selection]:backdrop-blur-sm [&_.react-flow__controls]:m-4 [&_.react-flow__controls]:overflow-hidden [&_.react-flow__controls]:rounded-2xl [&_.react-flow__controls]:border [&_.react-flow__controls]:border-white/50 [&_.react-flow__controls]:bg-white/70 [&_.react-flow__controls]:backdrop-blur-2xl [&_.react-flow__controls]:shadow-[0_8px_32px_-8px_rgba(0,0,0,0.15)] [&_.react-flow__controls-button]:h-10 [&_.react-flow__controls-button]:w-10 [&_.react-flow__controls-button]:border-white/30 [&_.react-flow__controls-button]:bg-transparent [&_.react-flow__controls-button]:text-slate-700 [&_.react-flow__controls-button:hover]:bg-white/50 [&_.react-flow__node]:overflow-visible [&_.react-flow__node]:bg-transparent [&_.react-flow__node]:border-0 [&_.react-flow__node]:p-0 [&_.react-flow__node]:shadow-none [&_.react-flow__node]:rounded-none [&_.react-flow__node]:transition-all [&_.react-flow__node]:duration-200 [&_.react-flow__node:hover]:-translate-y-1 [&_.react-flow__node:hover]:drop-shadow-[0_20px_40px_-15px_rgba(0,0,0,0.2)] [&_.react-flow__node.selected]:drop-shadow-[0_20px_40px_-15px_rgba(139,92,246,0.3)] [&_.react-flow__handle]:border-2 [&_.react-flow__handle]:border-white/80 [&_.react-flow__handle]:shadow-[0_2px_8px_-2px_rgba(0,0,0,0.2),0_0_0_1px_rgba(255,255,255,0.4)] [&_.react-flow__handle]:transition-all [&_.react-flow__handle]:duration-200 [&_.react-flow__handle:hover]:scale-110 [&_.react-flow__handle:hover]:shadow-[0_4px_12px_-2px_rgba(0,0,0,0.25),0_0_0_2px_rgba(255,255,255,0.5)] [&_.react-flow__edge.animated_.react-flow__edge-path]:stroke-dasharray-[6_6] [&_.react-flow__edge.animated_.react-flow__edge-path]:drop-shadow-[0_0_8px_rgba(139,92,246,0.4)]"
           nodes={nodes}
           edges={edges}
           onNodesChange={handleNodesChange}
@@ -279,24 +280,25 @@ function CanvasInner({
             type: "smoothstep",
             animated: true,
             style: {
-              strokeWidth: 2.2,
-              stroke: "#6366f1",
-              strokeOpacity: 0.9,
+              strokeWidth: 2,
+              stroke: "#8b5cf6",
+              strokeOpacity: 0.7,
               strokeLinecap: "round",
             },
           }}
           connectionLineStyle={{
-            strokeWidth: 2.2,
-            stroke: "#6366f1",
-            strokeDasharray: "3 5",
+            strokeWidth: 2,
+            stroke: "#a78bfa",
+            strokeOpacity: 0.6,
+            strokeDasharray: "4 6",
           }}
         >
           <Background
             variant={BackgroundVariant.Dots}
-            gap={26}
-            size={1.1}
-            color="#cbd5e1"
-            className="opacity-70"
+            gap={24}
+            size={1}
+            color="#94a3b8"
+            className="opacity-40"
           />
           {!isMobileMode && (
             <Controls>
@@ -400,7 +402,7 @@ function CanvasInner({
 
         {/* Tap-to-connect feedback overlay */}
         {isMobileMode && connectionState.mode === "connecting" && (
-          <div className="pointer-events-none absolute bottom-4 left-1/2 z-20 -translate-x-1/2 rounded-xl border border-slate-200/80 bg-white/95 px-4 py-2 text-sm text-slate-700 shadow-[0_16px_35px_-20px_rgba(15,23,42,0.45)] backdrop-blur">
+          <div className="pointer-events-none absolute bottom-4 left-1/2 z-20 -translate-x-1/2 rounded-2xl border border-white/50 bg-white/70 px-4 py-2.5 text-sm text-slate-700 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.15)] backdrop-blur-xl">
             Tap target port, or tap outside to cancel
           </div>
         )}
