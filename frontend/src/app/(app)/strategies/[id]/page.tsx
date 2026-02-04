@@ -1012,27 +1012,8 @@ export default function StrategyEditorPage({ params }: Props) {
             )}
           </div>
 
-          {/* Right: Version + Actions */}
+          {/* Right: Actions */}
           <div className="flex flex-shrink-0 items-center gap-2">
-            {/* Version selector */}
-            {versions.length > 0 && (
-              <Select
-                value={String(selectedVersion?.version_number || "")}
-                onValueChange={(v) => loadVersionDetail(Number(v))}
-              >
-                <SelectTrigger className="h-8 w-[110px] text-xs sm:w-[140px]">
-                  <SelectValue placeholder="Version" />
-                </SelectTrigger>
-                <SelectContent>
-                  {versions.map((v) => (
-                    <SelectItem key={v.id} value={String(v.version_number)}>
-                      v{v.version_number} - {formatDateTime(v.created_at, timezone).split(" ")[0]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-
             {/* Save button */}
             <Button size="sm" className="h-8" onClick={handleSaveVersion} disabled={isSavingVersion}>
               {isSavingVersion ? "..." : "Save"}
@@ -1349,8 +1330,25 @@ export default function StrategyEditorPage({ params }: Props) {
         </div>
 
         {/* Tabs row */}
-        <div className="mt-1">
+        <div className="mt-1 flex items-center justify-between gap-2">
           <StrategyTabs strategyId={id} activeTab="build" />
+          {versions.length > 0 && (
+            <Select
+              value={String(selectedVersion?.version_number || "")}
+              onValueChange={(v) => loadVersionDetail(Number(v))}
+            >
+              <SelectTrigger className="h-8 w-[110px] text-xs sm:w-[140px]">
+                <SelectValue placeholder="Version" />
+              </SelectTrigger>
+              <SelectContent>
+                {versions.map((v) => (
+                  <SelectItem key={v.id} value={String(v.version_number)}>
+                    v{v.version_number} - {formatDateTime(v.created_at, timezone).split(" ")[0]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
 
         {/* Compact error/success messages */}
