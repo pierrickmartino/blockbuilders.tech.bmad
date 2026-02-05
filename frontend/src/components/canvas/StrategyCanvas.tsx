@@ -398,7 +398,7 @@ function CanvasInner({
           )}
         </ReactFlow>
 
-        {/* Tap-to-connect feedback overlay */}
+        {/* Tap-to-connect feedback overlay  */}
         {isMobileMode && connectionState.mode === "connecting" && (
           <div className="pointer-events-none absolute bottom-4 left-1/2 z-20 -translate-x-1/2 rounded-xl border border-slate-200/80 bg-white/95 px-4 py-2 text-sm text-slate-700 shadow-[0_16px_35px_-20px_rgba(15,23,42,0.45)] backdrop-blur">
             Tap target port, or tap outside to cancel
