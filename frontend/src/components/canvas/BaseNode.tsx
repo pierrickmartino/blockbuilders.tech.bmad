@@ -116,6 +116,7 @@ export default function BaseNode({
       className={cn(
         "group relative overflow-visible rounded-2xl border-2 bg-white/85 backdrop-blur-sm transition-all duration-200",
         isMobileMode ? "min-w-[150px]" : "min-w-[120px]",
+        showCompact && "pb-1.5",
         borderClass,
         styles.bg,
         styles.glow,
@@ -124,7 +125,7 @@ export default function BaseNode({
         errorBorder
       )}
     >
-      <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100 bg-[radial-gradient(circle_at_12%_6%,rgba(255,255,255,0.55),transparent_42%)]" />
+      <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 bg-[radial-gradient(circle_at_12%_6%,rgba(255,255,255,0.55),transparent_42%)]" />
       <div
         className={cn(
           "relative z-10 mx-1.5 mt-1.5 flex items-center justify-between gap-1 rounded-full border border-slate-200/70 bg-white/95 text-[11px] font-medium tracking-[0.01em] shadow-[0_8px_22px_-18px_rgba(15,23,42,0.7)]",
