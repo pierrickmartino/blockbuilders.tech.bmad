@@ -5,6 +5,13 @@ import { BlockType, getBlockMeta, ValidationError, TakeProfitLevel } from "@/typ
 import { cn } from "@/lib/utils";
 import { Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { getParamConfigs, ParamConfig } from "@/lib/param-configs";
 import InfoIcon from "@/components/InfoIcon";
 import { paramToGlossaryId, getTooltip } from "@/lib/tooltip-content";
@@ -105,47 +112,29 @@ export default function InspectorPanel({
       );
     }
 
-    // Select with quick-swap segmented control (for close/prev_close)
-    if (config.type === "select" && config.quickSwap && config.options) {
-      return (
-        <div className="grid grid-cols-2 gap-1 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-1 sm:grid-cols-3">
-          {config.options.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              onClick={() => handleChange(key, option.value)}
-              className={cn(
-                "min-w-0 rounded-md px-2 text-center text-sm font-medium leading-tight transition-all whitespace-normal",
-                isMobileMode ? "py-2.5" : "py-2",
-                String(value) === option.value
-                  ? "bg-white dark:bg-gray-900 shadow-sm text-gray-900 dark:text-gray-100"
-                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
-              )}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
-      );
-    }
-
-    // Regular select dropdown
+    // Select dropdown
     if (config.type === "select") {
+      const selectedValue = String(
+        value ?? config.defaultValue ?? (config.options?.[0]?.value ?? "")
+      );
       return (
-        <select
-          value={String(value)}
-          onChange={(e) => handleChange(key, e.target.value)}
-          className={cn(
-            "w-full rounded border border-gray-300 dark:border-gray-600 px-2 text-sm bg-white dark:bg-gray-800 focus:border-blue-500 focus:outline-none",
-            isMobileMode ? "h-12 text-base" : "h-10"
-          )}
-        >
-          {config.options?.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
+        <Select value={selectedValue} onValueChange={(val) => handleChange(key, val)}>
+          <SelectTrigger
+            className={cn(
+              "w-full",
+              isMobileMode ? "h-12 text-base" : "h-10"
+            )}
+          >
+            <SelectValue placeholder="Select" />
+          </SelectTrigger>
+          <SelectContent>
+            {config.options?.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       );
     }
 
