@@ -127,8 +127,8 @@ export default function BaseNode({
       <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100 bg-[radial-gradient(circle_at_12%_6%,rgba(255,255,255,0.55),transparent_42%)]" />
       <div
         className={cn(
-          "relative z-10 flex items-center justify-between gap-1 rounded-t-xl border-b border-slate-200/65 text-[11px] font-medium tracking-[0.01em]",
-          isMobileMode ? "px-4 py-2" : "px-3 py-1.5",
+          "relative z-10 mx-1.5 mt-1.5 flex items-center justify-between gap-1 rounded-full border border-slate-200/70 bg-white/95 text-[11px] font-medium tracking-[0.01em] shadow-[0_8px_22px_-18px_rgba(15,23,42,0.7)]",
+          isMobileMode ? "px-3.5 py-1.5" : "px-3 py-1.5",
           styles.header
         )}
         title={tooltip?.short}
@@ -165,7 +165,7 @@ export default function BaseNode({
         <div
           className={cn(
             "relative z-10 text-[12px] font-medium leading-[1.45] tracking-[0.004em] text-slate-600 [&_.font-bold]:font-semibold [&_.font-mono]:font-semibold [&_.font-mono]:tracking-normal [&_.text-gray-600]:text-slate-600 [&_.text-gray-700]:text-slate-700 [&_.text-sm]:text-[12.5px] [&_.text-xs]:text-[11.5px]",
-            isMobileMode ? "px-4 py-2.5" : "px-3 py-2.5"
+            isMobileMode ? "px-4 pb-2.5 pt-2" : "px-3 pb-2.5 pt-2"
           )}
         >
           {content}
