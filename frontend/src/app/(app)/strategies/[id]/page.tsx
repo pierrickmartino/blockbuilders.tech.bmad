@@ -608,11 +608,16 @@ export default function StrategyEditorPage({ params }: Props) {
 
   // Handle selection changes (multi-select and single-select)
   const handleSelectionChange = useCallback(
-    (selectedNodes: Node[]) => {
-      // Track all selected nodes for copy/paste
-      setSelectedNodeIds(new Set(selectedNodes.map((n) => n.id)));
+    (selectedNodes: Node[], selectedEdges: Edge[]) => {
+      // Track selected nodes and edge endpoints for keyboard copy/delete workflows
+      const selectedIds = new Set(selectedNodes.map((n) => n.id));
+      selectedEdges.forEach((edge) => {
+        selectedIds.add(edge.source);
+        selectedIds.add(edge.target);
+      });
+      setSelectedNodeIds(selectedIds);
 
-      // Properties panel still gets single selection only
+      // Properties panel still gets single node selection only
       setSelectedNodeId(selectedNodes.length === 1 ? selectedNodes[0].id : null);
     },
     []

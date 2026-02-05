@@ -37,7 +37,7 @@ interface StrategyCanvasProps {
   edges: Edge[];
   onNodesChange: (nodes: Node[]) => void;
   onEdgesChange: (edges: Edge[]) => void;
-  onSelectionChange: (selectedNodes: Node[]) => void;
+  onSelectionChange: (selectedNodes: Node[], selectedEdges: Edge[]) => void;
   onAddNote: () => void;
   onUndo?: () => void;
   onRedo?: () => void;
@@ -162,8 +162,8 @@ function CanvasInner({
 
   // Handle node selection
   const handleSelectionChange = useCallback(
-    ({ nodes: selectedNodes }: { nodes: Node[] }) => {
-      onSelectionChange(selectedNodes);
+    ({ nodes: selectedNodes, edges: selectedEdges }: { nodes: Node[]; edges: Edge[] }) => {
+      onSelectionChange(selectedNodes, selectedEdges);
     },
     [onSelectionChange]
   );
@@ -278,6 +278,8 @@ function CanvasInner({
           defaultEdgeOptions={{
             type: "smoothstep",
             animated: true,
+            selectable: true,
+            interactionWidth: 28,
             style: {
               strokeWidth: 2.2,
               stroke: "#6366f1",
