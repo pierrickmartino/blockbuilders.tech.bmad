@@ -710,20 +710,30 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Uses existing zoom/fit methods from ReactFlow's `useReactFlow()` hook.
 - Bottom padding added to canvas wrapper on mobile to prevent content overlap.
 
-#### 4.11.2. Canvas Minimap with Section Shortcuts (Planned)
+#### 4.11.2. Canvas Minimap with Section Shortcuts (Implemented)
 
 **Purpose:** Keep users oriented on large strategies by showing a minimap overlay and quick-jump buttons for key sections.
 
 **Behavior:**
-- Small minimap overlay renders the entire canvas with a viewport rectangle indicating the current view.
-- Quick-jump buttons: **Go to Entry**, **Go to Exit**, **Go to Risk**.
-- Each button pans and zooms the canvas to the first matching section block group.
-- Designed for mobile usability; does not block core canvas interactions.
+- Small minimap overlay (180×120px) renders in top-right corner showing entire canvas with all nodes
+- Nodes rendered as color-coded dots by category (purple=input, blue=indicator, amber=logic, green=signal, red=risk)
+- Viewport rectangle indicator shows current visible area, updates in real-time on pan/zoom
+- Quick-jump buttons: **Go to Entry**, **Go to Exit**, **Go to Risk**
+- Each button pans and zooms to the centroid of matching section blocks with smooth animation (400ms, zoom 1.0)
+- Buttons automatically disable when no matching section exists
+- Hidden when canvas has no nodes
+- Mobile-friendly positioning avoids bottom action bar, adequate tap targets (32px height)
 
 **Implementation Notes:**
-- Frontend-only overlay using existing canvas bounds/viewport position data.
-- Reuse React Flow transform state to render the viewport indicator.
-- No backend, schema, or API changes.
+- Frontend-only component (`CanvasMinimap.tsx`) integrated into `StrategyCanvas.tsx`
+- Uses React Flow's `getViewport()` and `setCenter()` APIs for viewport tracking and navigation
+- Section detection via centroid calculation:
+  - Entry: `entry_signal` blocks
+  - Exit: `exit_signal` + exit risk blocks (`time_exit`, `trailing_stop`, `stop_loss`, `take_profit`, `max_drawdown`)
+  - Risk: all blocks with `category === "risk"`
+- SVG-based minimap rendering for performance
+- No backend, schema, or API changes
+- Dark mode support with semantic color variables
 
 ### 4.12. Compact Node Display Mode (Planned)
 
@@ -1991,7 +2001,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Expanded Indicator Palette & Price Variation Input** | ✅ Complete | Stochastic, ADX, Ichimoku Cloud, OBV, Fibonacci retracements, and price variation % input block |
 | **Mobile-Optimized Canvas** | ✅ Complete | Touch-first controls, simplified palette, gesture-based connections |
 | **Bottom Action Bar for Canvas Tools** | ✅ Complete | Replace left tool stack with a mobile bottom action bar for core canvas tools (Pan/Select, Zoom In/Out, Fit to Screen, Undo/Redo) with 44px tap targets |
-| **Canvas Minimap with Section Shortcuts** | 📝 Planned | Minimap overlay with viewport indicator plus quick-jump buttons to Entry, Exit, and Risk sections |
+| **Canvas Minimap with Section Shortcuts** | ✅ Complete | Minimap overlay (180×120px) with real-time viewport indicator and quick-jump buttons to Entry, Exit, and Risk sections |
 | **Compact Node Display Mode** | 📝 Planned | One-line node summaries by default with tap-to-expand details and a settings toggle |
 | **Block Library Bottom Sheet with Search** | ✅ Complete | Bottom sheet block library with search, categories, and recent/favorite blocks |
 | **Copy/Paste Blocks & Subgraphs** | ✅ Complete | Multi-select blocks and copy/paste within or across strategies |
@@ -2290,6 +2300,7 @@ npm run type-check    # TypeScript validation
 - `docs/prd-strategy-import-export.md` - Strategy import/export PRD
 - `docs/prd-strategy-templates-marketplace.md` - Strategy templates marketplace PRD
 - `docs/prd-visual-strategy-validation-feedback.md` - Visual validation feedback PRD
+- `docs/prd-canvas-minimap-section-shortcuts.md` - Canvas minimap with section shortcuts PRD
 - `docs/prd-improved-error-messages.md` - Improved error messages PRD
 - `docs/prd-in-app-notifications.md` - In-app notifications PRD
 - `docs/prd-multi-strategy-dashboard.md` - Multi-strategy dashboard PRD

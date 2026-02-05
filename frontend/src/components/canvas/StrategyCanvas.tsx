@@ -24,6 +24,7 @@ import { nodeTypes } from "./nodes";
 import { BlockMeta, BlockType, getBlockMeta, ValidationError } from "@/types/canvas";
 import { generateBlockId } from "@/lib/canvas-utils";
 import { MobileBottomBar } from "./MobileBottomBar";
+import { CanvasMinimap } from "./CanvasMinimap";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -80,6 +81,7 @@ function CanvasInner({
   const [connectionState, setConnectionState] = useState<ConnectionState>({
     mode: "idle",
   });
+  const [viewportTrigger, setViewportTrigger] = useState(0);
 
   // ReactFlow instance for zoom/fit controls
   const reactFlow = useReactFlow();
@@ -265,6 +267,7 @@ function CanvasInner({
           onDrop={onDrop}
           onInit={onInit}
           onNodeClick={handleNodeClick}
+          onMove={() => setViewportTrigger((prev) => prev + 1)}
           nodeTypes={nodeTypes}
           fitView
           snapToGrid
@@ -397,6 +400,14 @@ function CanvasInner({
             </Controls>
           )}
         </ReactFlow>
+
+        {/* Canvas minimap with section shortcuts */}
+        <CanvasMinimap
+          nodes={nodes}
+          reactFlow={reactFlow}
+          isMobileMode={isMobileMode}
+          viewportTrigger={viewportTrigger}
+        />
 
         {/* Tap-to-connect feedback overlay */}
         {isMobileMode && connectionState.mode === "connecting" && (
