@@ -1,14 +1,14 @@
 "use client";
 
-import { useMemo } from "react";
-import { Node, ReactFlowInstance } from "@xyflow/react";
+import { RefObject, useMemo } from "react";
+import { Node, ReactFlowInstance, useStore } from "@xyflow/react";
 import { getBlockMeta, BlockType } from "@/types/canvas";
 
 interface CanvasMinimapProps {
   nodes: Node[];
   reactFlow: ReactFlowInstance;
+  containerRef?: RefObject<HTMLDivElement | null>;
   isMobileMode?: boolean;
-  viewportTrigger?: number;
 }
 
 interface Bounds {
@@ -70,13 +70,15 @@ function getViewportRect(
   reactFlow: ReactFlowInstance,
   canvasBounds: Bounds,
   minimapWidth: number,
-  minimapHeight: number
+  minimapHeight: number,
+  containerRef?: RefObject<HTMLDivElement | null>
 ): Rect {
   const viewport = reactFlow.getViewport();
 
   // Container dimensions (visible area)
-  const containerWidth = window.innerWidth;
-  const containerHeight = window.innerHeight;
+  const container = containerRef?.current;
+  const containerWidth = container?.clientWidth ?? window.innerWidth;
+  const containerHeight = container?.clientHeight ?? window.innerHeight;
 
   // Visible area in canvas coordinates
   const visibleX = -viewport.x / viewport.zoom;
@@ -118,11 +120,12 @@ function findSectionCenter(
 export function CanvasMinimap({
   nodes,
   reactFlow,
+  containerRef,
   isMobileMode = false,
-  viewportTrigger,
 }: CanvasMinimapProps) {
   // Calculate all derived values first (hooks must come before early returns)
   const canvasBounds = useMemo(() => getCanvasBounds(nodes), [nodes]);
+  const transform = useStore((state) => state.transform);
 
   // Section detection
   const entryCenter = useMemo(
@@ -166,17 +169,18 @@ export function CanvasMinimap({
   const scaleX = MINIMAP_WIDTH / canvasBounds.width;
   const scaleY = MINIMAP_HEIGHT / canvasBounds.height;
 
-  // Calculate viewport rectangle (use viewportTrigger to force recalculation)
+  // Calculate viewport rectangle (transform subscription triggers recalculation)
   const viewportRect = getViewportRect(
     reactFlow,
     canvasBounds,
     MINIMAP_WIDTH,
-    MINIMAP_HEIGHT
+    MINIMAP_HEIGHT,
+    containerRef
   );
 
   // Suppress unused variable warnings - these are used for triggering re-renders
   void isMobileMode;
-  void viewportTrigger;
+  void transform;
 
   // Navigation handler
   const jumpToSection = (center: { x: number; y: number }) => {

@@ -77,11 +77,11 @@ function CanvasInner({
   onLayoutMenu,
 }: StrategyCanvasProps) {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
+  const canvasContainerRef = useRef<HTMLDivElement>(null);
   const reactFlowInstance = useRef<ReactFlowInstance | null>(null);
   const [connectionState, setConnectionState] = useState<ConnectionState>({
     mode: "idle",
   });
-  const [viewportTrigger, setViewportTrigger] = useState(0);
 
   // ReactFlow instance for zoom/fit controls
   const reactFlow = useReactFlow();
@@ -252,6 +252,7 @@ function CanvasInner({
         </div>
       )}
       <div
+        ref={canvasContainerRef}
         className={`relative flex-1 overflow-hidden rounded-2xl border border-slate-200/70 bg-gradient-to-br from-slate-50 via-white to-slate-100/80 shadow-[0_25px_60px_-35px_rgba(15,23,42,0.5)] ${isMobileMode ? "pb-14" : ""}`}
       >
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_16%,rgba(148,163,184,0.16),transparent_45%),radial-gradient(circle_at_88%_14%,rgba(99,102,241,0.09),transparent_38%),radial-gradient(circle_at_52%_86%,rgba(15,23,42,0.05),transparent_45%)]" />
@@ -267,7 +268,6 @@ function CanvasInner({
           onDrop={onDrop}
           onInit={onInit}
           onNodeClick={handleNodeClick}
-          onMove={() => setViewportTrigger((prev) => prev + 1)}
           nodeTypes={nodeTypes}
           fitView
           snapToGrid
@@ -405,8 +405,8 @@ function CanvasInner({
         <CanvasMinimap
           nodes={nodes}
           reactFlow={reactFlow}
+          containerRef={canvasContainerRef}
           isMobileMode={isMobileMode}
-          viewportTrigger={viewportTrigger}
         />
 
         {/* Tap-to-connect feedback overlay */}
