@@ -21,6 +21,7 @@ import {
 import "@xyflow/react/dist/style.css";
 
 import { nodeTypes } from "./nodes";
+import DeleteButtonEdge from "./edges/DeleteButtonEdge";
 import { BlockMeta, BlockType, getBlockMeta, ValidationError } from "@/types/canvas";
 import { generateBlockId } from "@/lib/canvas-utils";
 import { MobileBottomBar } from "./MobileBottomBar";
@@ -76,6 +77,19 @@ function CanvasInner({
   onTidyConnections,
   onLayoutMenu,
 }: StrategyCanvasProps) {
+  const edgeTypes = {
+    deletable: DeleteButtonEdge,
+  };
+
+  const decoratedEdges = edges.map((edge) => ({
+    ...edge,
+    type: "deletable",
+    data: {
+      ...(edge.data || {}),
+      showDeleteButton: isMobileMode,
+    },
+  }));
+
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const canvasContainerRef = useRef<HTMLDivElement>(null);
   const reactFlowInstance = useRef<ReactFlowInstance | null>(null);
@@ -259,7 +273,7 @@ function CanvasInner({
         <ReactFlow
           className="relative z-10 h-full w-full bg-transparent text-slate-900 [&_.react-flow__pane]:cursor-grab [&_.react-flow__pane]:active:cursor-grabbing [&_.react-flow__selection]:border-indigo-300/90 [&_.react-flow__selection]:bg-indigo-100/25 [&_.react-flow__controls]:m-4 [&_.react-flow__controls]:overflow-hidden [&_.react-flow__controls]:rounded-xl [&_.react-flow__controls]:border [&_.react-flow__controls]:border-slate-200 [&_.react-flow__controls]:bg-white/90 [&_.react-flow__controls]:backdrop-blur-xl [&_.react-flow__controls]:shadow-[0_20px_50px_-35px_rgba(15,23,42,0.8)] [&_.react-flow__controls-button]:h-10 [&_.react-flow__controls-button]:w-10 [&_.react-flow__controls-button]:border-slate-200/90 [&_.react-flow__controls-button]:bg-transparent [&_.react-flow__controls-button]:text-slate-700 [&_.react-flow__controls-button:hover]:bg-slate-50 [&_.react-flow__node]:bg-transparent [&_.react-flow__node]:border-0 [&_.react-flow__node]:p-0 [&_.react-flow__node]:transition-all [&_.react-flow__node]:duration-200 [&_.react-flow__node:hover]:-translate-y-0.5 [&_.react-flow__node:hover]:drop-shadow-[0_14px_30px_-18px_rgba(15,23,42,0.45)] [&_.react-flow__node.selected]:drop-shadow-[0_16px_36px_-20px_rgba(79,70,229,0.45)] [&_.react-flow__handle]:border-2 [&_.react-flow__handle]:border-white [&_.react-flow__handle]:shadow-[0_0_0_2px_rgba(15,23,42,0.14)] [&_.react-flow__handle]:transition-transform [&_.react-flow__handle:hover]:scale-105 [&_.react-flow__edge.animated_.react-flow__edge-path]:stroke-dasharray-[6_6] [&_.react-flow__edge.animated_.react-flow__edge-path]:drop-shadow-[0_0_7px_rgba(99,102,241,0.4)]"
           nodes={nodes}
-          edges={edges}
+          edges={decoratedEdges}
           onNodesChange={handleNodesChange}
           onEdgesChange={handleEdgesChange}
           onConnect={onConnect}
@@ -269,6 +283,7 @@ function CanvasInner({
           onInit={onInit}
           onNodeClick={handleNodeClick}
           nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
           fitView
           snapToGrid
           snapGrid={[15, 15]}
