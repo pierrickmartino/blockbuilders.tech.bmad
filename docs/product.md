@@ -735,6 +735,25 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - No backend, schema, or API changes
 - Dark mode support with semantic color variables
 
+#### 4.11.3. Simplified Top Bar with Autosave (Planned)
+
+**Purpose:** Reduce mobile header clutter so users can stay focused on strategy building while still seeing save confidence and quick access to history.
+
+**Behavior:**
+- Remove the explicit **Save** button from the mobile top bar.
+- Show autosave status copy in the header (e.g., **Saved • 2s ago**).
+- Autosave triggers ~10 seconds after the last strategy change, then updates the timestamp label on success.
+- Move version history from the top bar into a dedicated **History** side panel opened via a history icon button.
+- Keep only one primary CTA in the header: **Backtest** (or **Run** based on current editor mode).
+- Move settings and secondary actions into a simple overflow menu (kebab/more icon).
+- Reduce title/menu chrome on small screens; keep title text compact/truncated.
+
+**Implementation Notes:**
+- Frontend-first UX change; reuse existing save endpoint and version history data.
+- No backend schema changes required for autosave interval or header layout.
+- Keep desktop header behavior unchanged unless explicitly enabled later.
+- Use existing debounce/autosave state where possible; avoid introducing new state managers.
+
 ### 4.12. Compact Node Display Mode (Planned)
 
 **Purpose:** Reduce visual clutter on small screens by defaulting nodes to a single-line summary while keeping full details accessible.
@@ -2002,6 +2021,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Mobile-Optimized Canvas** | ✅ Complete | Touch-first controls, simplified palette, gesture-based connections |
 | **Bottom Action Bar for Canvas Tools** | ✅ Complete | Replace left tool stack with a mobile bottom action bar for core canvas tools (Pan/Select, Zoom In/Out, Fit to Screen, Undo/Redo) with 44px tap targets |
 | **Canvas Minimap with Section Shortcuts** | ✅ Complete | Minimap overlay (180×120px) with real-time viewport indicator and quick-jump buttons to Entry, Exit, and Risk sections |
+| **Simplified Top Bar with Autosave** | 📝 Planned | Mobile header shows autosave status, keeps a single primary Run/Backtest CTA, moves version history to a History panel, and moves secondary actions to overflow |
 | **Compact Node Display Mode** | 📝 Planned | One-line node summaries by default with tap-to-expand details and a settings toggle |
 | **Block Library Bottom Sheet with Search** | ✅ Complete | Bottom sheet block library with search, categories, and recent/favorite blocks |
 | **Copy/Paste Blocks & Subgraphs** | ✅ Complete | Multi-select blocks and copy/paste within or across strategies |
@@ -2319,6 +2339,7 @@ npm run type-check    # TypeScript validation
 - `docs/prd-canvas-undo-redo.md` - Canvas undo/redo PRD (IMPLEMENTED)
 - `docs/prd-keyboard-shortcuts.md` - Keyboard shortcuts & reference PRD
 - `docs/prd-mobile-optimized-canvas.md` - Mobile-optimized canvas PRD (IMPLEMENTED)
+- `docs/prd-simplified-top-bar-autosave.md` - Simplified top bar with autosave PRD
 - `docs/prd-canvas-bottom-action-bar.md` - Bottom action bar for canvas tools PRD
 - `docs/prd-canvas-minimap-section-shortcuts.md` - Canvas minimap with section shortcuts PRD
 - `docs/prd-canvas-auto-layout-connection-tidying.md` - Auto-layout & connection tidying PRD
