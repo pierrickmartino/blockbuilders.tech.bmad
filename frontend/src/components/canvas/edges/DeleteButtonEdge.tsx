@@ -3,7 +3,7 @@
 import { MouseEvent } from "react";
 import { BaseEdge, EdgeLabelRenderer, EdgeProps, getSmoothStepPath, useReactFlow } from "@xyflow/react";
 
-interface DeleteButtonEdgeData {
+export interface DeleteButtonEdgeData extends Record<string, unknown> {
   showDeleteButton?: boolean;
 }
 

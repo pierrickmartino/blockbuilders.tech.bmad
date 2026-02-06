@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import type { Node, ReactFlowInstance } from "@xyflow/react";
+import type { CanvasEdge } from "@/components/canvas/StrategyCanvas";
 import { Search, X, Star, Clock } from "lucide-react";
 import {
   Sheet,
@@ -28,7 +29,7 @@ import { cn } from "@/lib/utils";
 interface BlockLibrarySheetProps {
   onDragStart: (event: React.DragEvent, blockMeta: BlockMeta) => void;
   onAddNode: (node: Node) => void;
-  reactFlowInstance: React.RefObject<ReactFlowInstance | null>;
+  reactFlowInstance: React.RefObject<ReactFlowInstance<Node, CanvasEdge> | null>;
   isMobileMode: boolean;
 }
 

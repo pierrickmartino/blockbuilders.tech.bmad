@@ -27,7 +27,7 @@ export default function ProgressPage() {
       try {
         const data = await apiFetch<ProgressResponse>("/progress");
         setProgress(data);
-      } catch (err) {
+      } catch {
         setError("Couldn't load progress. Please try again.");
       } finally {
         setIsLoading(false);

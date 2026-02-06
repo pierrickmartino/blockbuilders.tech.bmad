@@ -39,7 +39,7 @@ import {
 import { trackStrategyView } from "@/lib/recent-views";
 import { generateExplanation } from "@/lib/explanation-generator";
 import { generateNodeSummary } from "@/lib/node-summary";
-import StrategyCanvas from "@/components/canvas/StrategyCanvas";
+import StrategyCanvas, { CanvasEdge } from "@/components/canvas/StrategyCanvas";
 import BlockPalette from "@/components/canvas/BlockPalette";
 import BlockLibrarySheet from "@/components/canvas/BlockLibrarySheet";
 import InspectorPanel from "@/components/canvas/InspectorPanel";
@@ -105,7 +105,7 @@ export default function StrategyEditorPage({ params }: Props) {
   const [showLayoutMenu, setShowLayoutMenu] = useState(false);
 
   // ReactFlow instance ref for block library sheet
-  const reactFlowRef = useRef<ReactFlowInstance | null>(null);
+  const reactFlowRef = useRef<ReactFlowInstance<Node, CanvasEdge> | null>(null);
 
   // Editable name state
   const [editingName, setEditingName] = useState(false);

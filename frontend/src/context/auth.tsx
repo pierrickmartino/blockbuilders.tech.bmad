@@ -8,7 +8,7 @@ import {
   useCallback,
   ReactNode,
 } from "react";
-import { apiFetch, ApiError, isValidRedirectUrl } from "@/lib/api";
+import { apiFetch, ApiError } from "@/lib/api";
 import { User, AuthResponse, Usage, ProfileResponse } from "@/types/auth";
 
 interface OAuthStartResponse {
