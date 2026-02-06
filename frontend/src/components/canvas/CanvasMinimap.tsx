@@ -2,11 +2,12 @@
 
 import { RefObject, useMemo } from "react";
 import { Node, ReactFlowInstance, useStore } from "@xyflow/react";
+import type { CanvasEdge } from "@/components/canvas/StrategyCanvas";
 import { getBlockMeta, BlockType } from "@/types/canvas";
 
 interface CanvasMinimapProps {
   nodes: Node[];
-  reactFlow: ReactFlowInstance;
+  reactFlow: ReactFlowInstance<Node, CanvasEdge>;
   containerRef?: RefObject<HTMLDivElement | null>;
   isMobileMode?: boolean;
 }
@@ -67,7 +68,7 @@ function getCategoryColor(blockType: string): string {
 }
 
 function getViewportRect(
-  reactFlow: ReactFlowInstance,
+  reactFlow: ReactFlowInstance<Node, CanvasEdge>,
   canvasBounds: Bounds,
   minimapWidth: number,
   minimapHeight: number,
