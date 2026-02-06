@@ -17,6 +17,8 @@ export default function CrossoverNode({ data, selected }: NodeProps) {
   const isCompact = typeof data?.isCompact === "boolean" ? data.isCompact : false;
   const isExpanded = typeof data?.isExpanded === "boolean" ? data.isExpanded : false;
   const summary = typeof data?.summary === "string" ? data.summary : undefined;
+  const params = (data?.params || {}) as { direction?: string };
+  const direction = params.direction === "crosses_below" || params.direction === "below" ? "Below" : "Above";
   return (
     <BaseNode
       label={label}
@@ -51,7 +53,7 @@ export default function CrossoverNode({ data, selected }: NodeProps) {
           "!bg-amber-500"
         )}
       />
-      <div className="text-xs text-gray-600">Fast × Slow</div>
+      <div className="text-xs text-gray-600">{direction}</div>
       <Handle
         type="source"
         position={Position.Right}
