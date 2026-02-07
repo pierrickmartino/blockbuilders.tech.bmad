@@ -116,6 +116,17 @@ export default function StrategyEditorPage({ params }: Props) {
   const [isSavingVersion, setIsSavingVersion] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
+  // Autosave state
+  const [autosaveState, setAutosaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+  const [lastSavedNodesSnapshot, setLastSavedNodesSnapshot] = useState<string>('');
+  const [lastSavedEdgesSnapshot, setLastSavedEdgesSnapshot] = useState<string>('');
+  const autosaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [relativeTimestamp, setRelativeTimestamp] = useState<string>('');
+
+  // Settings Sheet control state
+  const [showSettings, setShowSettings] = useState(false);
+
   // Explanation state
   const [explanation, setExplanation] = useState<ExplanationResult | null>(null);
 
@@ -276,6 +287,22 @@ export default function StrategyEditorPage({ params }: Props) {
     fetchAlert();
   }, [id, resetAlertForm]);
 
+  // Update relative timestamp for autosave status
+  useEffect(() => {
+    if (!lastSavedAt) {
+      setRelativeTimestamp('');
+      return;
+    }
+
+    const updateTimestamp = () => {
+      setRelativeTimestamp(formatRelativeTime(lastSavedAt));
+    };
+
+    updateTimestamp(); // Initial update
+    const interval = setInterval(updateTimestamp, 5000); // Update every 5s
+    return () => clearInterval(interval);
+  }, [lastSavedAt]);
+
   // Enrich nodes with mobile mode flag and compact mode data
   const nodesWithMobileMode = useMemo(
     () =>
@@ -385,6 +412,13 @@ export default function StrategyEditorPage({ params }: Props) {
     if (isSavingVersion) {
       return;
     }
+
+    // Clear pending autosave
+    if (autosaveTimerRef.current) {
+      clearTimeout(autosaveTimerRef.current);
+      autosaveTimerRef.current = null;
+    }
+
     setIsSavingVersion(true);
     setSaveMessage(null);
     setValidationErrors([]);
@@ -416,6 +450,14 @@ export default function StrategyEditorPage({ params }: Props) {
       });
       await loadVersions();
       await loadStrategy();
+
+      // Update autosave state
+      const now = new Date();
+      setLastSavedAt(now);
+      setLastSavedNodesSnapshot(JSON.stringify(nodes));
+      setLastSavedEdgesSnapshot(JSON.stringify(edges));
+      setAutosaveState('saved');
+
       setSaveMessage("Version saved successfully");
       setTimeout(() => setSaveMessage(null), 3000);
     } catch (err) {
@@ -424,6 +466,61 @@ export default function StrategyEditorPage({ params }: Props) {
       setIsSavingVersion(false);
     }
   }, [isSavingVersion, nodes, edges, id, loadVersions, loadStrategy]);
+
+  const triggerAutosave = useCallback(async (currentNodes: Node[], currentEdges: Edge[]) => {
+    // Skip if already saving
+    if (isSavingVersion || autosaveState === 'saving') return;
+
+    // Deduplication: skip if no changes since last save
+    const currentNodesJSON = JSON.stringify(currentNodes);
+    const currentEdgesJSON = JSON.stringify(currentEdges);
+
+    if (currentNodesJSON === lastSavedNodesSnapshot &&
+        currentEdgesJSON === lastSavedEdgesSnapshot) {
+      return; // No changes, skip save
+    }
+
+    setAutosaveState('saving');
+    setValidationErrors([]);
+
+    try {
+      // Convert canvas to definition
+      const definition = reactFlowToDefinition(currentNodes, currentEdges);
+
+      // Validate (reuse existing endpoint)
+      const validation = await apiFetch<ValidationResponse>(
+        `/strategies/${id}/validate`,
+        { method: "POST", body: JSON.stringify(definition) }
+      );
+
+      if (validation.status === "invalid") {
+        setValidationErrors(validation.errors);
+        setAutosaveState('error');
+        return;
+      }
+
+      // Save version (reuse existing endpoint)
+      await apiFetch(`/strategies/${id}/versions`, {
+        method: "POST",
+        body: JSON.stringify({ definition }),
+      });
+
+      // Update success state
+      const now = new Date();
+      setLastSavedAt(now);
+      setLastSavedNodesSnapshot(currentNodesJSON);
+      setLastSavedEdgesSnapshot(currentEdgesJSON);
+      setAutosaveState('saved');
+
+      // Refresh versions list (non-blocking)
+      loadVersions();
+      loadStrategy();
+    } catch (err) {
+      setAutosaveState('error');
+      setError(err instanceof Error ? err.message : "Autosave failed");
+    }
+  }, [isSavingVersion, autosaveState, lastSavedNodesSnapshot, lastSavedEdgesSnapshot,
+      id, loadVersions, loadStrategy]);
 
   const handleAlertSave = async () => {
     // Client-side validation
@@ -543,21 +640,34 @@ export default function StrategyEditorPage({ params }: Props) {
     []
   );
 
-  // Debounced snapshot for history
+  // Debounced snapshot for history + autosave
   const scheduleSnapshot = useCallback((newNodes: Node[], newEdges: Edge[]) => {
     if (isApplyingHistoryRef.current) return;
 
+    // Clear existing timers
     if (snapshotTimerRef.current) {
       clearTimeout(snapshotTimerRef.current);
       snapshotTimerRef.current = null;
     }
+    if (autosaveTimerRef.current) {
+      clearTimeout(autosaveTimerRef.current);
+      autosaveTimerRef.current = null;
+    }
 
+    // Schedule history snapshot (500ms)
     snapshotTimerRef.current = setTimeout(() => {
       snapshotTimerRef.current = null;
       if (isApplyingHistoryRef.current) return;
       setHistory((h) => pushSnapshot(h, newNodes, newEdges));
     }, 500);
-  }, []);
+
+    // Schedule autosave (10 seconds)
+    autosaveTimerRef.current = setTimeout(() => {
+      autosaveTimerRef.current = null;
+      if (isApplyingHistoryRef.current) return;
+      triggerAutosave(newNodes, newEdges);
+    }, 10000);
+  }, [triggerAutosave]);
 
   // Handle parameter changes from properties panel
   const handleParamsChange = (nodeId: string, params: Record<string, unknown>) => {
@@ -657,6 +767,10 @@ export default function StrategyEditorPage({ params }: Props) {
       clearTimeout(snapshotTimerRef.current);
       snapshotTimerRef.current = null;
     }
+    if (autosaveTimerRef.current) {
+      clearTimeout(autosaveTimerRef.current);
+      autosaveTimerRef.current = null;
+    }
 
     const { history: newHistory, snapshot } = undo(history);
     if (snapshot) {
@@ -677,6 +791,10 @@ export default function StrategyEditorPage({ params }: Props) {
     if (snapshotTimerRef.current) {
       clearTimeout(snapshotTimerRef.current);
       snapshotTimerRef.current = null;
+    }
+    if (autosaveTimerRef.current) {
+      clearTimeout(autosaveTimerRef.current);
+      autosaveTimerRef.current = null;
     }
 
     const { history: newHistory, snapshot } = redo(history);
@@ -1014,10 +1132,99 @@ export default function StrategyEditorPage({ params }: Props) {
 
           {/* Right: Actions */}
           <div className="flex flex-shrink-0 items-center gap-2">
-            {/* Save button */}
-            <Button size="sm" className="h-8" onClick={handleSaveVersion} disabled={isSavingVersion}>
+            {/* Autosave status (mobile only) */}
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground lg:hidden">
+              {autosaveState === 'saving' && (
+                <>
+                  <svg className="h-3 w-3 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  <span>Saving...</span>
+                </>
+              )}
+              {autosaveState === 'saved' && lastSavedAt && (
+                <>
+                  <svg className="h-3 w-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span>Saved • {relativeTimestamp}</span>
+                </>
+              )}
+              {autosaveState === 'error' && (
+                <>
+                  <svg className="h-3 w-3 text-destructive" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span className="text-destructive">Save failed</span>
+                </>
+              )}
+            </div>
+
+            {/* Save button (desktop only) */}
+            <Button
+              size="sm"
+              className="hidden h-8 lg:inline-flex"
+              onClick={handleSaveVersion}
+              disabled={isSavingVersion}
+            >
               {isSavingVersion ? "..." : "Save"}
             </Button>
+
+            {/* History Sheet (mobile only) */}
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8 px-2 lg:hidden" aria-label="Version history">
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-full overflow-y-auto sm:w-[400px] sm:max-w-[400px]">
+                <SheetHeader>
+                  <SheetTitle>Version History</SheetTitle>
+                  <SheetDescription>Load previous strategy versions.</SheetDescription>
+                </SheetHeader>
+
+                <div className="mt-6 space-y-2">
+                  {versions.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No saved versions yet.</p>
+                  ) : (
+                    versions.map((v) => (
+                      <div
+                        key={v.id}
+                        className={cn(
+                          "flex items-center justify-between rounded-lg border p-3",
+                          v.version_number === selectedVersion?.version_number &&
+                            "border-primary bg-primary/5"
+                        )}
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium">
+                            Version {v.version_number}
+                            {v.version_number === selectedVersion?.version_number && (
+                              <Badge variant="outline" className="ml-2 text-xs">Current</Badge>
+                            )}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {formatDateTime(v.created_at, timezone)}
+                          </div>
+                        </div>
+                        {v.version_number !== selectedVersion?.version_number && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-8"
+                            onClick={() => loadVersionDetail(v.version_number)}
+                          >
+                            Load
+                          </Button>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </SheetContent>
+            </Sheet>
 
             {/* More actions dropdown */}
             <DropdownMenu>
@@ -1052,280 +1259,25 @@ export default function StrategyEditorPage({ params }: Props) {
                     </DropdownMenuItem>
                   </>
                 )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setShowSettings(true)}>
+                  Settings...
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Settings Sheet (Tags, Alerts, Summary) */}
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="outline" size="sm" className="h-8 px-2">
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                </Button>
-              </SheetTrigger>
-              <SheetContent className="w-full overflow-y-auto sm:w-[400px] sm:max-w-[400px]">
-                <SheetHeader>
-                  <SheetTitle>Strategy Settings</SheetTitle>
-                  <SheetDescription>
-                    Configure tags, alerts, and view strategy summary.
-                  </SheetDescription>
-                </SheetHeader>
-
-                <div className="mt-6 space-y-6">
-                  {/* Strategy Summary */}
-                  {explanation && explanation.status === "valid" && (
-                    <div className="rounded-lg border border-blue-100 bg-blue-50 p-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-blue-700">Strategy Summary</span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 px-2 text-xs text-blue-600"
-                          onClick={handleCopyExplanation}
-                        >
-                          Copy
-                        </Button>
-                      </div>
-                      <div className="mt-2 space-y-1 text-sm text-gray-700">
-                        <p>{explanation.entry}</p>
-                        <p>{explanation.exit}</p>
-                        {explanation.risk && <p>{explanation.risk}</p>}
-                      </div>
-                    </div>
-                  )}
-                  {explanation && explanation.status === "fallback" && (
-                    <div className="rounded-lg border bg-muted p-3 text-sm text-muted-foreground">
-                      {explanation.entry}
-                    </div>
-                  )}
-
-                  {/* Tags Section */}
-                  <div>
-                    <h4 className="text-sm font-semibold">Tags</h4>
-                    <p className="text-xs text-muted-foreground">
-                      Organize strategies with custom tags for filtering.
-                    </p>
-
-                    <div className="mt-3 space-y-3">
-                      {strategy.tags && strategy.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-2">
-                          {strategy.tags.map((tag) => (
-                            <Badge key={tag.id} variant="outline" className="bg-purple-50 text-purple-700">
-                              {tag.name}
-                              <button
-                                onClick={() => handleRemoveTag(tag.id)}
-                                disabled={isSavingTags}
-                                className="ml-1 text-purple-500 hover:text-purple-700 disabled:opacity-50"
-                              >
-                                ×
-                              </button>
-                            </Badge>
-                          ))}
-                        </div>
-                      )}
-
-                      <div className="flex gap-2">
-                        <Input
-                          type="text"
-                          placeholder="Add tag..."
-                          value={tagInput}
-                          onChange={(e) => setTagInput(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" && tagInput.trim()) {
-                              handleAddTag(tagInput);
-                            }
-                          }}
-                          disabled={isSavingTags || (strategy?.tags?.length || 0) >= 20}
-                          className="h-8 flex-1"
-                          list="available-tags"
-                        />
-                        <Button
-                          size="sm"
-                          className="h-8 bg-purple-600 hover:bg-purple-700"
-                          onClick={() => handleAddTag(tagInput)}
-                          disabled={!tagInput.trim() || isSavingTags || (strategy?.tags?.length || 0) >= 20}
-                        >
-                          {isSavingTags ? "..." : "Add"}
-                        </Button>
-                      </div>
-
-                      <datalist id="available-tags">
-                        {availableTags.map((tag) => (
-                          <option key={tag.id} value={tag.name} />
-                        ))}
-                      </datalist>
-
-                      {strategy.tags && strategy.tags.length >= 20 && (
-                        <p className="text-xs text-destructive">Maximum 20 tags</p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Performance Alerts Section */}
-                  <div>
-                    <h4 className="text-sm font-semibold">Performance Alerts</h4>
-                    <p className="text-xs text-muted-foreground">
-                      Get notified on scheduled re-backtest conditions.
-                    </p>
-
-                    {isLoadingAlert ? (
-                      <div className="mt-2 text-sm text-muted-foreground">Loading...</div>
-                    ) : (
-                      <div className="mt-3 space-y-3">
-                        {isEditingAlert ? (
-                          <>
-                            <label className="flex items-center gap-2 text-sm">
-                              <input
-                                type="checkbox"
-                                checked={alertEnabled}
-                                onChange={(e) => setAlertEnabled(e.target.checked)}
-                                className="rounded border-input"
-                              />
-                              Enable alerts
-                            </label>
-
-                            {alertEnabled && (
-                              <>
-                                <div>
-                                  <label className="block text-xs text-muted-foreground">
-                                    Drawdown threshold (%)
-                                  </label>
-                                  <Input
-                                    type="number"
-                                    min="0.1"
-                                    max="100"
-                                    step="0.1"
-                                    placeholder="Optional"
-                                    value={alertThreshold ?? ""}
-                                    onChange={(e) => {
-                                      const value = e.target.value;
-                                      setAlertThreshold(value === "" ? null : Number(value));
-                                    }}
-                                    className="mt-1 h-8 w-24"
-                                  />
-                                </div>
-
-                                <label className="flex items-center gap-2 text-sm">
-                                  <input
-                                    type="checkbox"
-                                    checked={alertOnEntry}
-                                    onChange={(e) => setAlertOnEntry(e.target.checked)}
-                                    className="rounded border-input"
-                                  />
-                                  Alert on entry signal
-                                </label>
-
-                                <label className="flex items-center gap-2 text-sm">
-                                  <input
-                                    type="checkbox"
-                                    checked={alertOnExit}
-                                    onChange={(e) => setAlertOnExit(e.target.checked)}
-                                    className="rounded border-input"
-                                  />
-                                  Alert on exit signal
-                                </label>
-
-                                <label className="flex items-center gap-2 text-sm">
-                                  <input
-                                    type="checkbox"
-                                    checked={notifyEmail}
-                                    onChange={(e) => setNotifyEmail(e.target.checked)}
-                                    className="rounded border-input"
-                                  />
-                                  Also email me
-                                </label>
-                              </>
-                            )}
-
-                            <div className="flex gap-2">
-                              <Button size="sm" className="h-8" onClick={handleAlertSave} disabled={isSavingAlert}>
-                                {isSavingAlert ? "..." : "Save Alert"}
-                              </Button>
-                              {alertRule && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="h-8"
-                                  onClick={() => {
-                                    resetAlertForm(alertRule);
-                                    setAlertError(null);
-                                    setIsEditingAlert(false);
-                                  }}
-                                >
-                                  Cancel
-                                </Button>
-                              )}
-                            </div>
-                          </>
-                        ) : (
-                          <>
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm font-medium">
-                                {alertRule ? (alertRule.is_active ? "Alerts enabled" : "Alerts disabled") : "No alert configured"}
-                              </span>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-7"
-                                onClick={() => setIsEditingAlert(true)}
-                              >
-                                {alertRule ? "Edit" : "Create"}
-                              </Button>
-                            </div>
-
-                            {alertRule && (
-                              <div className="grid gap-1 text-sm text-muted-foreground">
-                                <div>Drawdown: {alertRule.threshold_pct ? `${alertRule.threshold_pct}%` : "Not set"}</div>
-                                <div>Entry: {alertRule.alert_on_entry ? "On" : "Off"} | Exit: {alertRule.alert_on_exit ? "On" : "Off"}</div>
-                                <div>Email: {alertRule.notify_email ? "On" : "Off"}</div>
-                              </div>
-                            )}
-
-                            {alertRule?.last_triggered_at && (
-                              <div className="text-xs text-muted-foreground">
-                                Last triggered: {new Date(alertRule.last_triggered_at).toLocaleString()}
-                              </div>
-                            )}
-                          </>
-                        )}
-
-                        {alertError && <div className="text-sm text-destructive">{alertError}</div>}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Canvas Mode */}
-                  <div>
-                    <h4 className="text-sm font-semibold">Canvas Mode</h4>
-                    <p className="text-xs text-muted-foreground">
-                      Mobile mode uses tap-to-connect instead of dragging
-                    </p>
-                    <Select value={mobileCanvasMode} onValueChange={setMobileCanvasMode}>
-                      <SelectTrigger className="mt-2 h-8 w-full">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="auto">Auto (based on screen size)</SelectItem>
-                        <SelectItem value="mobile">Always mobile mode</SelectItem>
-                        <SelectItem value="desktop">Always desktop mode</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Auto-update Status */}
-                  <div>
-                    <h4 className="text-sm font-semibold">Auto-update</h4>
-                    <p className="text-sm text-muted-foreground">
-                      {strategy.auto_update_enabled
-                        ? `Enabled (${strategy.auto_update_lookback_days} days lookback)`
-                        : "Disabled"}
-                    </p>
-                  </div>
-                </div>
-              </SheetContent>
-            </Sheet>
+            {/* Settings gear icon (desktop only) */}
+            <Button
+              variant="outline"
+              size="sm"
+              className="hidden h-8 px-2 lg:inline-flex"
+              onClick={() => setShowSettings(true)}
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </Button>
           </div>
         </div>
 
@@ -1337,7 +1289,7 @@ export default function StrategyEditorPage({ params }: Props) {
               value={String(selectedVersion?.version_number || "")}
               onValueChange={(v) => loadVersionDetail(Number(v))}
             >
-              <SelectTrigger className="h-8 w-[110px] text-xs sm:w-[140px]">
+              <SelectTrigger className="hidden h-8 w-[110px] text-xs sm:w-[140px] lg:flex">
                 <SelectValue placeholder="Version" />
               </SelectTrigger>
               <SelectContent>
@@ -1368,6 +1320,275 @@ export default function StrategyEditorPage({ params }: Props) {
           </div>
         )}
       </div>
+
+      {/* Settings Sheet - controlled by showSettings state */}
+      <Sheet open={showSettings} onOpenChange={setShowSettings}>
+        <SheetContent className="w-full overflow-y-auto sm:w-[400px] sm:max-w-[400px]">
+          <SheetHeader>
+            <SheetTitle>Strategy Settings</SheetTitle>
+            <SheetDescription>
+              Configure tags, alerts, and view strategy summary.
+            </SheetDescription>
+          </SheetHeader>
+
+          <div className="mt-6 space-y-6">
+            {/* Strategy Summary */}
+            {explanation && explanation.status === "valid" && (
+              <div className="rounded-lg border border-blue-100 bg-blue-50 p-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-blue-700">Strategy Summary</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-2 text-xs text-blue-600"
+                    onClick={handleCopyExplanation}
+                  >
+                    Copy
+                  </Button>
+                </div>
+                <div className="mt-2 space-y-1 text-sm text-gray-700">
+                  <p>{explanation.entry}</p>
+                  <p>{explanation.exit}</p>
+                  {explanation.risk && <p>{explanation.risk}</p>}
+                </div>
+              </div>
+            )}
+            {explanation && explanation.status === "fallback" && (
+              <div className="rounded-lg border bg-muted p-3 text-sm text-muted-foreground">
+                {explanation.entry}
+              </div>
+            )}
+
+            {/* Tags Section */}
+            <div>
+              <h4 className="text-sm font-semibold">Tags</h4>
+              <p className="text-xs text-muted-foreground">
+                Organize strategies with custom tags for filtering.
+              </p>
+
+              <div className="mt-3 space-y-3">
+                {strategy.tags && strategy.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {strategy.tags.map((tag) => (
+                      <Badge key={tag.id} variant="outline" className="bg-purple-50 text-purple-700">
+                        {tag.name}
+                        <button
+                          onClick={() => handleRemoveTag(tag.id)}
+                          disabled={isSavingTags}
+                          className="ml-1 text-purple-500 hover:text-purple-700 disabled:opacity-50"
+                        >
+                          ×
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+
+                <div className="flex gap-2">
+                  <Input
+                    type="text"
+                    placeholder="Add tag..."
+                    value={tagInput}
+                    onChange={(e) => setTagInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && tagInput.trim()) {
+                        handleAddTag(tagInput);
+                      }
+                    }}
+                    disabled={isSavingTags || (strategy?.tags?.length || 0) >= 20}
+                    className="h-8 flex-1"
+                    list="available-tags"
+                  />
+                  <Button
+                    size="sm"
+                    className="h-8 bg-purple-600 hover:bg-purple-700"
+                    onClick={() => handleAddTag(tagInput)}
+                    disabled={!tagInput.trim() || isSavingTags || (strategy?.tags?.length || 0) >= 20}
+                  >
+                    Add
+                  </Button>
+                </div>
+
+                <datalist id="available-tags">
+                  {availableTags.map((tag) => (
+                    <option key={tag.id} value={tag.name} />
+                  ))}
+                </datalist>
+
+                {(strategy?.tags?.length || 0) >= 20 && (
+                  <p className="text-xs text-muted-foreground">Maximum 20 tags per strategy.</p>
+                )}
+              </div>
+            </div>
+
+            {/* Performance Alerts Section */}
+            <div>
+              <h4 className="text-sm font-semibold">Performance Alerts</h4>
+              <p className="text-xs text-muted-foreground">
+                Get notified when your strategy performance changes significantly.
+              </p>
+
+              {isEditingAlert ? (
+                <div className="mt-3 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label htmlFor="alert-enabled" className="text-sm">Enable Alerts</label>
+                    <input
+                      type="checkbox"
+                      id="alert-enabled"
+                      checked={alertEnabled}
+                      onChange={(e) => setAlertEnabled(e.target.checked)}
+                      className="h-4 w-4"
+                    />
+                  </div>
+
+                  {alertEnabled && (
+                    <>
+                      <div>
+                        <label className="text-sm">Performance Drop Threshold (%)</label>
+                        <Input
+                          type="number"
+                          value={alertThreshold ?? ""}
+                          onChange={(e) => setAlertThreshold(e.target.value ? parseFloat(e.target.value) : null)}
+                          placeholder="e.g., 5 for 5% drop"
+                          min="0.1"
+                          max="100"
+                          step="0.1"
+                          className="mt-1 h-8"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-sm">Alert Triggers</label>
+                        <div className="mt-1 space-y-2">
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              id="alert-entry"
+                              checked={alertOnEntry}
+                              onChange={(e) => setAlertOnEntry(e.target.checked)}
+                              className="h-4 w-4"
+                            />
+                            <label htmlFor="alert-entry" className="text-sm">Entry signal detected</label>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              id="alert-exit"
+                              checked={alertOnExit}
+                              onChange={(e) => setAlertOnExit(e.target.checked)}
+                              className="h-4 w-4"
+                            />
+                            <label htmlFor="alert-exit" className="text-sm">Exit signal detected</label>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <label htmlFor="notify-email" className="text-sm">Email notifications</label>
+                        <input
+                          type="checkbox"
+                          id="notify-email"
+                          checked={notifyEmail}
+                          onChange={(e) => setNotifyEmail(e.target.checked)}
+                          className="h-4 w-4"
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  {alertError && (
+                    <p className="text-xs text-destructive">{alertError}</p>
+                  )}
+
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      className="h-8"
+                      onClick={handleAlertSave}
+                      disabled={isSavingAlert}
+                    >
+                      {isSavingAlert ? "Saving..." : "Save Alerts"}
+                    </Button>
+                    {alertRule && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8"
+                        onClick={() => {
+                          setIsEditingAlert(false);
+                          resetAlertForm(alertRule);
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-3 space-y-2">
+                  <div className="text-sm">
+                    <strong>Status:</strong> {alertRule?.is_active ? "Enabled" : "Disabled"}
+                  </div>
+                  {alertRule?.is_active && (
+                    <>
+                      {alertRule.threshold_pct !== null && (
+                        <div className="text-sm">
+                          <strong>Threshold:</strong> {alertRule.threshold_pct}% drop
+                        </div>
+                      )}
+                      <div className="text-sm">
+                        <strong>Triggers:</strong>{" "}
+                        {alertRule.alert_on_entry && "Entry signal"}
+                        {alertRule.alert_on_entry && alertRule.alert_on_exit && ", "}
+                        {alertRule.alert_on_exit && "Exit signal"}
+                      </div>
+                      <div className="text-sm">
+                        <strong>Email:</strong> {alertRule.notify_email ? "Yes" : "No"}
+                      </div>
+                    </>
+                  )}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8"
+                    onClick={() => setIsEditingAlert(true)}
+                  >
+                    Edit Alerts
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {/* Canvas Mode Section */}
+            <div>
+              <h4 className="text-sm font-semibold">Canvas Mode</h4>
+              <p className="text-xs text-muted-foreground">
+                Choose how nodes are displayed on the canvas.
+              </p>
+              <div className="mt-3">
+                <select
+                  value={nodeDisplayMode}
+                  onChange={(e) => setNodeDisplayMode(e.target.value as "standard" | "compact")}
+                  className="h-8 w-full rounded border px-2 text-sm"
+                >
+                  <option value="standard">Standard (Expanded by default)</option>
+                  <option value="compact">Compact (Click to expand)</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Auto-Update Status */}
+            <div>
+              <h4 className="text-sm font-semibold">Auto-Update</h4>
+              <p className="text-sm text-muted-foreground">
+                {strategy.auto_update_enabled
+                  ? `Enabled (${strategy.auto_update_lookback_days} days lookback)`
+                  : "Disabled"}
+              </p>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
 
       {/* Main Content - Three Panel Layout */}
       <div className="flex flex-1 overflow-hidden">
