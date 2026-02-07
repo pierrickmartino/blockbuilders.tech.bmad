@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Node, Edge, ReactFlowInstance } from "@xyflow/react";
 import { apiFetch } from "@/lib/api";
-import { formatDateTime } from "@/lib/format";
+import { formatDateTime, formatRelativeTime } from "@/lib/format";
 import { useDisplay } from "@/context/display";
 import { Strategy, StrategyTag, StrategyVersion, StrategyVersionDetail, StrategyExportFile } from "@/types/strategy";
 import { AlertRule } from "@/types/alert";
@@ -71,6 +71,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { KeyboardShortcutsModal } from "@/components/KeyboardShortcutsModal";
 import { isInputElement } from "@/lib/keyboard-shortcuts";
+import { cn } from "@/lib/utils";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -79,7 +80,7 @@ interface Props {
 export default function StrategyEditorPage({ params }: Props) {
   const { id } = use(params);
   const router = useRouter();
-  const { timezone, mobileCanvasMode, setMobileCanvasMode, isMobileCanvasMode, nodeDisplayMode } = useDisplay();
+  const { timezone, isMobileCanvasMode, nodeDisplayMode, setNodeDisplayMode } = useDisplay();
 
   const [strategy, setStrategy] = useState<Strategy | null>(null);
   const [versions, setVersions] = useState<StrategyVersion[]>([]);
@@ -115,9 +116,11 @@ export default function StrategyEditorPage({ params }: Props) {
   // Save version state
   const [isSavingVersion, setIsSavingVersion] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const isSavingVersionRef = useRef(false);
 
   // Autosave state
   const [autosaveState, setAutosaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const autosaveStateRef = useRef<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const [lastSavedNodesSnapshot, setLastSavedNodesSnapshot] = useState<string>('');
   const [lastSavedEdgesSnapshot, setLastSavedEdgesSnapshot] = useState<string>('');
@@ -140,7 +143,6 @@ export default function StrategyEditorPage({ params }: Props) {
 
   // Alert state
   const [alertRule, setAlertRule] = useState<AlertRule | null>(null);
-  const [isLoadingAlert, setIsLoadingAlert] = useState(true);
   const [alertEnabled, setAlertEnabled] = useState(false);
   const [alertThreshold, setAlertThreshold] = useState<number | null>(null);
   const [alertOnEntry, setAlertOnEntry] = useState(false);
@@ -160,6 +162,14 @@ export default function StrategyEditorPage({ params }: Props) {
     setAlertOnExit(rule?.alert_on_exit ?? false);
     setNotifyEmail(rule?.notify_email ?? false);
   }, []);
+
+  useEffect(() => {
+    isSavingVersionRef.current = isSavingVersion;
+  }, [isSavingVersion]);
+
+  useEffect(() => {
+    autosaveStateRef.current = autosaveState;
+  }, [autosaveState]);
 
   const loadVersionDetail = useCallback(
     async (versionNumber: number) => {
@@ -217,10 +227,14 @@ export default function StrategyEditorPage({ params }: Props) {
     }
   }, [id, router]);
 
-  const loadVersions = useCallback(async () => {
+  const loadVersions = useCallback(async (options?: { loadDetail?: boolean }) => {
+    const shouldLoadDetail = options?.loadDetail ?? true;
     try {
       const data = await apiFetch<StrategyVersion[]>(`/strategies/${id}/versions`);
       setVersions(data);
+      if (!shouldLoadDetail) {
+        return;
+      }
       if (data.length > 0) {
         loadVersionDetail(data[0].version_number);
       } else {
@@ -232,6 +246,9 @@ export default function StrategyEditorPage({ params }: Props) {
         setHistory(resetHistory(newNodes, newEdges));
       }
     } catch {
+      if (!shouldLoadDetail) {
+        return;
+      }
       // Versions are optional, create default canvas
       const defaultDef = createDefaultDefinition();
       const { nodes: newNodes, edges: newEdges } = definitionToReactFlow(defaultDef);
@@ -279,9 +296,7 @@ export default function StrategyEditorPage({ params }: Props) {
         setIsEditingAlert(!rule);
       } catch (err) {
         console.error("Failed to load alert", err);
-        setIsLoadingAlert(false);
       } finally {
-        setIsLoadingAlert(false);
       }
     };
     fetchAlert();
@@ -469,7 +484,7 @@ export default function StrategyEditorPage({ params }: Props) {
 
   const triggerAutosave = useCallback(async (currentNodes: Node[], currentEdges: Edge[]) => {
     // Skip if already saving
-    if (isSavingVersion || autosaveState === 'saving') return;
+    if (isSavingVersionRef.current || autosaveStateRef.current === 'saving') return;
 
     // Deduplication: skip if no changes since last save
     const currentNodesJSON = JSON.stringify(currentNodes);
@@ -513,14 +528,13 @@ export default function StrategyEditorPage({ params }: Props) {
       setAutosaveState('saved');
 
       // Refresh versions list (non-blocking)
-      loadVersions();
+      loadVersions({ loadDetail: false });
       loadStrategy();
     } catch (err) {
       setAutosaveState('error');
       setError(err instanceof Error ? err.message : "Autosave failed");
     }
-  }, [isSavingVersion, autosaveState, lastSavedNodesSnapshot, lastSavedEdgesSnapshot,
-      id, loadVersions, loadStrategy]);
+  }, [lastSavedNodesSnapshot, lastSavedEdgesSnapshot, id, loadVersions, loadStrategy]);
 
   const handleAlertSave = async () => {
     // Client-side validation
@@ -1568,10 +1582,10 @@ export default function StrategyEditorPage({ params }: Props) {
               <div className="mt-3">
                 <select
                   value={nodeDisplayMode}
-                  onChange={(e) => setNodeDisplayMode(e.target.value as "standard" | "compact")}
+                  onChange={(e) => setNodeDisplayMode(e.target.value as "expanded" | "compact")}
                   className="h-8 w-full rounded border px-2 text-sm"
                 >
-                  <option value="standard">Standard (Expanded by default)</option>
+                  <option value="expanded">Standard (Expanded by default)</option>
                   <option value="compact">Compact (Click to expand)</option>
                 </select>
               </div>
