@@ -1614,18 +1614,16 @@ export default function StrategyEditorPage({ params }: Props) {
         {/* Center - Canvas */}
         <div className="relative flex-1">
           {/* Mobile floating buttons */}
-          <div className="absolute left-4 top-4 z-10 flex gap-2">
+          <div className="absolute left-4 top-4 z-10 flex flex-col gap-2">
             <BlockLibrarySheet
               onDragStart={handlePaletteDragStart}
               onAddNode={handleAddNode}
               reactFlowInstance={reactFlowRef}
               isMobileMode={isMobileCanvasMode}
             />
-          </div>
-          <div className="absolute right-4 top-4 z-10 lg:hidden">
             <button
               onClick={() => setShowProperties(true)}
-              className="rounded-full bg-white p-2 shadow-md"
+              className="rounded-full bg-white p-2 shadow-md lg:hidden"
               disabled={!selectedNode}
             >
               <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
