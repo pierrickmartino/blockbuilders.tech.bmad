@@ -232,8 +232,9 @@ def interpret_strategy(
             block_outputs[block_id]["output"] = result
 
         elif block_type == "compare":
-            left = _get_input(inputs, "left", get_block_output, [0.0] * n)
-            right = _get_input(inputs, "right", get_block_output, [0.0] * n)
+            # Support both current (left/right) and legacy (a/b) compare ports.
+            left = _get_input_any(inputs, ["left", "a"], get_block_output, [0.0] * n)
+            right = _get_input_any(inputs, ["right", "b"], get_block_output, [0.0] * n)
             operator = params.get("operator", ">")
             result = _compare(left, right, operator, n)
             block_outputs[block_id]["output"] = result
@@ -365,6 +366,20 @@ def _get_input(
     if port in inputs:
         from_block, from_port = inputs[port]
         return get_fn(from_block, from_port)
+    return default
+
+
+def _get_input_any(
+    inputs: dict[str, tuple[str, str]],
+    ports: list[str],
+    get_fn: callable,
+    default: list[Any],
+) -> list[Any]:
+    """Get input data from the first matching port, or return default."""
+    for port in ports:
+        if port in inputs:
+            from_block, from_port = inputs[port]
+            return get_fn(from_block, from_port)
     return default
 
 
