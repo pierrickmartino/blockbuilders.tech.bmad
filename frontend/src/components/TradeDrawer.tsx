@@ -13,6 +13,7 @@ import {
 } from "@/lib/format";
 import { useDisplay } from "@/context/display";
 import { TradeDetailResponse } from "@/types/backtest";
+import TradeExplanation from "./TradeExplanation";
 
 interface TradeDrawerProps {
   runId: string;
@@ -175,6 +176,34 @@ export default function TradeDrawer({
       title: "Entry",
     });
 
+    // Add indicator overlays (price pane only in Phase 1)
+    if (data.indicator_series) {
+      for (const ind of data.indicator_series) {
+        // Skip subplot indicators (RSI, MACD) in Phase 1
+        if (ind.subplot) continue;
+
+        // Add price pane indicators (SMA, EMA, Bollinger)
+        const lineSeries = chart.addLineSeries({
+          color: ind.color || "#3b82f6",
+          lineWidth: 2,
+          title: ind.label,
+        });
+
+        const lineData = ind.series_data
+          .map((val, idx) => {
+            if (val === null) return null;
+            const candle = data.candles[idx];
+            return {
+              time: Math.floor(new Date(candle.timestamp).getTime() / 1000) as Time,
+              value: val,
+            };
+          })
+          .filter((d): d is { time: Time; value: number } => d !== null);
+
+        lineSeries.setData(lineData);
+      }
+    }
+
     chart.timeScale().fitContent();
 
     // Handle resize
@@ -307,6 +336,15 @@ export default function TradeDrawer({
                   </div>
                 </div>
               </div>
+
+              {/* Trade Explanation */}
+              {(data.entry_explanation || data.exit_explanation) && (
+                <TradeExplanation
+                  entry={data.entry_explanation}
+                  exit={data.exit_explanation}
+                  partial={data.explanation_partial}
+                />
+              )}
 
               {/* Execution Details */}
               <section>

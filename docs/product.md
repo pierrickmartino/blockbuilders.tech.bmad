@@ -989,16 +989,25 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Used for detailed trade analysis
 
 
-**Enhanced Trade Explanation View (Planned)**
+**Enhanced Trade Explanation View** *(Implemented - Phase 1)*
 - Each trade detail includes an explicit condition breakdown for entries and exits.
-- Entry explanation format example: `Entry triggered because: EMA(12) crossed above EMA(24) ✓ AND RSI(14) < 30 ✓`.
+- Entry explanation format example: `Entry: RSI(14) < 30 AND EMA(12) crossed above EMA(24)` with individual condition checkmarks (✓).
 - Exit explanation format examples:
-  - `Exit: Stop loss hit at -1.5%`
-  - `Exit: EMA cross down signal`
-- Trade detail chart overlays the strategy indicators used by the trade logic (for example EMA lines and Bollinger Bands on price, RSI in a dedicated subplot).
-- The exact candle where each entry/exit condition becomes true is highlighted on the chart.
-- Explanations and highlights are generated from existing strategy definition + trade/candle data; no new strategy authoring fields required.
+  - `Exit: Take profit hit at 43500.00`
+  - `Exit: Stop loss hit at 42000.00`
+  - `Exit: Exit signal triggered`
+  - `Exit: Backtest period ended`
+  - `Exit: Trailing stop triggered`
+  - `Exit: Time exit: maximum hold duration reached`
+  - `Exit: Max drawdown threshold hit`
+- Trade detail chart overlays the strategy indicators used by the trade logic (SMA, EMA, Bollinger Bands on price pane).
+- Phase 1 implementation includes price-pane indicators only; subplot indicators (RSI, MACD) deferred to Phase 2.
+- Entry/exit candles are marked with arrow indicators on the chart.
+- Explanations are computed on-read from strategy definition + trade/candle data; no storage overhead.
+- Graceful fallback: if explanation computation fails, core trade details remain visible with a user-friendly notice.
 - Goal: turn trade rows into educational, verifiable feedback about strategy behavior.
+- **Implementation:** `backend/app/backtest/explanation.py`, `backend/app/api/backtests.py` (lines 638-814), `frontend/src/components/TradeExplanation.tsx`, `frontend/src/components/TradeDrawer.tsx`
+- **PRD:** `docs/prd-enhanced-trade-explanation-view.md`
 
 **Seasonality Analysis**
 - Simple aggregation of trade results by time period (month, quarter, weekday)
@@ -2042,7 +2051,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Keyboard Shortcuts & Reference** | 📝 Planned | Cmd/Ctrl+S save, Cmd/Ctrl+R run backtest, ? help modal, editor-only |
 | **Strategy Building Wizard** | ✅ Complete | Guided Q&A that generates editable strategy JSON |
 | **Backtesting** | ✅ Complete | Full engine with TP ladder, SL, max drawdown, equity curves, trade detail, risk-adjusted metrics |
-| **Enhanced Trade Explanation View** | 📝 Planned | Per-trade entry/exit reason breakdown, indicator overlays on trade detail chart, and exact condition-candle highlights |
+| **Enhanced Trade Explanation View** | ✅ Complete (Phase 1) | Per-trade entry/exit explanation with condition breakdown (✓ markers), price-pane indicator overlays (SMA, EMA, Bollinger), entry/exit candle markers; compute-on-read with graceful fallback |
 | **Transaction Cost Analysis** | ✅ Complete | Breakdown of fees/slippage/spread, cost % of gross return, and per-trade cost visibility |
 | **Backtest Comparison View** | 📝 Planned | Select 2–4 runs, align equity curves, compare summary metrics side-by-side |
 | **Data Export (CSV/JSON)** | ✅ Complete | Download trade list, equity curve, and metrics as CSV or JSON |
@@ -2374,7 +2383,7 @@ npm run type-check    # TypeScript validation
 - `docs/prd-bulk-strategy-actions.md` - Bulk strategy actions PRD
 - `docs/prd-recently-viewed-dashboard-shortcuts.md` - Recently viewed dashboard shortcuts PRD
 - `docs/prd-share-backtest-results-links.md` - Shareable backtest result links PRD
-- `docs/prd-enhanced-trade-explanation-view.md` - Enhanced trade explanation view PRD
+- `docs/prd-enhanced-trade-explanation-view.md` - Enhanced trade explanation view PRD (IMPLEMENTED - Phase 1)
 - `docs/tst-enhanced-trade-explanation-view.md` - Enhanced trade explanation view test checklist
 - `CLAUDE.md` - Instructions for Claude Code
 - `README.md` - Quick start guide

@@ -24,6 +24,7 @@ from app.models.strategy_version import StrategyVersion
 from app.models.user import User
 from app.backtest.data_quality import query_metrics_for_range, compute_completeness_metrics
 from app.backtest.storage import download_json
+from app.backtest.explanation import build_trade_explanation
 from app.schemas.backtest import (
     BacktestCompareRequest,
     BacktestCompareResponse,
@@ -753,12 +754,76 @@ def get_trade_detail(
         duration_seconds=trade_raw.get("duration_seconds", 0),
     )
 
-    return TradeDetailResponse(
-        trade=trade_detail,
-        candles=candles_response,
-        asset=run.asset,
-        timeframe=run.timeframe,
-    )
+    # Fetch strategy definition for explanation
+    strategy_version = session.exec(
+        select(StrategyVersion)
+        .where(StrategyVersion.strategy_id == run.strategy_id)
+        .order_by(StrategyVersion.version_number.desc())
+        .limit(1)
+    ).first()
+
+    if not strategy_version:
+        # Fallback: return without explanation
+        logger.warning(f"No strategy version found for run {run_id}")
+        return TradeDetailResponse(
+            trade=trade_detail,
+            candles=candles_response,
+            asset=run.asset,
+            timeframe=run.timeframe,
+        )
+
+    try:
+        # Find trade entry/exit indices in candle window
+        entry_idx = next(
+            (i for i, c in enumerate(candles) if c.timestamp == entry_ts),
+            None
+        )
+        exit_idx = next(
+            (i for i, c in enumerate(candles) if c.timestamp == exit_ts),
+            None
+        )
+
+        if entry_idx is None or exit_idx is None:
+            # Entry/exit not in candle window, return without explanation
+            logger.warning(f"Entry/exit not found in candle window for trade {trade_idx}")
+            return TradeDetailResponse(
+                trade=trade_detail,
+                candles=candles_response,
+                asset=run.asset,
+                timeframe=run.timeframe,
+            )
+
+        # Build explanation
+        entry_exp, exit_exp, indicators = build_trade_explanation(
+            definition=strategy_version.definition_json,
+            candles=list(candles),
+            trade_entry_idx=entry_idx,
+            trade_exit_idx=exit_idx,
+            exit_reason=trade_raw.get("exit_reason", "unknown"),
+            sl_price=trade_raw.get("sl_price_at_entry"),
+            tp_price=trade_raw.get("tp_price_at_entry"),
+        )
+
+        return TradeDetailResponse(
+            trade=trade_detail,
+            candles=candles_response,
+            asset=run.asset,
+            timeframe=run.timeframe,
+            entry_explanation=entry_exp,
+            exit_explanation=exit_exp,
+            indicator_series=indicators,
+            explanation_partial=False,
+        )
+    except Exception as e:
+        # Log error, return partial response
+        logger.warning(f"Failed to build explanation for trade {trade_idx}: {e}")
+        return TradeDetailResponse(
+            trade=trade_detail,
+            candles=candles_response,
+            asset=run.asset,
+            timeframe=run.timeframe,
+            explanation_partial=True,
+        )
 
 
 @router.post("/{run_id}/share-links", response_model=ShareLinkCreateResponse)
