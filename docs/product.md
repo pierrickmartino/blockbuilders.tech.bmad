@@ -1,7 +1,7 @@
 # Blockbuilders – Product Documentation
 
 **Status:** Current Product Truth
-**Last Updated:** 2026-01-01
+**Last Updated:** 2026-01-03
 **Purpose:** Comprehensive documentation of all implemented features
 
 ---
@@ -987,6 +987,18 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Full trade object
 - Surrounding candles (90-day minimum window)
 - Used for detailed trade analysis
+
+
+**Enhanced Trade Explanation View (Planned)**
+- Each trade detail includes an explicit condition breakdown for entries and exits.
+- Entry explanation format example: `Entry triggered because: EMA(12) crossed above EMA(24) ✓ AND RSI(14) < 30 ✓`.
+- Exit explanation format examples:
+  - `Exit: Stop loss hit at -1.5%`
+  - `Exit: EMA cross down signal`
+- Trade detail chart overlays the strategy indicators used by the trade logic (for example EMA lines and Bollinger Bands on price, RSI in a dedicated subplot).
+- The exact candle where each entry/exit condition becomes true is highlighted on the chart.
+- Explanations and highlights are generated from existing strategy definition + trade/candle data; no new strategy authoring fields required.
+- Goal: turn trade rows into educational, verifiable feedback about strategy behavior.
 
 **Seasonality Analysis**
 - Simple aggregation of trade results by time period (month, quarter, weekday)
@@ -2030,6 +2042,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Keyboard Shortcuts & Reference** | 📝 Planned | Cmd/Ctrl+S save, Cmd/Ctrl+R run backtest, ? help modal, editor-only |
 | **Strategy Building Wizard** | ✅ Complete | Guided Q&A that generates editable strategy JSON |
 | **Backtesting** | ✅ Complete | Full engine with TP ladder, SL, max drawdown, equity curves, trade detail, risk-adjusted metrics |
+| **Enhanced Trade Explanation View** | 📝 Planned | Per-trade entry/exit reason breakdown, indicator overlays on trade detail chart, and exact condition-candle highlights |
 | **Transaction Cost Analysis** | ✅ Complete | Breakdown of fees/slippage/spread, cost % of gross return, and per-trade cost visibility |
 | **Backtest Comparison View** | 📝 Planned | Select 2–4 runs, align equity curves, compare summary metrics side-by-side |
 | **Data Export (CSV/JSON)** | ✅ Complete | Download trade list, equity curve, and metrics as CSV or JSON |
@@ -2361,6 +2374,8 @@ npm run type-check    # TypeScript validation
 - `docs/prd-bulk-strategy-actions.md` - Bulk strategy actions PRD
 - `docs/prd-recently-viewed-dashboard-shortcuts.md` - Recently viewed dashboard shortcuts PRD
 - `docs/prd-share-backtest-results-links.md` - Shareable backtest result links PRD
+- `docs/prd-enhanced-trade-explanation-view.md` - Enhanced trade explanation view PRD
+- `docs/tst-enhanced-trade-explanation-view.md` - Enhanced trade explanation view test checklist
 - `CLAUDE.md` - Instructions for Claude Code
 - `README.md` - Quick start guide
 
@@ -2406,6 +2421,10 @@ npm run type-check    # TypeScript validation
 ---
 
 ## 18. Changelog
+
+**2026-01-03** - Enhanced trade explanation view documentation
+- Added planned backtest trade explanation view details (condition breakdowns, indicator overlays, condition-candle highlights)
+- Added PRD/TST references for implementation planning
 
 **2025-12-30** - Strategy building wizard
 - Added beginner wizard to generate editable strategy JSON
