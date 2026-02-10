@@ -288,10 +288,10 @@ def test_build_trade_explanation_full():
             asset="BTC/USDT",
             timeframe="1d",
             timestamp=datetime(2025, 1, i),
-            open=100.0 + i,
-            high=105.0 + i,
-            low=95.0 + i,
-            close=100.0 + i,
+            open=130.5 - i,
+            high=131.0 - i,
+            low=129.0 - i,
+            close=130.0 - i,
             volume=1000.0
         )
         for i in range(1, 21)
@@ -300,8 +300,8 @@ def test_build_trade_explanation_full():
     entry_exp, exit_exp, indicators = build_trade_explanation(
         definition=definition,
         candles=candles,
-        trade_entry_idx=10,
-        trade_exit_idx=15,
+        trade_entry_idx=16,
+        trade_exit_idx=18,
         exit_reason="tp",
         sl_price=95.0,
         tp_price=115.0,
@@ -437,3 +437,38 @@ def test_build_trade_explanation_keeps_all_true_branches_for_and_logic():
 
     assert any(cond.startswith("Close > 100") for cond in entry_exp.conditions)
     assert any(cond.startswith("Close < 110") for cond in entry_exp.conditions)
+
+
+def test_build_trade_explanation_uses_signal_candle_for_entry_conditions():
+    """Entry explanation should use the signal candle (i), not execution candle (i+1)."""
+    definition = {
+        "blocks": [
+            {"id": "price", "type": "price", "params": {"source": "close"}},
+            {"id": "const-100", "type": "constant", "params": {"value": 100}},
+            {"id": "cross-1", "type": "crossover", "params": {"direction": "crosses_above"}},
+            {"id": "entry-1", "type": "entry_signal", "params": {}},
+        ],
+        "connections": [
+            {"from_port": {"block_id": "price", "port": "output"}, "to_port": {"block_id": "cross-1", "port": "fast"}},
+            {"from_port": {"block_id": "const-100", "port": "output"}, "to_port": {"block_id": "cross-1", "port": "slow"}},
+            {"from_port": {"block_id": "cross-1", "port": "output"}, "to_port": {"block_id": "entry-1", "port": "signal"}},
+        ],
+    }
+
+    candles = [
+        Candle(asset="BTC/USDT", timeframe="1d", timestamp=datetime(2025, 1, 1), open=99.0, high=100.0, low=98.0, close=99.0, volume=1000.0),
+        Candle(asset="BTC/USDT", timeframe="1d", timestamp=datetime(2025, 1, 2), open=99.0, high=102.0, low=98.0, close=101.0, volume=1000.0),
+        Candle(asset="BTC/USDT", timeframe="1d", timestamp=datetime(2025, 1, 3), open=101.0, high=103.0, low=100.0, close=102.0, volume=1000.0),
+    ]
+
+    entry_exp, _, _ = build_trade_explanation(
+        definition=definition,
+        candles=candles,
+        trade_entry_idx=2,  # execution candle; signal occurred at idx=1
+        trade_exit_idx=2,
+        exit_reason="signal",
+        sl_price=None,
+        tp_price=None,
+    )
+
+    assert any(cond.startswith("Close crossed above 100") for cond in entry_exp.conditions)

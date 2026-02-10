@@ -39,7 +39,7 @@ def build_trade_explanation(
     Args:
         definition: Strategy definition JSON with blocks and connections
         candles: Candle window around the trade
-        trade_entry_idx: Index in candles where trade entered
+        trade_entry_idx: Index in candles where trade entered (execution candle)
         trade_exit_idx: Index in candles where trade exited
         exit_reason: Exit reason code ("tp", "sl", "signal", etc.)
         sl_price: Stop loss price at entry
@@ -69,6 +69,11 @@ def build_trade_explanation(
     # Find entry signal blocks
     entry_blocks = [b for b in blocks if b["type"] == "entry_signal"]
 
+    # Backtest entries are executed on candle i+1 when signal is true on candle i.
+    # Evaluate entry conditions on the signal candle first, then fall back to
+    # execution candle if needed (e.g., missing previous candle in the window).
+    signal_idx = max(trade_entry_idx - 1, 0)
+
     # Build entry explanation
     if entry_blocks:
         entry_conditions = []
@@ -78,8 +83,16 @@ def build_trade_explanation(
                 block_map,
                 input_map,
                 candles,
-                trade_entry_idx,
+                signal_idx,
             )
+            if not conditions and signal_idx != trade_entry_idx:
+                conditions = _extract_triggered_conditions(
+                    entry_block["id"],
+                    block_map,
+                    input_map,
+                    candles,
+                    trade_entry_idx,
+                )
             entry_conditions.extend(conditions)
 
         # Deduplicate while preserving order
@@ -121,6 +134,7 @@ def _extract_triggered_conditions(
 ) -> list[str]:
     """Extract only the conditions that are true at the trade entry candle."""
     evaluator = _build_block_evaluator(block_map, input_map, candles)
+    root_is_true = evaluator.is_true(block_id, idx)
 
     def recurse(current_block_id: str) -> list[str]:
         block = block_map.get(current_block_id)
@@ -138,6 +152,8 @@ def _extract_triggered_conditions(
             return recurse(from_block_id)
 
         if block_type == "and":
+            if not evaluator.is_true(current_block_id, idx):
+                return []
             conditions: list[str] = []
             for port in ("a", "b"):
                 input_conn = inputs.get(port)
@@ -182,7 +198,10 @@ def _extract_triggered_conditions(
         return conditions
 
     # Fallback to static extraction if candle evaluation cannot determine a true path.
-    return _extract_conditions(block_id, block_map, input_map)
+    if root_is_true:
+        return _extract_conditions(block_id, block_map, input_map)
+
+    return []
 
 
 class _BlockEvaluator:
@@ -202,6 +221,7 @@ class _BlockEvaluator:
         self.lows = [c.low for c in candles]
         self.closes = [c.close for c in candles]
         self.volumes = [c.volume for c in candles]
+        self.prev_closes = [None] + self.closes[:-1]
         self.cache: dict[str, dict[str, list]] = {}
 
     def is_true(self, block_id: str, idx: int) -> bool:
@@ -232,13 +252,7 @@ class _BlockEvaluator:
 
         if block_type == "price":
             source = params.get("source", "close")
-            result = {
-                "open": self.opens,
-                "high": self.highs,
-                "low": self.lows,
-                "close": self.closes,
-                "prev_close": [None] + self.closes[:-1],
-            }.get(source, self.closes)
+            result = self._get_source_series(source)
             self.cache[block_id]["output"] = result
 
         elif block_type == "constant":
@@ -255,16 +269,22 @@ class _BlockEvaluator:
             self.cache[block_id]["output"] = indicators.price_variation_pct(self.closes)
 
         elif block_type == "sma":
+            source = params.get("source", "close")
             period = int(params.get("period", 20))
-            self.cache[block_id]["output"] = indicators.sma(self.closes, period)
+            input_data = self._get_source_series(source)
+            self.cache[block_id]["output"] = indicators.sma(input_data, period)
 
         elif block_type == "ema":
+            source = params.get("source", "close")
             period = int(params.get("period", 20))
-            self.cache[block_id]["output"] = indicators.ema(self.closes, period)
+            input_data = self._get_source_series(source)
+            self.cache[block_id]["output"] = indicators.ema(input_data, period)
 
         elif block_type == "rsi":
+            source = params.get("source", "close")
             period = int(params.get("period", 14))
-            self.cache[block_id]["output"] = indicators.rsi(self.closes, period)
+            input_data = self._get_source_series(source)
+            self.cache[block_id]["output"] = indicators.rsi(input_data, period)
 
         elif block_type == "compare":
             left = self._get_input_any(inputs, ["left", "a"], [0.0] * self.n)
@@ -335,6 +355,16 @@ class _BlockEvaluator:
             from_block, from_port = inputs[port]
             return self.get_output(from_block, from_port)
         return default
+
+    def _get_source_series(self, source: str) -> list:
+        return {
+            "open": self.opens,
+            "high": self.highs,
+            "low": self.lows,
+            "close": self.closes,
+            "prev_close": self.prev_closes,
+            "volume": self.volumes,
+        }.get(source, self.closes)
 
     def _get_input_any(self, inputs: dict[str, tuple[str, str]], ports: list[str], default: list) -> list:
         for port in ports:

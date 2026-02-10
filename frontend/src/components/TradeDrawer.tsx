@@ -30,14 +30,6 @@ interface TradeDrawerProps {
   onClose: () => void;
 }
 
-const EXIT_REASON_LABELS: Record<string, string> = {
-  tp: "Take Profit",
-  sl: "Stop Loss",
-  signal: "Exit Signal",
-  end_of_data: "End of Test",
-  unknown: "Unknown",
-};
-
 export default function TradeDrawer({
   runId,
   tradeIdx,
@@ -376,12 +368,6 @@ export default function TradeDrawer({
                   <div>
                     <span className="text-gray-500">Quantity</span>
                     <div className="font-medium">{formatQuantity(trade.qty)}</div>
-                  </div>
-                  <div>
-                    <span className="text-gray-500">Exit Reason</span>
-                    <div className="font-medium">
-                      {EXIT_REASON_LABELS[trade.exit_reason] || trade.exit_reason}
-                    </div>
                   </div>
                 </div>
               </section>
