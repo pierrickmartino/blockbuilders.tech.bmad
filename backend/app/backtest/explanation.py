@@ -421,8 +421,18 @@ def _compute_indicator_series(
 
             elif block_type == "bollinger":
                 period = int(params.get("period", 20))
-                std_dev = float(params.get("std_dev", 2.0))
-                upper, middle, lower = indicators.bollinger(closes, period, std_dev)
+                source = params.get("source", "close")
+                if source == "close":
+                    data = closes
+                elif source == "high":
+                    data = highs
+                elif source == "low":
+                    data = lows
+                else:
+                    data = closes
+
+                std_dev = float(params.get("stddev", params.get("std_dev", 2.0)))
+                upper, middle, lower = indicators.bollinger(data, period, std_dev)
 
                 indicator_series.extend([
                     IndicatorSeries(

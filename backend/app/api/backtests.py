@@ -756,15 +756,16 @@ def get_trade_detail(
 
     # Fetch strategy definition for explanation
     strategy_version = session.exec(
-        select(StrategyVersion)
-        .where(StrategyVersion.strategy_id == run.strategy_id)
-        .order_by(StrategyVersion.version_number.desc())
-        .limit(1)
+        select(StrategyVersion).where(StrategyVersion.id == run.strategy_version_id)
     ).first()
 
     if not strategy_version:
         # Fallback: return without explanation
-        logger.warning(f"No strategy version found for run {run_id}")
+        logger.warning(
+            "No strategy version found for run %s (strategy_version_id=%s)",
+            run_id,
+            run.strategy_version_id,
+        )
         return TradeDetailResponse(
             trade=trade_detail,
             candles=candles_response,

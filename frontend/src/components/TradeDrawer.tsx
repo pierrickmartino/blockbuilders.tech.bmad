@@ -1,7 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { createChart, IChartApi, ISeriesApi, CandlestickSeries, Time } from "lightweight-charts";
+import {
+  createChart,
+  IChartApi,
+  ISeriesApi,
+  CandlestickSeries,
+  LineSeries,
+  Time,
+} from "lightweight-charts";
 import { apiFetch } from "@/lib/api";
 import {
   formatDateTime,
@@ -183,7 +190,7 @@ export default function TradeDrawer({
         if (ind.subplot) continue;
 
         // Add price pane indicators (SMA, EMA, Bollinger)
-        const lineSeries = chart.addLineSeries({
+        const lineSeries = chart.addSeries(LineSeries, {
           color: ind.color || "#3b82f6",
           lineWidth: 2,
           title: ind.label,
@@ -338,7 +345,7 @@ export default function TradeDrawer({
               </div>
 
               {/* Trade Explanation */}
-              {(data.entry_explanation || data.exit_explanation) && (
+              {(data.explanation_partial || data.entry_explanation || data.exit_explanation) && (
                 <TradeExplanation
                   entry={data.entry_explanation}
                   exit={data.exit_explanation}
