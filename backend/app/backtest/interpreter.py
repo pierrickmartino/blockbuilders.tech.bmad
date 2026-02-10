@@ -401,6 +401,7 @@ def _compare(
     n: int,
 ) -> list[bool]:
     """Compare two series with given operator."""
+    normalized_operator = _normalize_compare_operator(operator)
     result = []
     for i in range(n):
         l_val = left[i] if i < len(left) else None
@@ -410,18 +411,45 @@ def _compare(
             result.append(False)
             continue
 
-        if operator == ">":
+        if normalized_operator == ">":
             result.append(l_val > r_val)
-        elif operator == "<":
+        elif normalized_operator == "<":
             result.append(l_val < r_val)
-        elif operator == ">=":
+        elif normalized_operator == ">=":
             result.append(l_val >= r_val)
-        elif operator == "<=":
+        elif normalized_operator == "<=":
             result.append(l_val <= r_val)
         else:
             result.append(False)
 
     return result
+
+
+def _normalize_compare_operator(operator: Any) -> Optional[str]:
+    """Normalize compare operators across legacy and current formats."""
+    if not isinstance(operator, str):
+        return None
+
+    normalized = operator.strip().lower()
+    operator_map = {
+        ">": ">",
+        "above": ">",
+        "gt": ">",
+        "greater_than": ">",
+        "<": "<",
+        "below": "<",
+        "lt": "<",
+        "less_than": "<",
+        ">=": ">=",
+        "gte": ">=",
+        "at_or_above": ">=",
+        "greater_than_or_equal": ">=",
+        "<=": "<=",
+        "lte": "<=",
+        "at_or_below": "<=",
+        "less_than_or_equal": "<=",
+    }
+    return operator_map.get(normalized)
 
 
 def _crossover(
