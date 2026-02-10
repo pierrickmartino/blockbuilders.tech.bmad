@@ -71,3 +71,24 @@ def test_compare_supports_left_right_ports_for_entry_signal():
     signals = interpret_strategy(definition, candles)
 
     assert any(signals.entry_long)
+
+
+def test_compare_supports_legacy_word_operator_below_for_entry_signal():
+    candles = make_descending_candles()
+    definition = {
+        "blocks": [
+            {"id": "rsi-1", "type": "rsi", "params": {"period": 14}},
+            {"id": "const-1", "type": "constant", "params": {"value": 20}},
+            {"id": "cmp-1", "type": "compare", "params": {"operator": "below"}},
+            {"id": "entry-1", "type": "entry_signal", "params": {}},
+        ],
+        "connections": [
+            {"from": {"block_id": "rsi-1", "port": "output"}, "to": {"block_id": "cmp-1", "port": "left"}},
+            {"from": {"block_id": "const-1", "port": "output"}, "to": {"block_id": "cmp-1", "port": "right"}},
+            {"from": {"block_id": "cmp-1", "port": "output"}, "to": {"block_id": "entry-1", "port": "signal"}},
+        ],
+    }
+
+    signals = interpret_strategy(definition, candles)
+
+    assert any(signals.entry_long)
