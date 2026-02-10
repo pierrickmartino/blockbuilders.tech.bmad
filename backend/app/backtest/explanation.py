@@ -39,7 +39,7 @@ def build_trade_explanation(
     Args:
         definition: Strategy definition JSON with blocks and connections
         candles: Candle window around the trade
-        trade_entry_idx: Index in candles where trade entered
+        trade_entry_idx: Index in candles where trade entered (execution candle)
         trade_exit_idx: Index in candles where trade exited
         exit_reason: Exit reason code ("tp", "sl", "signal", etc.)
         sl_price: Stop loss price at entry
@@ -69,22 +69,42 @@ def build_trade_explanation(
     # Find entry signal blocks
     entry_blocks = [b for b in blocks if b["type"] == "entry_signal"]
 
+    # Backtest entries are executed on candle i+1 when signal is true on candle i.
+    # Evaluate entry conditions on the signal candle first, then fall back to
+    # execution candle if needed (e.g., missing previous candle in the window).
+    signal_idx = max(trade_entry_idx - 1, 0)
+
     # Build entry explanation
     if entry_blocks:
         entry_conditions = []
         for entry_block in entry_blocks:
-            conditions = _extract_conditions(entry_block["id"], block_map, input_map)
+            conditions = _extract_triggered_conditions(
+                entry_block["id"],
+                block_map,
+                input_map,
+                candles,
+                signal_idx,
+            )
+            if not conditions and signal_idx != trade_entry_idx:
+                conditions = _extract_triggered_conditions(
+                    entry_block["id"],
+                    block_map,
+                    input_map,
+                    candles,
+                    trade_entry_idx,
+                )
             entry_conditions.extend(conditions)
+
+        # Deduplicate while preserving order
+        entry_conditions = list(dict.fromkeys(entry_conditions))
 
         # Create summary
         if len(entry_conditions) == 0:
             summary = "Entry signal triggered"
         elif len(entry_conditions) == 1:
             summary = f"Entry: {entry_conditions[0]}"
-        elif len(entry_blocks) > 1:
-            summary = f"Entry triggered by one of {len(entry_blocks)} conditions"
         else:
-            summary = f"Entry: {' AND '.join(entry_conditions)}"
+            summary = f"Entry triggered by {len(entry_conditions)} validated conditions"
 
         entry_explanation = EntryExplanation(
             summary=summary,
@@ -103,6 +123,263 @@ def build_trade_explanation(
     indicator_series = _compute_indicator_series(definition, candles)
 
     return entry_explanation, exit_explanation, indicator_series
+
+
+def _extract_triggered_conditions(
+    block_id: str,
+    block_map: dict[str, dict],
+    input_map: dict[str, dict[str, tuple[str, str]]],
+    candles: list[Candle],
+    idx: int,
+) -> list[str]:
+    """Extract only the conditions that are true at the trade entry candle."""
+    evaluator = _build_block_evaluator(block_map, input_map, candles)
+    root_is_true = evaluator.is_true(block_id, idx)
+
+    def recurse(current_block_id: str) -> list[str]:
+        block = block_map.get(current_block_id)
+        if not block:
+            return []
+
+        block_type = block["type"]
+        inputs = input_map.get(current_block_id, {})
+
+        if block_type in ("entry_signal", "exit_signal"):
+            signal_input = inputs.get("signal")
+            if not signal_input:
+                return []
+            from_block_id, _ = signal_input
+            return recurse(from_block_id)
+
+        if block_type == "and":
+            if not evaluator.is_true(current_block_id, idx):
+                return []
+            conditions: list[str] = []
+            for port in ("a", "b"):
+                input_conn = inputs.get(port)
+                if not input_conn:
+                    continue
+                from_block_id, _ = input_conn
+                if evaluator.is_true(from_block_id, idx):
+                    conditions.extend(recurse(from_block_id))
+            return conditions
+
+        if block_type == "or":
+            conditions: list[str] = []
+            for port in ("a", "b"):
+                input_conn = inputs.get(port)
+                if not input_conn:
+                    continue
+                from_block_id, _ = input_conn
+                if evaluator.is_true(from_block_id, idx):
+                    conditions.extend(recurse(from_block_id))
+            return conditions
+
+        if block_type == "not":
+            input_conn = inputs.get("input")
+            if not input_conn:
+                return []
+            from_block_id, _ = input_conn
+            nested_conditions = recurse(from_block_id)
+            if nested_conditions:
+                return [f"NOT ({cond})" for cond in nested_conditions]
+            label = _generate_condition_label(block_map[from_block_id], block_map, input_map)
+            return [f"NOT ({label})"] if label else []
+
+        # Leaf condition block
+        if evaluator.is_true(current_block_id, idx):
+            label = _generate_condition_label(block, block_map, input_map)
+            return [label] if label else []
+
+        return []
+
+    conditions = recurse(block_id)
+    if conditions:
+        return conditions
+
+    # Fallback to static extraction if candle evaluation cannot determine a true path.
+    if root_is_true:
+        return _extract_conditions(block_id, block_map, input_map)
+
+    return []
+
+
+class _BlockEvaluator:
+    """Evaluate block outputs at a candle index for explanation purposes."""
+
+    def __init__(
+        self,
+        block_map: dict[str, dict],
+        input_map: dict[str, dict[str, tuple[str, str]]],
+        candles: list[Candle],
+    ):
+        self.block_map = block_map
+        self.input_map = input_map
+        self.n = len(candles)
+        self.opens = [c.open for c in candles]
+        self.highs = [c.high for c in candles]
+        self.lows = [c.low for c in candles]
+        self.closes = [c.close for c in candles]
+        self.volumes = [c.volume for c in candles]
+        self.prev_closes = [None] + self.closes[:-1]
+        self.cache: dict[str, dict[str, list]] = {}
+
+    def is_true(self, block_id: str, idx: int) -> bool:
+        if idx < 0 or idx >= self.n:
+            return False
+        output = self.get_output(block_id)
+        if idx >= len(output):
+            return False
+        value = output[idx]
+        if value is None:
+            return False
+        return bool(value)
+
+    def get_output(self, block_id: str, port: str = "output") -> list:
+        if block_id in self.cache and port in self.cache[block_id]:
+            return self.cache[block_id][port]
+
+        block = self.block_map.get(block_id)
+        if not block:
+            return [None] * self.n
+
+        if block_id not in self.cache:
+            self.cache[block_id] = {}
+
+        block_type = block["type"]
+        params = block.get("params", {})
+        inputs = self.input_map.get(block_id, {})
+
+        if block_type == "price":
+            source = params.get("source", "close")
+            result = self._get_source_series(source)
+            self.cache[block_id]["output"] = result
+
+        elif block_type == "constant":
+            value = float(params.get("value", 0.0))
+            self.cache[block_id]["output"] = [value] * self.n
+
+        elif block_type == "volume":
+            self.cache[block_id]["output"] = self.volumes
+
+        elif block_type == "yesterday_close":
+            self.cache[block_id]["output"] = [None] + self.closes[:-1]
+
+        elif block_type == "price_variation_pct":
+            self.cache[block_id]["output"] = indicators.price_variation_pct(self.closes)
+
+        elif block_type == "sma":
+            source = params.get("source", "close")
+            period = int(params.get("period", 20))
+            input_data = self._get_source_series(source)
+            self.cache[block_id]["output"] = indicators.sma(input_data, period)
+
+        elif block_type == "ema":
+            source = params.get("source", "close")
+            period = int(params.get("period", 20))
+            input_data = self._get_source_series(source)
+            self.cache[block_id]["output"] = indicators.ema(input_data, period)
+
+        elif block_type == "rsi":
+            source = params.get("source", "close")
+            period = int(params.get("period", 14))
+            input_data = self._get_source_series(source)
+            self.cache[block_id]["output"] = indicators.rsi(input_data, period)
+
+        elif block_type == "compare":
+            left = self._get_input_any(inputs, ["left", "a"], [0.0] * self.n)
+            right = self._get_input_any(inputs, ["right", "b"], [0.0] * self.n)
+            operator = params.get("operator", ">")
+            result = []
+            for l_val, r_val in zip(left, right):
+                if l_val is None or r_val is None:
+                    result.append(False)
+                elif operator == ">":
+                    result.append(l_val > r_val)
+                elif operator == "<":
+                    result.append(l_val < r_val)
+                elif operator == ">=":
+                    result.append(l_val >= r_val)
+                elif operator == "<=":
+                    result.append(l_val <= r_val)
+                elif operator == "==":
+                    result.append(l_val == r_val)
+                elif operator == "!=":
+                    result.append(l_val != r_val)
+                else:
+                    result.append(False)
+            self.cache[block_id]["output"] = result
+
+        elif block_type == "crossover":
+            fast = self._get_input(inputs, "fast", [0.0] * self.n)
+            slow = self._get_input(inputs, "slow", [0.0] * self.n)
+            direction = params.get("direction", "crosses_above")
+            result = [False]
+            for i in range(1, self.n):
+                fast_prev, fast_curr = fast[i - 1], fast[i]
+                slow_prev, slow_curr = slow[i - 1], slow[i]
+                if any(v is None for v in (fast_prev, fast_curr, slow_prev, slow_curr)):
+                    result.append(False)
+                elif direction == "crosses_above":
+                    result.append(fast_prev <= slow_prev and fast_curr > slow_curr)
+                else:
+                    result.append(fast_prev >= slow_prev and fast_curr < slow_curr)
+            self.cache[block_id]["output"] = result
+
+        elif block_type == "and":
+            a = self._get_input(inputs, "a", [False] * self.n)
+            b = self._get_input(inputs, "b", [False] * self.n)
+            self.cache[block_id]["output"] = [bool(av) and bool(bv) for av, bv in zip(a, b)]
+
+        elif block_type == "or":
+            a = self._get_input(inputs, "a", [False] * self.n)
+            b = self._get_input(inputs, "b", [False] * self.n)
+            self.cache[block_id]["output"] = [bool(av) or bool(bv) for av, bv in zip(a, b)]
+
+        elif block_type == "not":
+            input_data = self._get_input(inputs, "input", [False] * self.n)
+            self.cache[block_id]["output"] = [not bool(v) for v in input_data]
+
+        elif block_type in ("entry_signal", "exit_signal"):
+            signal_input = self._get_input(inputs, "signal", [False] * self.n)
+            self.cache[block_id]["output"] = [bool(v) for v in signal_input]
+
+        else:
+            # Unsupported block types are treated as non-triggering for explanation filtering.
+            self.cache[block_id]["output"] = [None] * self.n
+
+        return self.cache[block_id].get(port, self.cache[block_id].get("output", [None] * self.n))
+
+    def _get_input(self, inputs: dict[str, tuple[str, str]], port: str, default: list) -> list:
+        if port in inputs:
+            from_block, from_port = inputs[port]
+            return self.get_output(from_block, from_port)
+        return default
+
+    def _get_source_series(self, source: str) -> list:
+        return {
+            "open": self.opens,
+            "high": self.highs,
+            "low": self.lows,
+            "close": self.closes,
+            "prev_close": self.prev_closes,
+            "volume": self.volumes,
+        }.get(source, self.closes)
+
+    def _get_input_any(self, inputs: dict[str, tuple[str, str]], ports: list[str], default: list) -> list:
+        for port in ports:
+            if port in inputs:
+                from_block, from_port = inputs[port]
+                return self.get_output(from_block, from_port)
+        return default
+
+
+def _build_block_evaluator(
+    block_map: dict[str, dict],
+    input_map: dict[str, dict[str, tuple[str, str]]],
+    candles: list[Candle],
+) -> _BlockEvaluator:
+    return _BlockEvaluator(block_map, input_map, candles)
 
 
 def _build_input_map(connections: list[dict]) -> dict[str, dict[str, tuple[str, str]]]:

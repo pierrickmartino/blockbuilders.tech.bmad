@@ -288,10 +288,10 @@ def test_build_trade_explanation_full():
             asset="BTC/USDT",
             timeframe="1d",
             timestamp=datetime(2025, 1, i),
-            open=100.0 + i,
-            high=105.0 + i,
-            low=95.0 + i,
-            close=100.0 + i,
+            open=130.5 - i,
+            high=131.0 - i,
+            low=129.0 - i,
+            close=130.0 - i,
             volume=1000.0
         )
         for i in range(1, 21)
@@ -300,8 +300,8 @@ def test_build_trade_explanation_full():
     entry_exp, exit_exp, indicators = build_trade_explanation(
         definition=definition,
         candles=candles,
-        trade_entry_idx=10,
-        trade_exit_idx=15,
+        trade_entry_idx=16,
+        trade_exit_idx=18,
         exit_reason="tp",
         sl_price=95.0,
         tp_price=115.0,
@@ -353,3 +353,122 @@ def test_build_trade_explanation_empty_strategy():
     assert len(entry_exp.conditions) == 0
     assert exit_exp.reason_type == "signal"
     assert len(indicators) == 0
+
+
+def test_build_trade_explanation_filters_or_conditions_to_triggered_path():
+    """Only conditions that are true at entry should be listed for OR logic."""
+    definition = {
+        "blocks": [
+            {"id": "price_change", "type": "price_variation_pct", "params": {}},
+            {"id": "const-5", "type": "constant", "params": {"value": 5}},
+            {"id": "cmp-price", "type": "compare", "params": {"operator": ">"}},
+            {"id": "price", "type": "price", "params": {"source": "close"}},
+            {"id": "const-110", "type": "constant", "params": {"value": 110}},
+            {"id": "cmp-close", "type": "compare", "params": {"operator": ">"}},
+            {"id": "or-1", "type": "or", "params": {}},
+            {"id": "entry-1", "type": "entry_signal", "params": {}},
+        ],
+        "connections": [
+            {"from_port": {"block_id": "price_change", "port": "output"}, "to_port": {"block_id": "cmp-price", "port": "left"}},
+            {"from_port": {"block_id": "const-5", "port": "output"}, "to_port": {"block_id": "cmp-price", "port": "right"}},
+            {"from_port": {"block_id": "price", "port": "output"}, "to_port": {"block_id": "cmp-close", "port": "left"}},
+            {"from_port": {"block_id": "const-110", "port": "output"}, "to_port": {"block_id": "cmp-close", "port": "right"}},
+            {"from_port": {"block_id": "cmp-price", "port": "output"}, "to_port": {"block_id": "or-1", "port": "a"}},
+            {"from_port": {"block_id": "cmp-close", "port": "output"}, "to_port": {"block_id": "or-1", "port": "b"}},
+            {"from_port": {"block_id": "or-1", "port": "output"}, "to_port": {"block_id": "entry-1", "port": "signal"}},
+        ],
+    }
+
+    candles = [
+        Candle(asset="BTC/USDT", timeframe="1d", timestamp=datetime(2025, 1, 1), open=100.0, high=101.0, low=99.0, close=100.0, volume=1000.0),
+        Candle(asset="BTC/USDT", timeframe="1d", timestamp=datetime(2025, 1, 2), open=100.0, high=101.0, low=99.0, close=106.0, volume=1000.0),
+    ]
+
+    entry_exp, _, _ = build_trade_explanation(
+        definition=definition,
+        candles=candles,
+        trade_entry_idx=1,
+        trade_exit_idx=1,
+        exit_reason="signal",
+        sl_price=None,
+        tp_price=None,
+    )
+
+    assert any(cond.startswith("Price Change % > 5") for cond in entry_exp.conditions)
+    assert all(not cond.startswith("Close > 110") for cond in entry_exp.conditions)
+
+
+def test_build_trade_explanation_keeps_all_true_branches_for_and_logic():
+    """AND logic should keep every branch that validated the entry."""
+    definition = {
+        "blocks": [
+            {"id": "price", "type": "price", "params": {"source": "close"}},
+            {"id": "const-100", "type": "constant", "params": {"value": 100}},
+            {"id": "cmp-a", "type": "compare", "params": {"operator": ">"}},
+            {"id": "const-110", "type": "constant", "params": {"value": 110}},
+            {"id": "cmp-b", "type": "compare", "params": {"operator": "<"}},
+            {"id": "and-1", "type": "and", "params": {}},
+            {"id": "entry-1", "type": "entry_signal", "params": {}},
+        ],
+        "connections": [
+            {"from_port": {"block_id": "price", "port": "output"}, "to_port": {"block_id": "cmp-a", "port": "left"}},
+            {"from_port": {"block_id": "const-100", "port": "output"}, "to_port": {"block_id": "cmp-a", "port": "right"}},
+            {"from_port": {"block_id": "price", "port": "output"}, "to_port": {"block_id": "cmp-b", "port": "left"}},
+            {"from_port": {"block_id": "const-110", "port": "output"}, "to_port": {"block_id": "cmp-b", "port": "right"}},
+            {"from_port": {"block_id": "cmp-a", "port": "output"}, "to_port": {"block_id": "and-1", "port": "a"}},
+            {"from_port": {"block_id": "cmp-b", "port": "output"}, "to_port": {"block_id": "and-1", "port": "b"}},
+            {"from_port": {"block_id": "and-1", "port": "output"}, "to_port": {"block_id": "entry-1", "port": "signal"}},
+        ],
+    }
+
+    candles = [
+        Candle(asset="BTC/USDT", timeframe="1d", timestamp=datetime(2025, 1, 1), open=100.0, high=101.0, low=99.0, close=105.0, volume=1000.0),
+    ]
+
+    entry_exp, _, _ = build_trade_explanation(
+        definition=definition,
+        candles=candles,
+        trade_entry_idx=0,
+        trade_exit_idx=0,
+        exit_reason="signal",
+        sl_price=None,
+        tp_price=None,
+    )
+
+    assert any(cond.startswith("Close > 100") for cond in entry_exp.conditions)
+    assert any(cond.startswith("Close < 110") for cond in entry_exp.conditions)
+
+
+def test_build_trade_explanation_uses_signal_candle_for_entry_conditions():
+    """Entry explanation should use the signal candle (i), not execution candle (i+1)."""
+    definition = {
+        "blocks": [
+            {"id": "price", "type": "price", "params": {"source": "close"}},
+            {"id": "const-100", "type": "constant", "params": {"value": 100}},
+            {"id": "cross-1", "type": "crossover", "params": {"direction": "crosses_above"}},
+            {"id": "entry-1", "type": "entry_signal", "params": {}},
+        ],
+        "connections": [
+            {"from_port": {"block_id": "price", "port": "output"}, "to_port": {"block_id": "cross-1", "port": "fast"}},
+            {"from_port": {"block_id": "const-100", "port": "output"}, "to_port": {"block_id": "cross-1", "port": "slow"}},
+            {"from_port": {"block_id": "cross-1", "port": "output"}, "to_port": {"block_id": "entry-1", "port": "signal"}},
+        ],
+    }
+
+    candles = [
+        Candle(asset="BTC/USDT", timeframe="1d", timestamp=datetime(2025, 1, 1), open=99.0, high=100.0, low=98.0, close=99.0, volume=1000.0),
+        Candle(asset="BTC/USDT", timeframe="1d", timestamp=datetime(2025, 1, 2), open=99.0, high=102.0, low=98.0, close=101.0, volume=1000.0),
+        Candle(asset="BTC/USDT", timeframe="1d", timestamp=datetime(2025, 1, 3), open=101.0, high=103.0, low=100.0, close=102.0, volume=1000.0),
+    ]
+
+    entry_exp, _, _ = build_trade_explanation(
+        definition=definition,
+        candles=candles,
+        trade_entry_idx=2,  # execution candle; signal occurred at idx=1
+        trade_exit_idx=2,
+        exit_reason="signal",
+        sl_price=None,
+        tp_price=None,
+    )
+
+    assert any(cond.startswith("Close crossed above 100") for cond in entry_exp.conditions)
