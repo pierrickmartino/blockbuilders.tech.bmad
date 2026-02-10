@@ -122,11 +122,36 @@ export interface Candle {
   close: number;
 }
 
+export interface IndicatorSeries {
+  indicator_type: string;
+  label: string;
+  series_data: (number | null)[];
+  plot_type: string;
+  subplot: boolean;
+  color?: string | null;
+  port?: string | null;
+}
+
+export interface EntryExplanation {
+  summary: string;
+  conditions: string[];
+}
+
+export interface ExitExplanation {
+  summary: string;
+  reason_type: string;
+  details?: Record<string, unknown> | null;
+}
+
 export interface TradeDetailResponse {
   trade: TradeDetail;
   candles: Candle[];
   asset: string;
   timeframe: string;
+  entry_explanation?: EntryExplanation | null;
+  exit_explanation?: ExitExplanation | null;
+  indicator_series?: IndicatorSeries[] | null;
+  explanation_partial?: boolean;
 }
 
 export interface GapRange {

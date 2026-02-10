@@ -186,6 +186,33 @@ class CandleResponse(BaseModel):
     close: float
 
 
+class IndicatorSeries(BaseModel):
+    """Single indicator series for chart overlay."""
+
+    indicator_type: str
+    label: str
+    series_data: list[Optional[float]]
+    plot_type: str
+    subplot: bool
+    color: Optional[str] = None
+    port: Optional[str] = None
+
+
+class EntryExplanation(BaseModel):
+    """Entry explanation text."""
+
+    summary: str
+    conditions: list[str]
+
+
+class ExitExplanation(BaseModel):
+    """Exit explanation text."""
+
+    summary: str
+    reason_type: str
+    details: Optional[dict] = None
+
+
 class TradeDetailResponse(BaseModel):
     """Response for single trade detail endpoint."""
 
@@ -193,6 +220,10 @@ class TradeDetailResponse(BaseModel):
     candles: list[CandleResponse]
     asset: str
     timeframe: str
+    entry_explanation: Optional[EntryExplanation] = None
+    exit_explanation: Optional[ExitExplanation] = None
+    indicator_series: Optional[list[IndicatorSeries]] = None
+    explanation_partial: bool = False
 
 
 class GapRange(BaseModel):
