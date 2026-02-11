@@ -73,8 +73,8 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
   - Spread rate (default 0.02%)
 - Display preferences:
   - Timezone (local or UTC)
-  - **Planned:** Theme preference (system/light/dark)
-  - **Planned:** Compact node display mode (compact/expanded, default compact)
+  - Theme preference (system/light/dark)
+  - Compact node display mode (compact/expanded, default compact)
   - Applied to all timestamps in UI
 
 **User Model Fields:**
@@ -257,7 +257,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
   - Stop loss: 0.1-100%
 - Take profit levels: 1-3, profit_pct ascending, close_pct total ≤100%
 
-**Planned: Plain-Language Error Messages**
+Plain-Language Error Messages
 - All validation and error states are rewritten in plain language with actionable suggestions.
 - Messages include a short "what happened" + "what to do next" format.
 - Errors link to relevant help docs (e.g., Strategy Guide, validation tips) when available.
@@ -735,7 +735,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - No backend, schema, or API changes
 - Dark mode support with semantic color variables
 
-#### 4.11.3. Simplified Top Bar with Autosave (Planned)
+#### 4.11.3. Simplified Top Bar with Autosave
 
 **Purpose:** Reduce mobile header clutter so users can stay focused on strategy building while still seeing save confidence and quick access to history.
 
@@ -754,7 +754,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Keep desktop header behavior unchanged unless explicitly enabled later.
 - Use existing debounce/autosave state where possible; avoid introducing new state managers.
 
-### 4.12. Compact Node Display Mode (Planned)
+### 4.12. Compact Node Display Mode
 
 **Purpose:** Reduce visual clutter on small screens by defaulting nodes to a single-line summary while keeping full details accessible.
 
@@ -784,7 +784,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - No backend, schema, or API changes.
 - Keep state snapshots minimal (use existing canvas serialize helpers).
 
-### 4.14. Keyboard Shortcuts & Reference (Planned)
+### 4.14. Keyboard Shortcuts & Reference
 
 **Purpose:** Speed up common strategy actions with simple keyboard shortcuts and an in-app reference modal.
 
@@ -801,7 +801,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Use the existing dialog component for the shortcut reference list.
 - Keep the shortcut list minimal and in one place so it stays up to date.
 
-### 4.15. Block Library Bottom Sheet with Search (Planned)
+### 4.15. Block Library Bottom Sheet with Search
 
 **Purpose:** Replace the small floating "+" button with a modern bottom sheet that surfaces blocks faster via search, categories, and recent/favorite lists.
 
@@ -817,7 +817,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Keep the layout minimal and mobile-friendly (maps/Spotify-style sheet).
 - Use existing block metadata for labels, categories, and search keywords.
 
-### 4.16. Auto-Layout & Connection Tidying (Planned)
+### 4.16. Auto-Layout & Connection Tidying
 
 **Purpose:** Fix messy graphs by auto-arranging blocks into a clean flow or tidying wire paths without moving blocks.
 
@@ -1044,12 +1044,12 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
   - Net vs gross return callout to show impact of execution costs
 - Optional "what-if" sliders to adjust fee, slippage, and spread rates and preview net return impact without re-running the backtest.
 
-**Backtest Comparison View (Planned)**
+**Backtest Comparison View**
 - Compare 2–4 backtest runs side-by-side with aligned equity curves.
 - Metrics table shows key summary stats for each run in the same order.
 - Requires a multi-run query endpoint to fetch summary metrics and equity curves in a single request.
 
-**Shareable Result Links (Planned)**
+**Shareable Result Links**
 - Generate read-only links for specific backtest runs (results only, not strategy logic).
 - Public results view uses token-based access with optional expiration.
 - Displays summary metrics and equity curve; no editing, no strategy blocks.
@@ -1314,7 +1314,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Enhanced version of the dashboard list for full management
 - Search bar (filter by name)
 - Sort and filter by performance, last run date, asset, tags
-- Planned: bulk actions with checkbox selection + action dropdown (archive, tag, delete)
+- Bulk actions with checkbox selection + action dropdown (archive, tag, delete)
 - Table/grid rows with:
   - Name, asset, timeframe
   - Tags (chip list)
@@ -1325,10 +1325,10 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 
 **Strategy Editor** (`/strategies/[id]`)
 - Visual canvas with drag-drop blocks
-- Block palette drawer (mobile-responsive); planned bottom sheet block library with search, categories, and recent/favorite blocks to replace the floating + button
+- Block palette drawer (mobile-responsive); Bottom sheet block library with search, categories, and recent/favorite blocks to replace the floating + button
 - Inspector panel opens on block tap for touch-friendly parameter editing, presets, and inline validation
 - Curated indicator palette (SMA, EMA, RSI, MACD, Bollinger Bands, ATR, Stochastic, ADX, Ichimoku Cloud, OBV, Fibonacci)
-- Planned compact node display mode with one-line summaries and tap-to-expand details
+- Compact node display mode with one-line summaries and tap-to-expand details
 - Version tabs and switcher
 - Save button (creates new version)
 - Validate button
@@ -1352,12 +1352,12 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Summary metrics cards:
   - Total return, CAGR, max drawdown
   - Number of trades, win rate
-- Planned: Favorite metrics row that lets users pin/reorder the summary metrics they care about most (stored per user).
+- Favorite metrics row that lets users pin/reorder the summary metrics they care about most (stored per user).
 - Equity curve chart (responsive Recharts line chart with touch gestures)
 - Trades table with sorting and pagination
 - Trade detail drawer with surrounding candles
 - Seasonality analysis heatmap (month, quarter, weekday)
-- Planned: Share results link button (read-only public view with expiration).
+- Share results link button (read-only public view with expiration).
 
 **Components:**
 - `frontend/src/app/(app)/strategies/[id]/backtest/page.tsx`
@@ -1373,8 +1373,8 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
   - Slippage rate input (0.01-2%)
 - Display Preferences:
   - Timezone toggle (local or UTC)
-  - **Planned:** Theme toggle (system/light/dark)
-  - **Planned:** Compact node display toggle (compact/expanded, default compact)
+  - Theme toggle (system/light/dark)
+  - Compact node display toggle (compact/expanded, default compact)
 - Usage section:
   - Strategies progress bar (X / 10)
   - Daily backtests progress bar (X / 50)
@@ -1393,7 +1393,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 
 **DisplayContext** (`frontend/src/context/display.tsx`)
 - Manages timezone preference (local/UTC)
-- Planned: manages compact node display preference (compact/expanded)
+- Manages compact node display preference (compact/expanded)
 - Applied to all timestamp displays
 - Persists to user profile
 
@@ -1461,13 +1461,13 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Trend indicator (▲ TrendingUp / ▼ TrendingDown icons)
 - "Last updated" timestamp (respects user timezone preference)
 
-**Volatility Metrics (Planned):**
+**Volatility Metrics:**
 - Current volatility (standard deviation of returns, annualized or per timeframe)
 - ATR-based volatility (ATR as % of price)
 - 1-year volatility percentile (e.g., “80th percentile”)
 - Simple tooltip text explaining how to interpret “calm vs chaotic”
 
-**Market Sentiment Indicators (Implemented):**
+**Market Sentiment Indicators:**
 - Fear & Greed Index (0-100 gauge from Alternative.me with 30-day history)
 - Long/Short Ratio (Binance global account ratio, 7-day sparkline; >1 = bullish, <1 = bearish)
 - Funding Rates (Binance perpetual futures, 7-day average with sparkline)
@@ -2035,27 +2035,27 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **Account Management** | ✅ Complete | Profile, settings (fees, slippage, timezone), usage tracking |
 | **User Profiles & Reputation** | ✅ Complete | Opt-in public profiles (/u/{handle}), follower counts, contributions, auto-awarded badges, privacy toggles |
 | **Strategy Management** | ✅ Complete | CRUD, versioning, validation, duplication (one-click list clone), archiving |
-| **Bulk Strategy Actions** | 📝 Planned | Multi-select strategies with checkbox selection + action dropdown for archive, tag, delete |
+| **Bulk Strategy Actions** | ✅ Complete | Multi-select strategies with checkbox selection + action dropdown for archive, tag, delete |
 | **Strategy Groups/Tags** | ✅ Complete | Custom tags, tag filtering, many-to-many strategy organization |
 | **Visual Builder** | ✅ Complete | 20 block types, drag-drop, enhanced Inspector panel with period presets and source quick-swaps, mobile-responsive |
 | **Expanded Indicator Palette & Price Variation Input** | ✅ Complete | Stochastic, ADX, Ichimoku Cloud, OBV, Fibonacci retracements, and price variation % input block |
 | **Mobile-Optimized Canvas** | ✅ Complete | Touch-first controls, simplified palette, gesture-based connections |
 | **Bottom Action Bar for Canvas Tools** | ✅ Complete | Replace left tool stack with a mobile bottom action bar for core canvas tools (Pan/Select, Zoom In/Out, Fit to Screen, Undo/Redo) with 44px tap targets |
 | **Canvas Minimap with Section Shortcuts** | ✅ Complete | Minimap overlay (180×120px) with real-time viewport indicator and quick-jump buttons to Entry, Exit, and Risk sections |
-| **Simplified Top Bar with Autosave** | 📝 Planned | Mobile header shows autosave status, keeps a single primary Run/Backtest CTA, moves version history to a History panel, and moves secondary actions to overflow |
-| **Compact Node Display Mode** | 📝 Planned | One-line node summaries by default with tap-to-expand details and a settings toggle |
+| **Simplified Top Bar with Autosave** | ✅ Complete | Mobile header shows autosave status, keeps a single primary Run/Backtest CTA, moves version history to a History panel, and moves secondary actions to overflow |
+| **Compact Node Display Mode** | ✅ Complete | One-line node summaries by default with tap-to-expand details and a settings toggle |
 | **Block Library Bottom Sheet with Search** | ✅ Complete | Bottom sheet block library with search, categories, and recent/favorite blocks |
 | **Copy/Paste Blocks & Subgraphs** | ✅ Complete | Multi-select blocks and copy/paste within or across strategies |
-| **Auto-Layout & Connection Tidying** | 📝 Planned | Auto-arrange blocks left-to-right or top-to-bottom and tidy wire paths without moving blocks |
+| **Auto-Layout & Connection Tidying** | ✅ Complete | Auto-arrange blocks left-to-right or top-to-bottom and tidy wire paths without moving blocks |
 | **Canvas Undo/Redo** | ✅ Implemented | Toolbar buttons + keyboard shortcuts for reverting canvas edits |
-| **Keyboard Shortcuts & Reference** | 📝 Planned | Cmd/Ctrl+S save, Cmd/Ctrl+R run backtest, ? help modal, editor-only |
+| **Keyboard Shortcuts & Reference** | ✅ Complete | Cmd/Ctrl+S save, Cmd/Ctrl+R run backtest, ? help modal, editor-only |
 | **Strategy Building Wizard** | ✅ Complete | Guided Q&A that generates editable strategy JSON |
 | **Backtesting** | ✅ Complete | Full engine with TP ladder, SL, max drawdown, equity curves, trade detail, risk-adjusted metrics |
 | **Enhanced Trade Explanation View** | ✅ Complete (Phase 1) | Per-trade entry/exit explanation with condition breakdown (✓ markers), price-pane indicator overlays (SMA, EMA, Bollinger), entry/exit candle markers; compute-on-read with graceful fallback |
 | **Transaction Cost Analysis** | ✅ Complete | Breakdown of fees/slippage/spread, cost % of gross return, and per-trade cost visibility |
-| **Backtest Comparison View** | 📝 Planned | Select 2–4 runs, align equity curves, compare summary metrics side-by-side |
+| **Backtest Comparison View** | ✅ Complete | Select 2–4 runs, align equity curves, compare summary metrics side-by-side |
 | **Data Export (CSV/JSON)** | ✅ Complete | Download trade list, equity curve, and metrics as CSV or JSON |
-| **Shareable Backtest Result Links** | 📝 Planned | Read-only, tokenized public results view with optional expiration |
+| **Shareable Backtest Result Links** | ✅ Complete | Read-only, tokenized public results view with optional expiration |
 | **Seasonality Analysis** | ✅ Complete | Heatmap of average trade return by month, quarter, weekday |
 | **Trade Distribution Analysis** | ✅ Complete | Histograms of trade return buckets and duration distribution for risk insight |
 | **Position Analysis** | ✅ Complete | Average hold time, longest/shortest positions, average position size |
@@ -2069,18 +2069,18 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 | **One-Time Credit Packs** | ✅ Complete | Purchase 50 backtest credits or +5 strategy slots; credits never expire |
 | **Subscription Plans & Billing** | ✅ Complete | Free/Pro/Premium tiers with Stripe monthly/annual billing and simple caps |
 | **Annual Subscription Discounts** | ✅ Complete | 15–20% annual savings vs monthly, shown in billing UI with separate Stripe price IDs |
-| **Grandfathered Beta User Benefits** | 📝 Planned | Permanent perks (higher limits + discounted pricing) for early beta users |
+| **Grandfathered Beta User Benefits** | ✅ Complete | Permanent perks (higher limits + discounted pricing) for early beta users |
 | **In-App Notifications** | ✅ Complete | Bell icon with unread count, notifications for key events |
 | **Real-Time Price Tickers** | ✅ Complete | Market overview with live price, 24h change, volume, trend; 4s polling, 3s Redis cache |
 | **Volatility Metrics (Market Overview)** | ✅ Complete | Show current + historical volatility with percentile rank per pair |
 | **Market Sentiment Indicators (Market Overview)** | ✅ Complete | Fear & Greed Index (Alternative.me), Long/Short Ratio (Binance), Funding Rates (Binance); 15min cache, partial failure support, backtest sentiment context |
 | **Frontend UI** | ✅ Complete | Multi-strategy dashboard, strategy list/editor, backtest runner/results, profile |
-| **Recently Viewed Shortcuts (Dashboard)** | 📝 Planned | Quick links to recently viewed strategies and backtests from session history |
+| **Recently Viewed Shortcuts (Dashboard)** | ✅ Complete | Quick links to recently viewed strategies and backtests from session history |
 | **Progress Dashboard** | ✅ Complete | Journey metrics, achievements, lessons learned, and next-step suggestions from usage data |
-| **Dark Mode** | 📝 Planned | User-selectable theme (system/light/dark) applied across canvas, charts, and forms |
+| **Dark Mode** | ✅ Complete | User-selectable theme (system/light/dark) applied across canvas, charts, and forms |
 | **Contextual Help & Tooltips** | ✅ Complete | Hover tooltips for indicators, logic blocks, metrics |
 | **Metrics Glossary** | ✅ Complete | Dedicated searchable page explaining backtest metrics |
-| **Favorite Metrics (Backtest Summary)** | 📝 Planned | Users can pin/reorder the metrics shown in backtest summary cards |
+| **Favorite Metrics (Backtest Summary)** | ✅ Complete | Users can pin/reorder the metrics shown in backtest summary cards |
 | **Strategy Notes & Annotations** | ✅ Complete | Floating text notes on canvas (280 char limit), drag to position |
 | **Visual Validation Feedback** | ✅ Complete | Inline canvas highlights and messages for validation errors |
 | **Improved Error Messages** | ✅ Complete | Plain-language, actionable validation + error copy with help doc links (/strategy-guide) |
