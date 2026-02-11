@@ -30,7 +30,7 @@ from app.services.alert_evaluator import evaluate_alerts_for_run
 logger = logging.getLogger(__name__)
 
 
-def run_backtest_job(run_id: str) -> None:
+def run_backtest_job(run_id: str, force_refresh_prices: bool = False) -> None:
     """
     Main job function for processing a backtest run.
 
@@ -97,6 +97,7 @@ def run_backtest_job(run_id: str) -> None:
                 date_from=run.date_from,
                 date_to=run.date_to,
                 session=session,
+                force_refresh=force_refresh_prices,
             )
 
             if not candles:

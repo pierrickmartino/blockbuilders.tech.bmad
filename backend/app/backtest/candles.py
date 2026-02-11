@@ -25,9 +25,12 @@ def fetch_candles(
     date_from: datetime,
     date_to: datetime,
     session: Session,
+    force_refresh: bool = False,
 ) -> list[Candle]:
     """
     Fetch candles from DB, fill gaps from vendor, return sorted list.
+    When force_refresh=True, always fetch from vendor and overwrite existing
+    candles in the requested range.
     Raises DataUnavailableError if large gaps or vendor unavailable.
     """
     # Ensure UTC
@@ -54,7 +57,7 @@ def fetch_candles(
     # Check if we have enough candles AND they cover the requested end date
     # The 95% threshold alone isn't enough - we must also verify the latest
     # cached candle is close to date_to, otherwise we'd skip fetching fresh data
-    if len(db_candles) >= expected_count * 0.95:  # 95% threshold
+    if not force_refresh and len(db_candles) >= expected_count * 0.95:  # 95% threshold
         if db_candles:
             latest_candle_ts = db_candles[-1].timestamp
             # Allow up to 2 candle intervals of slack for the end date
@@ -65,7 +68,14 @@ def fetch_candles(
             return db_candles
 
     # Fetch missing candles from vendor
-    logger.info(f"Fetching candles from vendor: {asset} {timeframe} {date_from} - {date_to}")
+    logger.info(
+        "Fetching candles from vendor: %s %s %s - %s (force_refresh=%s)",
+        asset,
+        timeframe,
+        date_from,
+        date_to,
+        force_refresh,
+    )
     vendor_candles = _fetch_from_vendor(asset, timeframe, date_from, date_to)
 
     # Store fetched candles to DB (batch upsert pattern)
@@ -73,38 +83,63 @@ def fetch_candles(
         # Batch lookup: get all existing timestamps in one query
         vendor_timestamps = [c["timestamp"] for c in vendor_candles]
         existing_stmt = (
-            select(Candle.timestamp)
+            select(Candle)
             .where(Candle.asset == asset)
             .where(Candle.timeframe == timeframe)
             .where(Candle.timestamp.in_(vendor_timestamps))
         )
-        # Normalize to naive UTC for comparison (DB may return naive datetimes)
-        existing_timestamps = set()
-        for ts in session.exec(existing_stmt).all():
-            # Strip timezone info for consistent comparison
-            if ts.tzinfo is not None:
-                existing_timestamps.add(ts.replace(tzinfo=None))
-            else:
-                existing_timestamps.add(ts)
+        existing_by_ts: dict[datetime, Candle] = {}
+        for existing in session.exec(existing_stmt).all():
+            ts = existing.timestamp
+            normalized = ts.replace(tzinfo=None) if ts.tzinfo is not None else ts
+            existing_by_ts[normalized] = existing
 
-        # Only insert candles that don't already exist
-        new_candles = [
-            Candle(
-                asset=asset,
-                timeframe=timeframe,
-                timestamp=c["timestamp"],
-                open=c["open"],
-                high=c["high"],
-                low=c["low"],
-                close=c["close"],
-                volume=c["volume"],
-            )
-            for c in vendor_candles
-            # Normalize vendor timestamp for comparison
-            if c["timestamp"].replace(tzinfo=None) not in existing_timestamps
-        ]
+        new_candles: list[Candle] = []
+        updated_count = 0
+
+        for c in vendor_candles:
+            normalized_ts = c["timestamp"].replace(tzinfo=None)
+            existing = existing_by_ts.get(normalized_ts)
+
+            if existing is None:
+                new_candles.append(
+                    Candle(
+                        asset=asset,
+                        timeframe=timeframe,
+                        timestamp=c["timestamp"],
+                        open=c["open"],
+                        high=c["high"],
+                        low=c["low"],
+                        close=c["close"],
+                        volume=c["volume"],
+                    )
+                )
+                continue
+
+            if force_refresh:
+                changed = False
+                if existing.open != c["open"]:
+                    existing.open = c["open"]
+                    changed = True
+                if existing.high != c["high"]:
+                    existing.high = c["high"]
+                    changed = True
+                if existing.low != c["low"]:
+                    existing.low = c["low"]
+                    changed = True
+                if existing.close != c["close"]:
+                    existing.close = c["close"]
+                    changed = True
+                if existing.volume != c["volume"]:
+                    existing.volume = c["volume"]
+                    changed = True
+                if changed:
+                    session.add(existing)
+                    updated_count += 1
+
         if new_candles:
             session.add_all(new_candles)
+        if new_candles or updated_count:
             session.commit()
 
     # Re-query to get all candles sorted

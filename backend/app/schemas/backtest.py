@@ -15,6 +15,7 @@ class BacktestCreateRequest(BaseModel):
     fee_rate: Optional[float] = None
     slippage_rate: Optional[float] = None
     spread_rate: Optional[float] = None
+    force_refresh_prices: bool = False
 
     @field_validator("date_to")
     @classmethod

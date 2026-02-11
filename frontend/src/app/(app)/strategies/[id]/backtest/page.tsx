@@ -42,7 +42,7 @@ import {
   DataCompletenessResponse,
   TradeDetail,
 } from "@/types/backtest";
-import { PlanResponse } from "@/types/auth";
+import { PlanResponse, ProfileResponse } from "@/types/auth";
 import { StrategyTabs } from "@/components/StrategyTabs";
 import TradeDrawer from "@/components/TradeDrawer";
 import InfoIcon from "@/components/InfoIcon";
@@ -544,6 +544,8 @@ export default function StrategyBacktestPage({ params }: Props) {
   const [periodPreset, setPeriodPreset] = useState<PeriodPreset>("custom");
   const [feeRate, setFeeRate] = useState("");
   const [slippageRate, setSlippageRate] = useState("");
+  const [forceRefreshPrices, setForceRefreshPrices] = useState(false);
+  const [isBetaGrandfatheredUser, setIsBetaGrandfatheredUser] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [userPlan, setUserPlan] = useState<PlanResponse | null>(null);
 
@@ -763,9 +765,15 @@ export default function StrategyBacktestPage({ params }: Props) {
 
   // Fetch user plan to check for premium features
   useEffect(() => {
-    apiFetch<{ plan: PlanResponse }>("/users/me")
-      .then((data) => setUserPlan(data.plan))
-      .catch(() => setUserPlan(null));
+    apiFetch<ProfileResponse>("/users/me")
+      .then((data) => {
+        setUserPlan(data.plan);
+        setIsBetaGrandfatheredUser(data.settings.user_tier === "beta");
+      })
+      .catch(() => {
+        setUserPlan(null);
+        setIsBetaGrandfatheredUser(false);
+      });
   }, []);
 
   // Handle period preset changes
@@ -841,6 +849,10 @@ export default function StrategyBacktestPage({ params }: Props) {
       date_from: fromDate.toISOString(),
       date_to: toDate.toISOString(),
     };
+
+    if (isBetaGrandfatheredUser && forceRefreshPrices) {
+      payload.force_refresh_prices = true;
+    }
 
     if (feeRate) payload.fee_rate = Number(feeRate);
     if (slippageRate) payload.slippage_rate = Number(slippageRate);
@@ -1165,6 +1177,24 @@ export default function StrategyBacktestPage({ params }: Props) {
                   className="mt-1"
                 />
               </div>
+              {isBetaGrandfatheredUser && (
+                <div className="md:col-span-2">
+                  <label className="mt-1 flex items-start gap-2 text-sm text-gray-700">
+                    <input
+                      type="checkbox"
+                      checked={forceRefreshPrices}
+                      onChange={(e) => setForceRefreshPrices(e.target.checked)}
+                      className="mt-0.5 h-4 w-4 rounded border-gray-300"
+                    />
+                    <span>
+                      Force refresh candle prices before running (Beta User — Grandfathered Perks Applied).
+                      <span className="block text-xs text-gray-500">
+                        Re-fetches OHLCV for this exact period and overwrites cached values.
+                      </span>
+                    </span>
+                  </label>
+                </div>
+              )}
               <div className="md:col-span-2 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <p className="text-sm text-gray-500">
                   Backtests run in the background. You can leave this page and results will still be saved.

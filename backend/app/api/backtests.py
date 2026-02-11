@@ -21,7 +21,7 @@ from app.models.notification import Notification
 from app.models.shared_backtest_link import SharedBacktestLink
 from app.models.strategy import Strategy
 from app.models.strategy_version import StrategyVersion
-from app.models.user import User
+from app.models.user import User, UserTier
 from app.backtest.data_quality import query_metrics_for_range, compute_completeness_metrics
 from app.backtest.storage import download_json
 from app.backtest.explanation import build_trade_explanation
@@ -73,6 +73,13 @@ def create_backtest(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Strategy not found",
+        )
+
+    # Force-refresh of cached OHLCV is restricted to grandfathered beta users.
+    if data.force_refresh_prices and user.user_tier != UserTier.BETA:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Force refresh prices is only available for Beta User — Grandfathered Perks Applied.",
         )
 
     # Check daily backtest limit based on plan tier
@@ -190,6 +197,7 @@ def create_backtest(
         queue.enqueue(
             "app.worker.jobs.run_backtest_job",
             str(run.id),
+            data.force_refresh_prices,
             job_timeout=300,  # 5 minute timeout
         )
         if use_credit:
