@@ -8,32 +8,32 @@
 
 ### 1.1 Service Startup
 
-- [ ] `docker-compose up` (or `docker compose up`) builds all images and starts all services without errors
-- [ ] `frontend` service starts and listens on the configured port (default 3000)
-- [ ] `api` service starts and listens on its configured port
-- [ ] `worker` service starts and connects to Redis successfully
-- [ ] `db` (Postgres) service starts with the configured DB name, user, and password
-- [ ] `redis` service starts and is reachable by `api` and `worker`
-- [ ] (Optional) `storage` (MinIO/S3-compatible) service starts if configured
-- [ ] All services can communicate with each other as expected (frontend -> api, api -> db, api -> redis, worker -> db, worker -> redis)
+- [x] `docker-compose up` (or `docker compose up`) builds all images and starts all services without errors
+- [x] `frontend` service starts and listens on the configured port (default 3000)
+- [x] `api` service starts and listens on its configured port
+- [x] `worker` service starts and connects to Redis successfully
+- [x] `db` (Postgres) service starts with the configured DB name, user, and password
+- [x] `redis` service starts and is reachable by `api` and `worker`
+- [x] (Optional) `storage` (MinIO/S3-compatible) service starts if configured
+- [x] All services can communicate with each other as expected (frontend -> api, api -> db, api -> redis, worker -> db, worker -> redis)
 
 ### 1.2 Environment Variables
 
-- [ ] `API_BASE_URL` environment variable is correctly consumed by the frontend service
-- [ ] DB URL environment variable is correctly consumed by the API service
-- [ ] Redis URL environment variable is correctly consumed by the API and worker services
-- [ ] Missing required environment variables cause a clear, fast failure with descriptive log output
+- [x] `API_BASE_URL` environment variable is correctly consumed by the frontend service
+- [x] DB URL environment variable is correctly consumed by the API service
+- [x] Redis URL environment variable is correctly consumed by the API and worker services
+- [x] Missing required environment variables cause a clear, fast failure with descriptive log output
 
 ### 1.3 Data Persistence
 
-- [ ] Postgres data directory is persisted via a Docker volume
-- [ ] Stopping and restarting `docker-compose` retains previously inserted DB data
+- [x] Postgres data directory is persisted via a Docker volume
+- [x] Stopping and restarting `docker-compose` retains previously inserted DB data
 
 ### 1.4 Worker Configuration
 
-- [ ] Worker uses the same Docker image as the `api` service
-- [ ] Worker starts in "worker mode" via a different command/entrypoint
-- [ ] Worker is connected to Redis for job queue processing
+- [x] Worker uses the same Docker image as the `api` service
+- [x] Worker starts in "worker mode" via a different command/entrypoint
+- [x] Worker is connected to Redis for job queue processing
 
 ---
 
@@ -41,7 +41,7 @@
 
 ### 2.1 Backend Health Endpoint
 
-- [ ] `GET /health` returns HTTP 200 with JSON body containing `"status": "ok"`
+- [x] `GET /health` returns HTTP 200 with JSON body containing `"status": "ok"`
 - [ ] Response includes `"db": "ok"` when the database is reachable
 - [ ] Response includes `"version"` field with the app version string
 - [ ] When Postgres is unreachable, `GET /health` returns `"db": "error"` instead of crashing the process
@@ -49,8 +49,8 @@
 
 ### 2.2 Frontend Health Page
 
-- [ ] `GET /health` on the frontend returns an HTML page with text "OK" or similar status indicator
-- [ ] The page renders without errors in a browser
+- [x] `GET /health` on the frontend returns an HTML page with text "OK" or similar status indicator
+- [x] The page renders without errors in a browser
 - [ ] (Optional) Frontend health page calls backend `/health` and displays its status
 
 ---
@@ -59,9 +59,9 @@
 
 ### 3.1 Migration Execution
 
-- [ ] A single documented command (e.g., `alembic upgrade head`) applies all migrations successfully
-- [ ] Migrations are idempotent: running them multiple times does not cause errors
-- [ ] Migrations run without manual intervention after initial setup
+- [x] A single documented command (e.g., `alembic upgrade head`) applies all migrations successfully
+- [x] Migrations are idempotent: running them multiple times does not cause errors
+- [x] Migrations run without manual intervention after initial setup
 
 ### 3.2 `users` Table
 
@@ -153,8 +153,8 @@
 
 ## 6. Non-Functional & Edge Cases
 
-- [ ] No additional infrastructure beyond what is listed in the PRD is required
-- [ ] All services use a single monolithic FastAPI codebase (API + worker modes)
-- [ ] Single Postgres DB is used (no extra databases)
-- [ ] Single Redis instance is used (no extra queue systems)
-- [ ] Stack does not include microservices, Kubernetes, or complex orchestration
+- [x] No additional infrastructure beyond what is listed in the PRD is required
+- [x] All services use a single monolithic FastAPI codebase (API + worker modes)
+- [x] Single Postgres DB is used (no extra databases)
+- [x] Single Redis instance is used (no extra queue systems)
+- [x] Stack does not include microservices, Kubernetes, or complex orchestration

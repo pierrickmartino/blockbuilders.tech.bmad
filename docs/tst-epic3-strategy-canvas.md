@@ -8,38 +8,38 @@
 
 ### 1.1 Page & Navigation
 
-- [ ] Canvas page is accessible at `/strategies/[id]/edit`
+- [x] Canvas page is accessible at `/strategies/[id]/edit`
 - [ ] Page requires authentication; unauthenticated users are redirected to login
 - [ ] Page loads only if the user owns the strategy; otherwise shows an error or redirects
 
 ### 1.2 Top Bar
 
-- [ ] Strategy name is displayed in the top bar
-- [ ] Asset and timeframe are displayed (read-only labels or inline edit)
-- [ ] "Save" button is present and functional
-- [ ] "Back to list" button navigates to the strategies list
+- [x] Strategy name is displayed in the top bar
+- [x] Asset and timeframe are displayed (read-only labels or inline edit)
+- [x] "Save" button is present and functional
+- [x] "Back to list" button navigates to the strategies list
 
 ### 1.3 Block Palette (Left Panel)
 
-- [ ] Left panel displays block categories: Inputs, Indicators, Logic, Position & Risk, Signals
-- [ ] Each category contains the correct blocks as defined in the MVP spec
-- [ ] Blocks are draggable from the palette onto the canvas
+- [x] Left panel displays block categories: Inputs, Indicators, Logic, Position & Risk, Signals
+- [x] Each category contains the correct blocks as defined in the MVP spec
+- [x] Blocks are draggable from the palette onto the canvas
 
 ### 1.4 Canvas Interactions
 
-- [ ] Blocks can be dragged from the palette and placed on the canvas
-- [ ] Blocks can be repositioned by dragging on the canvas
-- [ ] Canvas is pannable/scrollable
-- [ ] Clicking a block selects it (visual indicator of selection)
-- [ ] Connections can be created by clicking/dragging from an output port to an input port
-- [ ] Connections are displayed visually as lines/curves between blocks
-- [ ] (Optional) Basic zoom in/out works if implemented
+- [x] Blocks can be dragged from the palette and placed on the canvas
+- [x] Blocks can be repositioned by dragging on the canvas
+- [x] Canvas is pannable/scrollable
+- [x] Clicking a block selects it (visual indicator of selection)
+- [x] Connections can be created by clicking/dragging from an output port to an input port
+- [x] Connections are displayed visually as lines/curves between blocks
+- [x] (Optional) Basic zoom in/out works if implemented
 
 ### 1.5 Properties Panel (Right Panel)
 
-- [ ] When a block is selected, the right panel shows its properties
+- [x] When a block is selected, the right panel shows its properties
 - [ ] When no block is selected, the right panel shows help text
-- [ ] Properties panel updates when a different block is selected
+- [x] Properties panel updates when a different block is selected
 
 ### 1.6 Initial State
 
