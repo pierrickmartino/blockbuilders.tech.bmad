@@ -82,6 +82,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname()
   const { user, logout } = useAuth()
 
+  const initials = user?.email
+    ? user.email.slice(0, 2).toUpperCase()
+    : "U"
+
   return (
     <Sidebar variant="inset" {...props}>
       <SidebarHeader>
@@ -89,12 +93,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
               <Link href="/dashboard">
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                  <Blocks className="size-4" />
+                <div className="flex aspect-square size-9 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-sm shadow-primary/25">
+                  <Blocks className="size-5" />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">Blockbuilders</span>
-                  <span className="truncate text-xs">Strategy Lab</span>
+                  <span className="truncate font-bold tracking-tight">Blockbuilders</span>
+                  <span className="truncate text-xs text-muted-foreground">Strategy Lab</span>
                 </div>
               </Link>
             </SidebarMenuButton>
@@ -103,31 +107,49 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Platform</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+            Platform
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={pathname === item.url}>
-                    <Link href={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {navItems.map((item) => {
+                const isActive = pathname === item.url || (item.url !== "/dashboard" && pathname.startsWith(item.url + "/"))
+                return (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive}
+                      className="relative transition-colors duration-150"
+                    >
+                      <Link href={item.url}>
+                        {isActive && (
+                          <span className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-r-full bg-primary" />
+                        )}
+                        <item.icon className="size-4" />
+                        <span>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
         <SidebarGroup>
-          <SidebarGroupLabel>Resources</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+            Resources
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {resourceItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={pathname === item.url}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={pathname === item.url}
+                    className="transition-colors duration-150"
+                  >
                     <Link href={item.url}>
-                      <item.icon />
+                      <item.icon className="size-4" />
                       <span>{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
@@ -146,16 +168,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   size="lg"
                   className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                 >
-                  <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-accent text-sidebar-accent-foreground">
-                    <User className="size-4" />
+                  <div className="flex aspect-square size-8 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+                    {initials}
                   </div>
                   <div className="grid flex-1 text-left text-sm leading-tight">
                     <span className="truncate font-semibold">
                       {user?.email?.split("@")[0] || "User"}
                     </span>
-                    <span className="truncate text-xs">{user?.email}</span>
+                    <span className="truncate text-xs text-muted-foreground">{user?.email}</span>
                   </div>
-                  <ChevronUp className="ml-auto size-4" />
+                  <ChevronUp className="ml-auto size-4 text-muted-foreground" />
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent
@@ -172,7 +194,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => logout()}
-                  className="cursor-pointer"
+                  className="cursor-pointer text-destructive focus:text-destructive"
                 >
                   <LogOut className="mr-2 size-4" />
                   Log out

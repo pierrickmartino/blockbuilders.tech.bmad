@@ -6,7 +6,7 @@ import { useAuth } from "@/context/auth";
 import { ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Blocks, TrendingUp, Shield } from "lucide-react";
 
 type AuthMode = "login" | "signup";
 
@@ -45,6 +45,24 @@ function GitHubIcon() {
   );
 }
 
+const features = [
+  {
+    icon: Blocks,
+    title: "Visual Strategy Builder",
+    description: "Drag-and-drop blocks to create trading strategies without code",
+  },
+  {
+    icon: TrendingUp,
+    title: "Instant Backtesting",
+    description: "Test strategies against historical data in seconds",
+  },
+  {
+    icon: Shield,
+    title: "Risk Management",
+    description: "Built-in stop-loss, take-profit, and position sizing",
+  },
+];
+
 function AuthForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -60,25 +78,22 @@ function AuthForm() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [passwordFocused, setPasswordFocused] = useState(false);
 
-  // Redirect to dashboard if already logged in
   useEffect(() => {
     if (!isLoading && user) {
       router.push("/dashboard");
     }
   }, [user, isLoading, router]);
 
-  // Update mode when URL changes
   useEffect(() => {
     const urlMode = searchParams.get("mode") === "signup" ? "signup" : "login";
     setMode(urlMode);
   }, [searchParams]);
 
-  // Don't render form if logged in
   if (user) {
     return (
-      <Card className="p-8">
-        <p className="text-center text-muted-foreground">Redirecting...</p>
-      </Card>
+      <div className="flex min-h-screen items-center justify-center">
+        <p className="text-muted-foreground">Redirecting...</p>
+      </div>
     );
   }
 
@@ -109,7 +124,6 @@ function AuthForm() {
     setError("");
     setFieldErrors({});
     setTouched({});
-    // Update URL without navigation
     const url = new URL(window.location.href);
     url.searchParams.set("mode", newMode);
     window.history.replaceState({}, "", url.toString());
@@ -119,7 +133,6 @@ function AuthForm() {
     e.preventDefault();
     setError("");
 
-    // Validate all fields
     const emailError = validateEmail(email);
     const passwordError = validatePassword(password);
     setFieldErrors({ email: emailError, password: passwordError });
@@ -148,138 +161,248 @@ function AuthForm() {
   }
 
   const isLogin = mode === "login";
-  const title = isLogin ? "Sign in to Blockbuilders" : "Create your account";
+  const title = isLogin ? "Welcome back" : "Create your account";
+  const subtitle = isLogin
+    ? "Sign in to your strategy workspace"
+    : "Start building strategies in minutes";
   const submitText = isLogin ? "Sign in" : "Create account";
   const submittingText = isLogin ? "Signing in..." : "Creating account...";
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <div className="w-full max-w-md">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-center text-2xl">{title}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {error && (
-                <div className="rounded border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
-                  {error}
+    <div className="relative flex min-h-screen overflow-hidden bg-background">
+      {/* Background gradient effects */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -left-1/4 -top-1/4 h-[600px] w-[600px] rounded-full bg-primary/5 blur-3xl" />
+        <div className="absolute -bottom-1/4 -right-1/4 h-[500px] w-[500px] rounded-full bg-primary/3 blur-3xl" />
+      </div>
+
+      {/* Brand panel — hidden on mobile */}
+      <div className="relative hidden w-1/2 items-center justify-center overflow-hidden bg-gradient-to-br from-primary via-primary/90 to-indigo-600 lg:flex">
+        {/* Decorative circles */}
+        <div className="absolute -right-20 -top-20 h-80 w-80 rounded-full bg-white/5" />
+        <div className="absolute -bottom-32 -left-16 h-96 w-96 rounded-full bg-white/5" />
+        <div className="absolute right-1/4 top-1/3 h-40 w-40 rounded-full bg-white/5" />
+
+        <div className="relative z-10 max-w-md px-12">
+          <div className="mb-8 flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/15 backdrop-blur-sm">
+              <Blocks className="h-7 w-7 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-white">
+                Blockbuilders
+              </h1>
+              <p className="text-sm text-white/70">Strategy Lab</p>
+            </div>
+          </div>
+
+          <h2 className="mb-4 text-3xl font-bold leading-tight tracking-tight text-white">
+            Visual Strategy Lab
+            <br />
+            <span className="text-white/80">for Crypto Traders</span>
+          </h2>
+
+          <p className="mb-10 text-base leading-relaxed text-white/60">
+            Build, backtest, and iterate on trading strategies using an
+            intuitive visual builder. No coding required.
+          </p>
+
+          <div className="space-y-5">
+            {features.map((feature) => (
+              <div key={feature.title} className="flex items-start gap-4">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/10 backdrop-blur-sm">
+                  <feature.icon className="h-5 w-5 text-white/90" />
                 </div>
-              )}
-
-              <div className="space-y-2">
-                <label htmlFor="email" className="text-sm font-medium">
-                  Email
-                </label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  onBlur={() => handleBlur("email")}
-                  autoComplete="email"
-                  required
-                  className={touched.email && fieldErrors.email ? "border-destructive" : ""}
-                />
-                {touched.email && fieldErrors.email && (
-                  <p className="text-xs text-destructive">{fieldErrors.email}</p>
-                )}
+                <div>
+                  <h3 className="text-sm font-semibold text-white">
+                    {feature.title}
+                  </h3>
+                  <p className="text-sm leading-relaxed text-white/50">
+                    {feature.description}
+                  </p>
+                </div>
               </div>
+            ))}
+          </div>
+        </div>
+      </div>
 
-              <div className="space-y-2">
+      {/* Auth form panel */}
+      <div className="relative flex w-full items-center justify-center px-6 py-12 lg:w-1/2">
+        <div className="w-full max-w-[400px]">
+          {/* Mobile logo */}
+          <div className="mb-8 flex items-center gap-3 lg:hidden">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+              <Blocks className="h-5 w-5" />
+            </div>
+            <div>
+              <h1 className="text-lg font-bold tracking-tight">Blockbuilders</h1>
+              <p className="text-xs text-muted-foreground">Strategy Lab</p>
+            </div>
+          </div>
+
+          <div className="mb-8">
+            <h2 className="text-2xl font-bold tracking-tight">{title}</h2>
+            <p className="mt-2 text-sm text-muted-foreground">{subtitle}</p>
+          </div>
+
+          {/* OAuth buttons — shown first for quick access */}
+          <div className="mb-6 grid grid-cols-2 gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              className="h-11 transition-colors hover:bg-accent"
+              onClick={() => startOAuth("google")}
+            >
+              <GoogleIcon />
+              Google
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="h-11 transition-colors hover:bg-accent"
+              onClick={() => startOAuth("github")}
+            >
+              <GitHubIcon />
+              GitHub
+            </Button>
+          </div>
+
+          <div className="relative mb-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs">
+              <span className="bg-background px-3 text-muted-foreground">
+                or continue with email
+              </span>
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {error && (
+              <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+                {error}
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <label htmlFor="email" className="text-sm font-medium">
+                Email
+              </label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                onBlur={() => handleBlur("email")}
+                autoComplete="email"
+                required
+                placeholder="name@example.com"
+                className={`h-11 ${touched.email && fieldErrors.email ? "border-destructive" : ""}`}
+              />
+              {touched.email && fieldErrors.email && (
+                <p className="text-xs text-destructive">{fieldErrors.email}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
                 <label htmlFor="password" className="text-sm font-medium">
                   Password
                 </label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  onFocus={() => setPasswordFocused(true)}
-                  onBlur={() => handleBlur("password")}
-                  autoComplete={isLogin ? "current-password" : "new-password"}
-                  required
-                  minLength={mode === "signup" ? 8 : undefined}
-                  className={touched.password && fieldErrors.password ? "border-destructive" : ""}
-                />
-                {touched.password && fieldErrors.password && (
-                  <p className="text-xs text-destructive">{fieldErrors.password}</p>
-                )}
-                {mode === "signup" && passwordFocused && !fieldErrors.password && (
-                  <p className="text-xs text-muted-foreground">Use at least 8 characters</p>
-                )}
-              </div>
-
-              {isLogin && (
-                <div className="text-right">
+                {isLogin && (
                   <Button
                     type="button"
                     variant="link"
-                    className="h-auto p-0 text-sm"
+                    className="h-auto p-0 text-xs text-muted-foreground hover:text-foreground"
                     onClick={() => router.push("/forgot-password")}
                   >
                     Forgot password?
                   </Button>
-                </div>
-              )}
-
-              <Button type="submit" disabled={isSubmitting} className="w-full">
-                {isSubmitting && (
-                  <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
                 )}
-                {isSubmitting ? submittingText : submitText}
-              </Button>
-            </form>
-
-            <p className="mt-4 text-center text-xs text-muted-foreground">
-              No credit card required. We never share your data.
-            </p>
-
-            {/* OAuth buttons */}
-            <div className="mt-6">
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t" />
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
-                </div>
               </div>
-
-              <div className="mt-4 grid grid-cols-2 gap-3">
-                <Button type="button" variant="outline" onClick={() => startOAuth("google")}>
-                  <GoogleIcon />
-                  Google
-                </Button>
-                <Button type="button" variant="outline" onClick={() => startOAuth("github")}>
-                  <GitHubIcon />
-                  GitHub
-                </Button>
-              </div>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onFocus={() => setPasswordFocused(true)}
+                onBlur={() => handleBlur("password")}
+                autoComplete={isLogin ? "current-password" : "new-password"}
+                required
+                minLength={mode === "signup" ? 8 : undefined}
+                placeholder={mode === "signup" ? "At least 8 characters" : "Enter your password"}
+                className={`h-11 ${touched.password && fieldErrors.password ? "border-destructive" : ""}`}
+              />
+              {touched.password && fieldErrors.password && (
+                <p className="text-xs text-destructive">{fieldErrors.password}</p>
+              )}
+              {mode === "signup" && passwordFocused && !fieldErrors.password && (
+                <p className="text-xs text-muted-foreground">Use at least 8 characters</p>
+              )}
             </div>
 
-            <p className="mt-6 text-center text-sm text-muted-foreground">
-              {isLogin ? (
-                <>
-                  Don&apos;t have an account?{" "}
-                  <Button variant="link" className="h-auto p-0" onClick={() => switchMode("signup")}>
-                    Create one
-                  </Button>
-                </>
-              ) : (
-                <>
-                  Already have an account?{" "}
-                  <Button variant="link" className="h-auto p-0" onClick={() => switchMode("login")}>
-                    Sign in
-                  </Button>
-                </>
+            <Button type="submit" disabled={isSubmitting} className="h-11 w-full">
+              {isSubmitting && (
+                <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
               )}
-            </p>
-          </CardContent>
-        </Card>
+              {isSubmitting ? submittingText : submitText}
+            </Button>
+          </form>
+
+          <p className="mt-4 text-center text-xs text-muted-foreground">
+            No credit card required. We never share your data.
+          </p>
+
+          <p className="mt-6 text-center text-sm text-muted-foreground">
+            {isLogin ? (
+              <>
+                Don&apos;t have an account?{" "}
+                <Button variant="link" className="h-auto p-0 text-sm" onClick={() => switchMode("signup")}>
+                  Create one
+                </Button>
+              </>
+            ) : (
+              <>
+                Already have an account?{" "}
+                <Button variant="link" className="h-auto p-0 text-sm" onClick={() => switchMode("login")}>
+                  Sign in
+                </Button>
+              </>
+            )}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AuthSkeleton() {
+  return (
+    <div className="flex min-h-screen">
+      <div className="hidden w-1/2 bg-primary/5 lg:block" />
+      <div className="flex w-full items-center justify-center p-6 lg:w-1/2">
+        <div className="w-full max-w-[400px]">
+          <div className="animate-pulse space-y-6">
+            <div>
+              <div className="mb-2 h-8 w-48 rounded bg-muted" />
+              <div className="h-4 w-64 rounded bg-muted" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="h-11 rounded-md bg-muted" />
+              <div className="h-11 rounded-md bg-muted" />
+            </div>
+            <div className="space-y-4">
+              <div className="h-11 rounded-md bg-muted" />
+              <div className="h-11 rounded-md bg-muted" />
+              <div className="h-11 rounded-md bg-muted" />
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -287,24 +410,7 @@ function AuthForm() {
 
 export default function Home() {
   return (
-    <Suspense
-      fallback={
-        <div className="flex min-h-screen items-center justify-center bg-background p-4">
-          <div className="w-full max-w-md">
-            <Card className="p-8">
-              <div className="animate-pulse">
-                <div className="mx-auto mb-6 h-8 w-48 rounded bg-muted" />
-                <div className="space-y-4">
-                  <div className="h-10 rounded bg-muted" />
-                  <div className="h-10 rounded bg-muted" />
-                  <div className="h-10 rounded bg-muted" />
-                </div>
-              </div>
-            </Card>
-          </div>
-        </div>
-      }
-    >
+    <Suspense fallback={<AuthSkeleton />}>
       <AuthForm />
     </Suspense>
   );

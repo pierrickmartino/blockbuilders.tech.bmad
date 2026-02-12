@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "Blockbuilders Design System",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Comprehensive design system specification for the Blockbuilders application",
 
   "tokens": {
@@ -373,12 +373,16 @@
     },
     "input": {
       "base": "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
-      "description": "Standard text input field"
+      "large": "h-11",
+      "withIcon": "pl-10",
+      "description": "Standard text input field. Use 'large' (h-11) for auth forms. Use 'withIcon' when pairing with a positioned icon."
     },
     "card": {
       "container": {
         "classes": "rounded-xl border bg-card text-card-foreground shadow",
-        "description": "Main card container"
+        "hoverSubtle": "transition-shadow duration-200 hover:shadow-md",
+        "hoverInteractive": "transition-all duration-200 hover:border-primary/20 hover:shadow-md",
+        "description": "Main card container. Add hover classes for interactive cards."
       },
       "header": {
         "classes": "flex flex-col space-y-1.5 p-6",
@@ -523,8 +527,24 @@
         "collapsed": "3rem"
       },
       "menuButton": {
-        "classes": "flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-none ring-sidebar-ring transition-[width,height,padding] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50",
+        "classes": "flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-none ring-sidebar-ring transition-colors duration-150 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50",
         "description": "Sidebar navigation button"
+      },
+      "activeIndicator": {
+        "classes": "absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-primary",
+        "description": "Purple left bar on active nav item"
+      },
+      "sectionLabel": {
+        "classes": "text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70",
+        "description": "Uppercase section divider labels"
+      },
+      "logoIcon": {
+        "classes": "flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-sm",
+        "description": "Gradient brand icon in sidebar header"
+      },
+      "userAvatar": {
+        "classes": "flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-medium text-primary",
+        "description": "Initials avatar circle in sidebar footer"
       }
     },
     "tooltip": {
@@ -548,9 +568,40 @@
       "container": "h-2 w-full overflow-hidden rounded-full bg-muted",
       "fill": "h-2 rounded-full transition-all",
       "colors": {
-        "default": "bg-primary",
+        "default": "bg-gradient-to-r from-primary to-primary/80",
         "warning": "bg-yellow-500",
         "danger": "bg-red-500"
+      }
+    },
+    "segmentedControl": {
+      "container": {
+        "classes": "inline-flex rounded-lg border bg-muted/50 p-0.5",
+        "description": "Connected button group with shared border for toggle/selection UI"
+      },
+      "button": {
+        "base": "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+        "active": "bg-background text-foreground shadow-sm",
+        "inactive": "text-muted-foreground hover:text-foreground",
+        "description": "Individual segment button within the control"
+      }
+    },
+    "statCard": {
+      "container": {
+        "classes": "group transition-shadow duration-200 hover:shadow-md",
+        "description": "Compact metric card for dashboard stat rows"
+      },
+      "iconContainer": {
+        "classes": "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg",
+        "colorPattern": "bg-{color}/10 text-{color} group-hover:bg-{color}/15",
+        "description": "Rounded icon holder with category-colored tint"
+      },
+      "metric": {
+        "classes": "text-2xl font-bold tabular-nums tracking-tight",
+        "description": "Large numeric value display"
+      },
+      "label": {
+        "classes": "text-sm text-muted-foreground",
+        "description": "Metric description text"
       }
     },
     "alert": {
@@ -580,14 +631,30 @@
     "layout": {
       "page": {
         "container": "container mx-auto max-w-6xl p-4 md:p-6",
-        "heading": "text-2xl font-bold",
+        "narrowContainer": "container mx-auto max-w-4xl p-4 md:p-6",
+        "heading": "text-2xl font-bold tracking-tight",
+        "heroHeading": "text-3xl font-bold tracking-tight",
         "subheading": "text-muted-foreground",
-        "sections": "space-y-6"
+        "sections": "space-y-8"
       },
       "grid": {
         "responsive2col": "grid gap-4 sm:grid-cols-2",
-        "responsive3col": "grid gap-4 sm:grid-cols-2 lg:grid-cols-3",
+        "responsive3col": "grid gap-3 sm:grid-cols-2 lg:grid-cols-3",
+        "statRow": "grid gap-4 sm:grid-cols-3",
         "mobileStack": "flex flex-col gap-4 md:flex-row"
+      },
+      "splitLayout": {
+        "container": "flex min-h-screen",
+        "brandPanel": "hidden lg:flex lg:w-1/2 flex-col justify-center bg-gradient-to-br from-primary via-primary/90 to-indigo-600 text-primary-foreground p-12",
+        "formPanel": "flex w-full items-center justify-center p-4 lg:w-1/2 lg:p-8",
+        "description": "Side-by-side layout for auth pages — brand panel left, form right. Stacks vertically on mobile."
+      },
+      "sectionHeader": {
+        "container": "mb-4 flex items-center justify-between",
+        "titleGroup": "flex items-center gap-2",
+        "icon": "h-4 w-4 text-muted-foreground",
+        "title": "font-semibold tracking-tight",
+        "viewAllLink": "text-sm text-muted-foreground transition-colors hover:text-foreground"
       }
     },
     "forms": {
@@ -614,21 +681,38 @@
     "states": {
       "loading": {
         "container": "flex min-h-[200px] items-center justify-center",
-        "text": "text-muted-foreground"
+        "spinner": "h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent",
+        "text": "text-sm text-muted-foreground"
       },
       "empty": {
-        "container": "flex flex-col items-center justify-center p-12 text-center",
-        "text": "text-gray-500"
+        "container": "flex flex-col items-center justify-center py-16 text-center",
+        "iconCircle": "mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10",
+        "icon": "h-7 w-7 text-primary",
+        "heading": "mb-1 font-semibold",
+        "text": "mb-4 text-sm text-muted-foreground"
       },
       "error": {
-        "container": "rounded-lg border border-red-200 bg-red-50 p-4 text-red-600",
-        "retryLink": "ml-2 h-auto p-0 text-red-600 underline"
+        "container": "rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive",
+        "retryLink": "ml-2 h-auto p-0 text-destructive underline"
       }
     },
     "links": {
-      "primary": "text-blue-600 hover:text-blue-800 hover:underline",
-      "muted": "text-muted-foreground hover:text-foreground",
+      "primary": "text-primary/80 transition-colors hover:text-primary hover:underline",
+      "muted": "text-muted-foreground transition-colors hover:text-foreground",
       "destructive": "text-red-600 hover:text-red-800"
+    },
+    "cardHover": {
+      "subtle": "group transition-shadow duration-200 hover:shadow-md",
+      "interactive": "group transition-all duration-200 hover:border-primary/20 hover:shadow-md",
+      "description": "Standard card hover patterns — use 'subtle' for info cards, 'interactive' for clickable/navigable cards"
+    },
+    "stickyBar": {
+      "classes": "sticky top-0 z-10 rounded-lg border bg-background/80 px-4 py-2 backdrop-blur-sm",
+      "description": "Sticky action bar for bulk operations — frosted glass effect, shown contextually"
+    },
+    "filterBar": {
+      "classes": "rounded-lg border bg-muted/30 p-2 dark:bg-muted/10",
+      "description": "Subtle tinted container for filter/search controls"
     }
   },
 
@@ -657,7 +741,24 @@
       "search": "Search",
       "info": "Info",
       "warning": "AlertTriangle",
-      "error": "AlertCircle"
+      "error": "AlertCircle",
+      "strategies": "Layers",
+      "backtests": "TrendingUp",
+      "recentlyViewed": "Clock",
+      "arrowRight": "ArrowRight",
+      "positive": "ArrowUpRight",
+      "negative": "ArrowDownRight",
+      "actions": "MoreVertical",
+      "upload": "Upload",
+      "book": "BookOpen",
+      "palette": "Palette",
+      "globe": "Globe",
+      "creditCard": "CreditCard",
+      "chart": "BarChart3",
+      "sparkles": "Sparkles",
+      "blocks": "Blocks",
+      "shield": "Shield",
+      "zap": "Zap"
     }
   },
 
@@ -671,6 +772,27 @@
       "import": "import { cva, type VariantProps } from 'class-variance-authority'",
       "description": "Class Variance Authority for component variants",
       "usage": "Create variant definitions with base styles and variant options"
+    },
+    "textGradientPrimary": {
+      "class": ".text-gradient-primary",
+      "implementation": "bg-clip-text text-transparent + linear-gradient(135deg, primary purple, blue-indigo)",
+      "location": "frontend/src/app/globals.css",
+      "description": "Gradient text utility for brand moments — hero headings, welcome greetings. Use sparingly.",
+      "usage": "<span className=\"text-gradient-primary\">Display Name</span>"
+    },
+    "backgroundGradient": {
+      "description": "Subtle ambient radial gradients applied to body for depth. Two overlapping ellipses: primary-tinted at top center, blue-tinted at right edge.",
+      "location": "frontend/src/app/globals.css",
+      "lightMode": "primary/0.04 opacity, blue/0.02 opacity",
+      "darkMode": "primary/0.08 opacity, blue/0.04 opacity"
+    }
+  },
+
+  "siteHeader": {
+    "height": "h-14",
+    "gradientBorder": {
+      "classes": "h-px bg-gradient-to-r from-transparent via-border to-transparent",
+      "description": "Gradient bottom border that fades at edges — replaces solid border for premium feel"
     }
   },
 

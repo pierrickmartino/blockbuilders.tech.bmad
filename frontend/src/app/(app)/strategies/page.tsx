@@ -34,6 +34,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -42,6 +43,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Plus, Upload, BookOpen, Layers, Search, MoreVertical } from "lucide-react";
 
 type SortField = "name" | "updated_at" | "total_return" | "last_run" | "asset";
 type SortOrder = "asc" | "desc";
@@ -562,7 +564,7 @@ export default function StrategiesPage() {
 
   const getReturnColorClass = (value: number | null | undefined): string => {
     if (value === null || value === undefined) return "text-foreground";
-    return value > 0 ? "text-green-600" : value < 0 ? "text-red-600" : "text-foreground";
+    return value > 0 ? "text-green-600 dark:text-green-400" : value < 0 ? "text-red-600 dark:text-red-400" : "text-foreground";
   };
 
   const SortIcon = ({ field }: { field: SortField }) => {
@@ -573,8 +575,24 @@ export default function StrategiesPage() {
   if (isLoading) {
     return (
       <main className="container mx-auto max-w-6xl space-y-6 p-4 md:p-6">
-        <div className="flex min-h-[200px] items-center justify-center">
-          <p className="text-muted-foreground">Loading strategies...</p>
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-8 w-40" />
+          <Skeleton className="h-9 w-32" />
+        </div>
+        <Skeleton className="h-10 w-64" />
+        <div className="space-y-3">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <Card key={i}>
+              <CardContent className="flex items-center gap-4 p-4">
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-5 w-48" />
+                  <Skeleton className="h-4 w-24" />
+                </div>
+                <Skeleton className="h-5 w-16" />
+                <Skeleton className="h-5 w-16" />
+              </CardContent>
+            </Card>
+          ))}
         </div>
       </main>
     );
@@ -583,56 +601,60 @@ export default function StrategiesPage() {
   return (
     <main className="container mx-auto max-w-6xl space-y-6 p-4 md:p-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-bold">Strategies</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Strategies</h1>
         <div className="flex flex-wrap gap-2">
           <Button
             variant="outline"
             size="sm"
-            className="sm:h-9 sm:px-4 sm:text-sm"
             onClick={() => router.push("/strategies/templates")}
           >
-            Browse Templates
+            <BookOpen className="mr-1.5 h-3.5 w-3.5" />
+            Templates
           </Button>
           <Button
             variant="outline"
             size="sm"
-            className="sm:h-9 sm:px-4 sm:text-sm"
             onClick={() => setShowImportModal(true)}
           >
+            <Upload className="mr-1.5 h-3.5 w-3.5" />
             Import
           </Button>
-          <Button size="sm" className="sm:h-9 sm:px-4 sm:text-sm" onClick={() => setShowModal(true)}>
+          <Button size="sm" onClick={() => setShowModal(true)}>
+            <Plus className="mr-1.5 h-3.5 w-3.5" />
             New Strategy
           </Button>
         </div>
       </div>
 
       {error && (
-        <div className="rounded border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
           {error}
         </div>
       )}
 
       {bulkResult && (
-        <div className={`rounded border p-3 text-sm ${
+        <div className={`rounded-lg border px-4 py-3 text-sm ${
           bulkResult.type === 'success'
-            ? 'border-green-500/50 bg-green-50 text-green-900 dark:bg-green-900/20 dark:text-green-100'
+            ? 'border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-950 dark:text-green-300'
             : bulkResult.type === 'partial'
-            ? 'border-yellow-500/50 bg-yellow-50 text-yellow-900 dark:bg-yellow-900/20 dark:text-yellow-100'
-            : 'border-destructive/50 bg-destructive/10 text-destructive'
+            ? 'border-yellow-200 bg-yellow-50 text-yellow-800 dark:border-yellow-800 dark:bg-yellow-950 dark:text-yellow-300'
+            : 'border-destructive/30 bg-destructive/5 text-destructive'
         }`}>
           {bulkResult.message}
         </div>
       )}
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <Input
-          type="text"
-          placeholder="Search strategies..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="sm:w-64"
-        />
+        <div className="relative sm:w-64">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            type="text"
+            placeholder="Search strategies..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9"
+          />
+        </div>
         <label className="flex items-center gap-2 text-sm text-muted-foreground">
           <input
             type="checkbox"
@@ -645,7 +667,7 @@ export default function StrategiesPage() {
       </div>
 
       {/* Filter Controls */}
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/30 p-2 dark:bg-muted/10">
         <Select value={assetFilter} onValueChange={setAssetFilter}>
           <SelectTrigger className="w-full sm:w-[150px]">
             <SelectValue />
@@ -744,7 +766,7 @@ export default function StrategiesPage() {
       </div>
 
       {selectedIds.size > 0 && (
-        <div className="flex items-center justify-between rounded-lg border bg-muted/50 p-3">
+        <div className="sticky top-0 z-10 flex items-center justify-between rounded-lg border bg-background/80 p-3 shadow-sm backdrop-blur-sm">
           <span className="text-sm text-muted-foreground">
             {selectedIds.size} {selectedIds.size === 1 ? 'strategy' : 'strategies'} selected
           </span>
@@ -778,12 +800,24 @@ export default function StrategiesPage() {
 
       {filteredAndSortedStrategies.length === 0 ? (
         <Card>
-          <CardContent className="flex flex-col items-center justify-center p-12 text-center">
-            <p className="text-muted-foreground">
+          <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
+              <Layers className="h-7 w-7 text-primary" />
+            </div>
+            <h3 className="mb-1 font-semibold">
+              {strategies.length === 0 ? "No strategies yet" : "No matches"}
+            </h3>
+            <p className="mb-4 text-sm text-muted-foreground">
               {strategies.length === 0
-                ? "No strategies yet. Create your first strategy to get started."
+                ? "Create your first strategy to get started."
                 : "No strategies match your search or filters."}
             </p>
+            {strategies.length === 0 && (
+              <Button onClick={() => setShowModal(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Create Strategy
+              </Button>
+            )}
           </CardContent>
         </Card>
       ) : (
@@ -861,13 +895,13 @@ export default function StrategiesPage() {
                             <Badge variant="secondary">Archived</Badge>
                           )}
                           {strategy.auto_update_enabled && (
-                            <Badge variant="outline" className="bg-blue-50 text-blue-700">Auto: On</Badge>
+                            <Badge variant="outline" className="bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300">Auto</Badge>
                           )}
                         </div>
                         {strategy.tags && strategy.tags.length > 0 && (
                           <div className="flex flex-wrap gap-1">
                             {strategy.tags.map((tag) => (
-                              <Badge key={tag.id} variant="outline" className="bg-purple-50 text-purple-700 text-xs">
+                              <Badge key={tag.id} variant="outline" className="bg-purple-50 text-purple-700 text-xs dark:bg-purple-950 dark:text-purple-300">
                                 {tag.name}
                               </Badge>
                             ))}
@@ -881,16 +915,16 @@ export default function StrategiesPage() {
                     <TableCell className="text-muted-foreground">
                       {strategy.timeframe}
                     </TableCell>
-                    <TableCell className={`font-medium ${getReturnColorClass(strategy.latest_total_return_pct)}`}>
+                    <TableCell className={`font-medium tabular-nums ${getReturnColorClass(strategy.latest_total_return_pct)}`}>
                       {formatMetric(strategy.latest_total_return_pct, "%")}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="tabular-nums">
                       {formatMetric(strategy.latest_max_drawdown_pct, "%")}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="tabular-nums">
                       {formatMetric(strategy.latest_win_rate_pct, "%")}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="tabular-nums">
                       {formatMetric(strategy.latest_num_trades, "", 0)}
                     </TableCell>
                     <TableCell className="text-muted-foreground">
@@ -901,9 +935,7 @@ export default function StrategiesPage() {
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                             <span className="sr-only">Open actions</span>
-                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-                            </svg>
+                            <MoreVertical className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
@@ -942,7 +974,7 @@ export default function StrategiesPage() {
             {filteredAndSortedStrategies.map((strategy) => (
               <Card
                 key={strategy.id}
-                className={`relative ${strategy.is_archived ? "opacity-60" : ""}`}
+                className={`relative transition-shadow duration-200 hover:shadow-md ${strategy.is_archived ? "opacity-60" : ""}`}
               >
                 <div className="absolute left-3 top-3 z-10">
                   <input
@@ -983,9 +1015,7 @@ export default function StrategiesPage() {
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                           <span className="sr-only">Open actions</span>
-                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-                          </svg>
+                          <MoreVertical className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
@@ -1017,25 +1047,25 @@ export default function StrategiesPage() {
                   <div className="mb-3 grid grid-cols-2 gap-3">
                     <div>
                       <div className="text-xs text-muted-foreground">Total Return</div>
-                      <div className={`font-semibold ${getReturnColorClass(strategy.latest_total_return_pct)}`}>
+                      <div className={`font-semibold tabular-nums ${getReturnColorClass(strategy.latest_total_return_pct)}`}>
                         {formatMetric(strategy.latest_total_return_pct, "%")}
                       </div>
                     </div>
                     <div>
                       <div className="text-xs text-muted-foreground">Max Drawdown</div>
-                      <div className="font-semibold">
+                      <div className="font-semibold tabular-nums">
                         {formatMetric(strategy.latest_max_drawdown_pct, "%")}
                       </div>
                     </div>
                     <div>
                       <div className="text-xs text-muted-foreground">Win Rate</div>
-                      <div className="font-semibold">
+                      <div className="font-semibold tabular-nums">
                         {formatMetric(strategy.latest_win_rate_pct, "%")}
                       </div>
                     </div>
                     <div>
                       <div className="text-xs text-muted-foreground">Trades</div>
-                      <div className="font-semibold">
+                      <div className="font-semibold tabular-nums">
                         {formatMetric(strategy.latest_num_trades, "", 0)}
                       </div>
                     </div>
