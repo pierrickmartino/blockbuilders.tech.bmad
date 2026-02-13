@@ -66,14 +66,14 @@ export default function TemplatesPage() {
   return (
     <div className="container mx-auto max-w-6xl space-y-6 p-4 md:p-6">
       <div>
-        <h1 className="text-2xl font-bold">Strategy Templates</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Strategy Templates</h1>
         <p className="text-muted-foreground">
           Start with a proven strategy and customize it to your needs
         </p>
       </div>
 
       {error && (
-        <div className="rounded border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
           {error}
         </div>
       )}
@@ -85,9 +85,9 @@ export default function TemplatesPage() {
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {templates.map((template) => (
-            <Card key={template.id} className="flex flex-col">
+            <Card key={template.id} className="group flex flex-col transition-all duration-200 hover:border-primary/20 hover:shadow-md">
               <CardContent className="flex-1 p-6">
-                <h3 className="font-semibold text-lg mb-3">{template.name}</h3>
+                <h3 className="text-lg font-semibold tracking-tight mb-3">{template.name}</h3>
 
                 <div className="flex gap-2 mb-3">
                   <Badge variant="secondary">{template.asset}</Badge>

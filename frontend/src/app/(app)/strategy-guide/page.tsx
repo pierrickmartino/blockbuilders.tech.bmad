@@ -8,7 +8,7 @@ import {
 export default function StrategyGuidePage() {
   return (
     <div className="mx-auto max-w-3xl p-4 md:p-6">
-      <h1 className="text-2xl font-bold">
+      <h1 className="text-2xl font-bold tracking-tight">
         Strategy Building Guide
       </h1>
       <p className="mb-6 text-muted-foreground">
@@ -170,12 +170,12 @@ export default function StrategyGuidePage() {
           </CardContent>
         </Card>
 
-        <Card className="border-blue-200 bg-blue-50">
+        <Card className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950">
           <CardHeader>
-            <CardTitle className="text-blue-800">Need More Help?</CardTitle>
+            <CardTitle className="text-blue-900 dark:text-blue-400">Need More Help?</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-blue-700">
+            <p className="text-blue-700 dark:text-blue-400">
               If you&apos;re still seeing validation errors after reading this guide, double-check that all required blocks are present and properly connected. Error messages will point you to the specific block or connection that needs attention.
             </p>
           </CardContent>

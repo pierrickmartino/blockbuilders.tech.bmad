@@ -5,6 +5,9 @@ import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/auth";
 import { ApiError } from "@/lib/api";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
 
 function OAuthCallbackHandler() {
   const searchParams = useSearchParams();
@@ -44,48 +47,27 @@ function OAuthCallbackHandler() {
 
   if (error) {
     return (
-      <div className="rounded-lg bg-white p-8 shadow-md">
-        <h1 className="mb-4 text-center text-2xl font-bold text-gray-900">
+      <Card className="p-8">
+        <h1 className="mb-4 text-center text-2xl font-bold tracking-tight">
           Authentication failed
         </h1>
-        <div className="mb-6 rounded border border-red-200 bg-red-50 p-3 text-sm text-red-600">
+        <div className="mb-6 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
           {error}
         </div>
-        <Link
-          href="/?mode=login"
-          className="block w-full rounded-md bg-blue-600 px-4 py-2 text-center text-white hover:bg-blue-700"
-        >
-          Back to sign in
-        </Link>
-      </div>
+        <Button asChild className="w-full">
+          <Link href="/?mode=login">Back to sign in</Link>
+        </Button>
+      </Card>
     );
   }
 
   return (
-    <div className="rounded-lg bg-white p-8 shadow-md">
+    <Card className="p-8">
       <div className="flex flex-col items-center gap-4">
-        <svg
-          className="h-8 w-8 animate-spin text-blue-600"
-          viewBox="0 0 24 24"
-          fill="none"
-        >
-          <circle
-            className="opacity-25"
-            cx="12"
-            cy="12"
-            r="10"
-            stroke="currentColor"
-            strokeWidth="4"
-          />
-          <path
-            className="opacity-75"
-            fill="currentColor"
-            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-          />
-        </svg>
-        <p className="text-gray-600">Completing sign in...</p>
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-muted-foreground">Completing sign in...</p>
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -93,30 +75,12 @@ export default function OAuthCallbackPage() {
   return (
     <Suspense
       fallback={
-        <div className="rounded-lg bg-white p-8 shadow-md">
+        <Card className="p-8">
           <div className="flex flex-col items-center gap-4">
-            <svg
-              className="h-8 w-8 animate-spin text-blue-600"
-              viewBox="0 0 24 24"
-              fill="none"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              />
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-              />
-            </svg>
-            <p className="text-gray-600">Loading...</p>
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-muted-foreground">Loading...</p>
           </div>
-        </div>
+        </Card>
       }
     >
       <OAuthCallbackHandler />

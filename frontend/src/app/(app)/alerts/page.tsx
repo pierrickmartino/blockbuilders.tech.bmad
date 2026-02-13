@@ -153,7 +153,7 @@ export default function AlertsPage() {
     if (alert.expires_at && new Date(alert.expires_at) < new Date()) {
       return <Badge variant="outline">Expired</Badge>;
     }
-    return <Badge className="bg-green-600">Active</Badge>;
+    return <Badge className="bg-green-600 dark:bg-green-700">Active</Badge>;
   };
 
   const getChannelIcons = (alert: AlertRule) => {
@@ -182,7 +182,7 @@ export default function AlertsPage() {
     <div className="container mx-auto max-w-6xl space-y-6 p-4 md:p-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Alerts</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Alerts</h1>
           <p className="text-sm text-muted-foreground">
             Manage price and performance alerts
           </p>
@@ -190,7 +190,7 @@ export default function AlertsPage() {
       </div>
 
       {error && (
-        <div className="rounded border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
           {error}
           <Button
             variant="ghost"

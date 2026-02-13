@@ -207,12 +207,12 @@ export default function CompareBacktestsPage({ params }: Props) {
 
         <div className="mt-6 space-y-6">
           <div className="rounded-lg border border-border bg-card p-3 shadow-sm sm:p-4">
-            <h2 className="mb-4 text-lg font-semibold text-foreground">
+            <h2 className="mb-4 text-lg font-semibold tracking-tight">
               Compare Backtests ({runIds.length})
             </h2>
 
             {error && (
-              <div className="mb-4 rounded border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+              <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
                 {error}
               </div>
             )}
