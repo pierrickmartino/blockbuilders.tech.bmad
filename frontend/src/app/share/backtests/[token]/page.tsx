@@ -12,6 +12,10 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { formatDateTime, formatPercent, formatPrice } from "@/lib/format";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Loader2, TrendingUp, AlertCircle } from "lucide-react";
 
 interface PublicBacktestView {
   asset: string;
@@ -77,29 +81,34 @@ export default function SharedBacktestPage({ params }: Props) {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <div className="text-gray-500">Loading shared backtest...</div>
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">Loading shared backtest...</p>
+        </div>
       </div>
     );
   }
 
   if (error || !data) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <div className="max-w-md rounded-lg border border-red-200 bg-white p-6 text-center shadow-sm">
-          <h2 className="text-lg font-semibold text-gray-900 mb-2">
+      <div className="flex min-h-screen items-center justify-center bg-background p-4">
+        <Card className="max-w-md p-6 text-center">
+          <div className="mb-4 flex justify-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10">
+              <AlertCircle className="h-7 w-7 text-destructive" />
+            </div>
+          </div>
+          <h2 className="mb-1 font-semibold tracking-tight">
             Unable to Load Backtest
           </h2>
-          <p className="text-sm text-gray-600 mb-4">
+          <p className="mb-4 text-sm text-muted-foreground">
             {error || "This share link may have expired or been removed."}
           </p>
-          <button
-            onClick={() => router.push("/")}
-            className="text-sm text-blue-600 hover:text-blue-800"
-          >
+          <Button variant="outline" onClick={() => router.push("/")}>
             Go to Homepage
-          </button>
-        </div>
+          </Button>
+        </Card>
       </div>
     );
   }
@@ -120,110 +129,116 @@ export default function SharedBacktestPage({ params }: Props) {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
-      <div className="max-w-5xl mx-auto space-y-6">
+    <div className="min-h-screen bg-background px-4 py-8">
+      <div className="mx-auto max-w-5xl space-y-6">
         {/* Header */}
-        <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-2">
-            <h1 className="text-2xl font-bold text-gray-900">
-              Shared Backtest Results
-            </h1>
-            <div className="flex gap-2">
-              <span className="rounded bg-gray-100 px-2 py-1 text-sm text-gray-600">
-                {data.asset}
-              </span>
-              <span className="rounded bg-gray-100 px-2 py-1 text-sm text-gray-600">
-                {data.timeframe}
-              </span>
+        <Card>
+          <CardContent className="p-6">
+            <div className="mb-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-primary" />
+                <h1 className="text-2xl font-bold tracking-tight">
+                  Shared Backtest Results
+                </h1>
+              </div>
+              <div className="flex gap-2">
+                <Badge variant="secondary">{data.asset}</Badge>
+                <Badge variant="secondary">{data.timeframe}</Badge>
+              </div>
             </div>
-          </div>
-          <p className="text-sm text-gray-500">
-            {formatDateTime(data.date_from, "utc").split(" ")[0]} →{" "}
-            {formatDateTime(data.date_to, "utc").split(" ")[0]}
-          </p>
-          <div className="mt-3 rounded border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-700">
-            Strategy logic is not shared. Only performance metrics and equity
-            curve are visible.
-          </div>
-        </div>
+            <p className="text-sm text-muted-foreground">
+              {formatDateTime(data.date_from, "utc").split(" ")[0]} →{" "}
+              {formatDateTime(data.date_to, "utc").split(" ")[0]}
+            </p>
+            <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-900 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-400">
+              Strategy logic is not shared. Only performance metrics and equity
+              curve are visible.
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Metrics */}
-        <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            Performance Metrics
-          </h2>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-            {metrics.map((metric) => (
-              <div
-                key={metric.label}
-                className="rounded border border-gray-200 bg-gray-50 p-3"
-              >
-                <div className="text-xs uppercase text-gray-500 mb-1">
-                  {metric.label}
+        <Card>
+          <CardContent className="p-6">
+            <h2 className="mb-4 font-semibold tracking-tight">
+              Performance Metrics
+            </h2>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+              {metrics.map((metric) => (
+                <div
+                  key={metric.label}
+                  className="rounded-lg border bg-secondary/50 p-3 dark:bg-secondary/30"
+                >
+                  <div className="mb-1 text-xs uppercase text-muted-foreground">
+                    {metric.label}
+                  </div>
+                  <div className="text-lg font-semibold tabular-nums tracking-tight">
+                    {metric.value}
+                  </div>
                 </div>
-                <div className="text-lg font-semibold text-gray-900">
-                  {metric.value}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Equity Curve */}
         {data.equity_curve.length > 0 && (
-          <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
-              Equity Curve
-            </h2>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart
-                  data={data.equity_curve}
-                  margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
-                >
-                  <XAxis
-                    dataKey="timestamp"
-                    tickFormatter={(v) => new Date(v).toLocaleDateString()}
-                    tick={{ fontSize: 12 }}
-                    tickLine={false}
-                    axisLine={{ stroke: "#e5e7eb" }}
-                  />
-                  <YAxis
-                    tickFormatter={(v) => formatPrice(v, "").trim()}
-                    tick={{ fontSize: 12 }}
-                    tickLine={false}
-                    axisLine={{ stroke: "#e5e7eb" }}
-                    width={80}
-                  />
-                  <Tooltip
-                    formatter={(value) => [formatPrice(Number(value)), "Equity"]}
-                    labelFormatter={(label) =>
-                      formatDateTime(label as string, "utc")
-                    }
-                    contentStyle={{
-                      backgroundColor: "white",
-                      border: "1px solid #e5e7eb",
-                      borderRadius: "0.375rem",
-                      fontSize: "0.875rem",
-                    }}
-                  />
-                  <Legend
-                    wrapperStyle={{ fontSize: "0.875rem" }}
-                    iconType="line"
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="equity"
-                    stroke="#3b82f6"
-                    strokeWidth={2}
-                    dot={false}
-                    activeDot={{ r: 4, fill: "#3b82f6" }}
-                    name="Strategy"
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
+          <Card>
+            <CardContent className="p-6">
+              <h2 className="mb-4 font-semibold tracking-tight">
+                Equity Curve
+              </h2>
+              <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart
+                    data={data.equity_curve}
+                    margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
+                  >
+                    <XAxis
+                      dataKey="timestamp"
+                      tickFormatter={(v) => new Date(v).toLocaleDateString()}
+                      tick={{ fontSize: 12 }}
+                      tickLine={false}
+                      axisLine={{ stroke: "hsl(var(--border))" }}
+                    />
+                    <YAxis
+                      tickFormatter={(v) => formatPrice(v, "").trim()}
+                      tick={{ fontSize: 12 }}
+                      tickLine={false}
+                      axisLine={{ stroke: "hsl(var(--border))" }}
+                      width={80}
+                    />
+                    <Tooltip
+                      formatter={(value) => [formatPrice(Number(value)), "Equity"]}
+                      labelFormatter={(label) =>
+                        formatDateTime(label as string, "utc")
+                      }
+                      contentStyle={{
+                        backgroundColor: "hsl(var(--card))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: "0.5rem",
+                        fontSize: "0.875rem",
+                        color: "hsl(var(--foreground))",
+                      }}
+                    />
+                    <Legend
+                      wrapperStyle={{ fontSize: "0.875rem" }}
+                      iconType="line"
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="equity"
+                      stroke="hsl(var(--primary))"
+                      strokeWidth={2}
+                      dot={false}
+                      activeDot={{ r: 4, fill: "hsl(var(--primary))" }}
+                      name="Strategy"
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
         )}
       </div>
     </div>

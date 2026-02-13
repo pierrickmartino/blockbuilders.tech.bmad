@@ -38,7 +38,7 @@ export default function MarketPage() {
     return (
       <main className="container mx-auto max-w-6xl space-y-6 p-4 md:p-6">
         <div>
-          <h1 className="text-2xl font-bold">Market Overview</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Market Overview</h1>
         </div>
         <p className="text-muted-foreground">Loading market data...</p>
       </main>
@@ -49,9 +49,9 @@ export default function MarketPage() {
     return (
       <main className="container mx-auto max-w-6xl space-y-6 p-4 md:p-6">
         <div>
-          <h1 className="text-2xl font-bold">Market Overview</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Market Overview</h1>
         </div>
-        <div className="rounded border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
           Market data temporarily unavailable. Please try again later.
         </div>
       </main>
@@ -63,7 +63,7 @@ export default function MarketPage() {
       <main className="container mx-auto max-w-6xl space-y-6 p-4 md:p-6">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold">Market Overview</h1>
+            <h1 className="text-2xl font-bold tracking-tight">Market Overview</h1>
             {asOf && (
               <p className="text-sm text-muted-foreground">
                 Last updated: {formatDateTime(asOf, timezone)}
@@ -119,8 +119,8 @@ export default function MarketPage() {
                 <TableCell
                   className={`text-right ${
                     ticker.change_24h_pct >= 0
-                      ? "text-green-600"
-                      : "text-red-600"
+                      ? "text-green-600 dark:text-green-400"
+                      : "text-red-500 dark:text-red-400"
                   }`}
                 >
                   {formatPercent(ticker.change_24h_pct)}
@@ -139,9 +139,9 @@ export default function MarketPage() {
                 </TableCell>
                 <TableCell className="text-center">
                   {ticker.change_24h_pct >= 0 ? (
-                    <TrendingUp className="inline-block w-5 h-5 text-green-600" />
+                    <TrendingUp className="inline-block w-5 h-5 text-green-600 dark:text-green-400" />
                   ) : (
-                    <TrendingDown className="inline-block w-5 h-5 text-red-600" />
+                    <TrendingDown className="inline-block w-5 h-5 text-red-500 dark:text-red-400" />
                   )}
                 </TableCell>
               </TableRow>
@@ -158,9 +158,9 @@ export default function MarketPage() {
               <div className="flex items-center justify-between mb-2">
                 <span className="font-medium text-lg">{ticker.pair}</span>
                 {ticker.change_24h_pct >= 0 ? (
-                  <TrendingUp className="w-5 h-5 text-green-600" />
+                  <TrendingUp className="w-5 h-5 text-green-600 dark:text-green-400" />
                 ) : (
-                  <TrendingDown className="w-5 h-5 text-red-600" />
+                  <TrendingDown className="w-5 h-5 text-red-500 dark:text-red-400" />
                 )}
               </div>
               <div className="grid grid-cols-2 gap-2 text-sm">
@@ -175,8 +175,8 @@ export default function MarketPage() {
                   <p
                     className={`font-medium ${
                       ticker.change_24h_pct >= 0
-                        ? "text-green-600"
-                        : "text-red-600"
+                        ? "text-green-600 dark:text-green-400"
+                        : "text-red-500 dark:text-red-400"
                     }`}
                   >
                     {formatPercent(ticker.change_24h_pct)}

@@ -1050,7 +1050,7 @@ export default function StrategyEditorPage({ params }: Props) {
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <div className="text-gray-500">Loading strategy...</div>
+        <div className="text-muted-foreground">Loading strategy...</div>
       </div>
     );
   }
@@ -1059,7 +1059,7 @@ export default function StrategyEditorPage({ params }: Props) {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="text-center">
-          <p className="text-gray-500">Strategy not found</p>
+          <p className="text-muted-foreground">Strategy not found</p>
           <Link href="/strategies" className="mt-4 text-blue-600 hover:text-blue-800">
             Back to strategies
           </Link>
@@ -1071,7 +1071,7 @@ export default function StrategyEditorPage({ params }: Props) {
   return (
     <div className="flex h-screen flex-col">
       {/* Compact Top Bar */}
-      <div className="flex-shrink-0 border-b bg-white px-3 py-2">
+      <div className="flex-shrink-0 border-b bg-background px-3 py-2">
         <div className="flex items-center justify-between gap-2">
           {/* Left: Back + Name + Badges */}
           <div className="flex min-w-0 items-center gap-2">
@@ -1133,7 +1133,7 @@ export default function StrategyEditorPage({ params }: Props) {
             {strategy.tags && strategy.tags.length > 0 && (
               <div className="hidden items-center gap-1 lg:flex">
                 {strategy.tags.slice(0, 2).map((tag) => (
-                  <Badge key={tag.id} variant="outline" className="bg-purple-50 text-purple-700 text-xs">
+                  <Badge key={tag.id} variant="outline" className="bg-primary/10 text-primary dark:bg-primary/20 text-xs">
                     {tag.name}
                   </Badge>
                 ))}
@@ -1158,7 +1158,7 @@ export default function StrategyEditorPage({ params }: Props) {
               )}
               {autosaveState === 'saved' && lastSavedAt && (
                 <>
-                  <svg className="h-3 w-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="h-3 w-3 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                   <span>Saved • {relativeTimestamp}</span>
@@ -1319,7 +1319,7 @@ export default function StrategyEditorPage({ params }: Props) {
 
         {/* Compact error/success messages */}
         {error && (
-          <div className="mt-1 rounded border border-destructive/50 bg-destructive/10 px-2 py-1.5 text-xs text-destructive">
+          <div className="mt-1 rounded-lg border border-destructive/30 bg-destructive/5 px-2 py-1.5 text-xs text-destructive">
             {error}
             {validationErrors.length > 0 && (
               <span className="ml-1 text-muted-foreground">
@@ -1329,7 +1329,7 @@ export default function StrategyEditorPage({ params }: Props) {
           </div>
         )}
         {saveMessage && (
-          <div className="mt-1 rounded border border-green-200 bg-green-50 px-2 py-1.5 text-xs text-green-600">
+          <div className="mt-1 rounded-lg border border-green-200 bg-green-50 px-2 py-1.5 text-xs text-green-600 dark:border-green-800 dark:bg-green-950 dark:text-green-400">
             {saveMessage}
           </div>
         )}
@@ -1348,7 +1348,7 @@ export default function StrategyEditorPage({ params }: Props) {
           <div className="mt-6 space-y-6">
             {/* Strategy Summary */}
             {explanation && explanation.status === "valid" && (
-              <div className="rounded-lg border border-blue-100 bg-blue-50 p-3">
+              <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-950">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold text-blue-700">Strategy Summary</span>
                   <Button
@@ -1360,7 +1360,7 @@ export default function StrategyEditorPage({ params }: Props) {
                     Copy
                   </Button>
                 </div>
-                <div className="mt-2 space-y-1 text-sm text-gray-700">
+                <div className="mt-2 space-y-1 text-sm text-muted-foreground">
                   <p>{explanation.entry}</p>
                   <p>{explanation.exit}</p>
                   {explanation.risk && <p>{explanation.risk}</p>}
@@ -1384,12 +1384,12 @@ export default function StrategyEditorPage({ params }: Props) {
                 {strategy.tags && strategy.tags.length > 0 && (
                   <div className="flex flex-wrap gap-2">
                     {strategy.tags.map((tag) => (
-                      <Badge key={tag.id} variant="outline" className="bg-purple-50 text-purple-700">
+                      <Badge key={tag.id} variant="outline" className="bg-primary/10 text-primary dark:bg-primary/20">
                         {tag.name}
                         <button
                           onClick={() => handleRemoveTag(tag.id)}
                           disabled={isSavingTags}
-                          className="ml-1 text-purple-500 hover:text-purple-700 disabled:opacity-50"
+                          className="ml-1 text-primary/70 hover:text-primary disabled:opacity-50"
                         >
                           ×
                         </button>
@@ -1415,7 +1415,7 @@ export default function StrategyEditorPage({ params }: Props) {
                   />
                   <Button
                     size="sm"
-                    className="h-8 bg-purple-600 hover:bg-purple-700"
+                    className="h-8 bg-primary hover:bg-primary/90"
                     onClick={() => handleAddTag(tagInput)}
                     disabled={!tagInput.trim() || isSavingTags || (strategy?.tags?.length || 0) >= 20}
                   >
@@ -1623,7 +1623,7 @@ export default function StrategyEditorPage({ params }: Props) {
             />
             <button
               onClick={() => setShowProperties(true)}
-              className="rounded-full bg-white p-2 shadow-md lg:hidden"
+              className="rounded-full border bg-background p-2 shadow-md lg:hidden"
               disabled={!selectedNode}
             >
               <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

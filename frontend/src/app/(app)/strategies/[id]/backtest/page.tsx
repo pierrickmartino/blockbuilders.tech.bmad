@@ -133,10 +133,10 @@ function getDatesFromPreset(preset: PeriodPreset): { from: string; to: string } 
 }
 
 const statusStyles: Record<BacktestStatus, string> = {
-  pending: "bg-amber-100 text-amber-700",
-  running: "bg-blue-100 text-blue-700",
-  completed: "bg-green-100 text-green-700",
-  failed: "bg-red-100 text-red-700",
+  pending: "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400",
+  running: "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-400",
+  completed: "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400",
+  failed: "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400",
 };
 
 interface MetricConfig {
@@ -205,8 +205,8 @@ function MetricCard({
   const tooltip = getTooltip(metricToGlossaryId(metricKey));
 
   return (
-    <div className="rounded border border-gray-200 bg-gray-50 p-2 sm:p-3">
-      <div className="flex items-center justify-between gap-1 text-xs uppercase text-gray-500">
+    <div className="rounded-lg border bg-secondary/50 p-2 dark:bg-secondary/30 sm:p-3">
+      <div className="flex items-center justify-between gap-1 text-xs uppercase text-muted-foreground">
         <div className="flex min-w-0 items-center gap-1">
           <span className="truncate" title={tooltip?.short}>{label}</span>
           <InfoIcon tooltip={tooltip} className="hidden flex-shrink-0 sm:inline-flex" />
@@ -215,7 +215,7 @@ function MetricCard({
         <button
           onClick={onTogglePin}
           disabled={disabled}
-          className="flex-shrink-0 text-gray-400 transition-colors hover:text-blue-500 disabled:opacity-50"
+          className="flex-shrink-0 text-muted-foreground transition-colors hover:text-primary disabled:opacity-50"
           title={isPinned ? "Unpin metric" : "Pin metric"}
         >
           <svg className="h-4 w-4" fill={isPinned ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
@@ -224,7 +224,7 @@ function MetricCard({
         </button>
       </div>
 
-      <div className="text-base font-semibold text-gray-900 sm:text-lg">{value}</div>
+      <div className="text-base font-semibold tabular-nums sm:text-lg">{value}</div>
 
       {isPinned && (
         <div className="mt-2 hidden gap-1 sm:flex">
@@ -271,11 +271,11 @@ const QUARTER_LABELS = ["Q1", "Q2", "Q3", "Q4"];
 const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 function getColorClass(avgReturn: number): string {
-  if (avgReturn > 2) return "bg-green-100 text-green-700 border-green-200";
-  if (avgReturn > 0.5) return "bg-green-50 text-green-600 border-green-100";
-  if (avgReturn > -0.5) return "bg-gray-50 text-gray-600 border-gray-200";
-  if (avgReturn > -2) return "bg-red-50 text-red-600 border-red-100";
-  return "bg-red-100 text-red-700 border-red-200";
+  if (avgReturn > 2) return "bg-green-100 text-green-700 border-green-200 dark:bg-green-950 dark:text-green-400 dark:border-green-800";
+  if (avgReturn > 0.5) return "bg-green-50 text-green-600 border-green-100 dark:bg-green-950/50 dark:text-green-400 dark:border-green-900";
+  if (avgReturn > -0.5) return "bg-secondary/50 text-muted-foreground border-border";
+  if (avgReturn > -2) return "bg-red-50 text-red-600 border-red-100 dark:bg-red-950/50 dark:text-red-400 dark:border-red-900";
+  return "bg-red-100 text-red-700 border-red-200 dark:bg-red-950 dark:text-red-400 dark:border-red-800";
 }
 
 function computeSeasonality(
@@ -1020,7 +1020,7 @@ export default function StrategyBacktestPage({ params }: Props) {
   if (isLoadingStrategy) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <div className="text-gray-500">Loading strategy...</div>
+        <div className="text-muted-foreground">Loading strategy...</div>
       </div>
     );
   }
@@ -1029,8 +1029,8 @@ export default function StrategyBacktestPage({ params }: Props) {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="text-center">
-          <p className="text-gray-500">Strategy not found</p>
-          <Link href="/strategies" className="mt-4 text-blue-600 hover:text-blue-800">
+          <p className="text-muted-foreground">Strategy not found</p>
+          <Link href="/strategies" className="mt-4 text-primary/80 transition-colors hover:text-primary hover:underline">
             Back to strategies
           </Link>
         </div>
@@ -1041,41 +1041,41 @@ export default function StrategyBacktestPage({ params }: Props) {
   return (
     <div className="flex h-screen flex-col overflow-x-hidden">
       {/* Top Bar */}
-      <div className="border-b bg-white px-3 py-3 sm:px-4">
+      <div className="border-b bg-background px-3 py-3 sm:px-4">
         <div className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center gap-3">
-            <Link href="/strategies" className="text-gray-500 hover:text-gray-700">
+            <Link href="/strategies" className="text-muted-foreground transition-colors hover:text-foreground">
               <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
             </Link>
-            <h1 className="text-lg font-semibold text-gray-900">{strategy.name}</h1>
-            <span className="hidden rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600 sm:inline">
+            <h1 className="text-lg font-semibold tracking-tight">{strategy.name}</h1>
+            <span className="hidden rounded-md bg-secondary px-2 py-0.5 text-xs text-muted-foreground sm:inline">
               {strategy.asset}
             </span>
-            <span className="hidden rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600 sm:inline">
+            <span className="hidden rounded-md bg-secondary px-2 py-0.5 text-xs text-muted-foreground sm:inline">
               {strategy.timeframe}
             </span>
           </div>
-          <p className="text-sm text-gray-600">Run a backtest on the latest saved version of this strategy.</p>
+          <p className="text-sm text-muted-foreground">Run a backtest on the latest saved version of this strategy.</p>
         </div>
 
         <StrategyTabs strategyId={id} activeTab="backtest" />
 
         {error && (
-          <div className="mt-2 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+          <div className="mt-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
             {error}
           </div>
         )}
         {statusMessage && (
-          <div className="mt-2 rounded border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-600">
+          <div className="mt-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-600 dark:border-green-800 dark:bg-green-950 dark:text-green-400">
             {statusMessage}
           </div>
         )}
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 space-y-4 overflow-auto bg-gray-50 p-3 sm:p-4">
+      <div className="flex-1 space-y-4 overflow-auto bg-secondary/30 p-3 dark:bg-secondary/10 sm:p-4">
         <div className="grid gap-3 sm:gap-4 lg:grid-cols-3">
           {/* Data Availability - Full Width */}
           <div className="lg:col-span-3">
@@ -1088,16 +1088,16 @@ export default function StrategyBacktestPage({ params }: Props) {
             />
           </div>
 
-          <section className="lg:col-span-2 rounded-lg border border-gray-200 bg-white p-3 shadow-sm sm:p-4">
+          <section className="lg:col-span-2 rounded-xl border bg-card p-3 shadow-sm sm:p-4">
             <div className="mb-3 sm:mb-4">
-              <h2 className="text-base font-semibold text-gray-900">Run a backtest</h2>
-              <p className="text-sm text-gray-500">
+              <h2 className="text-base font-semibold tracking-tight">Run a backtest</h2>
+              <p className="text-sm text-muted-foreground">
                 Uses the latest saved version. Fee and slippage default to your settings.
               </p>
             </div>
             <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700">Period</label>
+                <label className="block text-sm font-medium">Period</label>
                 <Select value={periodPreset} onValueChange={(v) => handlePeriodChange(v as PeriodPreset)}>
                   <SelectTrigger className="mt-1">
                     <SelectValue placeholder="Select period" />
@@ -1113,7 +1113,7 @@ export default function StrategyBacktestPage({ params }: Props) {
                         >
                           {option.label}
                           {option.premiumOnly && (
-                            <span className={`ml-2 text-xs ${isDisabled ? "text-gray-400" : "text-amber-600"}`}>
+                            <span className={`ml-2 text-xs ${isDisabled ? "text-muted-foreground/70" : "text-amber-600"}`}>
                               (Pro/Premium)
                             </span>
                           )}
@@ -1124,7 +1124,7 @@ export default function StrategyBacktestPage({ params }: Props) {
                 </Select>
               </div>
               <div className="min-w-0">
-                <label className="block text-sm font-medium text-gray-700">Date from</label>
+                <label className="block text-sm font-medium">Date from</label>
                 <Input
                   type="date"
                   value={dateFrom}
@@ -1138,7 +1138,7 @@ export default function StrategyBacktestPage({ params }: Props) {
                 />
               </div>
               <div className="min-w-0">
-                <label className="block text-sm font-medium text-gray-700">Date to</label>
+                <label className="block text-sm font-medium">Date to</label>
                 <Input
                   type="date"
                   value={dateTo}
@@ -1152,7 +1152,7 @@ export default function StrategyBacktestPage({ params }: Props) {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Fee rate (optional)</label>
+                <label className="block text-sm font-medium">Fee rate (optional)</label>
                 <Input
                   type="number"
                   step="0.0001"
@@ -1165,7 +1165,7 @@ export default function StrategyBacktestPage({ params }: Props) {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Slippage rate (optional)</label>
+                <label className="block text-sm font-medium">Slippage rate (optional)</label>
                 <Input
                   type="number"
                   step="0.0001"
@@ -1179,16 +1179,16 @@ export default function StrategyBacktestPage({ params }: Props) {
               </div>
               {isBetaGrandfatheredUser && (
                 <div className="md:col-span-2">
-                  <label className="mt-1 flex items-start gap-2 text-sm text-gray-700">
+                  <label className="mt-1 flex items-start gap-2 text-sm">
                     <input
                       type="checkbox"
                       checked={forceRefreshPrices}
                       onChange={(e) => setForceRefreshPrices(e.target.checked)}
-                      className="mt-0.5 h-4 w-4 rounded border-gray-300"
+                      className="mt-0.5 h-4 w-4 rounded border-border"
                     />
                     <span>
                       Force refresh candle prices before running (Beta User — Grandfathered Perks Applied).
-                      <span className="block text-xs text-gray-500">
+                      <span className="block text-xs text-muted-foreground">
                         Re-fetches OHLCV for this exact period and overwrites cached values.
                       </span>
                     </span>
@@ -1196,7 +1196,7 @@ export default function StrategyBacktestPage({ params }: Props) {
                 </div>
               )}
               <div className="md:col-span-2 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-muted-foreground">
                   Backtests run in the background. You can leave this page and results will still be saved.
                 </p>
                 <Button type="submit" disabled={isSubmitting} className="w-full md:w-auto">
@@ -1206,9 +1206,9 @@ export default function StrategyBacktestPage({ params }: Props) {
             </form>
           </section>
 
-          <section className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm sm:p-4">
+          <section className="rounded-xl border bg-card p-3 shadow-sm sm:p-4">
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-base font-semibold text-gray-900">Recent runs</h2>
+              <h2 className="text-base font-semibold tracking-tight">Recent runs</h2>
               <div className="flex items-center gap-2">
                 {selectedRunIds.size >= 2 && selectedRunIds.size <= 4 && (
                   <Button
@@ -1224,7 +1224,7 @@ export default function StrategyBacktestPage({ params }: Props) {
                   size="sm"
                   onClick={loadBacktests}
                   disabled={isLoadingBacktests}
-                  className="h-8 px-2 text-gray-500 hover:text-gray-700"
+                  className="h-8 px-2 text-muted-foreground transition-colors hover:text-foreground"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={isLoadingBacktests ? "animate-spin" : ""}>
                     <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
@@ -1235,7 +1235,7 @@ export default function StrategyBacktestPage({ params }: Props) {
             </div>
 
             {selectedRunIds.size > 0 && selectedRunIds.size < 2 && (
-              <div className="mb-3 flex items-center gap-2 rounded-md bg-blue-50 px-3 py-2 text-sm text-blue-700">
+              <div className="mb-3 flex items-center gap-2 rounded-md bg-blue-50 px-3 py-2 text-sm text-blue-900 dark:bg-blue-950 dark:text-blue-400">
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="12" cy="12" r="10" />
                   <path d="M12 16v-4" />
@@ -1246,7 +1246,7 @@ export default function StrategyBacktestPage({ params }: Props) {
             )}
 
             {selectedRunIds.size > 4 && (
-              <div className="mb-3 flex items-center gap-2 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-700">
+              <div className="mb-3 flex items-center gap-2 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:bg-amber-950 dark:text-amber-400">
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
                   <path d="M12 9v4" />
@@ -1258,14 +1258,14 @@ export default function StrategyBacktestPage({ params }: Props) {
 
             {backtests.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8 text-center">
-                <div className="mb-3 rounded-full bg-gray-100 p-3">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400">
+                <div className="mb-3 rounded-full bg-secondary p-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground/70">
                     <path d="M3 3v18h18" />
                     <path d="m19 9-5 5-4-4-3 3" />
                   </svg>
                 </div>
-                <p className="text-sm font-medium text-gray-900">No backtests yet</p>
-                <p className="mt-1 text-xs text-gray-500">Run your first backtest to see results here</p>
+                <p className="text-sm font-medium">No backtests yet</p>
+                <p className="mt-1 text-xs text-muted-foreground">Run your first backtest to see results here</p>
               </div>
             ) : (
               <div className="space-y-2">
@@ -1276,7 +1276,7 @@ export default function StrategyBacktestPage({ params }: Props) {
 
                   // Performance color based on return
                   const perfColor = run.status !== "completed"
-                    ? "bg-gray-200"
+                    ? "bg-muted"
                     : isPositive
                       ? returnValue > 10 ? "bg-emerald-500" : "bg-emerald-400"
                       : returnValue < -10 ? "bg-red-500" : "bg-red-400";
@@ -1292,7 +1292,7 @@ export default function StrategyBacktestPage({ params }: Props) {
                           checked={selectedRunIds.has(run.run_id)}
                           onChange={(e) => handleSelectRun(run.run_id, e.target.checked)}
                           disabled={!selectedRunIds.has(run.run_id) && selectedRunIds.size >= 4}
-                          className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-offset-0"
+                          className="h-4 w-4 rounded border-border text-blue-600 focus:ring-blue-500 focus:ring-offset-0"
                         />
                       </div>
                       <button
@@ -1300,7 +1300,7 @@ export default function StrategyBacktestPage({ params }: Props) {
                         className={`group relative flex flex-1 overflow-hidden rounded-lg border transition-all ${
                           isSelected
                             ? "border-blue-400 bg-blue-50 shadow-sm ring-1 ring-blue-100"
-                            : "border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm"
+                            : "border-border bg-card hover:border-border hover:shadow-sm"
                         }`}
                       >
                         {/* Performance indicator bar */}
@@ -1311,7 +1311,7 @@ export default function StrategyBacktestPage({ params }: Props) {
                           <div className="flex items-center justify-between gap-2">
                             <div className="flex items-center gap-2">
                               <span
-                                className="text-sm font-medium text-gray-900"
+                                className="text-sm font-medium"
                                 title={formatDateTime(run.created_at, timezone)}
                               >
                                 {formatRelativeTime(run.created_at)}
@@ -1342,16 +1342,16 @@ export default function StrategyBacktestPage({ params }: Props) {
 
                           {/* Bottom row: Date range and return */}
                           <div className="mt-1.5 flex items-center justify-between">
-                            <span className="text-xs text-gray-500">
+                            <span className="text-xs text-muted-foreground">
                               {formatDateTime(run.date_from, timezone).split(" ")[0]} → {formatDateTime(run.date_to, timezone).split(" ")[0]}
                             </span>
                             {run.status === "completed" && (
-                              <span className={`text-sm font-semibold tabular-nums ${isPositive ? "text-emerald-600" : "text-red-600"}`}>
+                              <span className={`text-sm font-semibold tabular-nums ${isPositive ? "text-green-600 dark:text-green-400" : "text-red-500 dark:text-red-400"}`}>
                                 {isPositive ? "+" : ""}{formatPercent(run.total_return)}
                               </span>
                             )}
                             {run.status === "failed" && (
-                              <span className="text-xs text-red-600">Error</span>
+                              <span className="text-xs text-destructive">Error</span>
                             )}
                           </div>
                         </div>
@@ -1368,18 +1368,18 @@ export default function StrategyBacktestPage({ params }: Props) {
                 <button
                   onClick={() => setRunsCurrentPage((p) => Math.max(1, p - 1))}
                   disabled={runsCurrentPage === 1}
-                  className="flex h-6 w-6 items-center justify-center rounded border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-30"
+                  className="flex h-6 w-6 items-center justify-center rounded border border-border text-muted-foreground hover:bg-secondary/50 dark:bg-secondary/30 disabled:cursor-not-allowed disabled:opacity-30"
                   title="Previous page"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="m15 18-6-6 6-6" />
                   </svg>
                 </button>
-                <span className="px-2 text-xs text-gray-500">{runsCurrentPage}</span>
+                <span className="px-2 text-xs text-muted-foreground">{runsCurrentPage}</span>
                 <button
                   onClick={() => setRunsCurrentPage((p) => p + 1)}
                   disabled={backtests.length < runsPageSize}
-                  className="flex h-6 w-6 items-center justify-center rounded border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-30"
+                  className="flex h-6 w-6 items-center justify-center rounded border border-border text-muted-foreground hover:bg-secondary/50 dark:bg-secondary/30 disabled:cursor-not-allowed disabled:opacity-30"
                   title="Next page"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1391,13 +1391,13 @@ export default function StrategyBacktestPage({ params }: Props) {
           </section>
         </div>
 
-        <section className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm sm:p-4">
+        <section className="rounded-xl border bg-card p-3 shadow-sm sm:p-4">
           <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <h2 className="text-base font-semibold text-gray-900">Run details</h2>
+            <h2 className="text-base font-semibold tracking-tight">Run details</h2>
             <div className="flex flex-wrap items-center gap-2 sm:gap-3">
               <Link
                 href="/metrics-glossary"
-                className="text-sm text-blue-600 hover:text-blue-800"
+                className="text-sm text-primary/80 transition-colors hover:text-primary hover:underline"
               >
                 Metrics glossary
               </Link>
@@ -1446,18 +1446,18 @@ export default function StrategyBacktestPage({ params }: Props) {
               {selectedRun && statusBadge(selectedRun.status)}
             </div>
           </div>
-          {!selectedRunId && <p className="text-sm text-gray-500">Select a run to see details.</p>}
+          {!selectedRunId && <p className="text-sm text-muted-foreground">Select a run to see details.</p>}
           {selectedRunId && !selectedRun && (
-            <p className="text-sm text-gray-500">Loading backtest details...</p>
+            <p className="text-sm text-muted-foreground">Loading backtest details...</p>
           )}
           {selectedRun && (
             <div className="space-y-3">
-              <div className="text-sm text-gray-600">
-                <span className="font-medium text-gray-900">Range:</span>{" "}
+              <div className="text-sm text-muted-foreground">
+                <span className="font-medium">Range:</span>{" "}
                 {selectedRunRange}
               </div>
               {selectedRun.status === "failed" ? (
-                <div className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
                   {selectedRun.error_message || "Backtest failed. Please try again."}
                 </div>
               ) : selectedRun.summary ? (
@@ -1485,7 +1485,7 @@ export default function StrategyBacktestPage({ params }: Props) {
                   })}
                 </div>
               ) : (
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-muted-foreground">
                   Backtest is {selectedRun.status}. We&apos;ll keep polling for results.
                 </p>
               )}
@@ -1500,12 +1500,12 @@ export default function StrategyBacktestPage({ params }: Props) {
 
         {/* Equity Curve Chart - only show for completed runs */}
         {selectedRun?.status === "completed" && (
-          <section className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm sm:p-4">
+          <section className="rounded-xl border bg-card p-3 shadow-sm sm:p-4">
             <div className="mb-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <h2 className="text-base font-semibold text-gray-900">Equity Curve</h2>
+                <h2 className="text-base font-semibold tracking-tight">Equity Curve</h2>
                 {isMobile && (
-                  <span className="text-xs text-gray-500">(Pinch to zoom)</span>
+                  <span className="text-xs text-muted-foreground">(Pinch to zoom)</span>
                 )}
               </div>
               {equityCurve.length > 0 && (
@@ -1533,12 +1533,12 @@ export default function StrategyBacktestPage({ params }: Props) {
 
             {isLoadingEquityCurve ? (
               <div className="flex h-64 items-center justify-center">
-                <p className="text-sm text-gray-500">Loading equity curve...</p>
+                <p className="text-sm text-muted-foreground">Loading equity curve...</p>
               </div>
             ) : equityCurveError ? (
-              <div className="flex h-64 items-center justify-center rounded border border-red-200 bg-red-50">
+              <div className="flex h-64 items-center justify-center rounded-lg border border-destructive/30 bg-destructive/5">
                 <div className="text-center">
-                  <p className="text-sm text-red-600">{equityCurveError}</p>
+                  <p className="text-sm text-destructive">{equityCurveError}</p>
                   <Button variant="link" size="sm" onClick={refetchEquityCurve} className="mt-2">
                     Retry
                   </Button>
@@ -1547,7 +1547,7 @@ export default function StrategyBacktestPage({ params }: Props) {
             ) : equityCurve.length === 0 ? (
               <div className="flex h-64 items-center justify-center">
                 <div className="text-center">
-                  <p className="text-sm text-gray-500">No equity data available for this run.</p>
+                  <p className="text-sm text-muted-foreground">No equity data available for this run.</p>
                   <Button variant="link" size="sm" onClick={refetchEquityCurve} className="mt-2">
                     Retry
                   </Button>
@@ -1617,22 +1617,22 @@ export default function StrategyBacktestPage({ params }: Props) {
 
         {/* Drawdown Chart - only show for completed runs */}
         {selectedRun?.status === "completed" && (
-          <section className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm sm:p-4">
+          <section className="rounded-xl border bg-card p-3 shadow-sm sm:p-4">
             <div className="mb-3 flex items-center gap-2">
-              <h2 className="text-base font-semibold text-gray-900">Drawdown (%)</h2>
+              <h2 className="text-base font-semibold tracking-tight">Drawdown (%)</h2>
               {isMobile && (
-                <span className="text-xs text-gray-500">(Pinch to zoom)</span>
+                <span className="text-xs text-muted-foreground">(Pinch to zoom)</span>
               )}
             </div>
 
             {isLoadingEquityCurve ? (
               <div className="flex h-64 items-center justify-center">
-                <p className="text-sm text-gray-500">Loading drawdown data...</p>
+                <p className="text-sm text-muted-foreground">Loading drawdown data...</p>
               </div>
             ) : equityCurveError ? (
-              <div className="flex h-64 items-center justify-center rounded border border-red-200 bg-red-50">
+              <div className="flex h-64 items-center justify-center rounded-lg border border-destructive/30 bg-destructive/5">
                 <div className="text-center">
-                  <p className="text-sm text-red-600">{equityCurveError}</p>
+                  <p className="text-sm text-destructive">{equityCurveError}</p>
                   <Button variant="link" size="sm" onClick={refetchEquityCurve} className="mt-2">
                     Retry
                   </Button>
@@ -1640,7 +1640,7 @@ export default function StrategyBacktestPage({ params }: Props) {
               </div>
             ) : drawdownData.length < 2 ? (
               <div className="flex h-64 items-center justify-center">
-                <p className="text-sm text-gray-500">Not enough data to display drawdown chart</p>
+                <p className="text-sm text-muted-foreground">Not enough data to display drawdown chart</p>
               </div>
             ) : (
               <div className="h-64 sm:h-72 md:h-80">
@@ -1714,14 +1714,14 @@ export default function StrategyBacktestPage({ params }: Props) {
             const positionStats = computePositionStats(trades, timeframeSeconds);
 
             return (
-              <section className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm sm:p-4">
-                <h2 className="mb-3 text-base font-semibold text-gray-900">
+              <section className="rounded-xl border bg-card p-3 shadow-sm sm:p-4">
+                <h2 className="mb-3 text-base font-semibold tracking-tight">
                   Position Analysis
                 </h2>
 
                 {!positionStats ? (
-                  <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-8 text-center">
-                    <p className="text-sm text-gray-500">
+                  <div className="rounded-lg border border-dashed border-border bg-secondary/50 dark:bg-secondary/30 p-8 text-center">
+                    <p className="text-sm text-muted-foreground">
                       Not enough trades to analyze. Need at least 2 trades.
                     </p>
                   </div>
@@ -1731,14 +1731,14 @@ export default function StrategyBacktestPage({ params }: Props) {
                     <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
                       {/* Average Hold Time */}
                       {!positionStats.hasMissingTimestamps && (
-                        <div className="rounded border border-gray-200 bg-gray-50 p-2 sm:p-3">
-                          <div className="text-xs uppercase text-gray-500">
+                        <div className="rounded border border-border bg-secondary/50 dark:bg-secondary/30 p-2 sm:p-3">
+                          <div className="text-xs uppercase text-muted-foreground">
                             Avg Hold
                           </div>
-                          <div className="text-base font-semibold text-gray-900 sm:text-lg">
+                          <div className="text-base font-semibold tracking-tight sm:text-lg">
                             {formatDuration(positionStats.avgHoldSeconds)}
                           </div>
-                          <div className="text-xs text-gray-600">
+                          <div className="text-xs text-muted-foreground">
                             {positionStats.avgHoldBars.toFixed(1)} bars
                           </div>
                         </div>
@@ -1746,14 +1746,14 @@ export default function StrategyBacktestPage({ params }: Props) {
 
                       {/* Longest Position */}
                       {!positionStats.hasMissingTimestamps && (
-                        <div className="rounded border border-gray-200 bg-gray-50 p-2 sm:p-3">
-                          <div className="text-xs uppercase text-gray-500">
+                        <div className="rounded border border-border bg-secondary/50 dark:bg-secondary/30 p-2 sm:p-3">
+                          <div className="text-xs uppercase text-muted-foreground">
                             Longest
                           </div>
-                          <div className="text-base font-semibold text-gray-900 sm:text-lg">
+                          <div className="text-base font-semibold tracking-tight sm:text-lg">
                             {formatDuration(positionStats.longestHoldSeconds)}
                           </div>
-                          <div className="text-xs text-gray-600">
+                          <div className="text-xs text-muted-foreground">
                             {positionStats.longestHoldBars.toFixed(1)} bars
                           </div>
                         </div>
@@ -1761,14 +1761,14 @@ export default function StrategyBacktestPage({ params }: Props) {
 
                       {/* Shortest Position */}
                       {!positionStats.hasMissingTimestamps && (
-                        <div className="rounded border border-gray-200 bg-gray-50 p-2 sm:p-3">
-                          <div className="text-xs uppercase text-gray-500">
+                        <div className="rounded border border-border bg-secondary/50 dark:bg-secondary/30 p-2 sm:p-3">
+                          <div className="text-xs uppercase text-muted-foreground">
                             Shortest
                           </div>
-                          <div className="text-base font-semibold text-gray-900 sm:text-lg">
+                          <div className="text-base font-semibold tracking-tight sm:text-lg">
                             {formatDuration(positionStats.shortestHoldSeconds)}
                           </div>
-                          <div className="text-xs text-gray-600">
+                          <div className="text-xs text-muted-foreground">
                             {positionStats.shortestHoldBars.toFixed(1)} bars
                           </div>
                         </div>
@@ -1777,11 +1777,11 @@ export default function StrategyBacktestPage({ params }: Props) {
                       {/* Average Position Size */}
                       {!positionStats.hasMissingPositionData &&
                         positionStats.avgPositionSize > 0 && (
-                          <div className="rounded border border-gray-200 bg-gray-50 p-2 sm:p-3">
-                            <div className="text-xs uppercase text-gray-500">
+                          <div className="rounded border border-border bg-secondary/50 dark:bg-secondary/30 p-2 sm:p-3">
+                            <div className="text-xs uppercase text-muted-foreground">
                               Avg Size
                             </div>
-                            <div className="text-base font-semibold text-gray-900 sm:text-lg">
+                            <div className="text-base font-semibold tracking-tight sm:text-lg">
                               {formatMoney(positionStats.avgPositionSize)}
                             </div>
                           </div>
@@ -1791,7 +1791,7 @@ export default function StrategyBacktestPage({ params }: Props) {
                     {/* Interpretation Helper */}
                     {!positionStats.hasMissingTimestamps &&
                       positionStats.avgHoldSeconds > 0 && (
-                        <div className="rounded border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-700">
+                        <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-900 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-400">
                           {getHoldTimeInterpretation(
                             positionStats.avgHoldSeconds
                           )}
@@ -1800,7 +1800,7 @@ export default function StrategyBacktestPage({ params }: Props) {
 
                     {/* Warning Messages */}
                     {positionStats.hasMissingTimestamps && (
-                      <div className="rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
+                      <div className="rounded-lg border border-yellow-200 bg-yellow-50 px-3 py-2 text-sm text-yellow-800 dark:border-yellow-800 dark:bg-yellow-950 dark:text-yellow-400">
                         Some trades have missing or invalid timestamps. Hold
                         time statistics are hidden.
                       </div>
@@ -1813,14 +1813,14 @@ export default function StrategyBacktestPage({ params }: Props) {
 
         {/* Seasonality Analysis - only show for completed runs */}
         {selectedRun?.status === "completed" && (
-          <section className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm sm:p-4">
-            <h2 className="mb-3 text-base font-semibold text-gray-900">
+          <section className="rounded-xl border bg-card p-3 shadow-sm sm:p-4">
+            <h2 className="mb-3 text-base font-semibold tracking-tight">
               Seasonality Analysis
             </h2>
 
             {trades.length === 0 ? (
-              <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-8 text-center">
-                <p className="text-sm text-gray-500">
+              <div className="rounded-lg border border-dashed border-border bg-secondary/50 dark:bg-secondary/30 p-8 text-center">
+                <p className="text-sm text-muted-foreground">
                   No trades available for seasonality analysis.
                 </p>
               </div>
@@ -1867,14 +1867,14 @@ export default function StrategyBacktestPage({ params }: Props) {
 
         {/* Trade Distribution Analysis - only show for completed runs */}
         {selectedRun?.status === "completed" && (
-          <section className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm sm:p-4">
-            <h2 className="mb-3 text-base font-semibold text-gray-900">
+          <section className="rounded-xl border bg-card p-3 shadow-sm sm:p-4">
+            <h2 className="mb-3 text-base font-semibold tracking-tight">
               Trade Distribution
             </h2>
 
             {trades.length < 3 ? (
-              <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-8 text-center">
-                <p className="text-sm text-gray-500">
+              <div className="rounded-lg border border-dashed border-border bg-secondary/50 dark:bg-secondary/30 p-8 text-center">
+                <p className="text-sm text-muted-foreground">
                   Not enough trades to analyze. Need at least 3 trades.
                 </p>
               </div>
@@ -1882,7 +1882,7 @@ export default function StrategyBacktestPage({ params }: Props) {
               <div className="space-y-6">
                 {/* Return Distribution Histogram */}
                 <div>
-                  <h3 className="mb-2 text-sm font-medium text-gray-700">Return Distribution</h3>
+                  <h3 className="mb-2 text-sm font-medium text-foreground">Return Distribution</h3>
                   <div className="h-64 sm:h-72 md:h-80">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart
@@ -1927,7 +1927,7 @@ export default function StrategyBacktestPage({ params }: Props) {
                 {/* Duration Distribution (bars) */}
                 {durationDistribution && (
                   <div>
-                    <h3 className="mb-2 text-sm font-medium text-gray-700">
+                    <h3 className="mb-2 text-sm font-medium text-foreground">
                       Duration Distribution (bars)
                     </h3>
                     <div className="h-64 sm:h-72 md:h-80">
@@ -1975,8 +1975,8 @@ export default function StrategyBacktestPage({ params }: Props) {
                 {/* Skew Callout */}
                 <div className={`rounded-lg border p-3 text-sm ${
                   skewCallout.includes('Review risk')
-                    ? 'border-amber-200 bg-amber-50 text-amber-800'
-                    : 'border-gray-200 bg-gray-50 text-gray-700'
+                    ? 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-400'
+                    : 'border-border bg-secondary/50 dark:bg-secondary/30 text-foreground'
                 }`}>
                   {skewCallout}
                 </div>
@@ -1987,9 +1987,9 @@ export default function StrategyBacktestPage({ params }: Props) {
 
         {/* Trades Table - only show for completed runs */}
         {selectedRun?.status === "completed" && (
-          <section className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm sm:p-4">
+          <section className="rounded-xl border bg-card p-3 shadow-sm sm:p-4">
             <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <h2 className="text-base font-semibold text-gray-900">Trades</h2>
+              <h2 className="text-base font-semibold tracking-tight">Trades</h2>
               <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                 {trades.length > 0 && (
                   <DropdownMenu>
@@ -2013,7 +2013,7 @@ export default function StrategyBacktestPage({ params }: Props) {
                   </DropdownMenu>
                 )}
                 {trades.length > 0 && (
-                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <span>{trades.length} total</span>
                     <Select
                       value={String(tradesPageSize)}
@@ -2037,16 +2037,16 @@ export default function StrategyBacktestPage({ params }: Props) {
             </div>
 
             {isLoadingTrades ? (
-              <p className="text-sm text-gray-500">Loading trades...</p>
+              <p className="text-sm text-muted-foreground">Loading trades...</p>
             ) : tradesError ? (
               <div className="flex items-center gap-2">
-                <p className="text-sm text-red-600">{tradesError}</p>
+                <p className="text-sm text-destructive">{tradesError}</p>
                 <Button variant="link" size="sm" onClick={refetchTrades} className="h-auto p-0">
                   Retry
                 </Button>
               </div>
             ) : trades.length === 0 ? (
-              <p className="text-sm text-gray-500">No trades were generated for this run.</p>
+              <p className="text-sm text-muted-foreground">No trades were generated for this run.</p>
             ) : (
               <>
                 {/* Mobile: Card-based layout */}
@@ -2054,36 +2054,36 @@ export default function StrategyBacktestPage({ params }: Props) {
                   {paginatedTrades.map((trade, idx) => (
                     <button
                       key={`${trade.entry_time}-${idx}`}
-                      className="w-full rounded-lg border border-gray-200 bg-gray-50 p-3 text-left transition hover:border-blue-300"
+                      className="w-full rounded-lg border border-border bg-secondary/50 dark:bg-secondary/30 p-3 text-left transition hover:border-primary/30"
                       onClick={() => setSelectedTradeIdx((tradesCurrentPage - 1) * tradesPageSize + idx)}
                     >
                       <div className="mb-2 flex items-center justify-between">
-                        <span className="text-xs font-medium uppercase text-gray-500">{trade.side}</span>
-                        <span className={`text-sm font-semibold ${trade.pnl >= 0 ? "text-green-600" : "text-red-600"}`}>
+                        <span className="text-xs font-medium uppercase text-muted-foreground">{trade.side}</span>
+                        <span className={`text-sm font-semibold ${trade.pnl >= 0 ? "text-green-600 dark:text-green-400" : "text-red-500 dark:text-red-400"}`}>
                           {trade.pnl_pct >= 0 ? "+" : ""}{formatPercent(trade.pnl_pct).replace("%", "")}%
                         </span>
                       </div>
                       <div className="grid grid-cols-2 gap-2 text-sm">
                         <div>
-                          <div className="text-xs text-gray-500">Entry</div>
+                          <div className="text-xs text-muted-foreground">Entry</div>
                           <div className="font-medium">{formatPrice(trade.entry_price)}</div>
-                          <div className="text-xs text-gray-500">{formatDateTime(trade.entry_time, timezone)}</div>
+                          <div className="text-xs text-muted-foreground">{formatDateTime(trade.entry_time, timezone)}</div>
                         </div>
                         <div>
-                          <div className="text-xs text-gray-500">Exit</div>
+                          <div className="text-xs text-muted-foreground">Exit</div>
                           <div className="font-medium">{formatPrice(trade.exit_price)}</div>
-                          <div className="text-xs text-gray-500">{formatDateTime(trade.exit_time, timezone)}</div>
+                          <div className="text-xs text-muted-foreground">{formatDateTime(trade.exit_time, timezone)}</div>
                         </div>
                       </div>
-                      <div className="mt-2 flex justify-between border-t border-gray-200 pt-2">
-                        <span className="text-xs text-gray-500">P&L</span>
-                        <span className={`text-sm font-medium ${trade.pnl >= 0 ? "text-green-600" : "text-red-600"}`}>
+                      <div className="mt-2 flex justify-between border-t border-border pt-2">
+                        <span className="text-xs text-muted-foreground">P&L</span>
+                        <span className={`text-sm font-medium ${trade.pnl >= 0 ? "text-green-600 dark:text-green-400" : "text-red-500 dark:text-red-400"}`}>
                           {formatMoney(trade.pnl, "USDT", true)}
                         </span>
                       </div>
-                      <div className="mt-2 flex justify-between border-t border-gray-200 pt-2">
-                        <span className="text-xs text-gray-500">Costs</span>
-                        <span className="text-sm font-medium text-gray-700">
+                      <div className="mt-2 flex justify-between border-t border-border pt-2">
+                        <span className="text-xs text-muted-foreground">Costs</span>
+                        <span className="text-sm font-medium text-foreground">
                           {trade.total_cost_usd !== undefined && trade.total_cost_usd !== null
                             ? formatMoney(trade.total_cost_usd, "USDT", false)
                             : "—"}
@@ -2143,19 +2143,19 @@ export default function StrategyBacktestPage({ params }: Props) {
                           </TableCell>
                           <TableCell
                             className={`text-right font-medium ${
-                              trade.pnl >= 0 ? "text-green-600" : "text-red-600"
+                              trade.pnl >= 0 ? "text-green-600 dark:text-green-400" : "text-red-500 dark:text-red-400"
                             }`}
                           >
                             {formatMoney(trade.pnl, "USDT", true)}
                           </TableCell>
                           <TableCell
                             className={`text-right ${
-                              trade.pnl_pct >= 0 ? "text-green-600" : "text-red-600"
+                              trade.pnl_pct >= 0 ? "text-green-600 dark:text-green-400" : "text-red-500 dark:text-red-400"
                             }`}
                           >
                             {trade.pnl_pct >= 0 ? "+" : ""}{formatPercent(trade.pnl_pct).replace("%", "")}%
                           </TableCell>
-                          <TableCell className="text-right text-gray-700">
+                          <TableCell className="text-right text-foreground">
                             {trade.total_cost_usd !== undefined && trade.total_cost_usd !== null
                               ? formatMoney(trade.total_cost_usd, "USDT", false)
                               : "—"}
@@ -2169,7 +2169,7 @@ export default function StrategyBacktestPage({ params }: Props) {
                 {/* Pagination */}
                 {totalPages > 1 && (
                   <div className="mt-3 flex flex-col gap-2 border-t pt-3 sm:flex-row sm:items-center sm:justify-between">
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-muted-foreground">
                       Page {tradesCurrentPage} of {totalPages}
                     </p>
                     <div className="flex gap-2">

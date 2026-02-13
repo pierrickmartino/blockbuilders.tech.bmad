@@ -28,7 +28,7 @@ export default function MetricsGlossaryPage() {
 
   return (
     <div className="mx-auto max-w-4xl p-4 md:p-6">
-      <h1 className="text-2xl font-bold">
+      <h1 className="text-2xl font-bold tracking-tight">
         Metrics Glossary
       </h1>
       <p className="mb-6 text-muted-foreground">
@@ -36,13 +36,14 @@ export default function MetricsGlossaryPage() {
         find definitions, formulas, and interpretation guidance.
       </p>
 
-      <Input
-        type="text"
-        placeholder="Search metrics..."
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        className="mb-8"
-      />
+      <div className="mb-8 rounded-lg border bg-muted/30 p-2 dark:bg-muted/10">
+        <Input
+          type="text"
+          placeholder="Search metrics..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </div>
 
       {filteredMetrics.length === 0 ? (
         <Card className="border-dashed">
@@ -91,16 +92,16 @@ function MetricCard({ metric }: { metric: MetricGlossaryEntry }) {
           </h3>
           <ul className="mt-2 space-y-1 text-muted-foreground">
             <li>
-              <span className="font-medium text-foreground">Good:</span> {metric.ranges.good}
+              <span className="font-medium text-green-600 dark:text-green-400">Good:</span> {metric.ranges.good}
             </li>
             {metric.ranges.acceptable && (
               <li>
-                <span className="font-medium text-foreground">Acceptable:</span>{" "}
+                <span className="font-medium text-yellow-600 dark:text-yellow-400">Acceptable:</span>{" "}
                 {metric.ranges.acceptable}
               </li>
             )}
             <li>
-              <span className="font-medium text-foreground">Poor:</span> {metric.ranges.poor}
+              <span className="font-medium text-red-500 dark:text-red-400">Poor:</span> {metric.ranges.poor}
             </li>
             <li className="italic">
               Note: {metric.ranges.caveat}

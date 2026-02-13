@@ -49,7 +49,7 @@ export default function ProgressPage() {
   if (error) {
     return (
       <main className="container mx-auto max-w-6xl space-y-6 p-4 md:p-6">
-        <div className="rounded border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
           {error}
         </div>
       </main>
@@ -64,7 +64,7 @@ export default function ProgressPage() {
     <main className="container mx-auto max-w-6xl space-y-6 p-4 md:p-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold">Your Progress</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Your Progress</h1>
         <p className="text-sm text-muted-foreground">
           Building momentum one strategy at a time
         </p>
@@ -83,7 +83,7 @@ export default function ProgressPage() {
               <Layers className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <div className="text-2xl font-bold tabular-nums tracking-tight">
                 {progress.strategies_count}
               </div>
               <p className="text-xs text-muted-foreground">
@@ -101,7 +101,7 @@ export default function ProgressPage() {
               <BarChart3 className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <div className="text-2xl font-bold tabular-nums tracking-tight">
                 {progress.completed_backtests_count}
               </div>
               <p className="text-xs text-muted-foreground">
@@ -119,7 +119,7 @@ export default function ProgressPage() {
               <GitBranch className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <div className="text-2xl font-bold tabular-nums tracking-tight">
                 {progress.strategy_versions_count}
               </div>
               <p className="text-xs text-muted-foreground">
@@ -150,7 +150,7 @@ export default function ProgressPage() {
                     className="flex items-center gap-3"
                   >
                     {lesson.done ? (
-                      <CheckCircle2 className="h-5 w-5 text-green-600" />
+                      <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
                     ) : (
                       <Circle className="h-5 w-5 text-muted-foreground" />
                     )}

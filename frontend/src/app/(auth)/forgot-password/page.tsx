@@ -7,6 +7,7 @@ import { ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Loader2 } from "lucide-react";
 
 export default function ForgotPasswordPage() {
   const { requestPasswordReset } = useAuth();
@@ -54,7 +55,7 @@ export default function ForgotPasswordPage() {
           <CardContent>
             {success ? (
               <div className="space-y-4">
-                <div className="rounded border border-green-200 bg-green-50 p-3 text-sm text-green-700">
+                <div className="rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-600 dark:border-green-800 dark:bg-green-950 dark:text-green-400">
                   {success}
                 </div>
                 <Button asChild className="w-full">
@@ -64,7 +65,7 @@ export default function ForgotPasswordPage() {
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">
                 {error && (
-                  <div className="rounded border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+                  <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
                     {error}
                   </div>
                 )}
@@ -84,12 +85,7 @@ export default function ForgotPasswordPage() {
                 </div>
 
                 <Button type="submit" disabled={isSubmitting} className="w-full">
-                  {isSubmitting && (
-                    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                    </svg>
-                  )}
+                  {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
                   {isSubmitting ? "Sending..." : "Send reset link"}
                 </Button>
               </form>

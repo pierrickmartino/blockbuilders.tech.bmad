@@ -48,17 +48,17 @@ export default function PublicProfilePage() {
 
   if (error || !profile) {
     return (
-      <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-600 dark:border-red-800 dark:bg-red-950 dark:text-red-400">
+      <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
         {error || "Profile not found"}
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto max-w-6xl space-y-6 p-4 md:p-6">
       {/* Header */}
       <div>
-        <h1 className="mb-2 text-2xl font-bold">
+        <h1 className="mb-2 text-2xl font-bold tracking-tight">
           {profile.display_name || `@${profile.handle}`}
         </h1>
         {profile.display_name && (
@@ -71,22 +71,22 @@ export default function PublicProfilePage() {
 
       {/* Stats Row */}
       <div className="flex flex-wrap gap-6">
-        <div>
-          <p className="text-2xl font-bold">{profile.follower_count}</p>
+        <div className="rounded-lg border bg-secondary/50 p-3 dark:bg-secondary/30">
+          <p className="text-2xl font-bold tabular-nums tracking-tight">{profile.follower_count}</p>
           <p className="text-sm text-muted-foreground">Followers</p>
         </div>
         {profile.contributions && (
           <>
-            <div>
-              <p className="text-2xl font-bold">
+            <div className="rounded-lg border bg-secondary/50 p-3 dark:bg-secondary/30">
+              <p className="text-2xl font-bold tabular-nums tracking-tight">
                 {profile.contributions.published_strategies}
               </p>
               <p className="text-sm text-muted-foreground">
                 Published Strategies
               </p>
             </div>
-            <div>
-              <p className="text-2xl font-bold">
+            <div className="rounded-lg border bg-secondary/50 p-3 dark:bg-secondary/30">
+              <p className="text-2xl font-bold tabular-nums tracking-tight">
                 {profile.contributions.completed_backtests}
               </p>
               <p className="text-sm text-muted-foreground">Backtests Run</p>
@@ -126,7 +126,7 @@ export default function PublicProfilePage() {
                   <li key={strategy.id}>
                     <Link
                       href={`/strategies/${strategy.id}`}
-                      className="text-primary hover:underline"
+                      className="text-primary/80 transition-colors hover:text-primary hover:underline"
                     >
                       {strategy.name}
                     </Link>

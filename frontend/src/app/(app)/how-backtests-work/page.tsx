@@ -8,7 +8,7 @@ import {
 export default function HowBacktestsWorkPage() {
   return (
     <div className="mx-auto max-w-3xl p-4 md:p-6">
-      <h1 className="text-2xl font-bold">
+      <h1 className="text-2xl font-bold tracking-tight">
         How Backtests Work
       </h1>
       <p className="mb-6 text-muted-foreground">
@@ -29,15 +29,15 @@ export default function HowBacktestsWorkPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-amber-200 bg-amber-50">
+        <Card className="border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-950">
           <CardHeader>
-            <CardTitle className="text-amber-800">Important Disclaimer</CardTitle>
+            <CardTitle className="text-yellow-800 dark:text-yellow-400">Important Disclaimer</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="mb-2 font-medium text-amber-800">
+            <p className="mb-2 font-medium text-yellow-800 dark:text-yellow-400">
               Simulated results only
             </p>
-            <ul className="list-inside list-disc space-y-1 text-amber-700">
+            <ul className="list-inside list-disc space-y-1 text-yellow-700 dark:text-yellow-400">
               <li>Past performance does not guarantee future results</li>
               <li>Backtests are simulations, not predictions</li>
               <li>Real market conditions may differ significantly</li>
