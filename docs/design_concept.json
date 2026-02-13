@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "Blockbuilders Design Concept",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "High-level design concept and creative direction for the Blockbuilders visual strategy builder application",
 
   "brandIdentity": {
@@ -39,7 +39,19 @@
         "description": "Reuse established patterns across the application. Familiarity reduces cognitive load and speeds up user workflows."
       }
     ],
-    "designMood": "Professional fintech with an approachable, modern edge. Think: serious about trading, welcoming to beginners."
+    "designMood": "Premium fintech with an approachable, modern edge. Think: Linear, Vercel, or high-end trading dashboards — sophisticated yet welcoming to beginners.",
+    "visualIdentity": {
+      "description": "Subtle depth and refined polish distinguish the UI from generic templates",
+      "techniques": [
+        "Layered backgrounds with faint radial gradients (not flat white/black)",
+        "Gradient text headings for brand moments (purple-to-indigo via .text-gradient-primary)",
+        "Frosted glass effects (backdrop-blur + semi-transparent backgrounds) for elevated surfaces",
+        "Refined card hover states with smooth shadow transitions (duration-200)",
+        "Gradient borders on persistent chrome (header bottom border fades via-border)",
+        "Tighter letter-spacing (tracking-tight) on headings for premium typography feel",
+        "Tabular-nums on all numeric data for proper alignment in tables and metrics"
+      ]
+    }
   },
 
   "colorStrategy": {
@@ -92,14 +104,16 @@
     },
 
     "neutrals": {
-      "philosophy": "Clean grays with slight cool undertones create a professional backdrop that doesn't compete with semantic colors",
+      "philosophy": "Clean grays with slight cool undertones create a professional backdrop that doesn't compete with semantic colors. Subtle radial gradients add depth without distraction.",
       "background": {
-        "lightMode": "Pure white (#FFFFFF)",
-        "darkMode": "Deep navy-gray (HSL 224, 71.4%, 4.1%)"
+        "lightMode": "Pure white (#FFFFFF) with faint purple radial gradient at top (primary/0.04)",
+        "darkMode": "Deep navy-gray (HSL 224, 71.4%, 4.1%) with stronger purple radial gradient at top (primary/0.08)",
+        "gradientPattern": "Two overlapping ellipses — primary-tinted at top center, blue-tinted at right — creating subtle ambient color"
       },
       "surfaces": {
         "lightMode": "Off-white to light gray for elevated surfaces",
-        "darkMode": "Slightly lighter navy-gray for elevated surfaces"
+        "darkMode": "Slightly lighter navy-gray for elevated surfaces",
+        "frostedGlass": "backdrop-blur-xl + semi-transparent background (bg-background/80) for floating panels and auth forms"
       },
       "text": {
         "primary": "Near-black in light mode, near-white in dark mode",
@@ -109,18 +123,20 @@
     },
 
     "darkModeStrategy": {
-      "approach": "True dark mode with inverted luminance, maintaining color relationships and semantic meaning",
+      "approach": "True dark mode with inverted luminance, maintaining color relationships and semantic meaning. Dark mode should feel equally premium — not an afterthought.",
       "principles": [
         "Background becomes dark, text becomes light",
         "Accent colors slightly adjust saturation/lightness for proper contrast",
         "Category colors maintain their hue but adapt brightness for dark backgrounds",
-        "Shadows become more subtle, borders more prominent"
+        "Shadows become more subtle, borders more prominent",
+        "Background gradients use stronger opacity in dark mode (0.08 vs 0.04) for visible depth",
+        "Feedback badges use dark: variants (e.g., dark:bg-purple-950 dark:text-purple-300)"
       ]
     }
   },
 
   "typographyStrategy": {
-    "philosophy": "System fonts for performance and familiarity. Clear hierarchy through size and weight, not decorative flourishes.",
+    "philosophy": "System fonts for performance and familiarity. Clear hierarchy through size and weight, with selective gradient text for brand moments.",
 
     "fontFamily": {
       "primary": "System UI font stack (San Francisco, Segoe UI, Roboto)",
@@ -155,10 +171,17 @@
       }
     },
 
+    "gradientText": {
+      "utility": ".text-gradient-primary",
+      "implementation": "bg-clip-text text-transparent with linear-gradient(135deg, primary, blue-indigo)",
+      "usage": "Hero headings, welcome greetings, brand moments — use sparingly for impact"
+    },
     "principles": [
       "Limit to 2-3 font weights per view to maintain visual calm",
       "Use size + weight together for hierarchy, not color alone",
-      "Ensure adequate line-height for readability (typically 1.5)"
+      "Ensure adequate line-height for readability (typically 1.5)",
+      "Use tracking-tight on headings for a premium, refined feel",
+      "Use tabular-nums (font-variant-numeric) for all numeric data in tables and metrics"
     ]
   },
 
@@ -210,7 +233,11 @@
     "patterns": {
       "stack": "Vertical stacking for mobile, primary layout pattern",
       "grid": "2-3 column grids on desktop for related items",
-      "sidebar": "Collapsible sidebar on mobile (off-canvas), fixed on desktop"
+      "sidebar": "Collapsible sidebar on mobile (off-canvas), fixed on desktop",
+      "splitLayout": "Side-by-side panels on desktop (brand + form), stacked on mobile — used for auth page",
+      "heroSection": "Full-width heading area without card wrapper, using gradient text and subtle description",
+      "statCards": "Compact icon + metric + label cards in a horizontal row for key numbers",
+      "stickyBar": "Sticky positioned bar with backdrop-blur for contextual bulk actions"
     },
 
     "mobileConsiderations": [
@@ -244,10 +271,11 @@
     },
 
     "states": {
-      "hover": "Subtle background change, never jarring",
+      "hover": "Subtle background change with smooth shadow transition (hover:shadow-md, duration-200), never jarring",
       "focus": "1px ring in primary color, clear but not overwhelming",
       "active": "Slightly darker/lighter than hover",
-      "disabled": "50% opacity, no pointer events"
+      "disabled": "50% opacity, no pointer events",
+      "groupHover": "Cards and list items use group/group-hover for coordinated child element transitions (e.g., name color changes on card hover)"
     },
 
     "animations": {
@@ -268,14 +296,20 @@
 
   "iconography": {
     "library": "Lucide React",
-    "philosophy": "Simple, consistent line icons that complement rather than dominate",
+    "philosophy": "Simple, consistent line icons that complement rather than dominate. Icons are used alongside section titles, in stat cards, and in empty states for visual anchoring.",
     "sizing": {
       "default": "16px (size-4, h-4 w-4)",
-      "small": "14px - inline with small text",
-      "medium": "20px (size-5) - standalone or navigation",
-      "large": "32px (size-8) - logo, empty states"
+      "small": "14px (h-3.5 w-3.5) - inline with buttons and small text",
+      "medium": "20px (size-5, h-5 w-5) - stat card icons, navigation",
+      "large": "28-32px (h-7 w-7) - empty state illustrations, hero elements"
     },
-    "style": "Stroke-based, 2px stroke width, rounded line caps"
+    "style": "Stroke-based, 2px stroke width, rounded line caps",
+    "patterns": {
+      "sectionHeaders": "Small muted icon (h-4 w-4 text-muted-foreground) paired with section title text",
+      "statCards": "Icon in colored rounded-lg container (h-10 w-10 bg-{color}/10 text-{color})",
+      "emptyStates": "Large icon in rounded-full container (h-14 w-14 bg-primary/10) above text",
+      "buttonIcons": "Small icon (h-4 w-4) with mr-2 spacing before button label"
+    }
   },
 
   "specialDomains": {

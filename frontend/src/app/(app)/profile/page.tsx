@@ -14,8 +14,20 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { ProfileSettingsSection } from "./profile-settings-section";
+import {
+  User,
+  Settings,
+  Palette,
+  Globe,
+  BarChart3,
+  CreditCard,
+  Zap,
+  Check,
+  Sparkles,
+} from "lucide-react";
 
 export default function ProfilePage() {
   const { timezone, setTimezone, theme, setTheme, nodeDisplayMode, setNodeDisplayMode } = useDisplay();
@@ -33,7 +45,6 @@ export default function ProfilePage() {
   const [billingError, setBillingError] = useState<string | null>(null);
   const [isPurchasingPack, setIsPurchasingPack] = useState<string | null>(null);
 
-  // Fetch profile on mount
   useEffect(() => {
     async function fetchProfile() {
       try {
@@ -41,11 +52,9 @@ export default function ProfilePage() {
         setProfile(data);
         setFeePercent(data.settings.default_fee_percent?.toString() ?? "");
         setSlippagePercent(data.settings.default_slippage_percent?.toString() ?? "");
-        // Sync timezone from server to display context
         if (data.settings.timezone_preference) {
           setTimezone(data.settings.timezone_preference);
         }
-        // Sync theme from server to display context
         if (data.settings.theme_preference) {
           setTheme(data.settings.theme_preference);
         }
@@ -58,7 +67,6 @@ export default function ProfilePage() {
     fetchProfile();
   }, [setTimezone, setTheme]);
 
-  // Handle backtest defaults save
   async function handleSaveDefaults(e: React.FormEvent) {
     e.preventDefault();
     setMessage(null);
@@ -90,7 +98,6 @@ export default function ProfilePage() {
     }
   }
 
-  // Handle timezone change (save to server)
   async function handleTimezoneChange(tz: "local" | "utc") {
     const previousTz = timezone;
     setTimezone(tz);
@@ -101,12 +108,10 @@ export default function ProfilePage() {
       });
       setProfile(updated);
     } catch {
-      // Revert on error
       setTimezone(previousTz);
     }
   }
 
-  // Handle theme change (save to server)
   async function handleThemeChange(newTheme: "system" | "light" | "dark") {
     const previousTheme = theme;
     setTheme(newTheme);
@@ -117,17 +122,14 @@ export default function ProfilePage() {
       });
       setProfile(updated);
     } catch {
-      // Revert on error
       setTheme(previousTheme);
     }
   }
 
-  // Handle node display mode change (localStorage only - frontend preference)
   function handleNodeDisplayModeChange(mode: "compact" | "expanded") {
     setNodeDisplayMode(mode);
   }
 
-  // Handle upgrade click
   async function handleUpgrade(
     tier: "pro" | "premium",
     interval: "monthly" | "annual"
@@ -152,7 +154,6 @@ export default function ProfilePage() {
     }
   }
 
-  // Handle manage billing click
   async function handleManageBilling() {
     setIsUpgrading("portal");
     setBillingError(null);
@@ -175,7 +176,6 @@ export default function ProfilePage() {
     }
   }
 
-  // Handle credit pack purchase
   async function handlePurchasePack(
     pack: "backtest_credits" | "strategy_slots"
   ) {
@@ -201,20 +201,34 @@ export default function ProfilePage() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-[200px] items-center justify-center">
-        <p className="text-muted-foreground">Loading...</p>
+      <div className="space-y-6">
+        <div>
+          <Skeleton className="mb-2 h-8 w-32" />
+          <Skeleton className="h-4 w-64" />
+        </div>
+        {[1, 2, 3].map((i) => (
+          <Card key={i}>
+            <CardHeader>
+              <Skeleton className="h-5 w-40" />
+              <Skeleton className="h-4 w-60" />
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-20 w-full" />
+            </CardContent>
+          </Card>
+        ))}
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-600">
+      <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
         {error}
         <Button
           variant="link"
           onClick={() => window.location.reload()}
-          className="ml-2 h-auto p-0 text-red-600 underline"
+          className="ml-2 h-auto p-0 text-destructive underline"
         >
           Retry
         </Button>
@@ -236,40 +250,51 @@ export default function ProfilePage() {
         }.`;
 
   return (
-    <div>
-      <h1 className="mb-2 text-2xl font-bold">Profile</h1>
-      <p className="mb-6 text-muted-foreground">
-        Manage your preferences and see your current usage.
-      </p>
+    <div className="container mx-auto max-w-4xl">
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold tracking-tight">Profile</h1>
+        <p className="mt-1 text-muted-foreground">
+          Manage your preferences and see your current usage.
+        </p>
+      </div>
 
       <div className="space-y-6">
-        {/* Section A: Account */}
+        {/* Account */}
         <Card>
           <CardHeader>
-            <CardTitle>Account</CardTitle>
+            <div className="flex items-center gap-2">
+              <User className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-base">Account</CardTitle>
+            </div>
             <CardDescription>Email: {profile?.email}</CardDescription>
           </CardHeader>
           {profile?.settings.user_tier === "beta" && (
             <CardContent>
-              <div className="space-y-2">
-                <Badge
-                  variant="secondary"
-                  className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
-                >
-                  Beta User — Grandfathered Perks Applied
-                </Badge>
-                <p className="text-sm text-muted-foreground">
-                  +10 strategies, +50 backtests/day, 20% off paid plans
-                </p>
+              <div className="flex items-start gap-3 rounded-lg bg-blue-500/5 p-3 dark:bg-blue-400/5">
+                <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-blue-500 dark:text-blue-400" />
+                <div>
+                  <Badge
+                    variant="secondary"
+                    className="mb-1.5 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                  >
+                    Beta User — Grandfathered Perks
+                  </Badge>
+                  <p className="text-sm text-muted-foreground">
+                    +10 strategies, +50 backtests/day, 20% off paid plans
+                  </p>
+                </div>
               </div>
             </CardContent>
           )}
         </Card>
 
-        {/* Section B: Backtest Defaults */}
+        {/* Backtest Defaults */}
         <Card>
           <CardHeader>
-            <CardTitle>Backtest Defaults</CardTitle>
+            <div className="flex items-center gap-2">
+              <Settings className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-base">Backtest Defaults</CardTitle>
+            </div>
             <CardDescription>
               These values will be pre-filled when creating new backtests.
             </CardDescription>
@@ -279,10 +304,10 @@ export default function ProfilePage() {
               {message && (
                 <div
                   className={cn(
-                    "rounded border p-3 text-sm",
+                    "rounded-lg border px-4 py-3 text-sm",
                     message.type === "success"
-                      ? "border-green-200 bg-green-50 text-green-600"
-                      : "border-red-200 bg-red-50 text-red-600"
+                      ? "border-green-200 bg-green-50 text-green-600 dark:border-green-800 dark:bg-green-950 dark:text-green-400"
+                      : "border-destructive/30 bg-destructive/5 text-destructive"
                   )}
                 >
                   {message.text}
@@ -328,94 +353,90 @@ export default function ProfilePage() {
               </div>
 
               <Button type="submit" disabled={isSaving}>
-                {isSaving ? "Saving..." : "Save"}
+                {isSaving ? "Saving..." : "Save Defaults"}
               </Button>
             </form>
           </CardContent>
         </Card>
 
-        {/* Section C: Display Preferences */}
+        {/* Display Preferences */}
         <Card>
           <CardHeader>
-            <CardTitle>Display Preferences</CardTitle>
+            <div className="flex items-center gap-2">
+              <Palette className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-base">Display Preferences</CardTitle>
+            </div>
             <CardDescription>
-              All timestamps will be displayed in your selected timezone.
+              Customize how the app looks and feels.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            <div className="space-y-6">
               <div>
-                <label className="mb-2 block text-sm font-medium">
+                <label className="mb-2.5 block text-sm font-medium">
                   Timezone
                 </label>
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant={timezone === "local" ? "default" : "secondary"}
+                <div className="inline-flex rounded-lg border bg-muted/50 p-0.5">
+                  <SegmentButton
+                    active={timezone === "local"}
                     onClick={() => handleTimezoneChange("local")}
                   >
                     Local
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={timezone === "utc" ? "default" : "secondary"}
+                  </SegmentButton>
+                  <SegmentButton
+                    active={timezone === "utc"}
                     onClick={() => handleTimezoneChange("utc")}
                   >
                     UTC
-                  </Button>
+                  </SegmentButton>
                 </div>
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-medium">
+                <label className="mb-2.5 block text-sm font-medium">
                   Theme
                 </label>
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant={theme === "system" ? "default" : "secondary"}
+                <div className="inline-flex rounded-lg border bg-muted/50 p-0.5">
+                  <SegmentButton
+                    active={theme === "system"}
                     onClick={() => handleThemeChange("system")}
                   >
                     System
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={theme === "light" ? "default" : "secondary"}
+                  </SegmentButton>
+                  <SegmentButton
+                    active={theme === "light"}
                     onClick={() => handleThemeChange("light")}
                   >
                     Light
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={theme === "dark" ? "default" : "secondary"}
+                  </SegmentButton>
+                  <SegmentButton
+                    active={theme === "dark"}
                     onClick={() => handleThemeChange("dark")}
                   >
                     Dark
-                  </Button>
+                  </SegmentButton>
                 </div>
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-medium">
+                <label className="mb-2.5 block text-sm font-medium">
                   Node Display Mode
                 </label>
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant={nodeDisplayMode === "compact" ? "default" : "secondary"}
+                <div className="inline-flex rounded-lg border bg-muted/50 p-0.5">
+                  <SegmentButton
+                    active={nodeDisplayMode === "compact"}
                     onClick={() => handleNodeDisplayModeChange("compact")}
                   >
                     Compact
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={nodeDisplayMode === "expanded" ? "default" : "secondary"}
+                  </SegmentButton>
+                  <SegmentButton
+                    active={nodeDisplayMode === "expanded"}
                     onClick={() => handleNodeDisplayModeChange("expanded")}
                   >
                     Expanded
-                  </Button>
+                  </SegmentButton>
                 </div>
-                <p className="mt-1 text-xs text-muted-foreground">
+                <p className="mt-2 text-xs text-muted-foreground">
                   Compact mode shows one-line summaries. Click nodes to expand details.
                 </p>
               </div>
@@ -423,10 +444,13 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
 
-        {/* Section C.5: Public Profile */}
+        {/* Public Profile */}
         <Card>
           <CardHeader>
-            <CardTitle>Public Profile</CardTitle>
+            <div className="flex items-center gap-2">
+              <Globe className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-base">Public Profile</CardTitle>
+            </div>
             <CardDescription>
               Make your profile visible to others and showcase your published
               strategies.
@@ -437,10 +461,13 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
 
-        {/* Section D: Usage */}
+        {/* Usage */}
         <Card>
           <CardHeader>
-            <CardTitle>Usage</CardTitle>
+            <div className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-base">Usage</CardTitle>
+            </div>
             <CardDescription>
               Your current usage against account limits.
             </CardDescription>
@@ -468,28 +495,30 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
 
-        {/* Section D.5: Credits & Add-Ons */}
+        {/* Credits & Add-Ons */}
         <Card>
           <CardHeader>
-            <CardTitle>Credits & Add-Ons</CardTitle>
+            <div className="flex items-center gap-2">
+              <Zap className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-base">Credits & Add-Ons</CardTitle>
+            </div>
             <CardDescription>
               Purchase additional capacity on-demand without a subscription.
             </CardDescription>
           </CardHeader>
           <CardContent>
             {billingError && (
-              <div className="mb-4 rounded border border-red-200 bg-red-50 p-3 text-sm text-red-600">
+              <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
                 {billingError}
               </div>
             )}
 
             <div className="grid gap-4 sm:grid-cols-2">
-              {/* Backtest Credits Card */}
-              <Card>
+              <Card className="transition-shadow duration-200 hover:shadow-md">
                 <CardContent className="p-4">
                   <div className="mb-3 flex items-center justify-between">
                     <h3 className="font-semibold">Backtest Credits</h3>
-                    <Badge variant="default">
+                    <Badge variant="default" className="tabular-nums">
                       {profile?.settings.backtest_credit_balance || 0} credits
                     </Badge>
                   </div>
@@ -504,17 +533,16 @@ export default function ProfilePage() {
                   >
                     {isPurchasingPack === "backtest_credits"
                       ? "Loading..."
-                      : "Buy 50 Credits – $15"}
+                      : "Buy 50 Credits \u2013 $15"}
                   </Button>
                 </CardContent>
               </Card>
 
-              {/* Strategy Slots Card */}
-              <Card>
+              <Card className="transition-shadow duration-200 hover:shadow-md">
                 <CardContent className="p-4">
                   <div className="mb-3 flex items-center justify-between">
                     <h3 className="font-semibold">Extra Strategy Slots</h3>
-                    <Badge variant="default">
+                    <Badge variant="default" className="tabular-nums">
                       +{profile?.settings.extra_strategy_slots || 0} slots
                     </Badge>
                   </div>
@@ -529,7 +557,7 @@ export default function ProfilePage() {
                   >
                     {isPurchasingPack === "strategy_slots"
                       ? "Loading..."
-                      : "Buy +5 Slots – $9"}
+                      : "Buy +5 Slots \u2013 $9"}
                   </Button>
                 </CardContent>
               </Card>
@@ -537,23 +565,26 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
 
-        {/* Section E: Billing */}
+        {/* Billing */}
         <Card id="billing">
           <CardHeader>
-            <CardTitle>Billing & Plans</CardTitle>
+            <div className="flex items-center gap-2">
+              <CreditCard className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-base">Billing & Plans</CardTitle>
+            </div>
             <CardDescription>
               Manage your subscription and see available plans.
             </CardDescription>
           </CardHeader>
           <CardContent>
             {billingError && (
-              <div className="mb-4 rounded border border-red-200 bg-red-50 p-3 text-sm text-red-600">
+              <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
                 {billingError}
               </div>
             )}
 
             {/* Current Plan */}
-            <div className="mb-6 rounded-lg border bg-muted/50 p-4">
+            <div className="mb-6 rounded-lg border bg-muted/30 p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="font-semibold capitalize">
@@ -616,6 +647,7 @@ export default function ProfilePage() {
                     "200 backtests/day",
                     "3 years history",
                   ]}
+                  recommended
                   onUpgrade={() => handleUpgrade("pro", "monthly")}
                   onUpgradeAnnual={() => handleUpgrade("pro", "annual")}
                   isUpgrading={isUpgrading?.startsWith("pro")}
@@ -643,6 +675,31 @@ export default function ProfilePage() {
   );
 }
 
+function SegmentButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "rounded-md px-3.5 py-1.5 text-sm font-medium transition-all duration-150",
+        active
+          ? "bg-background text-foreground shadow-sm"
+          : "text-muted-foreground hover:text-foreground"
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
 function UsageCard({
   title,
   used,
@@ -661,10 +718,10 @@ function UsageCard({
 
   const barColor =
     state === "reached"
-      ? "bg-red-500"
+      ? "bg-gradient-to-r from-red-500 to-red-400"
       : state === "near"
-        ? "bg-yellow-500"
-        : "bg-primary";
+        ? "bg-gradient-to-r from-yellow-500 to-yellow-400"
+        : "bg-gradient-to-r from-primary to-primary/80";
 
   const badgeVariant: "destructive" | "secondary" | "default" =
     state === "reached"
@@ -674,19 +731,21 @@ function UsageCard({
         : "default";
 
   return (
-    <Card>
+    <Card className={cn(
+      "transition-shadow duration-200",
+      state === "reached" && "border-destructive/30"
+    )}>
       <CardContent className="p-4">
         <div className="flex items-center justify-between">
           <h3 className="font-medium">{title}</h3>
-          <Badge variant={badgeVariant}>
+          <Badge variant={badgeVariant} className="tabular-nums">
             {used} / {limit}
           </Badge>
         </div>
 
-        {/* Progress bar */}
         <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-muted">
           <div
-            className={cn("h-2 rounded-full transition-all", barColor)}
+            className={cn("h-2 rounded-full transition-all duration-500", barColor)}
             style={{ width: `${Math.min(percent, 100)}%` }}
           />
         </div>
@@ -694,7 +753,7 @@ function UsageCard({
         <p className="mt-2 text-xs text-muted-foreground">{helper}</p>
 
         {state === "reached" && (
-          <p className="mt-2 text-sm text-red-600">
+          <p className="mt-2 text-sm text-destructive">
             You&apos;ve reached your limit.{" "}
             <a href="#billing" className="underline">
               Upgrade your plan
@@ -720,6 +779,7 @@ function PlanCard({
   annualPrice,
   features,
   current = false,
+  recommended = false,
   onUpgrade,
   onUpgradeAnnual,
   isUpgrading = false,
@@ -730,30 +790,42 @@ function PlanCard({
   annualPrice?: string;
   features: string[];
   current?: boolean;
+  recommended?: boolean;
   onUpgrade?: () => void;
   onUpgradeAnnual?: () => void;
   isUpgrading?: boolean;
 }) {
   return (
-    <Card className={cn(current && "border-primary")}>
-      <CardContent className="p-4">
-        <h3 className="mb-2 text-lg font-semibold">{name}</h3>
+    <Card className={cn(
+      "relative transition-shadow duration-200",
+      current && "border-primary/30",
+      recommended && "border-primary shadow-md shadow-primary/5"
+    )}>
+      {recommended && (
+        <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+          <Badge className="bg-primary text-primary-foreground shadow-sm">
+            Popular
+          </Badge>
+        </div>
+      )}
+      <CardContent className={cn("p-5", recommended && "pt-6")}>
+        <h3 className="mb-1 text-lg font-semibold tracking-tight">{name}</h3>
         <div className="mb-4">
-          <span className="text-3xl font-bold">{price}</span>
+          <span className="text-3xl font-bold tabular-nums tracking-tight">{price}</span>
           <span className="text-sm text-muted-foreground">/{interval}</span>
           {annualPrice && (
             <div className="mt-1">
               <p className="text-xs text-muted-foreground">or {annualPrice}</p>
-              <p className="text-xs font-medium text-green-600">
+              <p className="text-xs font-medium text-green-600 dark:text-green-400">
                 Save 2 months
               </p>
             </div>
           )}
         </div>
-        <ul className="mb-4 space-y-2 text-sm">
+        <ul className="mb-5 space-y-2 text-sm">
           {features.map((feature, i) => (
             <li key={i} className="flex items-center gap-2">
-              <span className="text-primary">✓</span>
+              <Check className="h-3.5 w-3.5 shrink-0 text-primary" />
               {feature}
             </li>
           ))}
@@ -775,7 +847,7 @@ function PlanCard({
               <Button
                 onClick={onUpgradeAnnual}
                 disabled={isUpgrading}
-                variant="secondary"
+                variant="outline"
                 className="w-full"
               >
                 {isUpgrading ? "Loading..." : "Upgrade Annual"}

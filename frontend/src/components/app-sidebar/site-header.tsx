@@ -21,18 +21,18 @@ const pageTitles: Record<string, string> = {
   "/profile": "Profile",
   "/how-backtests-work": "How It Works",
   "/metrics-glossary": "Metrics Glossary",
+  "/market": "Market",
+  "/alerts": "Alerts",
+  "/progress": "Progress",
 }
 
 export function SiteHeader() {
   const pathname = usePathname()
 
-  // Get page title from path
   const getPageTitle = () => {
-    // Check exact match first
     if (pageTitles[pathname]) {
       return pageTitles[pathname]
     }
-    // Check for strategy builder pages
     if (pathname.startsWith("/strategies/") && pathname.includes("/canvas")) {
       return "Strategy Canvas"
     }
@@ -48,25 +48,29 @@ export function SiteHeader() {
   const pageTitle = getPageTitle()
 
   return (
-    <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+    <header className="relative flex h-14 shrink-0 items-center gap-2 px-4">
       <SidebarTrigger className="-ml-1" />
       <Separator orientation="vertical" className="mr-2 h-4" />
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem className="hidden md:block">
             <BreadcrumbLink asChild>
-              <Link href="/dashboard">Blockbuilders</Link>
+              <Link href="/dashboard" className="text-muted-foreground/70 transition-colors hover:text-foreground">
+                Blockbuilders
+              </Link>
             </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator className="hidden md:block" />
           <BreadcrumbItem>
-            <BreadcrumbPage>{pageTitle}</BreadcrumbPage>
+            <BreadcrumbPage className="font-medium">{pageTitle}</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
       <div className="ml-auto flex items-center gap-2">
         <NotificationBell />
       </div>
+      {/* Subtle bottom gradient border */}
+      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
     </header>
   )
 }
