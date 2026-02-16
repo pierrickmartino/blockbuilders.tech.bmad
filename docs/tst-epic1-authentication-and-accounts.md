@@ -22,13 +22,13 @@
 
 ### 1.2 UI Tests – Signup Form
 
-- [ ] Signup page/modal displays email field, password field, and "Create account" button
-- [ ] Inline validation is shown for invalid email format before submission
-- [ ] Inline validation is shown for password that is too short
-- [ ] On successful signup, auth token/session is stored securely (cookie or localStorage)
-- [ ] On successful signup, user is redirected to the main app (strategy list or empty state)
-- [ ] On error (e.g., duplicate email), inline error message is displayed
-- [ ] Form is accessible and works on mobile viewports
+- [x] Signup page/modal displays email field, password field, and "Create account" button
+- [x] Inline validation is shown for invalid email format before submission
+- [x] Inline validation is shown for password that is too short
+- [x] On successful signup, auth token/session is stored securely (cookie or localStorage)
+- [x] On successful signup, user is redirected to the main app (strategy list or empty state)
+- [x] On error (e.g., duplicate email), inline error message is displayed
+- [x] Form is accessible and works on mobile viewports
 
 ---
 
