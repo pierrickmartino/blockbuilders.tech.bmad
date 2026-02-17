@@ -1619,7 +1619,7 @@ export default function StrategyEditorPage({ params }: Props) {
         {/* Center - Canvas */}
         <div className="relative flex-1">
           {/* Desktop side panel toggles */}
-          <div className="pointer-events-none absolute left-4 right-4 top-4 z-20 hidden items-start justify-between lg:flex">
+          <div className="pointer-events-none absolute left-4 top-4 z-20 hidden items-start gap-2 lg:flex">
             <Button
               type="button"
               variant="outline"
