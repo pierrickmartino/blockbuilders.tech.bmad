@@ -72,6 +72,7 @@ import {
 import { KeyboardShortcutsModal } from "@/components/KeyboardShortcutsModal";
 import { isInputElement } from "@/lib/keyboard-shortcuts";
 import { cn } from "@/lib/utils";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -104,6 +105,8 @@ export default function StrategyEditorPage({ params }: Props) {
   // Mobile drawer state
   const [showProperties, setShowProperties] = useState(false);
   const [showLayoutMenu, setShowLayoutMenu] = useState(false);
+  const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(false);
+  const [isRightPanelOpen, setIsRightPanelOpen] = useState(false);
 
   // ReactFlow instance ref for block library sheet
   const reactFlowRef = useRef<ReactFlowInstance<Node, CanvasEdge> | null>(null);
@@ -1607,12 +1610,38 @@ export default function StrategyEditorPage({ params }: Props) {
       {/* Main Content - Three Panel Layout */}
       <div className="flex flex-1 overflow-hidden">
         {/* Left Panel - Block Palette (hidden on mobile, drawer) */}
-        <div className="hidden w-64 flex-shrink-0 border-r lg:block">
-          <BlockPalette onDragStart={handlePaletteDragStart} isMobileMode={isMobileCanvasMode} />
-        </div>
+        {isLeftPanelOpen && (
+          <div className="hidden w-64 flex-shrink-0 border-r lg:block">
+            <BlockPalette onDragStart={handlePaletteDragStart} isMobileMode={isMobileCanvasMode} />
+          </div>
+        )}
 
         {/* Center - Canvas */}
         <div className="relative flex-1">
+          {/* Desktop side panel toggles */}
+          <div className="pointer-events-none absolute left-4 right-4 top-4 z-20 hidden items-start justify-between lg:flex">
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="pointer-events-auto rounded-full bg-background/95 shadow-md backdrop-blur"
+              onClick={() => setIsLeftPanelOpen((current) => !current)}
+              aria-label={isLeftPanelOpen ? "Collapse block palette" : "Expand block palette"}
+            >
+              {isLeftPanelOpen ? <ChevronLeft /> : <ChevronRight />}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="pointer-events-auto rounded-full bg-background/95 shadow-md backdrop-blur"
+              onClick={() => setIsRightPanelOpen((current) => !current)}
+              aria-label={isRightPanelOpen ? "Collapse inspector panel" : "Expand inspector panel"}
+            >
+              {isRightPanelOpen ? <ChevronRight /> : <ChevronLeft />}
+            </Button>
+          </div>
+
           {/* Mobile floating buttons */}
           <div className="absolute left-4 top-4 z-10 flex flex-col gap-2">
             <BlockLibrarySheet
@@ -1655,15 +1684,17 @@ export default function StrategyEditorPage({ params }: Props) {
         </div>
 
         {/* Right Panel - Inspector (hidden on mobile, drawer) */}
-        <div className="hidden w-72 flex-shrink-0 border-l lg:block">
-          <InspectorPanel
-            selectedNode={selectedNode}
-            onParamsChange={handleParamsChange}
-            onDeleteNode={handleDeleteNode}
-            validationErrors={validationErrors}
-            isMobileMode={isMobileCanvasMode}
-          />
-        </div>
+        {isRightPanelOpen && (
+          <div className="hidden w-72 flex-shrink-0 border-l lg:block">
+            <InspectorPanel
+              selectedNode={selectedNode}
+              onParamsChange={handleParamsChange}
+              onDeleteNode={handleDeleteNode}
+              validationErrors={validationErrors}
+              isMobileMode={isMobileCanvasMode}
+            />
+          </div>
+        )}
 
         {/* Mobile Inspector Sheet */}
         <Sheet open={showProperties} onOpenChange={setShowProperties}>
