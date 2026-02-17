@@ -227,6 +227,20 @@ STRIPE_PRICE_STRATEGY_SLOTS_5=<your-strategy-slots-price-id>
 FRONTEND_URL=https://your-production-domain.com
 ```
 
+### If Deploying with Docker Compose
+
+Use the production compose file with an explicit env file:
+
+```bash
+docker compose --env-file .env -f docker-compose.prod.yml up -d --build
+```
+
+Verify the API container receives Stripe settings:
+
+```bash
+docker compose -f docker-compose.prod.yml exec api env | grep -E "STRIPE_SECRET_KEY|STRIPE_PRICE_PRO_MONTHLY|FRONTEND_URL"
+```
+
 ### Billing Portal Configuration
 
 Configure the Stripe Billing Portal for customer self-service:
@@ -287,6 +301,15 @@ Configure the Stripe Billing Portal for customer self-service:
 **Solution**:
 1. Verify API key is correct and has necessary permissions
 2. Test API key with: `stripe balance retrieve` (via CLI)
+
+#### "Stripe not configured" or Stripe setup errors in production API
+
+**Cause**: Stripe environment variables are not available inside the API container runtime
+
+**Solution**:
+1. Ensure `docker-compose.prod.yml` passes all required `STRIPE_*` variables to the `api` service
+2. Redeploy using the production compose file and env file
+3. Confirm env visibility with `docker compose -f docker-compose.prod.yml exec api env`
 
 ### Useful Stripe CLI Commands
 

@@ -105,6 +105,16 @@ FRONTEND_URL=http://localhost:3000  # or your production URL
    FRONTEND_URL=https://yourdomain.com
    ```
 
+4. **If deploying with Docker Compose**
+   - Start with the production file and explicit env file:
+     ```bash
+     docker compose --env-file .env -f docker-compose.prod.yml up -d --build
+     ```
+   - Verify the API container sees OAuth vars:
+     ```bash
+     docker compose -f docker-compose.prod.yml exec api env | grep -E "GOOGLE_CLIENT_ID|FRONTEND_URL"
+     ```
+
 ---
 
 ## GitHub OAuth Setup
@@ -278,6 +288,10 @@ The callback URL must match **exactly** in your OAuth provider settings.
 ### OAuth buttons not appearing
 - **Cause**: Missing client IDs in environment
 - **Fix**: Set `GOOGLE_CLIENT_ID` and/or `GITHUB_CLIENT_ID` environment variables
+
+### "Google OAuth not configured" in production API
+- **Cause**: `GOOGLE_CLIENT_ID` is not available inside the API container runtime
+- **Fix**: Ensure `docker-compose.prod.yml` passes `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `FRONTEND_URL` into the `api` service and redeploy
 
 ### "Failed to get user info from provider"
 - **Cause**: Token exchange failed or provider API error

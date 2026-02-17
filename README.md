@@ -208,20 +208,21 @@ MinIO root credentials for local storage (used by Docker Compose):
 
 ## Production Deployment
 
-The same `docker-compose.yml` can run on any server with Docker:
+Use the production compose file and an explicit env file:
 
 ```bash
 # On remote server
 git clone <repo-url>
 cd blockbuilders
-docker compose up -d --build
-docker compose exec api alembic upgrade head
+docker compose --env-file .env -f docker-compose.prod.yml up -d --build
+docker compose -f docker-compose.prod.yml exec api alembic upgrade head
 ```
 
 For production, consider:
 - Using environment variables for secrets (don't use defaults)
 - Setting up a reverse proxy (nginx/traefik) with SSL
 - Configuring proper backup for PostgreSQL volume
+- Ensuring auth/billing vars are present in the env file used by compose (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `FRONTEND_URL`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_*`)
 
 ## Development
 
