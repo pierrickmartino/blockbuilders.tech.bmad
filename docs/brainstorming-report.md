@@ -210,19 +210,19 @@ These are beliefs embedded in the product that should be tested with real user d
 
 ### Technical
 9. **What's the plan for data vendor redundancy?** Can a second vendor be added to mitigate CryptoCompare dependency?
-**Answer**: 
+**Answer**: Oui. Bien évidemment un second vendeur peut être ajouté pour limiter la dépendance à CryptoCompare. Dans un premier temps, j'aimerais tout de même que ce second vendeur ne fasse pas exploser les coûts.
 10. **When does the monolith need to be decomposed?** At what user count does the single-queue architecture become a bottleneck?
-**Answer**:
+**Answer**: Lorsque les performances et l'experience utilisateur seront dégradés. Ceci dit, si une partie de l'architecture peut être décomposée sans trop créer de complexité alors je suis d'accord pour le mettre en place rapidement.
 11. **What's the frontend test strategy?** The docs explicitly note no frontend tests. When does this become unacceptable?
-**Answer**:
+**Answer**: La documentation a gardé cette règle qui était liée au MVP mais l'on peut faire évoluer ça et aller des tests frontend dans les prochaines évolutions.
 
 ### Business
 12. **What's the runway?** How long can development continue at the current pace before revenue must sustain operations?
-**Answer**:
+**Answer**: Pour l'instant, l'application est développée sur mon temps libre et je n'ai donc pas encore réfléchi à la question.
 13. **Is there a go-to-market plan beyond organic/product-led growth?** Content marketing, partnerships with crypto educators, influencer outreach?
-**Answer**:
+**Answer**: Pas pour le moment.
 14. **Has the pricing been A/B tested or benchmarked against competitor pricing?**
-**Answer**:
+**Answer**: Non
 
 ---
 
