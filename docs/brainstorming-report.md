@@ -190,33 +190,39 @@ These are beliefs embedded in the product that should be tested with real user d
 
 ### Strategic
 1. **What is the actual user base today?** How many registered accounts, MAU, paid subscribers? Without these numbers, every prioritization decision is speculative.
-Answer: Pour l'instant, l'application est toujours dans sa phase de développement et même si elle est techniquement en production, personne ne la rejoint pour le moment. Je n'ai pas cherché à la partager donc le nombre d'utilisateurs est de 1 : moi.
+**Answer**: Pour l'instant, l'application est toujours dans sa phase de développement et même si elle est techniquement en production, personne ne la rejoint pour le moment. Je n'ai pas cherché à la partager donc le nombre d'utilisateurs est de 1 : moi.
 2. **What's the competitive landscape?** How does Blockbuilders compare to TradingView's strategy tester, QuantConnect, Composer, Tuned, or Trality? What's the unique positioning?
-Answer: Je ne connais que TradingView parmi la liste mais BlockBuilders doit être beaucoup plus simple et intuitif dans la création de stratégie. TradingView oblige à passer par son langage PineScript ce qui est très complexe et contraignant pour les novices ou les crypto-curieux qui ne sont pas forcément formés au développement.
+**Answer**: Je ne connais que TradingView parmi la liste mais BlockBuilders doit être beaucoup plus simple et intuitif dans la création de stratégie. TradingView oblige à passer par son langage PineScript ce qui est très complexe et contraignant pour les novices ou les crypto-curieux qui ne sont pas forcément formés au développement.
 3. **Is the vision "strategy lab" or "full trading platform"?** The current feature set suggests strategy lab, but scheduled re-backtests and alerts hint at wanting to be more. This is the most important strategic decision to make.
-Answer: La vision doit clairement être orientée.
+**Answer**: La vision doit clairement être orientée.
 4. **Who is the primary persona?** A crypto-curious beginner learning to trade, a retail swing trader testing ideas before execution, or a semi-professional quantitative trader who needs a rapid prototyping tool?
-Answer: L'utilisateur cible est un crypto-curieux, débutant ou quasi débutant, qui souhaite créer ou s'inspirer des stratégies existantes pour éviter de perdre ses quelques investissements en crypto, voir même de les faire fructifier. Le but est de développer en lui cette idée de pouvoir faire mieux que les autres et dégager un gain "sûr" au lieu de laisser le hasard faire les choses.
+**Answer**: L'utilisateur cible est un crypto-curieux, débutant ou quasi débutant, qui souhaite créer ou s'inspirer des stratégies existantes pour éviter de perdre ses quelques investissements en crypto, voir même de les faire fructifier. Le but est de développer en lui cette idée de pouvoir faire mieux que les autres et dégager un gain "sûr" au lieu de laisser le hasard faire les choses.
 
 ### Product
 5. **What's the time-to-first-backtest for a new user today?** Has anyone measured this?
-Answer: Je n'ai pas de mesures disponibles sur ce point précis.
+**Answer**: Je n'ai pas de mesures disponibles sur ce point précis.
 6. **Which features get used and which don't?** Is there any analytics instrumentation?
-Answer: Je n'ai pas de mesures disponibles sur ce point précis.
+**Answer**: Je n'ai pas de mesures disponibles sur ce point précis.
 7. **What do users do after their first backtest?** Do they iterate? Do they come back? Do they share?
-Answer: Je ne sais pas puisque je suis le seul utilisateur actif pour l'instant.
+**Answer**: Je ne sais pas puisque je suis le seul utilisateur actif pour l'instant.
 8. **Is the strategy wizard actually reducing friction, or do users skip it?**
-Answer: Je ne sais pas puisque je suis le seul utilisateur actif pour l'instant.
+**Answer**: Je ne sais pas puisque je suis le seul utilisateur actif pour l'instant.
 
 ### Technical
 9. **What's the plan for data vendor redundancy?** Can a second vendor be added to mitigate CryptoCompare dependency?
+**Answer**: 
 10. **When does the monolith need to be decomposed?** At what user count does the single-queue architecture become a bottleneck?
+**Answer**:
 11. **What's the frontend test strategy?** The docs explicitly note no frontend tests. When does this become unacceptable?
+**Answer**:
 
 ### Business
 12. **What's the runway?** How long can development continue at the current pace before revenue must sustain operations?
+**Answer**:
 13. **Is there a go-to-market plan beyond organic/product-led growth?** Content marketing, partnerships with crypto educators, influencer outreach?
+**Answer**:
 14. **Has the pricing been A/B tested or benchmarked against competitor pricing?**
+**Answer**:
 
 ---
 
