@@ -175,7 +175,16 @@ If the spec is missing, add a small “delta spec” section to `docs/phase2.md`
 
 ## 5. Tech stack expectations
 
-### 5.2. Notification guidance
+### 5.2. Secure baseline versions
+
+- Keep runtime and framework versions on the approved secure baseline:
+  - Next.js **16.x** (latest patched minor/patch release in the 16 line)
+  - FastAPI **0.129.x**
+  - Python **3.12**
+- When version upgrades are introduced, verify core flows still work end-to-end (OAuth callback, shared backtest links, existing app routes, login, strategy creation, and backtest run smoke test).
+- Avoid broad refactors during stack upgrades; keep changes minimal and focused on compatibility/security.
+
+### 5.3. Notification guidance
 
 - Prefer **in-app notifications** over email for time-sensitive updates.
 - Keep notification payloads minimal (just enough to render text + a deep link).
