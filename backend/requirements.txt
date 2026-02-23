@@ -1,4 +1,4 @@
-fastapi==0.115.6
+fastapi==0.129.2
 uvicorn[standard]==0.32.1
 sqlmodel>=0.0.31
 alembic==1.14.0
