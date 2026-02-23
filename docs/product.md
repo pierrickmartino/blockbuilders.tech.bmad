@@ -1,7 +1,7 @@
 # Blockbuilders – Product Documentation
 
 **Status:** Current Product Truth
-**Last Updated:** 2026-01-03
+**Last Updated:** 2026-02-23
 **Purpose:** Comprehensive documentation of all implemented features
 
 ---
@@ -13,8 +13,8 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 **Current State:** Fully functional MVP with post-MVP enhancements (OAuth, scheduled updates, advanced risk management, strategy building wizard, in-app notifications).
 
 **Architecture:**
-- **Frontend:** Next.js 15 + React 19 + TypeScript + Tailwind CSS + shadcn/ui
-- **Backend:** FastAPI (Python) monolith
+- **Frontend:** Next.js 16.x + React 19 + TypeScript + Tailwind CSS + shadcn/ui
+- **Backend:** FastAPI 0.129.x (Python 3.12) monolith
 - **Database:** PostgreSQL
 - **Queue:** Redis + RQ
 - **Storage:** MinIO (S3-compatible)
@@ -1252,7 +1252,7 @@ Plain-Language Error Messages
 
 ### 9.1. Application Structure
 
-**Framework:** Next.js 15 with App Router
+**Framework:** Next.js 16.x with App Router
 - React 19
 - TypeScript strict mode
 - Tailwind CSS for styling
@@ -1595,8 +1595,8 @@ Plain-Language Error Messages
 
 ### 10.1. API Architecture
 
-**Framework:** FastAPI
-- Python 3.11+
+**Framework:** FastAPI 0.129.x
+- Python 3.12
 - Async support (async/await)
 - Automatic OpenAPI/Swagger docs at `/docs`
 
@@ -2094,6 +2094,8 @@ Plain-Language Error Messages
 | **Responsive Charts** | ✅ Complete | Pinch-to-zoom + pan for equity/drawdown charts on mobile |
 | **Backend Test Suite** | ✅ Complete | pytest with tests for security, indicators, backtest engine, auth API, billing webhooks |
 | **Security Hardening** | ✅ Complete | Rate limiting, timing-safe token comparison, SSRF prevention, atomic DB operations, redirect validation, request timeouts |
+| **Secure Stack Baseline Upgrade** | ✅ Complete | Next.js 16.x, FastAPI 0.129.x, and Python 3.12 with smoke validation for OAuth callback, shared backtest links, and core routes/flows |
+
 
 **Current State:** Fully functional MVP with post-MVP enhancements (OAuth, scheduled updates, advanced risk management, timezone support, strategy building wizard, in-app notifications).
 
@@ -2383,6 +2385,8 @@ npm run type-check    # TypeScript validation
 - `docs/prd-bulk-strategy-actions.md` - Bulk strategy actions PRD
 - `docs/prd-recently-viewed-dashboard-shortcuts.md` - Recently viewed dashboard shortcuts PRD
 - `docs/prd-share-backtest-results-links.md` - Shareable backtest result links PRD
+- `docs/prd-secure-stack-baseline-upgrade.md` - Secure stack baseline upgrade PRD
+- `docs/tst-secure-stack-baseline-upgrade.md` - Secure stack baseline upgrade test checklist
 - `docs/prd-enhanced-trade-explanation-view.md` - Enhanced trade explanation view PRD (IMPLEMENTED - Phase 1)
 - `docs/tst-enhanced-trade-explanation-view.md` - Enhanced trade explanation view test checklist
 - `CLAUDE.md` - Instructions for Claude Code
