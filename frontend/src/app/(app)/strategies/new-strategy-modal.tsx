@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { apiFetch, ApiError } from "@/lib/api";
+import { trackEvent } from "@/lib/analytics";
 import { useAuth } from "@/context/auth";
 import { Strategy, ALLOWED_ASSETS, ALLOWED_TIMEFRAMES, AllowedAsset } from "@/types/strategy";
 import { Button } from "@/components/ui/button";
@@ -29,7 +30,7 @@ interface Props {
 }
 
 export default function NewStrategyModal({ open, onOpenChange, onCreated, onOpenWizard }: Props) {
-  const { refreshUsage } = useAuth();
+  const { user, refreshUsage } = useAuth();
   const [name, setName] = useState("");
   const [asset, setAsset] = useState<string>(ALLOWED_ASSETS[0]);
   const [timeframe, setTimeframe] = useState<string>(ALLOWED_TIMEFRAMES[0]);
@@ -57,6 +58,7 @@ export default function NewStrategyModal({ open, onOpenChange, onCreated, onOpen
         body: JSON.stringify({ name: name.trim(), asset, timeframe }),
       });
       refreshUsage();
+      trackEvent("strategy_created", { asset, timeframe, source: "modal" }, user?.id);
       onCreated(strategy);
       onOpenChange(false);
     } catch (err) {

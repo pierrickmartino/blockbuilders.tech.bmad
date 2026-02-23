@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/context/auth";
 import { DisplayProvider } from "@/context/display";
+import { PostHogBootstrap } from "@/components/PostHogBootstrap";
+import { ConsentBanner } from "@/components/ConsentBanner";
 
 export const metadata: Metadata = {
   title: "Blockbuilders",
@@ -35,6 +37,8 @@ export default function RootLayout({
         <AuthProvider>
           <DisplayProvider>{children}</DisplayProvider>
         </AuthProvider>
+        <PostHogBootstrap />
+        <ConsentBanner />
       </body>
     </html>
   );

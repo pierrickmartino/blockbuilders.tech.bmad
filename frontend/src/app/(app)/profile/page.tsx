@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useDisplay } from "@/context/display";
+import { getConsent, setConsent } from "@/lib/analytics";
 import { apiFetch, ApiError, safeRedirect } from "@/lib/api";
 import { ProfileResponse, UserUpdateRequest } from "@/types/auth";
 import {
@@ -27,6 +28,7 @@ import {
   Zap,
   Check,
   Sparkles,
+  Shield,
 } from "lucide-react";
 
 export default function ProfilePage() {
@@ -44,6 +46,16 @@ export default function ProfilePage() {
   const [isUpgrading, setIsUpgrading] = useState<string | null>(null);
   const [billingError, setBillingError] = useState<string | null>(null);
   const [isPurchasingPack, setIsPurchasingPack] = useState<string | null>(null);
+  const [analyticsConsent, setAnalyticsConsent] = useState<"accepted" | "declined" | null>(null);
+
+  useEffect(() => {
+    setAnalyticsConsent(getConsent());
+  }, []);
+
+  const handleConsentChange = useCallback((accepted: boolean) => {
+    setConsent(accepted);
+    setAnalyticsConsent(accepted ? "accepted" : "declined");
+  }, []);
 
   useEffect(() => {
     async function fetchProfile() {
@@ -440,6 +452,47 @@ export default function ProfilePage() {
                   Compact mode shows one-line summaries. Click nodes to expand details.
                 </p>
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Analytics Privacy */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Shield className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-base">Analytics Privacy</CardTitle>
+            </div>
+            <CardDescription>
+              Control whether anonymous usage analytics are collected to help improve the app.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium">
+                  Status:{" "}
+                  <span className={cn(
+                    analyticsConsent === "accepted"
+                      ? "text-green-600 dark:text-green-400"
+                      : "text-muted-foreground"
+                  )}>
+                    {analyticsConsent === "accepted" ? "Enabled" : analyticsConsent === "declined" ? "Disabled" : "Not set"}
+                  </span>
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  No personal data is shared with third parties.
+                </p>
+              </div>
+              {analyticsConsent === "accepted" ? (
+                <Button variant="outline" size="sm" onClick={() => handleConsentChange(false)}>
+                  Disable
+                </Button>
+              ) : (
+                <Button size="sm" onClick={() => handleConsentChange(true)}>
+                  Enable
+                </Button>
+              )}
             </div>
           </CardContent>
         </Card>

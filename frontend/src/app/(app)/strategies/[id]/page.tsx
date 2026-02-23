@@ -5,8 +5,10 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Node, Edge, ReactFlowInstance } from "@xyflow/react";
 import { apiFetch } from "@/lib/api";
+import { trackEvent } from "@/lib/analytics";
 import { formatDateTime, formatRelativeTime } from "@/lib/format";
 import { useDisplay } from "@/context/display";
+import { useAuth } from "@/context/auth";
 import { Strategy, StrategyTag, StrategyVersion, StrategyVersionDetail, StrategyExportFile } from "@/types/strategy";
 import { AlertRule } from "@/types/alert";
 import {
@@ -80,6 +82,7 @@ interface Props {
 export default function StrategyEditorPage({ params }: Props) {
   const { id } = use(params);
   const router = useRouter();
+  const { user } = useAuth();
   const { timezone, isMobileCanvasMode, nodeDisplayMode, setNodeDisplayMode } = useDisplay();
 
   const [strategy, setStrategy] = useState<Strategy | null>(null);
@@ -475,6 +478,7 @@ export default function StrategyEditorPage({ params }: Props) {
       setLastSavedEdgesSnapshot(JSON.stringify(edges));
       setAutosaveState('saved');
 
+      trackEvent("strategy_saved", { strategy_id: id }, user?.id);
       setSaveMessage("Version saved successfully");
       setTimeout(() => setSaveMessage(null), 3000);
     } catch (err) {
@@ -482,7 +486,7 @@ export default function StrategyEditorPage({ params }: Props) {
     } finally {
       setIsSavingVersion(false);
     }
-  }, [isSavingVersion, nodes, edges, id, loadVersions, loadStrategy]);
+  }, [isSavingVersion, nodes, edges, id, loadVersions, loadStrategy, user?.id]);
 
   const triggerAutosave = useCallback(async (currentNodes: Node[], currentEdges: Edge[]) => {
     // Skip if already saving

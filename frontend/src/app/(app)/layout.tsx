@@ -1,13 +1,15 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useRef } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/context/auth";
+import { trackEvent } from "@/lib/analytics";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar, SiteHeader } from "@/components/app-sidebar";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
   const { user, isLoading } = useAuth();
 
   useEffect(() => {
@@ -15,6 +17,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       router.push("/login");
     }
   }, [user, isLoading, router]);
+
+  const prevPathRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!user) return;
+    if (pathname === prevPathRef.current) return;
+    prevPathRef.current = pathname;
+    trackEvent("page_view", { path: pathname }, user.id);
+  }, [pathname, user]);
 
   if (isLoading) {
     return (
