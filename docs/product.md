@@ -10,7 +10,7 @@
 
 Blockbuilders is a **web-based, no-code strategy lab** where retail crypto traders can visually build, backtest, and iterate on trading strategies without writing code.
 
-**Current State:** Fully functional MVP with post-MVP enhancements (OAuth, scheduled updates, advanced risk management, strategy building wizard, in-app notifications).
+**Current State:** Fully functional MVP with post-MVP enhancements (OAuth, scheduled updates, advanced risk management, strategy building wizard, in-app notifications) plus planned PostHog analytics integration with GDPR consent gating.
 
 **Architecture:**
 - **Frontend:** Next.js 16.x + React 19 + TypeScript + Tailwind CSS + shadcn/ui
@@ -1589,6 +1589,30 @@ Plain-Language Error Messages
 - `backend/app/api/progress.py` (router)
 - `backend/app/schemas/progress.py` (response schemas)
 
+### 9.13. Product Analytics & Privacy Consent
+
+**Status:** Planned (PRD defined)
+
+**Purpose:** Track core product engagement events with PostHog Cloud while respecting GDPR consent requirements.
+
+**v1 Event Coverage:**
+- Lifecycle events: `page_view`, `signup_completed`, `login_completed`
+- Feature events: `wizard_started`, `strategy_created`, `strategy_saved`, `backtest_started`, `backtest_completed`, `results_viewed`
+
+**Consent Rules (minimal):**
+- Show a lightweight cookie/consent banner on first visit.
+- Do not send analytics events until the user opts in.
+- Store consent choice locally and allow users to revoke later from settings.
+
+**Event Properties (minimal):**
+- `user_id` (or anonymous ID for unauthenticated visitors until login)
+- `timestamp` (client-side event timestamp)
+
+**Implementation Direction:**
+- Frontend-only PostHog SDK integration with a small `trackEvent` helper.
+- Keep instrumentation at route-level and key user actions only (no broad auto-capture in v1).
+- Verify events in PostHog Cloud live event stream before release.
+
 ---
 
 ## 10. Backend API Reference
@@ -2033,6 +2057,7 @@ Plain-Language Error Messages
 |---|---|---|
 | **Authentication** | ✅ Complete | Email/password, OAuth (Google, GitHub), password reset |
 | **Account Management** | ✅ Complete | Profile, settings (fees, slippage, timezone), usage tracking |
+| **Product Analytics (PostHog + Consent)** | 🟡 Planned | GDPR-aware consent banner + event tracking for auth and key strategy/backtest actions |
 | **User Profiles & Reputation** | ✅ Complete | Opt-in public profiles (/u/{handle}), follower counts, contributions, auto-awarded badges, privacy toggles |
 | **Strategy Management** | ✅ Complete | CRUD, versioning, validation, duplication (one-click list clone), archiving |
 | **Bulk Strategy Actions** | ✅ Complete | Multi-select strategies with checkbox selection + action dropdown for archive, tag, delete |
@@ -2381,6 +2406,7 @@ npm run type-check    # TypeScript validation
 - `docs/prd-grandfathered-beta-user-benefits.md` - Grandfathered beta user benefits PRD
 - `docs/prd-quick-strategy-clone.md` - Quick strategy clone (list action) PRD
 - `docs/prd-progress-dashboard.md` - Progress dashboard PRD
+- `docs/prd-posthog-analytics-privacy-consent.md` - PostHog analytics with privacy consent PRD
 - `docs/prd-user-profiles-reputation.md` - User profiles & reputation PRD
 - `docs/prd-bulk-strategy-actions.md` - Bulk strategy actions PRD
 - `docs/prd-recently-viewed-dashboard-shortcuts.md` - Recently viewed dashboard shortcuts PRD
@@ -2435,6 +2461,7 @@ npm run type-check    # TypeScript validation
 
 ## 18. Changelog
 
+- **2026-02-23:** Added PRD/TST planning for PostHog analytics with GDPR consent and documented planned product analytics coverage.
 **2026-01-03** - Enhanced trade explanation view documentation
 - Added planned backtest trade explanation view details (condition breakdowns, indicator overlays, condition-candle highlights)
 - Added PRD/TST references for implementation planning
