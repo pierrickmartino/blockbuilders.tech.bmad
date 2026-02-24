@@ -21,14 +21,14 @@
 
 ### 1.2 UI Tests – Create Strategy Form
 
-- [ ] "New strategy" button is visible on the strategies list page
-- [ ] Clicking "New strategy" opens a modal or page with a form
-- [ ] Form has fields: Name (text), Asset (select), Timeframe (select)
-- [ ] Asset dropdown only shows supported assets (e.g., BTC/USDT, ETH/USDT)
-- [ ] Timeframe dropdown only shows supported timeframes (e.g., 1h, 4h)
-- [ ] On successful creation, user is redirected to the Strategy Editor page (`/strategies/{id}`)
-- [ ] On validation error, inline error messages are shown (e.g., "Name is required")
-- [ ] Form is responsive and usable on mobile viewports
+- [x] "New strategy" button is visible on the strategies list page
+- [x] Clicking "New strategy" opens a modal or page with a form
+- [x] Form has fields: Name (text), Asset (select), Timeframe (select)
+- [x] Asset dropdown only shows supported assets (e.g., BTC/USDT, ETH/USDT)
+- [x] Timeframe dropdown only shows supported timeframes (e.g., 1h, 4h)
+- [x] On successful creation, user is redirected to the Strategy Editor page (`/strategies/{id}`)
+- [x] On validation error, inline error messages are shown (e.g., "Name is required")
+- [x] Form is responsive and usable on mobile viewports
 
 ---
 
@@ -46,15 +46,15 @@
 
 ### 2.2 UI Tests – Strategy List Page
 
-- [ ] Page at `/strategies` displays a table of strategies
-- [ ] Table shows columns: Name, Asset, Timeframe, Last modified, Auto-update flag
-- [ ] Clicking a row or "Open" button navigates to the Strategy Editor
-- [ ] Secondary actions (Duplicate, Archive) are available per row via dropdown or icon menu
-- [ ] Search box filters strategies by name
-- [ ] Sorting by "Last modified" works (default descending)
-- [ ] Sorting by "Name" works
-- [ ] When there are no strategies, an appropriate empty state is shown
-- [ ] Page is responsive and usable on mobile viewports
+- [x] Page at `/strategies` displays a table of strategies
+- [x] Table shows columns: Name, Asset, Timeframe, Last modified, Auto-update flag
+- [x] Clicking a row or "Open" button navigates to the Strategy Editor
+- [x] Secondary actions (Duplicate, Archive) are available per row via dropdown or icon menu
+- [x] Search box filters strategies by name
+- [x] Sorting by "Last modified" works (default descending)
+- [x] Sorting by "Name" works
+- [x] When there are no strategies, an appropriate empty state is shown
+- [x] Page is responsive and usable on mobile viewports
 
 ---
 
@@ -73,9 +73,9 @@
 
 ### 3.2 UI Tests – Edit Strategy
 
-- [ ] Strategy name is editable inline in the Strategy Editor page
-- [ ] Asset and timeframe are displayed (as labels or editable dropdowns)
-- [ ] Changes to the name are saved and reflected in the strategy list
+- [x] Strategy name is editable inline in the Strategy Editor page
+- [x] Asset and timeframe are displayed (as labels or editable dropdowns)
+- [x] Changes to the name are saved and reflected in the strategy list
 
 ---
 
