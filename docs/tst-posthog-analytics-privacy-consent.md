@@ -4,13 +4,13 @@
 
 ## 1. Configuration & Startup
 
-- [X] PostHog Cloud project key and host are configured in frontend environment variables.
-- [X] App starts successfully when PostHog config is present.
+- [x] PostHog Cloud project key and host are configured in frontend environment variables.
+- [x] App starts successfully when PostHog config is present.
 - [ ] App starts successfully when PostHog config is missing (analytics safely disabled).
 
 ## 2. Consent Banner (GDPR)
 
-- [ ] On first visit (no prior consent), minimal consent banner is displayed.
+- [x] On first visit (no prior consent), minimal consent banner is displayed.
 - [ ] Banner includes clear Accept and Decline actions.
 - [ ] Banner copy is plain-language and explains analytics purpose.
 - [ ] Consent decision is persisted client-side.
