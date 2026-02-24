@@ -1593,11 +1593,12 @@ Plain-Language Error Messages
 
 **Status:** Implemented
 
-**Purpose:** Track core product engagement events with PostHog Cloud while respecting GDPR consent requirements.
+**Purpose:** Track core product engagement events with PostHog Cloud while respecting GDPR consent requirements, including backend worker events that do not originate in the frontend.
 
 **v1 Event Coverage:**
 - Lifecycle events: `page_view`, `signup_completed`, `login_completed`
 - Feature events: `wizard_started`, `strategy_created`, `strategy_saved`, `backtest_started`, `backtest_completed`, `results_viewed`
+- Backend worker backtest lifecycle events: `backtest_job_started`, `backtest_job_completed`, `backtest_job_failed`
 
 **Consent Rules (minimal):**
 - Show a lightweight cookie/consent banner on first visit.
@@ -1607,10 +1608,13 @@ Plain-Language Error Messages
 **Event Properties (minimal):**
 - `user_id` (or anonymous ID for unauthenticated visitors until login)
 - `timestamp` (client-side event timestamp)
+- Backend lifecycle payload fields: `correlation_id`, `strategy_id`, `duration_ms` (for completion/failure when available)
 
 **Implementation Direction:**
-- Frontend-only PostHog SDK integration with a small `trackEvent` helper.
-- Keep instrumentation at route-level and key user actions only (no broad auto-capture in v1).
+- Frontend PostHog SDK integration with a small `trackEvent` helper for UI-originated events.
+- Backend FastAPI/worker PostHog server-side SDK integration for worker-originated backtest lifecycle events.
+- Dispatch backend events asynchronously (fire-and-forget) so analytics never blocks backtest execution.
+- Keep instrumentation at route-level, key user actions, and required worker lifecycle hooks only (no broad auto-capture in v1).
 - Verify events in PostHog Cloud live event stream before release.
 
 ---
@@ -2057,7 +2061,7 @@ Plain-Language Error Messages
 |---|---|---|
 | **Authentication** | ✅ Complete | Email/password, OAuth (Google, GitHub), password reset |
 | **Account Management** | ✅ Complete | Profile, settings (fees, slippage, timezone), usage tracking |
-| **Product Analytics (PostHog + Consent)** | ✅ Complete | GDPR-aware consent banner + event tracking for auth and key strategy/backtest actions |
+| **Product Analytics (PostHog + Consent + Backend Events)** | ✅ Complete | GDPR-aware consent banner + event tracking for auth/key strategy-backtest actions plus backend worker lifecycle events (`backtest_job_started/completed/failed`) |
 | **User Profiles & Reputation** | ✅ Complete | Opt-in public profiles (/u/{handle}), follower counts, contributions, auto-awarded badges, privacy toggles |
 | **Strategy Management** | ✅ Complete | CRUD, versioning, validation, duplication (one-click list clone), archiving |
 | **Bulk Strategy Actions** | ✅ Complete | Multi-select strategies with checkbox selection + action dropdown for archive, tag, delete |
@@ -2407,6 +2411,8 @@ npm run type-check    # TypeScript validation
 - `docs/prd-quick-strategy-clone.md` - Quick strategy clone (list action) PRD
 - `docs/prd-progress-dashboard.md` - Progress dashboard PRD
 - `docs/prd-posthog-analytics-privacy-consent.md` - PostHog analytics with privacy consent PRD
+- `docs/prd-backend-event-tracking-backtest-lifecycle.md` - Backend event tracking for backtest lifecycle PRD
+- `docs/tst-backend-event-tracking-backtest-lifecycle.md` - Backend event tracking for backtest lifecycle test checklist
 - `docs/prd-user-profiles-reputation.md` - User profiles & reputation PRD
 - `docs/prd-bulk-strategy-actions.md` - Bulk strategy actions PRD
 - `docs/prd-recently-viewed-dashboard-shortcuts.md` - Recently viewed dashboard shortcuts PRD
@@ -2461,6 +2467,7 @@ npm run type-check    # TypeScript validation
 
 ## 18. Changelog
 
+- **2026-02-24:** Added PRD/TST planning for backend PostHog worker lifecycle tracking (`backtest_job_started`, `backtest_job_completed`, `backtest_job_failed`) with async fire-and-forget dispatch guidance.
 - **2026-02-23:** Added PRD/TST planning for PostHog analytics with GDPR consent and documented planned product analytics coverage.
 **2026-01-03** - Enhanced trade explanation view documentation
 - Added planned backtest trade explanation view details (condition breakdowns, indicator overlays, condition-candle highlights)
