@@ -4,8 +4,8 @@
 
 ## 1. Configuration & Startup
 
-- [ ] PostHog Cloud project key and host are configured in frontend environment variables.
-- [ ] App starts successfully when PostHog config is present.
+- [X] PostHog Cloud project key and host are configured in frontend environment variables.
+- [X] App starts successfully when PostHog config is present.
 - [ ] App starts successfully when PostHog config is missing (analytics safely disabled).
 
 ## 2. Consent Banner (GDPR)
