@@ -1,5 +1,6 @@
 """RQ job functions for backtest processing."""
 import logging
+import time
 from datetime import datetime, timedelta, timezone
 from typing import Any
 from uuid import UUID
@@ -26,6 +27,7 @@ from app.backtest.engine import run_backtest, compute_benchmark_curve, compute_b
 from app.backtest.storage import upload_json, generate_results_key
 from app.backtest.errors import BacktestError
 from app.services.alert_evaluator import evaluate_alerts_for_run
+from app.services.analytics import track_backend_event
 
 logger = logging.getLogger(__name__)
 
@@ -66,6 +68,14 @@ def run_backtest_job(run_id: str, force_refresh_prices: bool = False) -> None:
         run.updated_at = datetime.now(timezone.utc)
         session.add(run)
         session.commit()
+
+        started_at = time.monotonic()
+        track_backend_event(
+            "backtest_job_started",
+            user_id=run.user_id,
+            strategy_id=run.strategy_id,
+            correlation_id=run.id,
+        )
 
         try:
             # Load strategy definition
@@ -234,6 +244,15 @@ def run_backtest_job(run_id: str, force_refresh_prices: bool = False) -> None:
 
             session.commit()
 
+            duration_ms = int((time.monotonic() - started_at) * 1000)
+            track_backend_event(
+                "backtest_job_completed",
+                user_id=run.user_id,
+                strategy_id=run.strategy_id,
+                correlation_id=run.id,
+                duration_ms=duration_ms,
+            )
+
             logger.info(f"Backtest {run_id} completed successfully")
 
         except BacktestError as e:
@@ -244,6 +263,15 @@ def run_backtest_job(run_id: str, force_refresh_prices: bool = False) -> None:
             session.add(run)
             session.commit()
 
+            duration_ms = int((time.monotonic() - started_at) * 1000)
+            track_backend_event(
+                "backtest_job_failed",
+                user_id=run.user_id,
+                strategy_id=run.strategy_id,
+                correlation_id=run.id,
+                duration_ms=duration_ms,
+            )
+
         except Exception as e:
             logger.exception(f"Unexpected error processing backtest {run_id}")
             run.status = "failed"
@@ -251,6 +279,15 @@ def run_backtest_job(run_id: str, force_refresh_prices: bool = False) -> None:
             run.updated_at = datetime.now(timezone.utc)
             session.add(run)
             session.commit()
+
+            duration_ms = int((time.monotonic() - started_at) * 1000)
+            track_backend_event(
+                "backtest_job_failed",
+                user_id=run.user_id,
+                strategy_id=run.strategy_id,
+                correlation_id=run.id,
+                duration_ms=duration_ms,
+            )
 
 
 def auto_update_strategies_daily() -> None:

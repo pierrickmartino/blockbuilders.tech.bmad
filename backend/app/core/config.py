@@ -67,6 +67,10 @@ class Settings(BaseSettings):
     github_client_id: str = ""
     github_client_secret: str = ""
 
+    # PostHog Analytics (backend)
+    posthog_api_key: str = ""
+    posthog_host: str = "https://us.i.posthog.com"
+
     # Stripe
     stripe_secret_key: str = ""
     stripe_webhook_secret: str = ""
