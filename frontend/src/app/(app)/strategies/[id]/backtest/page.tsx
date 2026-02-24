@@ -585,7 +585,7 @@ export default function StrategyBacktestPage({ params }: Props) {
   const [showShortcutsModal, setShowShortcutsModal] = useState(false);
 
   // Use custom hook for backtest results (trades, equity curve, benchmark, polling)
-  const prevRunStatusRef = useRef<string | null>(null);
+  const prevRunStatusByIdRef = useRef<Map<string, BacktestStatus>>(new Map());
   const userIdRef = useRef(user?.id);
   useEffect(() => { userIdRef.current = user?.id; }, [user?.id]);
 
@@ -603,7 +603,12 @@ export default function StrategyBacktestPage({ params }: Props) {
       )
     );
 
-    if (detail.status === "completed" && prevRunStatusRef.current !== "completed") {
+    const previousStatus = prevRunStatusByIdRef.current.get(detail.run_id);
+    if (
+      detail.status === "completed" &&
+      previousStatus !== undefined &&
+      previousStatus !== "completed"
+    ) {
       trackEvent("backtest_completed", {
         strategy_id: id,
         run_id: detail.run_id,
@@ -611,7 +616,7 @@ export default function StrategyBacktestPage({ params }: Props) {
         num_trades: detail.summary?.num_trades,
       }, userIdRef.current);
     }
-    prevRunStatusRef.current = detail.status;
+    prevRunStatusByIdRef.current.set(detail.run_id, detail.status);
   }, [id]);
 
   // Favorite metrics handlers
@@ -755,6 +760,11 @@ export default function StrategyBacktestPage({ params }: Props) {
       });
       const data = await apiFetch<BacktestListItem[]>(`/backtests/?${params.toString()}`);
       setBacktests(data);
+      data.forEach((run) => {
+        if (!prevRunStatusByIdRef.current.has(run.run_id)) {
+          prevRunStatusByIdRef.current.set(run.run_id, run.status);
+        }
+      });
       setError(null);
       if (data.length > 0 && !selectedRunId) {
         setSelectedRunId(data[0].run_id);
