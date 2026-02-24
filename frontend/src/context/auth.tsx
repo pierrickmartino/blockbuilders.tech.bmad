@@ -10,6 +10,7 @@ import {
 } from "react";
 import { apiFetch, ApiError } from "@/lib/api";
 import { User, AuthResponse, Usage, ProfileResponse } from "@/types/auth";
+import { trackEvent } from "@/lib/analytics";
 
 interface OAuthStartResponse {
   auth_url: string;
@@ -89,6 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("token", response.token);
     setUser(response.user);
     refreshUsage();
+    trackEvent("login_completed", { method: "email" }, response.user.id);
   };
 
   const signup = async (email: string, password: string) => {
@@ -99,6 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("token", response.token);
     setUser(response.user);
     refreshUsage();
+    trackEvent("signup_completed", { method: "email" }, response.user.id);
   };
 
   const logout = () => {
@@ -145,6 +148,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("token", response.token);
     setUser(response.user);
     refreshUsage();
+    trackEvent("login_completed", { method: `oauth_${provider}` }, response.user.id);
   };
 
   return (

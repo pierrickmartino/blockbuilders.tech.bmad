@@ -1591,7 +1591,7 @@ Plain-Language Error Messages
 
 ### 9.13. Product Analytics & Privacy Consent
 
-**Status:** Planned (PRD defined)
+**Status:** Implemented
 
 **Purpose:** Track core product engagement events with PostHog Cloud while respecting GDPR consent requirements.
 
@@ -2057,7 +2057,7 @@ Plain-Language Error Messages
 |---|---|---|
 | **Authentication** | ✅ Complete | Email/password, OAuth (Google, GitHub), password reset |
 | **Account Management** | ✅ Complete | Profile, settings (fees, slippage, timezone), usage tracking |
-| **Product Analytics (PostHog + Consent)** | 🟡 Planned | GDPR-aware consent banner + event tracking for auth and key strategy/backtest actions |
+| **Product Analytics (PostHog + Consent)** | ✅ Complete | GDPR-aware consent banner + event tracking for auth and key strategy/backtest actions |
 | **User Profiles & Reputation** | ✅ Complete | Opt-in public profiles (/u/{handle}), follower counts, contributions, auto-awarded badges, privacy toggles |
 | **Strategy Management** | ✅ Complete | CRUD, versioning, validation, duplication (one-click list clone), archiving |
 | **Bulk Strategy Actions** | ✅ Complete | Multi-select strategies with checkbox selection + action dropdown for archive, tag, delete |

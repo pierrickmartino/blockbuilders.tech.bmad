@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { apiFetch, ApiError } from "@/lib/api";
+import { trackEvent } from "@/lib/analytics";
+import { useAuth } from "@/context/auth";
 import type { Strategy } from "@/types/strategy";
 import { generateTemplate, type WizardAnswers } from "./wizard-template-generator";
 import { StepName } from "./wizard-steps/step-name";
@@ -35,6 +37,7 @@ interface WizardState {
 }
 
 export function StrategyWizard({ onClose, onComplete }: Props) {
+  const { user } = useAuth();
   const [state, setState] = useState<WizardState>({
     step: 1,
     answers: {
@@ -56,6 +59,10 @@ export function StrategyWizard({ onClose, onComplete }: Props) {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    trackEvent("wizard_started", undefined, user?.id);
+  }, [user?.id]);
 
   const totalSteps = 6;
 
@@ -112,6 +119,11 @@ export function StrategyWizard({ onClose, onComplete }: Props) {
         body: JSON.stringify({ definition }),
       });
 
+      trackEvent("strategy_created", {
+        asset: state.answers.asset,
+        timeframe: state.answers.timeframe,
+        source: "wizard",
+      }, user?.id);
       onComplete(strategy.id);
     } catch (err) {
       if (err instanceof ApiError && err.status === 403) {

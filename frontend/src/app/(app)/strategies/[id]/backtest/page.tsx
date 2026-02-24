@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useCallback, useEffect, useMemo, useState } from "react";
+import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -19,6 +19,7 @@ import {
   ReferenceLine,
 } from "recharts";
 import { apiFetch, ApiError, fetchDataQuality, fetchDataCompleteness } from "@/lib/api";
+import { trackEvent } from "@/lib/analytics";
 import {
   formatDateTime,
   formatPercent,
@@ -584,6 +585,10 @@ export default function StrategyBacktestPage({ params }: Props) {
   const [showShortcutsModal, setShowShortcutsModal] = useState(false);
 
   // Use custom hook for backtest results (trades, equity curve, benchmark, polling)
+  const prevRunStatusByIdRef = useRef<Map<string, BacktestStatus>>(new Map());
+  const userIdRef = useRef(user?.id);
+  useEffect(() => { userIdRef.current = user?.id; }, [user?.id]);
+
   const handleRunDetailFetched = useCallback((detail: BacktestStatusResponse) => {
     setError(null);
     setBacktests((current) =>
@@ -597,7 +602,22 @@ export default function StrategyBacktestPage({ params }: Props) {
           : run
       )
     );
-  }, []);
+
+    const previousStatus = prevRunStatusByIdRef.current.get(detail.run_id);
+    if (
+      detail.status === "completed" &&
+      previousStatus !== undefined &&
+      previousStatus !== "completed"
+    ) {
+      trackEvent("backtest_completed", {
+        strategy_id: id,
+        run_id: detail.run_id,
+        total_return_pct: detail.summary?.total_return_pct,
+        num_trades: detail.summary?.num_trades,
+      }, userIdRef.current);
+    }
+    prevRunStatusByIdRef.current.set(detail.run_id, detail.status);
+  }, [id]);
 
   // Favorite metrics handlers
   const handleToggleFavorite = useCallback(async (metricKey: string) => {
@@ -740,6 +760,11 @@ export default function StrategyBacktestPage({ params }: Props) {
       });
       const data = await apiFetch<BacktestListItem[]>(`/backtests/?${params.toString()}`);
       setBacktests(data);
+      data.forEach((run) => {
+        if (!prevRunStatusByIdRef.current.has(run.run_id)) {
+          prevRunStatusByIdRef.current.set(run.run_id, run.status);
+        }
+      });
       setError(null);
       if (data.length > 0 && !selectedRunId) {
         setSelectedRunId(data[0].run_id);
@@ -762,6 +787,19 @@ export default function StrategyBacktestPage({ params }: Props) {
       trackBacktestView(id, selectedRunId);
     }
   }, [id, selectedRunId, strategy]);
+
+  // Track results_viewed analytics event
+  const trackedResultsRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (
+      selectedRun?.status === "completed" &&
+      selectedRunId &&
+      trackedResultsRef.current !== selectedRunId
+    ) {
+      trackedResultsRef.current = selectedRunId;
+      trackEvent("results_viewed", { strategy_id: id, run_id: selectedRunId }, user?.id);
+    }
+  }, [selectedRun?.status, selectedRunId, id, user?.id]);
 
   // Fetch user plan to check for premium features
   useEffect(() => {
@@ -863,6 +901,12 @@ export default function StrategyBacktestPage({ params }: Props) {
         method: "POST",
         body: JSON.stringify(payload),
       });
+      trackEvent("backtest_started", {
+        strategy_id: id,
+        run_id: res.run_id,
+        date_from: dateFrom,
+        date_to: dateTo,
+      }, user?.id);
       setStatusMessage("Backtest started. It will update automatically when finished.");
       setSelectedRunId(res.run_id);
       await loadBacktests();
