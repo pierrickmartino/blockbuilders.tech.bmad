@@ -11,10 +11,10 @@
 ## 2. Consent Banner (GDPR)
 
 - [x] On first visit (no prior consent), minimal consent banner is displayed.
-- [ ] Banner includes clear Accept and Decline actions.
-- [ ] Banner copy is plain-language and explains analytics purpose.
-- [ ] Consent decision is persisted client-side.
-- [ ] Banner does not reappear after decision on reload.
+- [x] Banner includes clear Accept and Decline actions.
+- [x] Banner copy is plain-language and explains analytics purpose.
+- [x] Consent decision is persisted client-side.
+- [x] Banner does not reappear after decision on reload.
 
 ## 3. Consent Behavior -- Accept Path
 
@@ -59,9 +59,9 @@
 
 ## 9. Regression & UX Simplicity
 
-- [ ] Consent banner is visually minimal and does not obstruct core navigation.
-- [ ] No additional complex consent flows/modals are introduced.
-- [ ] No extra analytics events beyond PRD-required list are emitted in v1.
+- [x] Consent banner is visually minimal and does not obstruct core navigation.
+- [x] No additional complex consent flows/modals are introduced.
+- [x] No extra analytics events beyond PRD-required list are emitted in v1.
 
 ## 10. End-to-End Acceptance Criteria Validation
 
