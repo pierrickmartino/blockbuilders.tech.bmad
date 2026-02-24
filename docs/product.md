@@ -1,7 +1,7 @@
 # Blockbuilders – Product Documentation
 
 **Status:** Current Product Truth
-**Last Updated:** 2026-02-23
+**Last Updated:** 2026-02-24
 **Purpose:** Comprehensive documentation of all implemented features
 
 ---
@@ -10,7 +10,7 @@
 
 Blockbuilders is a **web-based, no-code strategy lab** where retail crypto traders can visually build, backtest, and iterate on trading strategies without writing code.
 
-**Current State:** Fully functional MVP with post-MVP enhancements (OAuth, scheduled updates, advanced risk management, strategy building wizard, in-app notifications) plus planned PostHog analytics integration with GDPR consent gating.
+**Current State:** Fully functional MVP with post-MVP enhancements (OAuth, scheduled updates, advanced risk management, strategy building wizard, in-app notifications) plus implemented PostHog analytics instrumentation with GDPR consent gating and a dedicated onboarding funnel dashboard in PostHog.
 
 **Architecture:**
 - **Frontend:** Next.js 16.x + React 19 + TypeScript + Tailwind CSS + shadcn/ui
@@ -1599,6 +1599,13 @@ Plain-Language Error Messages
 - Lifecycle events: `page_view`, `signup_completed`, `login_completed`
 - Feature events: `wizard_started`, `strategy_created`, `strategy_saved`, `backtest_started`, `backtest_completed`, `results_viewed`
 - Backend worker backtest lifecycle events: `backtest_job_started`, `backtest_job_completed`, `backtest_job_failed`
+- Onboarding retention event: `second_session` (used as final step in onboarding funnel)
+
+**Onboarding Funnel Dashboard (PostHog):**
+- Saved PostHog funnel: `Onboarding Funnel Dashboard`
+- Step order: `signup_completed -> wizard_started -> strategy_saved -> backtest_started -> backtest_completed -> results_viewed -> second_session`
+- Displays conversion rates between each adjacent step.
+- Supports filtering by date range and PostHog cohort.
 
 **Consent Rules (minimal):**
 - Show a lightweight cookie/consent banner on first visit.
@@ -2061,7 +2068,7 @@ Plain-Language Error Messages
 |---|---|---|
 | **Authentication** | ✅ Complete | Email/password, OAuth (Google, GitHub), password reset |
 | **Account Management** | ✅ Complete | Profile, settings (fees, slippage, timezone), usage tracking |
-| **Product Analytics (PostHog + Consent + Backend Events)** | ✅ Complete | GDPR-aware consent banner + event tracking for auth/key strategy-backtest actions plus backend worker lifecycle events (`backtest_job_started/completed/failed`) |
+| **Product Analytics (PostHog + Consent + Backend Events + Onboarding Funnel Dashboard)** | ✅ Complete | GDPR-aware consent banner + event tracking for auth/key strategy-backtest actions plus backend worker lifecycle events (`backtest_job_started/completed/failed`) and a dedicated PostHog onboarding funnel (`signup_completed → ... → second_session`) with date-range/cohort filters |
 | **User Profiles & Reputation** | ✅ Complete | Opt-in public profiles (/u/{handle}), follower counts, contributions, auto-awarded badges, privacy toggles |
 | **Strategy Management** | ✅ Complete | CRUD, versioning, validation, duplication (one-click list clone), archiving |
 | **Bulk Strategy Actions** | ✅ Complete | Multi-select strategies with checkbox selection + action dropdown for archive, tag, delete |
@@ -2413,6 +2420,8 @@ npm run type-check    # TypeScript validation
 - `docs/prd-posthog-analytics-privacy-consent.md` - PostHog analytics with privacy consent PRD
 - `docs/prd-backend-event-tracking-backtest-lifecycle.md` - Backend event tracking for backtest lifecycle PRD
 - `docs/tst-backend-event-tracking-backtest-lifecycle.md` - Backend event tracking for backtest lifecycle test checklist
+- `docs/prd-onboarding-funnel-dashboard.md` - Onboarding funnel dashboard (PostHog) PRD
+- `docs/tst-onboarding-funnel-dashboard.md` - Onboarding funnel dashboard test checklist
 - `docs/prd-user-profiles-reputation.md` - User profiles & reputation PRD
 - `docs/prd-bulk-strategy-actions.md` - Bulk strategy actions PRD
 - `docs/prd-recently-viewed-dashboard-shortcuts.md` - Recently viewed dashboard shortcuts PRD
@@ -2467,6 +2476,7 @@ npm run type-check    # TypeScript validation
 
 ## 18. Changelog
 
+- **2026-02-24:** Added PRD/TST planning for an Onboarding Funnel Dashboard in PostHog with required steps (`signup_completed` → `second_session`), conversion visibility, and date-range/cohort filters.
 - **2026-02-24:** Added PRD/TST planning for backend PostHog worker lifecycle tracking (`backtest_job_started`, `backtest_job_completed`, `backtest_job_failed`) with async fire-and-forget dispatch guidance.
 - **2026-02-23:** Added PRD/TST planning for PostHog analytics with GDPR consent and documented planned product analytics coverage.
 **2026-01-03** - Enhanced trade explanation view documentation
