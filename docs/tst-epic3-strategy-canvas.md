@@ -218,7 +218,7 @@
 
 ### 6.1 Save Flow
 
-- [ ] Clicking "Save" sends the strategy graph as JSON to the backend (`POST /strategies/{id}/versions`)
+- [x] Clicking "Save" sends the strategy graph as JSON to the backend (`POST /strategies/{id}/versions`)
 - [ ] JSON includes `blocks` array with block `id`, `type`, `label`, `position`, and `params`
 - [ ] JSON includes `connections` array with `from` and `to` port references
 - [ ] Save creates a new version (append-only; no in-place update)

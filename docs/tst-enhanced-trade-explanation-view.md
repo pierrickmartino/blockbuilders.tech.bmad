@@ -17,7 +17,7 @@ Validate that trade detail explanations, indicator overlays, and condition-candl
 ## 4. Test Cases
 
 ### 4.1 API Contract
-- [ ] `GET /backtests/{run_id}/trades/{trade_idx}` returns legacy trade fields unchanged.
+- [x] `GET /backtests/{run_id}/trades/{trade_idx}` returns legacy trade fields unchanged.
 - [ ] Response includes `entry_conditions`, `exit_trigger`, `indicator_overlays`, `condition_events`.
 - [ ] Entry conditions include label, result, and true timestamp.
 - [ ] Exit trigger includes reason code and user-readable label/value.

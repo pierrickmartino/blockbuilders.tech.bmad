@@ -9,7 +9,7 @@
 - [ ] Attempting to create a second rule for the same strategy returns an error
 - [ ] User can update threshold, channels, entry/exit flags, or active state via PATCH
 - [ ] User can delete an alert rule via DELETE
-- [ ] User can list all their alert rules via GET /alerts
+- [x] User can list all their alert rules via GET /alerts
 
 ## 2. API -- GET /alerts
 

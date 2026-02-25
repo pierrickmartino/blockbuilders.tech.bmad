@@ -89,7 +89,7 @@
 
 - [ ] Successfully updates `default_fee_percent` with a valid value (e.g., 0.1)
 - [ ] Successfully updates `default_slippage_percent` with a valid value (e.g., 0.05)
-- [ ] Updates are persisted and reflected in subsequent `GET /users/me` calls
+- [x] Updates are persisted and reflected in subsequent `GET /users/me` calls
 - [ ] Rejects negative values with a validation error
 - [ ] Rejects values exceeding the max (e.g., > 5%) with a validation error
 - [ ] Partial update works: sending only `default_fee_percent` does not reset `default_slippage_percent`

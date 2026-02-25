@@ -44,7 +44,7 @@
 - [x] `GET /health` returns HTTP 200 with JSON body containing `"status": "ok"`
 - [ ] Response includes `"db": "ok"` when the database is reachable
 - [ ] Response includes `"version"` field with the app version string
-- [ ] When Postgres is unreachable, `GET /health` returns `"db": "error"` instead of crashing the process
+- [x] When Postgres is unreachable, `GET /health` returns `"db": "error"` instead of crashing the process
 - [ ] Health endpoint responds in under 300ms under typical dev conditions
 
 ### 2.2 Frontend Health Page

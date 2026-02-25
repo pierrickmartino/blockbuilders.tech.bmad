@@ -60,7 +60,7 @@
 - [ ] Timezone toggle is displayed with options: Local, UTC
 - [ ] Default selection is Local
 - [ ] Helper text "All timestamps will be displayed in your selected timezone" is shown
-- [ ] Changing timezone preference is persisted via PUT /users/me
+- [x] Changing timezone preference is persisted via PUT /users/me
 - [ ] Timezone preference is applied across the app after saving
 - [ ] Page refresh retains the saved timezone preference
 

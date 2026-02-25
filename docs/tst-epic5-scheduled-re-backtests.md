@@ -22,7 +22,7 @@
 
 - [ ] Strategy detail page displays a "Auto-update daily" switch
 - [ ] Helper text is shown: "Re-run this strategy once per day on the latest data (counts towards your daily backtest limit)."
-- [ ] Toggling the switch calls `PATCH /strategies/{id}` with the correct body
+- [x] Toggling the switch calls `PATCH /strategies/{id}` with the correct body
 - [ ] Success toast is shown after toggling
 - [ ] Error toast is shown if the API call fails
 - [ ] (Optional) Lookback window dropdown/input is available with options: 90, 180, 365 days

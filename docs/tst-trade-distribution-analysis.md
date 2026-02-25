@@ -56,7 +56,7 @@
 
 ## 6. Data Source
 
-- [ ] Data is sourced from `GET /backtests/{run_id}/trades` endpoint
+- [x] Data is sourced from `GET /backtests/{run_id}/trades` endpoint
 - [ ] Aggregation is performed client-side (no new backend endpoints)
 - [ ] No new backend schema changes are required
 - [ ] Existing trade fetch and backtest run metadata calls are reused

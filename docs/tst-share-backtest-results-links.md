@@ -4,7 +4,7 @@
 
 ## 1. Link Generation (Authenticated)
 
-- [ ] `POST /backtests/{run_id}/share-links` creates a share link for a completed backtest run
+- [x] `POST /backtests/{run_id}/share-links` creates a share link for a completed backtest run
 - [ ] Endpoint requires authentication; unauthenticated requests return 401
 - [ ] User can only generate links for their own backtest runs (authorization check returns 403 for others)
 - [ ] Request with a valid `expires_at` timestamp creates a link that expires at that time

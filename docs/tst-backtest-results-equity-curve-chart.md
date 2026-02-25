@@ -38,7 +38,7 @@
 
 ## 5. API Integration
 
-- [ ] GET /backtests/{run_id} returns status, summary_metrics, and error_message fields
+- [x] GET /backtests/{run_id} returns status, summary_metrics, and error_message fields
 - [ ] GET /backtests/{run_id}/details returns equity_curve array
 - [ ] Equity curve data shape matches `[{ "ts": "ISO-8601", "equity": float }]`
 - [ ] Timestamps in the response are ISO-8601 with UTC
