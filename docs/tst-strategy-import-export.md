@@ -4,46 +4,46 @@
 
 ## 1. Export -- File Generation
 
-- [ ] Clicking "Export" on a strategy downloads a `.json` file
-- [ ] Downloaded file name follows the pattern `strategy-{name}-{date}.json`
-- [ ] Exported file contains `schema_version` field set to integer `1`
-- [ ] Exported file contains `exported_at` field as a valid ISO 8601 timestamp
-- [ ] Exported file contains `strategy.name` matching the strategy name
-- [ ] Exported file contains `strategy.asset` matching the strategy asset
-- [ ] Exported file contains `strategy.timeframe` matching the strategy timeframe
-- [ ] Exported file contains `definition_json` with the latest version's `blocks` and `connections`
-- [ ] Exported file does NOT include backtest runs, results, or notification data
-- [ ] Exported file does NOT include user IDs or account-specific metadata
-- [ ] Exported JSON is valid and parseable
+- [x] Clicking "Export" on a strategy downloads a `.json` file
+- [x] Downloaded file name follows the pattern `strategy-{name}-{date}.json`
+- [x] Exported file contains `schema_version` field set to integer `1`
+- [x] Exported file contains `exported_at` field as a valid ISO 8601 timestamp
+- [x] Exported file contains `strategy.name` matching the strategy name
+- [x] Exported file contains `strategy.asset` matching the strategy asset
+- [x] Exported file contains `strategy.timeframe` matching the strategy timeframe
+- [x] Exported file contains `definition_json` with the latest version's `blocks` and `connections`
+- [x] Exported file does NOT include backtest runs, results, or notification data
+- [x] Exported file does NOT include user IDs or account-specific metadata
+- [x] Exported JSON is valid and parseable
 
 ## 2. Export -- UI Placement
 
-- [ ] "Export" action is available per strategy on the strategy list page
-- [ ] "Export" action is available on the strategy detail/editor page (near strategy name or overflow menu)
-- [ ] Export action triggers a browser file download without navigating away
+- [x] "Export" action is available per strategy on the strategy list page
+- [x] "Export" action is available on the strategy detail/editor page (near strategy name or overflow menu)
+- [x] Export action triggers a browser file download without navigating away
 
 ## 3. Import -- Valid File
 
-- [ ] "Import Strategy" button is visible on the strategy list page
-- [ ] Clicking "Import Strategy" opens a file picker that accepts `.json` files
-- [ ] After selecting a valid file, a summary is shown (name, asset, timeframe)
-- [ ] User can confirm or cancel the import after seeing the summary
-- [ ] Confirming import creates a new strategy via `POST /strategies`
+- [x] "Import Strategy" button is visible on the strategy list page
+- [x] Clicking "Import Strategy" opens a file picker that accepts `.json` files
+- [x] After selecting a valid file, a summary is shown (name, asset, timeframe)
+- [x] User can confirm or cancel the import after seeing the summary
+- [x] Confirming import creates a new strategy via `POST /strategies`
 - [x] Confirming import creates a new strategy version via `POST /strategies/{id}/versions`
-- [ ] After import, user is navigated to the newly created strategy
-- [ ] Imported strategy is fully independent (new ID, not linked to the original)
-- [ ] Importing the same file twice creates two separate strategies (never overwrites)
+- [x] After import, user is navigated to the newly created strategy
+- [x] Imported strategy is fully independent (new ID, not linked to the original)
+- [x] Importing the same file twice creates two separate strategies (never overwrites)
 
 ## 4. Import -- Frontend Validation
 
-- [ ] Importing a non-JSON file shows a clear error message
-- [ ] Importing a malformed JSON file shows a clear error message
-- [ ] Importing JSON missing `schema_version` shows a clear error message
-- [ ] Importing JSON with unsupported `schema_version` (e.g., 999) shows a clear error message
-- [ ] Importing JSON missing `strategy` object shows a clear error message
-- [ ] Importing JSON with empty `strategy.name` shows a clear error message
-- [ ] Importing JSON with empty `strategy.asset` shows a clear error message
-- [ ] Importing JSON with empty `strategy.timeframe` shows a clear error message
+- [x] Importing a non-JSON file shows a clear error message
+- [x] Importing a malformed JSON file shows a clear error message
+- [x] Importing JSON missing `schema_version` shows a clear error message
+- [x] Importing JSON with unsupported `schema_version` (e.g., 999) shows a clear error message
+- [x] Importing JSON missing `strategy` object shows a clear error message
+- [x] Importing JSON with empty `strategy.name` shows a clear error message
+- [x] Importing JSON with empty `strategy.asset` shows a clear error message
+- [x] Importing JSON with empty `strategy.timeframe` shows a clear error message
 - [ ] Importing JSON missing `definition_json` shows a clear error message
 - [ ] Importing JSON missing `exported_at` shows a clear error message
 - [ ] Validation errors are shown before any API call is made
@@ -67,7 +67,7 @@
 
 ## 7. Round-Trip Integrity
 
-- [ ] Exporting a strategy and importing the same file recreates an equivalent strategy
+- [x] Exporting a strategy and importing the same file recreates an equivalent strategy
 - [ ] Exported definition_json, when imported, produces the same canvas layout (blocks and connections)
 - [ ] Strategy name, asset, and timeframe are preserved through export/import
 - [ ] Importing an exported strategy and then re-exporting produces a structurally equivalent file
@@ -92,7 +92,7 @@
 
 ## 10. Non-Goals Verification
 
-- [ ] No in-app sharing link is generated during export
-- [ ] Backtest runs and results are NOT included in the export file
-- [ ] Multi-strategy bundle export is NOT supported (single strategy per file)
-- [ ] Schema version migration is NOT performed (unsupported versions fail fast)
+- [x] No in-app sharing link is generated during export
+- [x] Backtest runs and results are NOT included in the export file
+- [x] Multi-strategy bundle export is NOT supported (single strategy per file)
+- [x] Schema version migration is NOT performed (unsupported versions fail fast)

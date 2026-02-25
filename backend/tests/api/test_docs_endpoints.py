@@ -1,6 +1,7 @@
-from uuid import uuid4
+from datetime import datetime, timedelta, timezone
 
 import pytest
+from sqlmodel import select
 
 from app.models.shared_backtest_link import SharedBacktestLink
 
@@ -78,9 +79,31 @@ def test_backtest_endpoints(client, auth_headers, seeded_objects, session, monke
     assert client.get(f"/backtests/{run_id}/benchmark-equity-curve", headers=auth_headers).status_code == 200
     assert client.post("/backtests/compare", headers=auth_headers, json={"run_ids": [str(run_id)]}).status_code in {200, 400}
 
-    share = client.post(f"/backtests/{run_id}/share-links", headers=auth_headers, json={"expires_in_days": 7})
+    expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+    share = client.post(
+        f"/backtests/{run_id}/share-links",
+        headers=auth_headers,
+        json={"expires_at": expires_at.isoformat()},
+    )
     assert share.status_code == 200
-    token = share.json()["token"]
+    payload = share.json()
+    token = payload["token"]
+    assert payload["expires_at"] is not None
+
+    link = session.exec(
+        select(SharedBacktestLink).where(SharedBacktestLink.token == token)
+    ).first()
+    assert link is not None
+    assert link.expires_at is not None
+
+    stored_expires_at = link.expires_at
+    if stored_expires_at.tzinfo is None:
+        stored_expires_at = stored_expires_at.replace(tzinfo=timezone.utc)
+    returned_expires_at = datetime.fromisoformat(payload["expires_at"].replace("Z", "+00:00"))
+    if returned_expires_at.tzinfo is None:
+        returned_expires_at = returned_expires_at.replace(tzinfo=timezone.utc)
+    assert abs((stored_expires_at - returned_expires_at).total_seconds()) < 1
+
     assert client.get(f"/backtests/share/{token}").status_code == 200
 
 
