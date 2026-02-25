@@ -27,7 +27,7 @@ from app.backtest.engine import run_backtest, compute_benchmark_curve, compute_b
 from app.backtest.storage import upload_json, generate_results_key
 from app.backtest.errors import BacktestError
 from app.services.alert_evaluator import evaluate_alerts_for_run
-from app.services.analytics import track_backend_event
+from app.services.analytics import track_backend_event, flush_backend_events
 
 logger = logging.getLogger(__name__)
 
@@ -48,246 +48,251 @@ def run_backtest_job(run_id: str, force_refresh_prices: bool = False) -> None:
     """
     run_uuid = UUID(run_id)
 
-    with Session(engine) as session:
-        # Load run
-        run = session.exec(
-            select(BacktestRun).where(BacktestRun.id == run_uuid)
-        ).first()
-
-        if not run:
-            logger.error(f"Backtest run not found: {run_id}")
-            return
-
-        # Check idempotency - only process pending runs
-        if run.status != "pending":
-            logger.info(f"Run {run_id} is not pending (status={run.status}), skipping")
-            return
-
-        # Set status to running
-        run.status = "running"
-        run.updated_at = datetime.now(timezone.utc)
-        session.add(run)
-        session.commit()
-
-        started_at = time.monotonic()
-        track_backend_event(
-            "backtest_job_started",
-            user_id=run.user_id,
-            strategy_id=run.strategy_id,
-            correlation_id=run.id,
-        )
-
-        try:
-            # Load strategy definition
-            version = session.exec(
-                select(StrategyVersion).where(
-                    StrategyVersion.id == run.strategy_version_id
-                )
+    try:
+        with Session(engine) as session:
+            # Load run
+            run = session.exec(
+                select(BacktestRun).where(BacktestRun.id == run_uuid)
             ).first()
 
-            if not version:
-                raise BacktestError(
-                    "Strategy version not found",
-                    "Invalid strategy configuration.",
-                )
+            if not run:
+                logger.error(f"Backtest run not found: {run_id}")
+                return
 
-            definition = version.definition_json
-            if not definition:
-                raise BacktestError(
-                    "Strategy definition is empty",
-                    "Invalid strategy: no block configuration found.",
-                )
+            # Check idempotency - only process pending runs
+            if run.status != "pending":
+                logger.info(f"Run {run_id} is not pending (status={run.status}), skipping")
+                return
 
-            logger.info(f"Processing backtest {run_id}: {run.asset} {run.timeframe} {run.date_from} - {run.date_to}")
-
-            # Fetch candles
-            candles = fetch_candles(
-                asset=run.asset,
-                timeframe=run.timeframe,
-                date_from=run.date_from,
-                date_to=run.date_to,
-                session=session,
-                force_refresh=force_refresh_prices,
-            )
-
-            if not candles:
-                raise BacktestError(
-                    "No candles found for the specified period",
-                    "No price data available for the selected date range.",
-                )
-
-            logger.info(f"Fetched {len(candles)} candles")
-
-            # Interpret strategy to get signals
-            signals = interpret_strategy(definition, candles)
-            logger.info(f"Interpreted strategy: {sum(signals.entry_long)} entry signals, {sum(signals.exit_long)} exit signals")
-
-            # Run backtest engine
-            result = run_backtest(
-                candles=candles,
-                signals=signals,
-                initial_balance=run.initial_balance,
-                fee_rate=run.fee_rate,
-                slippage_rate=run.slippage_rate,
-                spread_rate=run.spread_rate,
-                timeframe=run.timeframe,
-            )
-
-            logger.info(f"Backtest complete: {result.num_trades} trades, {result.total_return_pct}% return")
-
-            # Upload results to S3
-            equity_curve_key = generate_results_key(run.id, "equity_curve.json")
-            upload_json(equity_curve_key, result.equity_curve)
-
-            # Compute benchmark equity curve
-            benchmark_equity = compute_benchmark_curve(candles, run.initial_balance)
-            logger.info(f"Computed benchmark curve with {len(benchmark_equity)} points")
-
-            # Calculate benchmark metrics
-            benchmark_return_pct, alpha, beta = compute_benchmark_metrics(
-                result.equity_curve,
-                benchmark_equity,
-                run.initial_balance
-            )
-            logger.info(f"Benchmark metrics: return={benchmark_return_pct}%, alpha={alpha}, beta={beta}")
-
-            # Upload benchmark equity curve
-            benchmark_curve_key = generate_results_key(run.id, "benchmark_equity_curve.json")
-            upload_json(benchmark_curve_key, benchmark_equity)
-
-            trades_data = []
-            for t in result.trades:
-                entry_time = t.entry_time.isoformat()
-                trades_data.append(
-                    {
-                        "entry_time": entry_time,
-                        "entry_price": t.entry_price,
-                        "exit_time": t.exit_time.isoformat(),
-                        "exit_price": t.exit_price,
-                        "side": t.side,
-                        "pnl": t.pnl,
-                        "pnl_pct": t.pnl_pct,
-                        "qty": t.qty,
-                        "sl_price_at_entry": t.sl_price_at_entry,
-                        "tp_price_at_entry": t.tp_price_at_entry,
-                        "exit_reason": t.exit_reason,
-                        "mae_usd": t.mae_usd,
-                        "mae_pct": t.mae_pct,
-                        "mfe_usd": t.mfe_usd,
-                        "mfe_pct": t.mfe_pct,
-                        "initial_risk_usd": t.initial_risk_usd,
-                        "r_multiple": t.r_multiple,
-                        "peak_price": t.peak_price,
-                        "peak_ts": t.peak_ts.isoformat() if t.peak_ts else entry_time,
-                        "trough_price": t.trough_price,
-                        "trough_ts": t.trough_ts.isoformat() if t.trough_ts else entry_time,
-                        "duration_seconds": t.duration_seconds,
-                        "fee_cost_usd": t.fee_cost_usd,
-                        "slippage_cost_usd": t.slippage_cost_usd,
-                        "spread_cost_usd": t.spread_cost_usd,
-                        "total_cost_usd": t.total_cost_usd,
-                        "notional_usd": t.notional_usd,
-                    }
-                )
-            trades_key = generate_results_key(run.id, "trades.json")
-            upload_json(trades_key, trades_data)
-
-            # Update run with results
-            run.status = "completed"
-            run.total_return = result.total_return_pct
-            run.cagr = result.cagr_pct
-            run.max_drawdown = result.max_drawdown_pct
-            run.num_trades = result.num_trades
-            run.win_rate = result.win_rate_pct
-            run.benchmark_return = benchmark_return_pct
-            run.alpha = alpha
-            run.beta = beta
-            run.sharpe_ratio = result.sharpe_ratio
-            run.sortino_ratio = result.sortino_ratio
-            run.calmar_ratio = result.calmar_ratio
-            run.max_consecutive_losses = result.max_consecutive_losses
-            run.gross_return_usd = result.gross_return_usd
-            run.gross_return_pct = result.gross_return_pct
-            run.total_fees_usd = result.total_fees_usd
-            run.total_slippage_usd = result.total_slippage_usd
-            run.total_spread_usd = result.total_spread_usd
-            run.total_costs_usd = result.total_costs_usd
-            run.cost_pct_gross_return = result.cost_pct_gross_return
-            run.avg_cost_per_trade_usd = result.avg_cost_per_trade_usd
-            run.equity_curve_key = equity_curve_key
-            run.benchmark_equity_curve_key = benchmark_curve_key
-            run.trades_key = trades_key
+            # Set status to running
+            run.status = "running"
             run.updated_at = datetime.now(timezone.utc)
             session.add(run)
+            session.commit()
 
-            # Create notification for backtest completion
-            notification = Notification(
+            started_at = time.monotonic()
+            track_backend_event(
+                "backtest_job_started",
                 user_id=run.user_id,
-                type="backtest_completed",
-                title="Backtest completed",
-                body=f"{run.asset}/{run.timeframe} backtest finished.",
-                link_url=f"/strategies/{run.strategy_id}/backtest?run={run.id}",
+                strategy_id=run.strategy_id,
+                correlation_id=run.id,
             )
-            session.add(notification)
 
-            # If this was an auto-run, update the strategy's last_auto_run_at
-            if run.triggered_by == "auto":
-                strategy = session.exec(
-                    select(Strategy).where(Strategy.id == run.strategy_id)
+            try:
+                # Load strategy definition
+                version = session.exec(
+                    select(StrategyVersion).where(
+                        StrategyVersion.id == run.strategy_version_id
+                    )
                 ).first()
-                if strategy:
-                    strategy.last_auto_run_at = datetime.now(timezone.utc)
-                    session.add(strategy)
 
-                # Evaluate performance alerts
-                evaluate_alerts_for_run(run, session)
+                if not version:
+                    raise BacktestError(
+                        "Strategy version not found",
+                        "Invalid strategy configuration.",
+                    )
 
-            session.commit()
+                definition = version.definition_json
+                if not definition:
+                    raise BacktestError(
+                        "Strategy definition is empty",
+                        "Invalid strategy: no block configuration found.",
+                    )
 
-            duration_ms = int((time.monotonic() - started_at) * 1000)
-            track_backend_event(
-                "backtest_job_completed",
-                user_id=run.user_id,
-                strategy_id=run.strategy_id,
-                correlation_id=run.id,
-                duration_ms=duration_ms,
-            )
+                logger.info(f"Processing backtest {run_id}: {run.asset} {run.timeframe} {run.date_from} - {run.date_to}")
 
-            logger.info(f"Backtest {run_id} completed successfully")
+                # Fetch candles
+                candles = fetch_candles(
+                    asset=run.asset,
+                    timeframe=run.timeframe,
+                    date_from=run.date_from,
+                    date_to=run.date_to,
+                    session=session,
+                    force_refresh=force_refresh_prices,
+                )
 
-        except BacktestError as e:
-            logger.error(f"Backtest error for {run_id}: {e.message}")
-            run.status = "failed"
-            run.error_message = e.user_message
-            run.updated_at = datetime.now(timezone.utc)
-            session.add(run)
-            session.commit()
+                if not candles:
+                    raise BacktestError(
+                        "No candles found for the specified period",
+                        "No price data available for the selected date range.",
+                    )
 
-            duration_ms = int((time.monotonic() - started_at) * 1000)
-            track_backend_event(
-                "backtest_job_failed",
-                user_id=run.user_id,
-                strategy_id=run.strategy_id,
-                correlation_id=run.id,
-                duration_ms=duration_ms,
-            )
+                logger.info(f"Fetched {len(candles)} candles")
 
-        except Exception as e:
-            logger.exception(f"Unexpected error processing backtest {run_id}")
-            run.status = "failed"
-            run.error_message = "An unexpected error occurred during backtest processing."
-            run.updated_at = datetime.now(timezone.utc)
-            session.add(run)
-            session.commit()
+                # Interpret strategy to get signals
+                signals = interpret_strategy(definition, candles)
+                logger.info(f"Interpreted strategy: {sum(signals.entry_long)} entry signals, {sum(signals.exit_long)} exit signals")
 
-            duration_ms = int((time.monotonic() - started_at) * 1000)
-            track_backend_event(
-                "backtest_job_failed",
-                user_id=run.user_id,
-                strategy_id=run.strategy_id,
-                correlation_id=run.id,
-                duration_ms=duration_ms,
-            )
+                # Run backtest engine
+                result = run_backtest(
+                    candles=candles,
+                    signals=signals,
+                    initial_balance=run.initial_balance,
+                    fee_rate=run.fee_rate,
+                    slippage_rate=run.slippage_rate,
+                    spread_rate=run.spread_rate,
+                    timeframe=run.timeframe,
+                )
+
+                logger.info(f"Backtest complete: {result.num_trades} trades, {result.total_return_pct}% return")
+
+                # Upload results to S3
+                equity_curve_key = generate_results_key(run.id, "equity_curve.json")
+                upload_json(equity_curve_key, result.equity_curve)
+
+                # Compute benchmark equity curve
+                benchmark_equity = compute_benchmark_curve(candles, run.initial_balance)
+                logger.info(f"Computed benchmark curve with {len(benchmark_equity)} points")
+
+                # Calculate benchmark metrics
+                benchmark_return_pct, alpha, beta = compute_benchmark_metrics(
+                    result.equity_curve,
+                    benchmark_equity,
+                    run.initial_balance
+                )
+                logger.info(f"Benchmark metrics: return={benchmark_return_pct}%, alpha={alpha}, beta={beta}")
+
+                # Upload benchmark equity curve
+                benchmark_curve_key = generate_results_key(run.id, "benchmark_equity_curve.json")
+                upload_json(benchmark_curve_key, benchmark_equity)
+
+                trades_data = []
+                for t in result.trades:
+                    entry_time = t.entry_time.isoformat()
+                    trades_data.append(
+                        {
+                            "entry_time": entry_time,
+                            "entry_price": t.entry_price,
+                            "exit_time": t.exit_time.isoformat(),
+                            "exit_price": t.exit_price,
+                            "side": t.side,
+                            "pnl": t.pnl,
+                            "pnl_pct": t.pnl_pct,
+                            "qty": t.qty,
+                            "sl_price_at_entry": t.sl_price_at_entry,
+                            "tp_price_at_entry": t.tp_price_at_entry,
+                            "exit_reason": t.exit_reason,
+                            "mae_usd": t.mae_usd,
+                            "mae_pct": t.mae_pct,
+                            "mfe_usd": t.mfe_usd,
+                            "mfe_pct": t.mfe_pct,
+                            "initial_risk_usd": t.initial_risk_usd,
+                            "r_multiple": t.r_multiple,
+                            "peak_price": t.peak_price,
+                            "peak_ts": t.peak_ts.isoformat() if t.peak_ts else entry_time,
+                            "trough_price": t.trough_price,
+                            "trough_ts": t.trough_ts.isoformat() if t.trough_ts else entry_time,
+                            "duration_seconds": t.duration_seconds,
+                            "fee_cost_usd": t.fee_cost_usd,
+                            "slippage_cost_usd": t.slippage_cost_usd,
+                            "spread_cost_usd": t.spread_cost_usd,
+                            "total_cost_usd": t.total_cost_usd,
+                            "notional_usd": t.notional_usd,
+                        }
+                    )
+                trades_key = generate_results_key(run.id, "trades.json")
+                upload_json(trades_key, trades_data)
+
+                # Update run with results
+                run.status = "completed"
+                run.total_return = result.total_return_pct
+                run.cagr = result.cagr_pct
+                run.max_drawdown = result.max_drawdown_pct
+                run.num_trades = result.num_trades
+                run.win_rate = result.win_rate_pct
+                run.benchmark_return = benchmark_return_pct
+                run.alpha = alpha
+                run.beta = beta
+                run.sharpe_ratio = result.sharpe_ratio
+                run.sortino_ratio = result.sortino_ratio
+                run.calmar_ratio = result.calmar_ratio
+                run.max_consecutive_losses = result.max_consecutive_losses
+                run.gross_return_usd = result.gross_return_usd
+                run.gross_return_pct = result.gross_return_pct
+                run.total_fees_usd = result.total_fees_usd
+                run.total_slippage_usd = result.total_slippage_usd
+                run.total_spread_usd = result.total_spread_usd
+                run.total_costs_usd = result.total_costs_usd
+                run.cost_pct_gross_return = result.cost_pct_gross_return
+                run.avg_cost_per_trade_usd = result.avg_cost_per_trade_usd
+                run.equity_curve_key = equity_curve_key
+                run.benchmark_equity_curve_key = benchmark_curve_key
+                run.trades_key = trades_key
+                run.updated_at = datetime.now(timezone.utc)
+                session.add(run)
+
+                # Create notification for backtest completion
+                notification = Notification(
+                    user_id=run.user_id,
+                    type="backtest_completed",
+                    title="Backtest completed",
+                    body=f"{run.asset}/{run.timeframe} backtest finished.",
+                    link_url=f"/strategies/{run.strategy_id}/backtest?run={run.id}",
+                )
+                session.add(notification)
+
+                # If this was an auto-run, update the strategy's last_auto_run_at
+                if run.triggered_by == "auto":
+                    strategy = session.exec(
+                        select(Strategy).where(Strategy.id == run.strategy_id)
+                    ).first()
+                    if strategy:
+                        strategy.last_auto_run_at = datetime.now(timezone.utc)
+                        session.add(strategy)
+
+                    # Evaluate performance alerts
+                    evaluate_alerts_for_run(run, session)
+
+                session.commit()
+
+                duration_ms = int((time.monotonic() - started_at) * 1000)
+                track_backend_event(
+                    "backtest_job_completed",
+                    user_id=run.user_id,
+                    strategy_id=run.strategy_id,
+                    correlation_id=run.id,
+                    duration_ms=duration_ms,
+                )
+
+                logger.info(f"Backtest {run_id} completed successfully")
+
+            except BacktestError as e:
+                logger.error(f"Backtest error for {run_id}: {e.message}")
+                run.status = "failed"
+                run.error_message = e.user_message
+                run.updated_at = datetime.now(timezone.utc)
+                session.add(run)
+                session.commit()
+
+                duration_ms = int((time.monotonic() - started_at) * 1000)
+                track_backend_event(
+                    "backtest_job_failed",
+                    user_id=run.user_id,
+                    strategy_id=run.strategy_id,
+                    correlation_id=run.id,
+                    duration_ms=duration_ms,
+                )
+
+            except Exception as e:
+                logger.exception(f"Unexpected error processing backtest {run_id}")
+                run.status = "failed"
+                run.error_message = "An unexpected error occurred during backtest processing."
+                run.updated_at = datetime.now(timezone.utc)
+                session.add(run)
+                session.commit()
+
+                duration_ms = int((time.monotonic() - started_at) * 1000)
+                track_backend_event(
+                    "backtest_job_failed",
+                    user_id=run.user_id,
+                    strategy_id=run.strategy_id,
+                    correlation_id=run.id,
+                    duration_ms=duration_ms,
+                )
+    finally:
+        # RQ workhorse processes are short-lived; drain the async PostHog queue
+        # before this job process exits to avoid dropping terminal lifecycle events.
+        flush_backend_events(shutdown=True)
 
 
 def auto_update_strategies_daily() -> None:
