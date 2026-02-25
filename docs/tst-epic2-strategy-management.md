@@ -8,16 +8,16 @@
 
 ### 1.1 API Tests – `POST /strategies/`
 
-- [ ] Successful creation with valid name, asset, and timeframe returns the strategy object (`id`, `name`, `asset`, `timeframe`, `is_archived`, `created_at`, `updated_at`)
-- [ ] Created strategy has `is_archived = false` by default
-- [ ] Created strategy is linked to the authenticated user (`user_id` matches current user)
-- [ ] Missing `name` returns a validation error
-- [ ] Empty `name` returns a validation error
-- [ ] Missing `asset` returns a validation error
-- [ ] Asset not in the allowed set (e.g., `DOGE/USDT` if not supported) returns a validation error
-- [ ] Missing `timeframe` returns a validation error
-- [ ] Timeframe not in the allowed set (e.g., `5m` if not supported) returns a validation error
-- [ ] Unauthenticated request returns 401
+- [x] Successful creation with valid name, asset, and timeframe returns the strategy object (`id`, `name`, `asset`, `timeframe`, `is_archived`, `created_at`, `updated_at`)
+- [x] Created strategy has `is_archived = false` by default
+- [x] Created strategy is linked to the authenticated user (`user_id` matches current user)
+- [x] Missing `name` returns a validation error
+- [x] Empty `name` returns a validation error
+- [x] Missing `asset` returns a validation error
+- [x] Asset not in the allowed set (e.g., `DOGE/USDT` if not supported) returns a validation error
+- [x] Missing `timeframe` returns a validation error
+- [x] Timeframe not in the allowed set (e.g., `5m` if not supported) returns a validation error
+- [x] Unauthenticated request returns 401
 
 ### 1.2 UI Tests – Create Strategy Form
 
@@ -36,13 +36,13 @@
 
 ### 2.1 API Tests – `GET /strategies/`
 
-- [ ] Returns only the authenticated user's strategies
-- [ ] By default, excludes archived strategies (`is_archived = true`)
-- [ ] With `include_archived=true`, includes archived strategies in the response
-- [ ] With `search=<term>`, filters results by case-insensitive name substring match
-- [ ] Returns an empty list when the user has no strategies
-- [ ] Unauthenticated request returns 401
-- [ ] Response time is under 300ms under typical conditions
+- [x] Returns only the authenticated user's strategies
+- [x] By default, excludes archived strategies (`is_archived = true`)
+- [x] With `include_archived=true`, includes archived strategies in the response
+- [x] With `search=<term>`, filters results by case-insensitive name substring match
+- [x] Returns an empty list when the user has no strategies
+- [x] Unauthenticated request returns 401
+- [x] Response time is under 300ms under typical conditions
 
 ### 2.2 UI Tests – Strategy List Page
 
@@ -62,14 +62,14 @@
 
 ### 3.1 API Tests – `PATCH /strategies/{id}`
 
-- [ ] Successfully updates `name` when provided
-- [ ] Successfully updates `asset` when provided and asset is in the allowed set
-- [ ] Successfully updates `timeframe` when provided and timeframe is in the allowed set
-- [ ] Invalid asset value returns a validation error
-- [ ] Invalid timeframe value returns a validation error
-- [ ] Attempting to update a strategy owned by another user returns 404
-- [ ] Unauthenticated request returns 401
-- [ ] Updated strategy reflects new `updated_at` timestamp
+- [x] Successfully updates `name` when provided
+- [x] Successfully updates `asset` when provided and asset is in the allowed set
+- [x] Successfully updates `timeframe` when provided and timeframe is in the allowed set
+- [x] Invalid asset value returns a validation error
+- [x] Invalid timeframe value returns a validation error
+- [x] Attempting to update a strategy owned by another user returns 404
+- [x] Unauthenticated request returns 401
+- [x] Updated strategy reflects new `updated_at` timestamp
 
 ### 3.2 UI Tests – Edit Strategy
 
@@ -87,16 +87,16 @@
 - [x] `PATCH /strategies/{id}` with `{ "is_archived": false }` unarchives the strategy
 - [x] Archived strategy no longer appears in default `GET /strategies/` response
 - [x] Archived strategy appears when `GET /strategies/?include_archived=true` is called
-- [ ] Archiving a strategy owned by another user returns 404
+- [x] Archiving a strategy owned by another user returns 404
 
 ### 4.2 UI Tests
 
-- [ ] "Archive" action is available in the strategies list per row
-- [ ] Clicking "Archive" removes the strategy from the default list view
-- [ ] A "Show archived" toggle or filter is available
-- [ ] Archived strategies can be seen when the filter is enabled
-- [ ] "Unarchive" action is available on archived strategies
-- [ ] Unarchiving a strategy makes it reappear in the default list view
+- [x] "Archive" action is available in the strategies list per row
+- [x] Clicking "Archive" removes the strategy from the default list view
+- [x] A "Show archived" toggle or filter is available
+- [x] Archived strategies can be seen when the filter is enabled
+- [x] "Unarchive" action is available on archived strategies
+- [x] Unarchiving a strategy makes it reappear in the default list view
 
 ---
 
@@ -104,21 +104,21 @@
 
 ### 5.1 API Tests – `POST /strategies/{id}/duplicate`
 
-- [ ] Duplicating a strategy creates a new strategy with name `"{original_name} (copy)"` or similar
-- [ ] New strategy has the same `asset` and `timeframe` as the original
-- [ ] New strategy has `is_archived = false`
-- [ ] New strategy is owned by the current user
-- [ ] If the original strategy has versions, the latest version's JSON definition is copied as version 1 of the new strategy
-- [ ] If the original strategy has no versions, the new strategy is created without versions
-- [ ] Duplicating a strategy owned by another user returns 404
-- [ ] Unauthenticated request returns 401
-- [ ] Response returns the new strategy object
+- [x] Duplicating a strategy creates a new strategy with name `"{original_name} (copy)"` or similar
+- [x] New strategy has the same `asset` and `timeframe` as the original
+- [x] New strategy has `is_archived = false`
+- [x] New strategy is owned by the current user
+- [x] If the original strategy has versions, the latest version's JSON definition is copied as version 1 of the new strategy
+- [x] If the original strategy has no versions, the new strategy is created without versions
+- [x] Duplicating a strategy owned by another user returns 404
+- [x] Unauthenticated request returns 401
+- [x] Response returns the new strategy object
 
 ### 5.2 UI Tests
 
-- [ ] "Duplicate" action is available in the strategies list per row
+- [x] "Duplicate" action is available in the strategies list per row
 - [ ] After duplication, user is redirected to the new strategy's editor page
-- [ ] The new strategy appears in the strategies list with the expected name suffix
+- [x] The new strategy appears in the strategies list with the expected name suffix
 
 ---
 
@@ -126,26 +126,26 @@
 
 ### 6.1 API Tests – `POST /strategies/{id}/versions`
 
-- [ ] Creating a version with a valid `definition` JSON returns the new version (`id`, `version_number`, `created_at`)
-- [ ] First version for a strategy gets `version_number = 1`
-- [ ] Subsequent versions increment `version_number` correctly (2, 3, 4...)
-- [ ] Creating a version updates `strategies.updated_at` to the current time
-- [ ] Auth and ownership are enforced: cannot create a version for another user's strategy (returns 404)
-- [ ] Unauthenticated request returns 401
-- [ ] Empty or missing `definition` returns a validation error
+- [x] Creating a version with a valid `definition` JSON returns the new version (`id`, `version_number`, `created_at`)
+- [x] First version for a strategy gets `version_number = 1`
+- [x] Subsequent versions increment `version_number` correctly (2, 3, 4...)
+- [x] Creating a version updates `strategies.updated_at` to the current time
+- [x] Auth and ownership are enforced: cannot create a version for another user's strategy (returns 404)
+- [x] Unauthenticated request returns 401
+- [x] Empty or missing `definition` returns a validation error
 
 ### 6.2 API Tests – `GET /strategies/{id}/versions`
 
-- [ ] Returns a list of versions sorted by `created_at` descending
-- [ ] Each version includes `id`, `version_number`, `created_at`
-- [ ] Auth and ownership are enforced: cannot list versions for another user's strategy (returns 404)
-- [ ] Returns an empty list if the strategy has no versions
+- [x] Returns a list of versions sorted by `created_at` descending
+- [x] Each version includes `id`, `version_number`, `created_at`
+- [x] Auth and ownership are enforced: cannot list versions for another user's strategy (returns 404)
+- [x] Returns an empty list if the strategy has no versions
 
 ### 6.3 API Tests – `GET /strategies/{id}/versions/{version_number}`
 
-- [ ] Returns the single version including the full `definition` JSON
-- [ ] Returns 404 for a non-existent version number
-- [ ] Auth and ownership are enforced
+- [x] Returns the single version including the full `definition` JSON
+- [x] Returns 404 for a non-existent version number
+- [x] Auth and ownership are enforced
 
 ### 6.4 UI Tests – Version Selection
 
@@ -158,27 +158,27 @@
 
 ## 7. Permissions & Security
 
-- [ ] All strategy endpoints require authentication
-- [ ] Accessing another user's strategy by any endpoint returns 404 (not 403)
-- [ ] Strategy operations are scoped to the authenticated user
-- [ ] No cross-user data leakage in list or detail responses
+- [x] All strategy endpoints require authentication
+- [x] Accessing another user's strategy by any endpoint returns 404 (not 403)
+- [x] Strategy operations are scoped to the authenticated user
+- [x] No cross-user data leakage in list or detail responses
 
 ---
 
 ## 8. Data Model Validation
 
-- [ ] `strategies` table has unique constraint behavior as expected (no duplicate IDs)
-- [ ] `strategy_versions` table has unique constraint on `(strategy_id, version_number)`
-- [ ] Foreign key from `strategy_versions.strategy_id` to `strategies.id` is enforced
-- [ ] Foreign key from `strategies.user_id` to `users.id` is enforced
+- [x] `strategies` table has unique constraint behavior as expected (no duplicate IDs)
+- [x] `strategy_versions` table has unique constraint on `(strategy_id, version_number)`
+- [x] Foreign key from `strategy_versions.strategy_id` to `strategies.id` is enforced
+- [x] Foreign key from `strategies.user_id` to `users.id` is enforced
 
 ---
 
 ## 9. Edge Cases
 
-- [ ] Creating a strategy with a very long name is handled (truncation or validation error)
-- [ ] Duplicating a strategy named "My Strategy (copy)" produces "My Strategy (copy) (copy)" or similar
+- [x] Creating a strategy with a very long name is handled (truncation or validation error)
+- [x] Duplicating a strategy named "My Strategy (copy)" produces "My Strategy (copy) (copy)" or similar
 - [ ] Rapidly clicking "Save" does not produce corrupted version numbers (concurrency safety)
 - [ ] Archiving a strategy with auto-update enabled does not cause scheduler errors
-- [ ] Listing strategies with both `search` and `include_archived` params works correctly together
-- [ ] Version numbers are monotonically increasing even after concurrent save attempts
+- [x] Listing strategies with both `search` and `include_archived` params works correctly together
+- [x] Version numbers are monotonically increasing even after concurrent save attempts
