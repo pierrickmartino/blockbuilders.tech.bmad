@@ -42,10 +42,10 @@
 ### 2.1 Backend Health Endpoint
 
 - [x] `GET /health` returns HTTP 200 with JSON body containing `"status": "ok"`
-- [ ] Response includes `"db": "ok"` when the database is reachable
-- [ ] Response includes `"version"` field with the app version string
+- [x] Response includes `"db": "ok"` when the database is reachable
+- [x] Response includes `"version"` field with the app version string
 - [x] When Postgres is unreachable, `GET /health` returns `"db": "error"` instead of crashing the process
-- [ ] Health endpoint responds in under 300ms under typical dev conditions
+- [x] Health endpoint responds in under 300ms under typical dev conditions
 
 ### 2.2 Frontend Health Page
 
@@ -65,89 +65,89 @@
 
 ### 3.2 `users` Table
 
-- [ ] Table `users` is created by migrations
-- [ ] Table has `id` primary key (UUID or integer)
-- [ ] Table has `email` column with unique constraint
-- [ ] Table has `password_hash` column
-- [ ] Table has `created_at` timestamp column
-- [ ] Table has `updated_at` timestamp column
-- [ ] Table has `default_fee_percent` nullable column
-- [ ] Table has `default_slippage_percent` nullable column
-- [ ] A record can be inserted and read back correctly
+- [x] Table `users` is created by migrations
+- [x] Table has `id` primary key (UUID or integer)
+- [x] Table has `email` column with unique constraint
+- [x] Table has `password_hash` column
+- [x] Table has `created_at` timestamp column
+- [x] Table has `updated_at` timestamp column
+- [x] Table has `default_fee_percent` nullable column
+- [x] Table has `default_slippage_percent` nullable column
+- [x] A record can be inserted and read back correctly
 
 ### 3.3 `strategies` Table
 
-- [ ] Table `strategies` is created by migrations
-- [ ] Table has `id` primary key
-- [ ] Table has `user_id` column with foreign key to `users.id`
-- [ ] Table has `name` text column
-- [ ] Table has `asset` text column
-- [ ] Table has `timeframe` text column
-- [ ] Table has `is_archived` boolean column defaulting to `false`
-- [ ] Table has `auto_update_enabled` boolean column defaulting to `false`
-- [ ] Table has `created_at` and `updated_at` timestamp columns
-- [ ] Foreign key constraint prevents inserting a strategy with a non-existent `user_id`
-- [ ] A record can be inserted and read back correctly
+- [x] Table `strategies` is created by migrations
+- [x] Table has `id` primary key
+- [x] Table has `user_id` column with foreign key to `users.id`
+- [x] Table has `name` text column
+- [x] Table has `asset` text column
+- [x] Table has `timeframe` text column
+- [x] Table has `is_archived` boolean column defaulting to `false`
+- [x] Table has `auto_update_enabled` boolean column defaulting to `false`
+- [x] Table has `created_at` and `updated_at` timestamp columns
+- [x] Foreign key constraint prevents inserting a strategy with a non-existent `user_id`
+- [x] A record can be inserted and read back correctly
 
 ### 3.4 `strategy_versions` Table
 
-- [ ] Table `strategy_versions` is created by migrations
-- [ ] Table has `id` primary key
-- [ ] Table has `strategy_id` column with foreign key to `strategies.id`
-- [ ] Table has `version_number` integer column
-- [ ] Table has `definition_json` JSON/JSONB column
-- [ ] Table has `created_at` timestamp column
-- [ ] Foreign key constraint prevents inserting a version with a non-existent `strategy_id`
-- [ ] A record can be inserted and read back correctly
+- [x] Table `strategy_versions` is created by migrations
+- [x] Table has `id` primary key
+- [x] Table has `strategy_id` column with foreign key to `strategies.id`
+- [x] Table has `version_number` integer column
+- [x] Table has `definition_json` JSON/JSONB column
+- [x] Table has `created_at` timestamp column
+- [x] Foreign key constraint prevents inserting a version with a non-existent `strategy_id`
+- [x] A record can be inserted and read back correctly
 
 ### 3.5 `backtest_runs` Table
 
-- [ ] Table `backtest_runs` is created by migrations
-- [ ] Table has `id` primary key
-- [ ] Table has `user_id` FK to `users`, `strategy_id` FK to `strategies`, `strategy_version_id` FK to `strategy_versions`
-- [ ] Table has `status` column (supports values: `pending`, `running`, `completed`, `failed`)
-- [ ] Table has `date_from` and `date_to` datetime columns
-- [ ] Table has nullable summary metric columns: `total_return`, `cagr`, `max_drawdown`, `num_trades`, `win_rate`
+- [x] Table `backtest_runs` is created by migrations
+- [x] Table has `id` primary key
+- [x] Table has `user_id` FK to `users`, `strategy_id` FK to `strategies`, `strategy_version_id` FK to `strategy_versions`
+- [x] Table has `status` column (supports values: `pending`, `running`, `completed`, `failed`)
+- [x] Table has `date_from` and `date_to` datetime columns
+- [x] Table has nullable summary metric columns: `total_return`, `cagr`, `max_drawdown`, `num_trades`, `win_rate`
 - [ ] Table has `results_storage_key` nullable string column
-- [ ] Table has `error_message` nullable string column
-- [ ] Table has `created_at` and `updated_at` timestamp columns
-- [ ] A record can be inserted and read back correctly
+- [x] Table has `error_message` nullable string column
+- [x] Table has `created_at` and `updated_at` timestamp columns
+- [x] A record can be inserted and read back correctly
 
 ### 3.6 `candles` Table
 
-- [ ] Table `candles` is created by migrations
-- [ ] Table has `id` primary key
-- [ ] Table has `asset`, `timeframe`, `timestamp` columns
-- [ ] Table has `open`, `high`, `low`, `close`, `volume` numeric columns
-- [ ] Table has `created_at` timestamp column
-- [ ] Unique constraint on `(asset, timeframe, timestamp)` is enforced
-- [ ] Inserting a duplicate `(asset, timeframe, timestamp)` raises a constraint violation error
-- [ ] A record can be inserted and read back correctly
+- [x] Table `candles` is created by migrations
+- [x] Table has `id` primary key
+- [x] Table has `asset`, `timeframe`, `timestamp` columns
+- [x] Table has `open`, `high`, `low`, `close`, `volume` numeric columns
+- [x] Table has `created_at` timestamp column
+- [x] Unique constraint on `(asset, timeframe, timestamp)` is enforced
+- [x] Inserting a duplicate `(asset, timeframe, timestamp)` raises a constraint violation error
+- [x] A record can be inserted and read back correctly
 
 ### 3.7 ORM Models
 
-- [ ] ORM models exist for all five tables: `users`, `strategies`, `strategy_versions`, `backtest_runs`, `candles`
-- [ ] ORM models map correctly to their respective tables
+- [x] ORM models exist for all five tables: `users`, `strategies`, `strategy_versions`, `backtest_runs`, `candles`
+- [x] ORM models map correctly to their respective tables
 - [ ] Relationships between models are correctly defined (e.g., user -> strategies, strategy -> versions)
 
 ---
 
 ## 4. Deployment (Basic)
 
-- [ ] The same stack can be run on a single remote machine using docker-compose (or a minimal prod variant)
-- [ ] Documentation exists explaining how to run the stack in a prod-like environment
-- [ ] No Kubernetes or advanced orchestration is required
-- [ ] The deployment doc covers the necessary one or two commands to get started
+- [x] The same stack can be run on a single remote machine using docker-compose (or a minimal prod variant)
+- [x] Documentation exists explaining how to run the stack in a prod-like environment
+- [x] No Kubernetes or advanced orchestration is required
+- [x] The deployment doc covers the necessary one or two commands to get started
 
 ---
 
 ## 5. Documentation
 
-- [ ] README contains prerequisites (Docker, docker-compose)
-- [ ] README documents `docker-compose up` command
-- [ ] README documents `docker-compose down` command
-- [ ] README documents the migration command
-- [ ] Deployment doc snippet exists for running on a remote host
+- [x] README contains prerequisites (Docker, docker-compose)
+- [x] README documents `docker-compose up` command
+- [x] README documents `docker-compose down` command
+- [x] README documents the migration command
+- [x] Deployment doc snippet exists for running on a remote host
 
 ---
 

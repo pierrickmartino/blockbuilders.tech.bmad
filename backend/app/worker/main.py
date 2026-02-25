@@ -6,11 +6,9 @@ from rq import Worker, Queue
 from rq_scheduler import Scheduler
 
 from app.core.config import settings
+from app.core.logging import setup_logging
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-)
+setup_logging()
 logger = logging.getLogger(__name__)
 
 redis_conn = Redis.from_url(settings.redis_url)

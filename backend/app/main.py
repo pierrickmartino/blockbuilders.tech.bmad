@@ -1,6 +1,15 @@
-from fastapi import FastAPI
+import logging
+import time
+
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+
 from app.core.config import settings
+from app.core.logging import setup_logging, correlation_id_var, generate_correlation_id
+
+setup_logging()
+
+logger = logging.getLogger(__name__)
 
 from app.api.alerts import router as alerts_router
 from app.api.auth import router as auth_router
@@ -24,8 +33,43 @@ app.add_middleware(
     allow_origins=[origin.strip() for origin in settings.cors_origins.split(",")],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type", "Accept"],
+    allow_headers=["Authorization", "Content-Type", "Accept", "X-Correlation-ID"],
 )
+
+
+@app.middleware("http")
+async def correlation_id_middleware(request: Request, call_next) -> Response:
+    """Bind a correlation ID to every request and log request completion."""
+    cid = request.headers.get("x-correlation-id") or generate_correlation_id()
+    token = correlation_id_var.set(cid)
+    start = time.monotonic()
+    try:
+        response = await call_next(request)
+        duration_ms = int((time.monotonic() - start) * 1000)
+        logger.info(
+            "request_completed",
+            extra={
+                "method": request.method,
+                "path": request.url.path,
+                "status_code": response.status_code,
+                "duration_ms": duration_ms,
+            },
+        )
+        return response
+    except Exception:
+        duration_ms = int((time.monotonic() - start) * 1000)
+        logger.exception(
+            "request_failed",
+            extra={
+                "method": request.method,
+                "path": request.url.path,
+                "duration_ms": duration_ms,
+            },
+        )
+        raise
+    finally:
+        correlation_id_var.reset(token)
+
 
 app.include_router(health_router)
 app.include_router(auth_router)
