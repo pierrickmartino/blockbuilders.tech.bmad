@@ -5,16 +5,16 @@
 ## 1. Link Generation (Authenticated)
 
 - [x] `POST /backtests/{run_id}/share-links` creates a share link for a completed backtest run
-- [ ] Endpoint requires authentication; unauthenticated requests return 401
+- [x] Endpoint requires authentication; unauthenticated requests return 401
 - [ ] User can only generate links for their own backtest runs (authorization check returns 403 for others)
-- [ ] Request with a valid `expires_at` timestamp creates a link that expires at that time
+- [x] Request with a valid `expires_at` timestamp creates a link that expires at that time
 - [ ] Request with `expires_at: null` creates a link that never expires
-- [ ] Response includes a `url` field with the shareable URL containing the token
-- [ ] Response includes an `expires_at` field matching the request
-- [ ] Token in the URL is unique and unguessable (at least 32 characters)
+- [x] Response includes a `url` field with the shareable URL containing the token
+- [x] Response includes an `expires_at` field matching the request
+- [x] Token in the URL is unique and unguessable (at least 32 characters)
 - [ ] Multiple share links can be generated for the same backtest run
-- [ ] Attempting to create a share link for a non-existent run returns 404
-- [ ] Attempting to create a share link for an incomplete/running backtest returns an appropriate error
+- [x] Attempting to create a share link for a non-existent run returns 404
+- [x] Attempting to create a share link for an incomplete/running backtest returns an appropriate error
 
 ## 2. Data Model
 

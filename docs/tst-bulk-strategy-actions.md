@@ -73,9 +73,9 @@
 
 ## 8. API Endpoints
 
-- [ ] `POST /strategies/bulk/archive` accepts a list of strategy IDs and returns updated/failed IDs
-- [ ] `POST /strategies/bulk/tag` accepts strategy IDs and tag IDs, returns updated/failed IDs
-- [ ] `POST /strategies/bulk/delete` accepts a list of strategy IDs and returns updated/failed IDs
+- [x] `POST /strategies/bulk/archive` accepts a list of strategy IDs and returns updated/failed IDs
+- [x] `POST /strategies/bulk/tag` accepts strategy IDs and tag IDs, returns updated/failed IDs
+- [x] `POST /strategies/bulk/delete` accepts a list of strategy IDs and returns updated/failed IDs
 - [ ] Endpoints reject requests with empty `strategy_ids` arrays
 - [ ] Endpoints reject requests with invalid/non-existent strategy IDs gracefully
 - [ ] Endpoints only operate on strategies owned by the authenticated user
