@@ -40,7 +40,7 @@
 
 ## 3. API – Market Sentiment Endpoint
 
-- [ ] `GET /market/sentiment?asset=BTC/USDT` returns a valid response
+- [x] `GET /market/sentiment?asset=BTC/USDT` returns a valid response
 - [ ] Response includes `as_of` timestamp
 - [ ] Response includes `asset` field matching the query parameter
 - [ ] Response includes `fear_greed` with `value` and `history` array
@@ -53,7 +53,7 @@
 
 ## 4. API – Backtest Sentiment Endpoint
 
-- [ ] `GET /backtests/{run_id}/sentiment` returns a valid response
+- [x] `GET /backtests/{run_id}/sentiment` returns a valid response
 - [ ] Response includes start/end/average values for each indicator
 - [ ] Response includes short history aligned to the backtest run range
 - [ ] Invalid `run_id` returns 404 with a clear error message

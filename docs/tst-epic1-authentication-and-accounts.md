@@ -68,7 +68,7 @@
 
 ## 3. Auth Protection (FR-2.4)
 
-- [ ] Strategy endpoints (`GET /strategies/`, `POST /strategies/`, etc.) require authentication and return 401 for unauthenticated requests
+- [x] Strategy endpoints (`GET /strategies/`, `POST /strategies/`, etc.) require authentication and return 401 for unauthenticated requests
 - [ ] Backtest endpoints require authentication and return 401 for unauthenticated requests
 - [ ] Authenticated user can only see their own strategies (results are filtered by `user_id`)
 - [ ] Authenticated user can only see their own backtest runs (results are filtered by `user_id`)

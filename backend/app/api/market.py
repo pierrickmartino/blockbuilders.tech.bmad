@@ -3,6 +3,7 @@ import json
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Optional
+from uuid import UUID
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -461,7 +462,7 @@ def get_market_sentiment(
 
 @router.get("/backtests/{run_id}/sentiment", response_model=BacktestSentimentResponse)
 def get_backtest_sentiment(
-    run_id: str,
+    run_id: UUID,
     user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
 ) -> BacktestSentimentResponse:

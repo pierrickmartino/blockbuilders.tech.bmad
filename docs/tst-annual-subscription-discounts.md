@@ -25,9 +25,9 @@
 
 ## 4. API -- Checkout Session for Annual Plans
 
-- [ ] `POST /billing/checkout-session` with interval=annual and plan_tier=pro uses the annual price ID
-- [ ] `POST /billing/checkout-session` with interval=annual and plan_tier=premium uses the annual price ID
-- [ ] `POST /billing/checkout-session` with interval=monthly continues to use monthly price IDs
+- [x] `POST /billing/checkout-session` with interval=annual and plan_tier=pro uses the annual price ID
+- [x] `POST /billing/checkout-session` with interval=annual and plan_tier=premium uses the annual price ID
+- [x] `POST /billing/checkout-session` with interval=monthly continues to use monthly price IDs
 - [ ] Checkout session correctly passes the annual billing period to Stripe
 
 ## 5. Frontend -- Billing UI
