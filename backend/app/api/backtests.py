@@ -209,6 +209,16 @@ def create_backtest(
                 user.id,
                 user.backtest_credit_balance,
             )
+        logger.info(
+            "backtest_enqueued",
+            extra={
+                "run_id": str(run.id),
+                "strategy_id": str(strategy.id),
+                "user_id": str(user.id),
+                "asset": strategy.asset,
+                "timeframe": strategy.timeframe,
+            },
+        )
     except Exception as e:
         # Mark run as failed if enqueue fails
         run.status = "failed"

@@ -1626,7 +1626,7 @@ Plain-Language Error Messages
 
 ### 9.14. Structured Logging with Correlation IDs
 
-**Status:** Planned
+**Status:** Complete
 
 **Purpose:** Make API and worker logs easy to trace by emitting structured JSON logs with a shared correlation ID across request and backtest job lifecycle events.
 
@@ -2091,7 +2091,7 @@ Plain-Language Error Messages
 | **Authentication** | ✅ Complete | Email/password, OAuth (Google, GitHub), password reset |
 | **Account Management** | ✅ Complete | Profile, settings (fees, slippage, timezone), usage tracking |
 | **Product Analytics (PostHog + Consent + Backend Events + Onboarding Funnel Dashboard)** | ✅ Complete | GDPR-aware consent banner + event tracking for auth/key strategy-backtest actions plus backend worker lifecycle events (`backtest_job_started/completed/failed`) and a dedicated PostHog onboarding funnel (`signup_completed → ... → second_session`) with date-range/cohort filters |
-| **Structured Logging with Correlation IDs** | 🟡 Planned | JSON logs to stdout for FastAPI + worker with shared `correlation_id` across request/job lifecycle and structured tracebacks for failures |
+| **Structured Logging with Correlation IDs** | ✅ Complete | JSON logs to stdout for FastAPI + worker with shared `correlation_id` across request/job lifecycle and structured tracebacks for failures |
 | **User Profiles & Reputation** | ✅ Complete | Opt-in public profiles (/u/{handle}), follower counts, contributions, auto-awarded badges, privacy toggles |
 | **Strategy Management** | ✅ Complete | CRUD, versioning, validation, duplication (one-click list clone), archiving |
 | **Bulk Strategy Actions** | ✅ Complete | Multi-select strategies with checkbox selection + action dropdown for archive, tag, delete |

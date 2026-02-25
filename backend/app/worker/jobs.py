@@ -6,12 +6,14 @@ from typing import Any
 from uuid import UUID
 
 import resend
+import structlog
 from redis import Redis
 from rq import Queue
 from sqlmodel import Session, select, func
 
 from app.core.config import settings
 from app.core.database import engine
+from app.core.logging import correlation_id_var
 from app.models.backtest_run import BacktestRun
 from app.models.candle import Candle
 from app.models.data_quality_metric import DataQualityMetric
@@ -47,6 +49,7 @@ def run_backtest_job(run_id: str, force_refresh_prices: bool = False) -> None:
     On error: set status=failed with error_message
     """
     run_uuid = UUID(run_id)
+    cid_token = None
 
     try:
         with Session(engine) as session:
@@ -56,12 +59,20 @@ def run_backtest_job(run_id: str, force_refresh_prices: bool = False) -> None:
             ).first()
 
             if not run:
-                logger.error(f"Backtest run not found: {run_id}")
+                logger.error("backtest_run_not_found", extra={"run_id": run_id})
                 return
+
+            # Bind correlation context for all subsequent logs in this job
+            cid_token = correlation_id_var.set(str(run.id))
+            structlog.contextvars.bind_contextvars(
+                user_id=str(run.user_id),
+                strategy_id=str(run.strategy_id),
+                run_id=run_id,
+            )
 
             # Check idempotency - only process pending runs
             if run.status != "pending":
-                logger.info(f"Run {run_id} is not pending (status={run.status}), skipping")
+                logger.info("backtest_skipped", extra={"status": run.status})
                 return
 
             # Set status to running
@@ -77,6 +88,7 @@ def run_backtest_job(run_id: str, force_refresh_prices: bool = False) -> None:
                 strategy_id=run.strategy_id,
                 correlation_id=run.id,
             )
+            logger.info("backtest_started")
 
             try:
                 # Load strategy definition
@@ -99,7 +111,15 @@ def run_backtest_job(run_id: str, force_refresh_prices: bool = False) -> None:
                         "Invalid strategy: no block configuration found.",
                     )
 
-                logger.info(f"Processing backtest {run_id}: {run.asset} {run.timeframe} {run.date_from} - {run.date_to}")
+                logger.info(
+                    "backtest_processing",
+                    extra={
+                        "asset": run.asset,
+                        "timeframe": run.timeframe,
+                        "date_from": str(run.date_from),
+                        "date_to": str(run.date_to),
+                    },
+                )
 
                 # Fetch candles
                 candles = fetch_candles(
@@ -117,11 +137,17 @@ def run_backtest_job(run_id: str, force_refresh_prices: bool = False) -> None:
                         "No price data available for the selected date range.",
                     )
 
-                logger.info(f"Fetched {len(candles)} candles")
+                logger.info("candles_fetched", extra={"count": len(candles)})
 
                 # Interpret strategy to get signals
                 signals = interpret_strategy(definition, candles)
-                logger.info(f"Interpreted strategy: {sum(signals.entry_long)} entry signals, {sum(signals.exit_long)} exit signals")
+                logger.info(
+                    "strategy_interpreted",
+                    extra={
+                        "entry_signals": sum(signals.entry_long),
+                        "exit_signals": sum(signals.exit_long),
+                    },
+                )
 
                 # Run backtest engine
                 result = run_backtest(
@@ -134,7 +160,13 @@ def run_backtest_job(run_id: str, force_refresh_prices: bool = False) -> None:
                     timeframe=run.timeframe,
                 )
 
-                logger.info(f"Backtest complete: {result.num_trades} trades, {result.total_return_pct}% return")
+                logger.info(
+                    "backtest_engine_complete",
+                    extra={
+                        "num_trades": result.num_trades,
+                        "total_return_pct": result.total_return_pct,
+                    },
+                )
 
                 # Upload results to S3
                 equity_curve_key = generate_results_key(run.id, "equity_curve.json")
@@ -142,7 +174,7 @@ def run_backtest_job(run_id: str, force_refresh_prices: bool = False) -> None:
 
                 # Compute benchmark equity curve
                 benchmark_equity = compute_benchmark_curve(candles, run.initial_balance)
-                logger.info(f"Computed benchmark curve with {len(benchmark_equity)} points")
+                logger.info("benchmark_computed", extra={"points": len(benchmark_equity)})
 
                 # Calculate benchmark metrics
                 benchmark_return_pct, alpha, beta = compute_benchmark_metrics(
@@ -150,7 +182,10 @@ def run_backtest_job(run_id: str, force_refresh_prices: bool = False) -> None:
                     benchmark_equity,
                     run.initial_balance
                 )
-                logger.info(f"Benchmark metrics: return={benchmark_return_pct}%, alpha={alpha}, beta={beta}")
+                logger.info(
+                    "benchmark_metrics",
+                    extra={"return_pct": benchmark_return_pct, "alpha": alpha, "beta": beta},
+                )
 
                 # Upload benchmark equity curve
                 benchmark_curve_key = generate_results_key(run.id, "benchmark_equity_curve.json")
@@ -254,10 +289,10 @@ def run_backtest_job(run_id: str, force_refresh_prices: bool = False) -> None:
                     duration_ms=duration_ms,
                 )
 
-                logger.info(f"Backtest {run_id} completed successfully")
+                logger.info("backtest_completed")
 
             except BacktestError as e:
-                logger.error(f"Backtest error for {run_id}: {e.message}")
+                logger.error("backtest_error", extra={"error": e.message})
                 run.status = "failed"
                 run.error_message = e.user_message
                 run.updated_at = datetime.now(timezone.utc)
@@ -273,8 +308,8 @@ def run_backtest_job(run_id: str, force_refresh_prices: bool = False) -> None:
                     duration_ms=duration_ms,
                 )
 
-            except Exception as e:
-                logger.exception(f"Unexpected error processing backtest {run_id}")
+            except Exception:
+                logger.exception("backtest_unexpected_error")
                 run.status = "failed"
                 run.error_message = "An unexpected error occurred during backtest processing."
                 run.updated_at = datetime.now(timezone.utc)
@@ -290,6 +325,12 @@ def run_backtest_job(run_id: str, force_refresh_prices: bool = False) -> None:
                     duration_ms=duration_ms,
                 )
     finally:
+        # Clean up bound context to prevent leaking across jobs
+        structlog.contextvars.unbind_contextvars(
+            "user_id", "strategy_id", "run_id",
+        )
+        if cid_token is not None:
+            correlation_id_var.reset(cid_token)
         # RQ workhorse processes are short-lived; drain the async PostHog queue
         # before this job process exits to avoid dropping terminal lifecycle events.
         flush_backend_events(shutdown=True)
