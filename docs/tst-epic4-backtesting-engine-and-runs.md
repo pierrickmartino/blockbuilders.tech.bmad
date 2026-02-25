@@ -159,7 +159,7 @@
 - [ ] Backtesting 1 year of hourly candles completes in 30 seconds or less under normal load
 - [ ] Candle data is cached aggressively to avoid repeated vendor calls
 - [ ] `POST /backtests/` responds in under 300ms
-- [ ] `GET /backtests/{run_id}` responds in under 300ms
+- [x] `GET /backtests/{run_id}` responds in under 300ms
 
 ---
 

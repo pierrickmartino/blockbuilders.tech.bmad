@@ -28,9 +28,9 @@
 
 ## 4. API Response
 
-- [ ] `GET /market/tickers` response includes `volatility_stddev` field per pair
-- [ ] `GET /market/tickers` response includes `volatility_atr_pct` field per pair
-- [ ] `GET /market/tickers` response includes `volatility_percentile_1y` field per pair
+- [x] `GET /market/tickers` response includes `volatility_stddev` field per pair
+- [x] `GET /market/tickers` response includes `volatility_atr_pct` field per pair
+- [x] `GET /market/tickers` response includes `volatility_percentile_1y` field per pair
 - [ ] Response includes `as_of` timestamp
 - [ ] Response shape matches the documented example structure
 

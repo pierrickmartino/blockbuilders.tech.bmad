@@ -44,7 +44,7 @@
 
 ## 6. Data & Calculations
 
-- [ ] Trades are sourced from `GET /backtests/{run_id}/trades`
+- [x] Trades are sourced from `GET /backtests/{run_id}/trades`
 - [ ] Bucket assignment uses trade `exit_time`
 - [ ] Bucket assignment uses UTC timezone
 - [ ] Average return % per bucket equals mean of `pnl_pct` for trades in that bucket

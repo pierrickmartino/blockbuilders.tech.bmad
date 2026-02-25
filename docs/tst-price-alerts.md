@@ -9,7 +9,7 @@
 - [ ] User can edit an existing price alert (threshold, channels, expiration)
 - [ ] User can enable/disable an alert via the active toggle
 - [ ] User can delete an alert
-- [ ] User can list all alert rules (price and performance) via GET /alerts
+- [x] User can list all alert rules (price and performance) via GET /alerts
 
 ## 2. API -- POST /alerts (price type)
 

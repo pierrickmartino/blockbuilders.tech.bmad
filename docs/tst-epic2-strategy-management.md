@@ -83,8 +83,8 @@
 
 ### 4.1 API Tests
 
-- [ ] `PATCH /strategies/{id}` with `{ "is_archived": true }` archives the strategy
-- [ ] `PATCH /strategies/{id}` with `{ "is_archived": false }` unarchives the strategy
+- [x] `PATCH /strategies/{id}` with `{ "is_archived": true }` archives the strategy
+- [x] `PATCH /strategies/{id}` with `{ "is_archived": false }` unarchives the strategy
 - [ ] Archived strategy no longer appears in default `GET /strategies/` response
 - [ ] Archived strategy appears when `GET /strategies/?include_archived=true` is called
 - [ ] Archiving a strategy owned by another user returns 404

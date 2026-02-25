@@ -408,9 +408,9 @@ class TestADX:
 
     def test_adx_uptrend(self, uptrend_candles):
         """ADX should show directional movement in uptrend."""
-        highs = [c["high"] for c in uptrend_candles]
-        lows = [c["low"] for c in uptrend_candles]
-        closes = [c["close"] for c in uptrend_candles]
+        highs = [c.high for c in uptrend_candles]
+        lows = [c.low for c in uptrend_candles]
+        closes = [c.close for c in uptrend_candles]
         adx_line, plus_di, minus_di = adx(highs, lows, closes, period=14)
 
         # In uptrend, +DI should generally be higher than -DI

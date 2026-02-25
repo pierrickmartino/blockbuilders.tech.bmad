@@ -54,7 +54,7 @@
 
 ## 8. Data Source
 
-- [ ] Data is sourced from `GET /backtests/{run_id}/trades` endpoint
+- [x] Data is sourced from `GET /backtests/{run_id}/trades` endpoint
 - [ ] `entry_time`, `exit_time`, `entry_price`, and `qty` fields are used
 - [ ] Backtest run `timeframe` is used for bar conversion
 - [ ] Aggregation is performed client-side (no new backend endpoints)

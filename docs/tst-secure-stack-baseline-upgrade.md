@@ -19,7 +19,7 @@
 - [ ] API starts successfully and serves OpenAPI docs
 - [ ] Worker starts successfully and connects to Redis
 - [ ] Scheduler starts successfully and connects to Redis
-- [ ] `GET /health` returns healthy status
+- [x] `GET /health` returns healthy status
 
 ## 3. Route Regression Checks
 

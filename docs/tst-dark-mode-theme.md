@@ -15,16 +15,16 @@
 
 ### 1.2 GET /users/me
 
-- [ ] `GET /users/me` response includes `theme_preference` field
+- [x] `GET /users/me` response includes `theme_preference` field
 - [ ] The returned value matches what was previously saved
 - [ ] For new users who have not set a preference, `system` is returned
 
 ### 1.3 PUT /users/me
 
-- [ ] `PUT /users/me` with `theme_preference: "dark"` saves successfully
-- [ ] `PUT /users/me` with `theme_preference: "light"` saves successfully
-- [ ] `PUT /users/me` with `theme_preference: "system"` saves successfully
-- [ ] `PUT /users/me` with an invalid `theme_preference` value returns a validation error
+- [x] `PUT /users/me` with `theme_preference: "dark"` saves successfully
+- [x] `PUT /users/me` with `theme_preference: "light"` saves successfully
+- [x] `PUT /users/me` with `theme_preference: "system"` saves successfully
+- [x] `PUT /users/me` with an invalid `theme_preference` value returns a validation error
 - [ ] No new API endpoints are introduced (existing profile endpoints are extended)
 
 ---

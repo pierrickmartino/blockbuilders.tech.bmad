@@ -151,7 +151,7 @@
 - [ ] Failed runs still count toward the daily limit
 - [ ] Multiple rapid API calls near the limit boundary do not allow exceeding the limit (race condition safety)
 - [ ] If limits are disabled (`DISABLE_USAGE_LIMITS=true`), strategy creation and backtest creation are unrestricted
-- [ ] `GET /usage/me` reflects correct values even when limits are disabled (shows "no limit" or similar)
+- [x] `GET /usage/me` reflects correct values even when limits are disabled (shows "no limit" or similar)
 
 ---
 

@@ -15,7 +15,7 @@
 
 - [ ] Clicking "Download Trades CSV" downloads a CSV file
 - [ ] CSV file has a header row with all required columns: entry_time, entry_price, exit_time, exit_price, side, pnl, pnl_pct, qty, stop_loss_price, take_profit_price, exit_reason, mae, mae_pct, mfe, mfe_pct, r_multiple, peak_price, trough_price, peak_time, trough_time, duration
-- [ ] CSV data rows match the trades returned by the existing GET /backtests/{run_id}/trades endpoint
+- [x] CSV data rows match the trades returned by the existing GET /backtests/{run_id}/trades endpoint
 - [ ] Time fields use ISO-8601 format
 - [ ] File is named following the pattern `backtest-{run_id}-trades.csv`
 - [ ] CSV with 0 trades produces a file with only the header row

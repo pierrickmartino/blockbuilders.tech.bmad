@@ -27,11 +27,11 @@
 ## 3. Persistence & Cross-Session Behavior
 
 - [ ] Pinned metrics preference is stored on the user record as a JSON array of metric keys
-- [ ] `GET /users/me` response includes `favorite_metrics` field
-- [ ] `PUT /users/me` with updated `favorite_metrics` persists the new order
+- [x] `GET /users/me` response includes `favorite_metrics` field
+- [x] `PUT /users/me` with updated `favorite_metrics` persists the new order
 - [ ] Preferences persist across browser sessions (logout/login)
 - [ ] Preferences apply to all backtest summaries regardless of which strategy is viewed
-- [ ] Reordering pinned metrics triggers a `PUT /users/me` call to persist the change
+- [x] Reordering pinned metrics triggers a `PUT /users/me` call to persist the change
 
 ## 4. Default Behavior (No Favorites Set)
 
@@ -61,7 +61,7 @@
 ## 7. API & Data Validation
 
 - [ ] `favorite_metrics` is stored as a simple JSON array of string metric keys
-- [ ] No new API endpoints are introduced (uses existing `GET/PUT /users/me`)
+- [x] No new API endpoints are introduced (uses existing `GET/PUT /users/me`)
 - [ ] Sending an empty array `[]` for `favorite_metrics` resets to default behavior
 - [ ] Sending duplicate metric keys in the array is handled gracefully (deduplicated or rejected)
 - [ ] Sending invalid/unknown metric keys does not break the summary display

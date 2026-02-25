@@ -29,7 +29,7 @@
 - [ ] After selecting a valid file, a summary is shown (name, asset, timeframe)
 - [ ] User can confirm or cancel the import after seeing the summary
 - [ ] Confirming import creates a new strategy via `POST /strategies`
-- [ ] Confirming import creates a new strategy version via `POST /strategies/{id}/versions`
+- [x] Confirming import creates a new strategy version via `POST /strategies/{id}/versions`
 - [ ] After import, user is navigated to the newly created strategy
 - [ ] Imported strategy is fully independent (new ID, not linked to the original)
 - [ ] Importing the same file twice creates two separate strategies (never overwrites)

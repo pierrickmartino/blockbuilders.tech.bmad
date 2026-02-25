@@ -22,15 +22,15 @@
 - [ ] Beta uses candle-to-candle simple returns: `benchmark_returns[t] = (benchmark_equity[t] / benchmark_equity[t-1]) - 1`
 - [ ] Beta is calculated as `covariance(strategy_returns, benchmark_returns) / variance(benchmark_returns)`
 - [ ] Beta is set to `0` when benchmark variance is 0 (flat benchmark price)
-- [ ] Metrics are included in the backtest summary response (`GET /backtests/{run_id}`)
+- [x] Metrics are included in the backtest summary response (`GET /backtests/{run_id}`)
 
 ## 3. API & Storage
 
 - [ ] Benchmark equity curve JSON is stored in object storage alongside the strategy equity curve
-- [ ] `GET /backtests/{run_id}/benchmark-equity-curve` endpoint exists and returns benchmark curve data
-- [ ] `GET /backtests/{run_id}/benchmark-equity-curve` returns 404 for non-existent run IDs
-- [ ] `GET /backtests/{run_id}/benchmark-equity-curve` requires authentication
-- [ ] `GET /backtests/{run_id}` response includes `benchmark_return`, `alpha`, and `beta` fields
+- [x] `GET /backtests/{run_id}/benchmark-equity-curve` endpoint exists and returns benchmark curve data
+- [x] `GET /backtests/{run_id}/benchmark-equity-curve` returns 404 for non-existent run IDs
+- [x] `GET /backtests/{run_id}/benchmark-equity-curve` requires authentication
+- [x] `GET /backtests/{run_id}` response includes `benchmark_return`, `alpha`, and `beta` fields
 - [ ] Backtest run model/schema is extended with benchmark fields
 - [ ] User can only access benchmark data for their own backtests (authorization check)
 

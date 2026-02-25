@@ -12,7 +12,7 @@
 
 ## 2. Clone Action – Happy Path
 
-- [ ] Clicking Clone calls `POST /strategies/{id}/duplicate` with the correct strategy ID
+- [x] Clicking Clone calls `POST /strategies/{id}/duplicate` with the correct strategy ID
 - [ ] On success, the cloned strategy appears in the list without a full page reload
 - [ ] The user remains on the current list page (not redirected to the strategy editor)
 - [ ] The cloned strategy name follows existing server behavior (appends " (Copy)")
@@ -36,7 +36,7 @@
 
 ## 5. API & Backend
 
-- [ ] Uses the existing `POST /strategies/{id}/duplicate` endpoint
+- [x] Uses the existing `POST /strategies/{id}/duplicate` endpoint
 - [ ] No new backend endpoints are introduced
 - [ ] No new query params or payload changes to the duplicate endpoint
 - [ ] Response returns the new strategy object with a valid ID and name

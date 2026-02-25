@@ -109,7 +109,7 @@ class TestBacktestBasics:
             make_candle(4, 112, 118, 110, 115),  # Exit executed at close=115
         ]
         signals = make_signals(
-            entry_long=[True, False, True, False],  # Enter on candle 1, signal exit on candle 3
+            entry_long=[True, False, False, False],  # Single entry signal
             exit_long=[False, False, True, False],
         )
 
@@ -134,7 +134,7 @@ class TestBacktestBasics:
             make_candle(4, 92, 95, 88, 90),      # Exit executed
         ]
         signals = make_signals(
-            entry_long=[True, False, True, False],
+            entry_long=[True, False, False, False],
             exit_long=[False, False, True, False],
         )
 
