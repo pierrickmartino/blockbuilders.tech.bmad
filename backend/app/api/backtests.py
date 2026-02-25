@@ -14,6 +14,7 @@ from sqlmodel import Session, select, func
 from app.api.deps import get_current_user
 from app.core.config import settings
 from app.core.database import get_session
+from app.core.logging import correlation_id_var
 from app.core.plans import get_plan_limits
 from app.models.backtest_run import BacktestRun
 from app.models.candle import Candle
@@ -194,10 +195,12 @@ def create_backtest(
     # Enqueue job
     try:
         queue = get_redis_queue()
+        request_correlation_id = correlation_id_var.get("") or None
         queue.enqueue(
             "app.worker.jobs.run_backtest_job",
             str(run.id),
             data.force_refresh_prices,
+            request_correlation_id,
             job_timeout=300,  # 5 minute timeout
         )
         if use_credit:

@@ -34,7 +34,11 @@ from app.services.analytics import track_backend_event, flush_backend_events
 logger = logging.getLogger(__name__)
 
 
-def run_backtest_job(run_id: str, force_refresh_prices: bool = False) -> None:
+def run_backtest_job(
+    run_id: str,
+    force_refresh_prices: bool = False,
+    correlation_id: str | None = None,
+) -> None:
     """
     Main job function for processing a backtest run.
 
@@ -62,8 +66,9 @@ def run_backtest_job(run_id: str, force_refresh_prices: bool = False) -> None:
                 logger.error("backtest_run_not_found", extra={"run_id": run_id})
                 return
 
-            # Bind correlation context for all subsequent logs in this job
-            cid_token = correlation_id_var.set(str(run.id))
+            # Prefer the originating request correlation ID when available.
+            job_correlation_id = correlation_id or str(run.id)
+            cid_token = correlation_id_var.set(job_correlation_id)
             structlog.contextvars.bind_contextvars(
                 user_id=str(run.user_id),
                 strategy_id=str(run.strategy_id),

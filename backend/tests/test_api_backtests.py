@@ -152,4 +152,45 @@ def test_force_refresh_prices_allowed_for_beta_user(client: TestClient, session:
     args, kwargs = fake_queue.calls[0]
     assert args[0] == "app.worker.jobs.run_backtest_job"
     assert args[2] is True
+    assert isinstance(args[3], str) and len(args[3]) > 0
+    assert kwargs["job_timeout"] == 300
+
+
+def test_backtest_enqueue_forwards_request_correlation_id(
+    client: TestClient, session: Session, monkeypatch
+):
+    user = _create_user(session, "trace@example.com", UserTier.BETA)
+    strategy = _create_strategy_with_version(session, user.id)
+    token = _login_and_get_token(client, user.email)
+
+    class FakeQueue:
+        def __init__(self):
+            self.calls = []
+
+        def enqueue(self, *args, **kwargs):
+            self.calls.append((args, kwargs))
+
+    fake_queue = FakeQueue()
+    monkeypatch.setattr("app.api.backtests.get_redis_queue", lambda: fake_queue)
+
+    response = client.post(
+        "/backtests/",
+        headers={
+            "Authorization": f"Bearer {token}",
+            "X-Correlation-ID": "api-trace-123",
+        },
+        json={
+            "strategy_id": str(strategy.id),
+            "date_from": "2026-01-01T00:00:00Z",
+            "date_to": "2026-01-10T23:59:59Z",
+            "force_refresh_prices": False,
+        },
+    )
+
+    assert response.status_code == 201
+    assert len(fake_queue.calls) == 1
+
+    args, kwargs = fake_queue.calls[0]
+    assert args[0] == "app.worker.jobs.run_backtest_job"
+    assert args[3] == "api-trace-123"
     assert kwargs["job_timeout"] == 300
