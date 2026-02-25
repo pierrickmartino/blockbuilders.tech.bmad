@@ -1624,6 +1624,28 @@ Plain-Language Error Messages
 - Keep instrumentation at route-level, key user actions, and required worker lifecycle hooks only (no broad auto-capture in v1).
 - Verify events in PostHog Cloud live event stream before release.
 
+### 9.14. Structured Logging with Correlation IDs
+
+**Status:** Planned
+
+**Purpose:** Make API and worker logs easy to trace by emitting structured JSON logs with a shared correlation ID across request and backtest job lifecycle events.
+
+**Scope (minimal):**
+- Configure structlog in FastAPI to emit JSON logs to stdout.
+- Generate a correlation ID per incoming API request (or reuse an incoming `X-Correlation-ID` header when present).
+- Attach correlation ID to all request-scoped logs from middleware, route handlers, and service calls.
+- Propagate correlation ID when enqueuing backtest jobs so worker logs use the same ID.
+- Include `correlation_id`, `user_id`, and `strategy_id` in worker lifecycle logs (`started`, `progress`, `failed`, `completed`).
+- Include full exception traceback in structured error logs for worker failures.
+
+**Developer Debug Workflow:**
+- Logs remain on stdout so local/staging/prod Docker logs stay unchanged operationally.
+- Developers can run `docker compose logs api worker | jq` and filter by `.correlation_id` to reconstruct a single request/job timeline quickly.
+
+**Implementation Direction:**
+- Keep implementation small: one request middleware for context binding and one shared logging helper for worker job context binding.
+- Avoid adding external log collectors, tracing systems, or new persistence layers in this phase.
+
 ---
 
 ## 10. Backend API Reference
@@ -2069,6 +2091,7 @@ Plain-Language Error Messages
 | **Authentication** | ✅ Complete | Email/password, OAuth (Google, GitHub), password reset |
 | **Account Management** | ✅ Complete | Profile, settings (fees, slippage, timezone), usage tracking |
 | **Product Analytics (PostHog + Consent + Backend Events + Onboarding Funnel Dashboard)** | ✅ Complete | GDPR-aware consent banner + event tracking for auth/key strategy-backtest actions plus backend worker lifecycle events (`backtest_job_started/completed/failed`) and a dedicated PostHog onboarding funnel (`signup_completed → ... → second_session`) with date-range/cohort filters |
+| **Structured Logging with Correlation IDs** | 🟡 Planned | JSON logs to stdout for FastAPI + worker with shared `correlation_id` across request/job lifecycle and structured tracebacks for failures |
 | **User Profiles & Reputation** | ✅ Complete | Opt-in public profiles (/u/{handle}), follower counts, contributions, auto-awarded badges, privacy toggles |
 | **Strategy Management** | ✅ Complete | CRUD, versioning, validation, duplication (one-click list clone), archiving |
 | **Bulk Strategy Actions** | ✅ Complete | Multi-select strategies with checkbox selection + action dropdown for archive, tag, delete |
@@ -2413,6 +2436,8 @@ npm run type-check    # TypeScript validation
 - `docs/prd-strategy-tags-groups.md` - Strategy groups & tags PRD
 - `docs/prd-simple-tiered-subscription-plans.md` - Simple tiered subscription plans PRD
 - `docs/prd-annual-subscription-discounts.md` - Annual subscription discounts PRD
+- `docs/prd-structured-logging-correlation-ids.md` - Structured logging with correlation IDs PRD
+- `docs/tst-structured-logging-correlation-ids.md` - Structured logging with correlation IDs test checklist
 - `docs/prd-one-time-credit-packs.md` - One-time credit packs PRD
 - `docs/prd-grandfathered-beta-user-benefits.md` - Grandfathered beta user benefits PRD
 - `docs/prd-quick-strategy-clone.md` - Quick strategy clone (list action) PRD
