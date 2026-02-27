@@ -63,7 +63,7 @@
 - [x] `favorite_metrics` is stored as a simple JSON array of string metric keys
 - [x] No new API endpoints are introduced (uses existing `GET/PUT /users/me`)
 - [x] Sending an empty array `[]` for `favorite_metrics` resets to default behavior
-- [ ] Sending duplicate metric keys in the array is handled gracefully (deduplicated or rejected)
+- [x] Sending duplicate metric keys in the array is handled gracefully (deduplicated or rejected)
 - [x] Sending invalid/unknown metric keys does not break the summary display
 - [x] No new backend data sources or computed analytics are introduced
 
