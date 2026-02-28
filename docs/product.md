@@ -1,7 +1,7 @@
 # Blockbuilders – Product Documentation
 
 **Status:** Current Product Truth
-**Last Updated:** 2026-02-24
+**Last Updated:** 2026-02-28
 **Purpose:** Comprehensive documentation of all implemented features
 
 ---
@@ -1327,7 +1327,7 @@ Plain-Language Error Messages
 - Visual canvas with drag-drop blocks
 - Block palette drawer (mobile-responsive); Bottom sheet block library with search, categories, and recent/favorite blocks to replace the floating + button
 - Inspector panel opens on block tap for touch-friendly parameter editing, presets, and inline validation
-- Curated indicator palette (SMA, EMA, RSI, MACD, Bollinger Bands, ATR, Stochastic, ADX, Ichimoku Cloud, OBV, Fibonacci)
+- Essentials-first indicator palette mode defaults to 5 indicators for new users (SMA, EMA, RSI, Bollinger Bands, MACD) with a "Show all indicators" toggle to reveal the full set (ATR, Stochastic, ADX, Ichimoku Cloud, OBV, Fibonacci, etc.); toggle preference persists in localStorage and existing users with non-essential indicators default to "All"
 - Compact node display mode with one-line summaries and tap-to-expand details
 - Version tabs and switcher
 - Save button (creates new version)
@@ -2098,6 +2098,7 @@ Plain-Language Error Messages
 | **Strategy Groups/Tags** | ✅ Complete | Custom tags, tag filtering, many-to-many strategy organization |
 | **Visual Builder** | ✅ Complete | 20 block types, drag-drop, enhanced Inspector panel with period presets and source quick-swaps, mobile-responsive |
 | **Expanded Indicator Palette & Price Variation Input** | ✅ Complete | Stochastic, ADX, Ichimoku Cloud, OBV, Fibonacci retracements, and price variation % input block |
+| **Essentials-First Block Palette Toggle** | 📝 Spec Ready | Default 5-indicator essentials mode for new users, toggle to full indicator list, localStorage persistence, legacy-user fallback to all, frontend-only state switch with `palette_mode_changed` analytics event |
 | **Mobile-Optimized Canvas** | ✅ Complete | Touch-first controls, simplified palette, gesture-based connections |
 | **Bottom Action Bar for Canvas Tools** | ✅ Complete | Replace left tool stack with a mobile bottom action bar for core canvas tools (Pan/Select, Zoom In/Out, Fit to Screen, Undo/Redo) with 44px tap targets |
 | **Canvas Minimap with Section Shortcuts** | ✅ Complete | Minimap overlay (180×120px) with real-time viewport indicator and quick-jump buttons to Entry, Exit, and Risk sections |
@@ -2418,6 +2419,7 @@ npm run type-check    # TypeScript validation
 - `docs/prd-price-alerts.md` - Price alerts PRD
 - `docs/prd-risk-metrics-expansion.md` - Risk metrics expansion PRD
 - `docs/prd-expanded-indicator-palette-price-variation-input.md` - Expanded indicator palette + price variation input PRD
+- `docs/prd-essentials-first-block-palette-toggle.md` - Essentials-first block palette toggle PRD
 - `docs/prd-copy-paste-blocks-subgraphs.md` - Copy/paste blocks & subgraphs PRD (IMPLEMENTED)
 - `docs/prd-canvas-undo-redo.md` - Canvas undo/redo PRD (IMPLEMENTED)
 - `docs/prd-keyboard-shortcuts.md` - Keyboard shortcuts & reference PRD
@@ -2455,6 +2457,7 @@ npm run type-check    # TypeScript validation
 - `docs/tst-secure-stack-baseline-upgrade.md` - Secure stack baseline upgrade test checklist
 - `docs/prd-enhanced-trade-explanation-view.md` - Enhanced trade explanation view PRD (IMPLEMENTED - Phase 1)
 - `docs/tst-enhanced-trade-explanation-view.md` - Enhanced trade explanation view test checklist
+- `docs/tst-essentials-first-block-palette-toggle.md` - Essentials-first block palette toggle test checklist
 - `CLAUDE.md` - Instructions for Claude Code
 - `README.md` - Quick start guide
 
