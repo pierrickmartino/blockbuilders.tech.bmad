@@ -4,6 +4,7 @@ export type BlockCategory = "input" | "indicator" | "logic" | "signal" | "risk";
 // Block types by category
 export type InputBlockType = "price" | "volume" | "constant" | "yesterday_close" | "price_variation_pct";
 export type IndicatorBlockType = "sma" | "ema" | "rsi" | "macd" | "bollinger" | "atr" | "stochastic" | "adx" | "ichimoku" | "obv" | "fibonacci";
+export const ESSENTIAL_INDICATORS: readonly IndicatorBlockType[] = ["sma", "ema", "rsi", "bollinger", "macd"];
 export type LogicBlockType = "compare" | "crossover" | "and" | "or" | "not";
 export type SignalBlockType = "entry_signal" | "exit_signal";
 export type RiskBlockType = "position_size" | "take_profit" | "stop_loss" | "max_drawdown" | "time_exit" | "trailing_stop";

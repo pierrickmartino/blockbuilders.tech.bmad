@@ -13,7 +13,8 @@ import {
 } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { BLOCK_REGISTRY, BlockCategory, BlockMeta, BlockType } from "@/types/canvas";
+import { BLOCK_REGISTRY, BlockCategory, BlockMeta, BlockType, ESSENTIAL_INDICATORS, IndicatorBlockType } from "@/types/canvas";
+import type { IndicatorMode } from "@/lib/block-library-storage";
 import {
   trackRecentBlock,
   getRecentBlocks,
@@ -31,6 +32,8 @@ interface BlockLibrarySheetProps {
   onAddNode: (node: Node) => void;
   reactFlowInstance: React.RefObject<ReactFlowInstance<Node, CanvasEdge> | null>;
   isMobileMode: boolean;
+  indicatorMode: IndicatorMode;
+  onToggleIndicatorMode: () => void;
 }
 
 const categories: { key: BlockCategory; label: string }[] = [
@@ -54,6 +57,8 @@ export default function BlockLibrarySheet({
   onAddNode,
   reactFlowInstance,
   isMobileMode,
+  indicatorMode,
+  onToggleIndicatorMode,
 }: BlockLibrarySheetProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -86,10 +91,17 @@ export default function BlockLibrarySheet({
       })
     : BLOCK_REGISTRY;
 
-  // Group filtered blocks by category
+  // Group filtered blocks by category (essentials filter bypassed during search)
+  const essentials = new Set<string>(ESSENTIAL_INDICATORS);
   const blocksByCategory = categories.map((cat) => ({
     ...cat,
-    blocks: filteredBlocks.filter((b) => b.category === cat.key),
+    blocks: filteredBlocks.filter((b) => {
+      if (b.category !== cat.key) return false;
+      if (!searchQuery && cat.key === "indicator" && indicatorMode === "essentials") {
+        return essentials.has(b.type as IndicatorBlockType);
+      }
+      return true;
+    }),
   }));
 
   // Get block meta for a block type
@@ -304,6 +316,14 @@ export default function BlockLibrarySheet({
                   <div className="space-y-1.5">
                     {blocks.map((block) => renderBlockCard(block))}
                   </div>
+                  {key === "indicator" && !searchQuery && (
+                    <button
+                      onClick={onToggleIndicatorMode}
+                      className="mt-2 w-full text-center text-[11px] text-blue-600 hover:text-blue-800 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
+                    >
+                      {indicatorMode === "essentials" ? "Show all indicators" : "Show essentials only"}
+                    </button>
+                  )}
                 </div>
               );
             })}
