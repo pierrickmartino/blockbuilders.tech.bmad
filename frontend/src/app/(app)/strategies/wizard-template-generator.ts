@@ -1,7 +1,14 @@
 import type { StrategyDefinition, Block, Connection } from "@/types/canvas";
 
+export type SignalType =
+  | "sma_crossover"
+  | "ema_crossover"
+  | "rsi_reversion"
+  | "bollinger_breakout"
+  | "macd_crossover";
+
 export interface WizardAnswers {
-  signalType: "ma_crossover" | "rsi_reversion";
+  signalType: SignalType;
   maType?: "sma" | "ema";
   maFastPeriod?: number;
   maSlowPeriod?: number;
@@ -13,11 +20,56 @@ export interface WizardAnswers {
   takeProfitPercent?: number;
 }
 
+/** Fixed 5-option list for wizard indicator/strategy-type step. */
+export const WIZARD_ESSENTIAL_OPTIONS: readonly {
+  value: SignalType;
+  label: string;
+  description: string;
+}[] = [
+  {
+    value: "sma_crossover",
+    label: "Use a Moving Average crossover",
+    description:
+      "Enter when fast moving average crosses above slow, exit on the opposite.",
+  },
+  {
+    value: "ema_crossover",
+    label: "Use an Exponential Moving Average crossover",
+    description:
+      "Like a moving average crossover, but reacts faster to recent price changes.",
+  },
+  {
+    value: "rsi_reversion",
+    label: "Use momentum (RSI)",
+    description:
+      "Enter when momentum drops to oversold levels, exit when it recovers.",
+  },
+  {
+    value: "bollinger_breakout",
+    label: "Use volatility bands (Bollinger Bands)",
+    description:
+      "Enter when price dips below the lower band, exit when it crosses above.",
+  },
+  {
+    value: "macd_crossover",
+    label: "Use trend & momentum (MACD)",
+    description:
+      "Enter when the MACD line crosses above the signal line, exit on the opposite.",
+  },
+];
+
 export function generateTemplate(answers: WizardAnswers): StrategyDefinition {
-  if (answers.signalType === "ma_crossover") {
-    return generateMACrossoverTemplate(answers);
-  } else {
-    return generateRSIReversionTemplate(answers);
+  switch (answers.signalType) {
+    case "sma_crossover":
+      return generateMACrossoverTemplate({ ...answers, maType: "sma" });
+    case "ema_crossover":
+      return generateMACrossoverTemplate({ ...answers, maType: "ema" });
+    case "rsi_reversion":
+      return generateRSIReversionTemplate(answers);
+    case "bollinger_breakout":
+      return generateBollingerTemplate(answers);
+    case "macd_crossover":
+      return generateMACDTemplate(answers);
   }
 }
 
@@ -226,6 +278,195 @@ function generateRSIReversionTemplate(
     },
     {
       from_port: { block_id: "compare-exit", port: "output" },
+      to_port: { block_id: "exit-1", port: "signal" },
+    },
+  ];
+
+  addRiskControls(blocks, answers);
+
+  return {
+    blocks,
+    connections,
+    meta: { version: 1 },
+  };
+}
+
+function generateBollingerTemplate(
+  answers: WizardAnswers
+): StrategyDefinition {
+  const blocks: Block[] = [
+    {
+      id: "price-1",
+      type: "price",
+      label: "Close Price",
+      position: { x: 100, y: 200 },
+      params: { source: "close" },
+    },
+    {
+      id: "bollinger-1",
+      type: "bollinger",
+      label: "Bollinger Bands (20, 2)",
+      position: { x: 300, y: 200 },
+      params: { source: "close", period: 20, stddev: 2 },
+    },
+    // Entry: price < lower band
+    {
+      id: "compare-entry",
+      type: "compare",
+      label: "Price < Lower Band",
+      position: { x: 500, y: 100 },
+      params: { operator: "<" },
+    },
+    {
+      id: "entry-1",
+      type: "entry_signal",
+      label: "Entry Signal",
+      position: { x: 700, y: 100 },
+      params: {},
+    },
+    // Exit: price > middle band
+    {
+      id: "compare-exit",
+      type: "compare",
+      label: "Price > Middle Band",
+      position: { x: 500, y: 300 },
+      params: { operator: ">" },
+    },
+    {
+      id: "exit-1",
+      type: "exit_signal",
+      label: "Exit Signal",
+      position: { x: 700, y: 300 },
+      params: {},
+    },
+  ];
+
+  const connections: Connection[] = [
+    // Price to Bollinger
+    {
+      from_port: { block_id: "price-1", port: "output" },
+      to_port: { block_id: "bollinger-1", port: "input" },
+    },
+    // Entry: price < lower band
+    {
+      from_port: { block_id: "price-1", port: "output" },
+      to_port: { block_id: "compare-entry", port: "left" },
+    },
+    {
+      from_port: { block_id: "bollinger-1", port: "lower" },
+      to_port: { block_id: "compare-entry", port: "right" },
+    },
+    {
+      from_port: { block_id: "compare-entry", port: "output" },
+      to_port: { block_id: "entry-1", port: "signal" },
+    },
+    // Exit: price > middle band
+    {
+      from_port: { block_id: "price-1", port: "output" },
+      to_port: { block_id: "compare-exit", port: "left" },
+    },
+    {
+      from_port: { block_id: "bollinger-1", port: "middle" },
+      to_port: { block_id: "compare-exit", port: "right" },
+    },
+    {
+      from_port: { block_id: "compare-exit", port: "output" },
+      to_port: { block_id: "exit-1", port: "signal" },
+    },
+  ];
+
+  addRiskControls(blocks, answers);
+
+  return {
+    blocks,
+    connections,
+    meta: { version: 1 },
+  };
+}
+
+function generateMACDTemplate(answers: WizardAnswers): StrategyDefinition {
+  const blocks: Block[] = [
+    {
+      id: "price-1",
+      type: "price",
+      label: "Close Price",
+      position: { x: 100, y: 200 },
+      params: { source: "close" },
+    },
+    {
+      id: "macd-1",
+      type: "macd",
+      label: "MACD (12, 26, 9)",
+      position: { x: 300, y: 200 },
+      params: {
+        source: "close",
+        fast_period: 12,
+        slow_period: 26,
+        signal_period: 9,
+      },
+    },
+    // Entry: MACD crosses above signal
+    {
+      id: "crossover-entry",
+      type: "crossover",
+      label: "MACD Crosses Above Signal",
+      position: { x: 500, y: 100 },
+      params: { direction: "crosses_above" },
+    },
+    {
+      id: "entry-1",
+      type: "entry_signal",
+      label: "Entry Signal",
+      position: { x: 700, y: 100 },
+      params: {},
+    },
+    // Exit: MACD crosses below signal
+    {
+      id: "crossover-exit",
+      type: "crossover",
+      label: "MACD Crosses Below Signal",
+      position: { x: 500, y: 300 },
+      params: { direction: "crosses_below" },
+    },
+    {
+      id: "exit-1",
+      type: "exit_signal",
+      label: "Exit Signal",
+      position: { x: 700, y: 300 },
+      params: {},
+    },
+  ];
+
+  const connections: Connection[] = [
+    // Price to MACD
+    {
+      from_port: { block_id: "price-1", port: "output" },
+      to_port: { block_id: "macd-1", port: "input" },
+    },
+    // Entry: MACD line crosses above signal line
+    {
+      from_port: { block_id: "macd-1", port: "macd" },
+      to_port: { block_id: "crossover-entry", port: "fast" },
+    },
+    {
+      from_port: { block_id: "macd-1", port: "signal" },
+      to_port: { block_id: "crossover-entry", port: "slow" },
+    },
+    {
+      from_port: { block_id: "crossover-entry", port: "output" },
+      to_port: { block_id: "entry-1", port: "signal" },
+    },
+    // Exit: MACD line crosses below signal line
+    {
+      from_port: { block_id: "macd-1", port: "macd" },
+      to_port: { block_id: "crossover-exit", port: "fast" },
+    },
+    {
+      from_port: { block_id: "macd-1", port: "signal" },
+      to_port: { block_id: "crossover-exit", port: "slow" },
+    },
+    {
+      from_port: { block_id: "crossover-exit", port: "output" },
       to_port: { block_id: "exit-1", port: "signal" },
     },
   ];
