@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { BLOCK_REGISTRY, BlockCategory, BlockMeta, ESSENTIAL_INDICATORS, IndicatorBlockType } from "@/types/canvas";
+import { BLOCK_REGISTRY, BlockCategory, BlockMeta, ESSENTIAL_INDICATORS, IndicatorBlockType, PLAIN_LABEL_MAP } from "@/types/canvas";
 import type { IndicatorMode } from "@/lib/block-library-storage";
 import InfoIcon from "@/components/InfoIcon";
 import { blockToGlossaryId, getTooltip } from "@/lib/tooltip-content";
@@ -81,6 +81,9 @@ export default function BlockPalette({ onDragStart, isMobileMode = false, indica
               <div className="mt-1 space-y-1 pl-2">
                 {blocks.map((block) => {
                   const tooltip = getTooltip(blockToGlossaryId(block.type));
+                  const plainLabel = indicatorMode === "essentials"
+                    ? PLAIN_LABEL_MAP[block.type as IndicatorBlockType]
+                    : undefined;
                   return (
                     <div
                       key={block.type}
@@ -94,14 +97,14 @@ export default function BlockPalette({ onDragStart, isMobileMode = false, indica
                       )}
                     >
                       <div className="flex items-center justify-between">
-                        <div>{block.label}</div>
+                        <div>{plainLabel ?? block.label}</div>
                         <InfoIcon
                           tooltip={tooltip}
                           className="ml-1 flex-shrink-0"
                         />
                       </div>
                       <div className="mt-0.5 text-[10px] opacity-70">
-                        {block.description}
+                        {plainLabel ? block.label : block.description}
                       </div>
                     </div>
                   );

@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { BLOCK_REGISTRY, BlockCategory, BlockMeta, BlockType, ESSENTIAL_INDICATORS, IndicatorBlockType } from "@/types/canvas";
+import { BLOCK_REGISTRY, BlockCategory, BlockMeta, BlockType, ESSENTIAL_INDICATORS, IndicatorBlockType, PLAIN_LABEL_MAP } from "@/types/canvas";
 import type { IndicatorMode } from "@/lib/block-library-storage";
 import {
   trackRecentBlock,
@@ -83,10 +83,12 @@ export default function BlockLibrarySheet({
   const filteredBlocks = searchQuery
     ? BLOCK_REGISTRY.filter((block) => {
         const query = searchQuery.toLowerCase();
+        const plainLabel = PLAIN_LABEL_MAP[block.type as IndicatorBlockType];
         return (
           block.label.toLowerCase().includes(query) ||
           block.description.toLowerCase().includes(query) ||
-          block.type.toLowerCase().includes(query)
+          block.type.toLowerCase().includes(query) ||
+          (plainLabel && plainLabel.toLowerCase().includes(query))
         );
       })
     : BLOCK_REGISTRY;
@@ -163,6 +165,9 @@ export default function BlockLibrarySheet({
   const renderBlockCard = (block: BlockMeta, showFavoriteToggle = true) => {
     const tooltip = getTooltip(blockToGlossaryId(block.type));
     const isFavorite = isFavoriteBlock(block.type);
+    const plainLabel = indicatorMode === "essentials"
+      ? PLAIN_LABEL_MAP[block.type as IndicatorBlockType]
+      : undefined;
 
     return (
       <div
@@ -178,7 +183,7 @@ export default function BlockLibrarySheet({
         )}
       >
         <div className="flex items-center justify-between">
-          <div className="flex-1">{block.label}</div>
+          <div className="flex-1">{plainLabel ?? block.label}</div>
           <div className="flex items-center gap-1">
             {showFavoriteToggle && (
               <button
@@ -196,7 +201,9 @@ export default function BlockLibrarySheet({
             <InfoIcon tooltip={tooltip} className="flex-shrink-0" />
           </div>
         </div>
-        <div className="mt-0.5 text-[10px] opacity-70">{block.description}</div>
+        <div className="mt-0.5 text-[10px] opacity-70">
+          {plainLabel ? block.label : block.description}
+        </div>
       </div>
     );
   };
