@@ -856,6 +856,8 @@ Plain-Language Error Messages
 
 **Historical Depth Enforcement:**
 - Backtest date range cannot exceed the plan’s historical depth cap.
+- Backtest configuration shows selected asset data availability: `Data available: [earliest date] – Present` (or latest ingested date when not current).
+- If the user selects a start date before available history, show an inline warning and auto-adjust to the earliest available date without blocking execution.
 
 **Get Backtest** (`GET /backtests/{run_id}`)
 - Returns status and summary metrics
@@ -1125,10 +1127,13 @@ Plain-Language Error Messages
 - Data availability timeline highlights missing candle gaps within the available history range.
 - Completeness summary string: “99.2% complete from Jan 2020 to present, 3 gap periods totaling 18 hours.”
 - Backtest date range selector warns if the period overlaps known data issues or gaps.
+- Backtest configuration always shows data availability bounds for the selected asset/timeframe using `earliest_candle_date` and `latest_candle_date` metadata.
+- `data_quality_metrics` includes `earliest_candle_date` and `latest_candle_date`; when absent, a migration adds them and the daily validation job backfills values from candle history.
 
 **Implementation Notes:**
 - Use existing candle data (no extra vendor calls).
 - Store quality metadata and gap ranges in a simple table keyed by asset, timeframe, and date range.
+- Prefer metadata table reads for availability dates; compute from candles only as fallback.
 
 ---
 
@@ -2131,6 +2136,7 @@ Plain-Language Error Messages
 | **Drawdown Chart** | ✅ Complete | Underwater equity % chart highlighting max drawdown period |
 | **Data Management** | ✅ Complete | Candle DB cache, CryptoCompare integration, S3/MinIO storage |
 | **Data Quality & Completeness Indicators** | ✅ Complete | Gap %, outlier count, volume consistency, data availability timeline, backtest warnings |
+| **Data Availability Display & Date Range Warning** | 📝 Spec Ready | Backtest config shows `Data available: [earliest date] – Present`, warns on out-of-range start dates, and auto-adjusts to earliest available data. |
 | **Scheduled Updates** | ✅ Complete | Daily scheduler for auto-update strategies (paper trading) |
 | **Performance Alerts (Simple)** | ✅ Complete | Drawdown threshold alerts on scheduled re-backtests |
 | **Price Alerts** | ✅ Complete | Threshold alerts per pair with in-app/email/webhook delivery; dedicated Alerts page |
@@ -2469,6 +2475,8 @@ npm run type-check    # TypeScript validation
 - `docs/tst-secure-stack-baseline-upgrade.md` - Secure stack baseline upgrade test checklist
 - `docs/prd-enhanced-trade-explanation-view.md` - Enhanced trade explanation view PRD (IMPLEMENTED - Phase 1)
 - `docs/tst-enhanced-trade-explanation-view.md` - Enhanced trade explanation view test checklist
+- `docs/prd-data-availability-display-date-range-warning.md` - Data availability display and date range warning PRD
+- `docs/tst-data-availability-display-date-range-warning.md` - Data availability display and date range warning test checklist
 - `docs/tst-essentials-first-block-palette-toggle.md` - Essentials-first block palette toggle test checklist
 - `docs/tst-plain-english-indicator-labels.md` - Plain-English indicator labels test checklist
 - `CLAUDE.md` - Instructions for Claude Code
@@ -2517,6 +2525,7 @@ npm run type-check    # TypeScript validation
 
 ## 18. Changelog
 
+- **2026-03-01:** Added PRD/TST planning for data availability display and date range auto-adjust warnings in backtest configuration, including `data_quality_metrics` earliest/latest candle date columns and daily job backfill requirements.
 - **2026-03-01:** Added PRD/TST planning for plain-English indicator labels in Essentials mode, including technical subtitles, tooltip retention, All-mode naming rules, and WCAG 2.1 AA contrast requirements.
 - **2026-02-24:** Added PRD/TST planning for an Onboarding Funnel Dashboard in PostHog with required steps (`signup_completed` → `second_session`), conversion visibility, and date-range/cohort filters.
 - **2026-02-24:** Added PRD/TST planning for backend PostHog worker lifecycle tracking (`backtest_job_started`, `backtest_job_completed`, `backtest_job_failed`) with async fire-and-forget dispatch guidance.
