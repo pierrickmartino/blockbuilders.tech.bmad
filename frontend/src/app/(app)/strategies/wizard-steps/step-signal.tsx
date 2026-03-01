@@ -1,9 +1,13 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import {
+  WIZARD_ESSENTIAL_OPTIONS,
+  type SignalType,
+} from "../wizard-template-generator";
 
 interface Props {
-  value: "ma_crossover" | "rsi_reversion";
-  onChange: (update: { signalType: Props["value"] }) => void;
+  value: SignalType;
+  onChange: (update: { signalType: SignalType }) => void;
 }
 
 export function StepSignal({ value, onChange }: Props) {
@@ -15,53 +19,31 @@ export function StepSignal({ value, onChange }: Props) {
       </p>
 
       <div className="space-y-3">
-        <Card
-          className={cn(
-            "cursor-pointer transition-colors hover:bg-accent",
-            value === "ma_crossover" && "border-primary"
-          )}
-          onClick={() => onChange({ signalType: "ma_crossover" })}
-        >
-          <CardContent className="flex items-start p-4">
-            <input
-              type="radio"
-              checked={value === "ma_crossover"}
-              onChange={() => onChange({ signalType: "ma_crossover" })}
-              className="mr-3 mt-1"
-            />
-            <div>
-              <div className="font-medium">Moving Average Crossover</div>
-              <div className="text-sm text-muted-foreground">
-                Enter when fast MA crosses above slow MA, exit when it crosses
-                below.
+        {WIZARD_ESSENTIAL_OPTIONS.map((option) => (
+          <Card
+            key={option.value}
+            className={cn(
+              "cursor-pointer transition-colors hover:bg-accent",
+              value === option.value && "border-primary"
+            )}
+            onClick={() => onChange({ signalType: option.value })}
+          >
+            <CardContent className="flex items-start p-4">
+              <input
+                type="radio"
+                checked={value === option.value}
+                onChange={() => onChange({ signalType: option.value })}
+                className="mr-3 mt-1"
+              />
+              <div>
+                <div className="font-medium">{option.label}</div>
+                <div className="text-sm text-muted-foreground">
+                  {option.description}
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card
-          className={cn(
-            "cursor-pointer transition-colors hover:bg-accent",
-            value === "rsi_reversion" && "border-primary"
-          )}
-          onClick={() => onChange({ signalType: "rsi_reversion" })}
-        >
-          <CardContent className="flex items-start p-4">
-            <input
-              type="radio"
-              checked={value === "rsi_reversion"}
-              onChange={() => onChange({ signalType: "rsi_reversion" })}
-              className="mr-3 mt-1"
-            />
-            <div>
-              <div className="font-medium">RSI Mean Reversion</div>
-              <div className="text-sm text-muted-foreground">
-                Enter when RSI drops below 30 (oversold), exit when it rises
-                above neutral.
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        ))}
       </div>
     </div>
   );

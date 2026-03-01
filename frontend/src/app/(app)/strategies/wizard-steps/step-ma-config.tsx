@@ -1,11 +1,4 @@
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 interface Props {
   values: {
@@ -25,28 +18,17 @@ export function StepMAConfig({ values, onChange }: Props) {
     <div>
       <h3 className="mb-2 text-lg font-medium">Configure moving averages</h3>
       <p className="mb-4 text-sm text-muted-foreground">
-        Choose MA type and periods for fast/slow averages.
+        Set periods for fast and slow averages.
       </p>
 
       <div className="space-y-4">
         <div>
-          <label htmlFor="maType" className="mb-2 block text-sm font-medium">
-            MA Type
-          </label>
-          <Select
-            value={maType}
-            onValueChange={(value) =>
-              onChange({ maType: value as "sma" | "ema" })
-            }
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select MA type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="sma">SMA (Simple Moving Average)</SelectItem>
-              <SelectItem value="ema">EMA (Exponential Moving Average)</SelectItem>
-            </SelectContent>
-          </Select>
+          <label className="mb-2 block text-sm font-medium">MA Type</label>
+          <p className="text-sm text-muted-foreground">
+            {maType === "sma"
+              ? "Simple Moving Average (SMA)"
+              : "Exponential Moving Average (EMA)"}
+          </p>
         </div>
 
         <div>

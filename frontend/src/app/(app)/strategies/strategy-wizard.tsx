@@ -44,7 +44,7 @@ export function StrategyWizard({ onClose, onComplete }: Props) {
       name: "",
       asset: "BTC/USDT",
       timeframe: "1d",
-      signalType: "ma_crossover",
+      signalType: "sma_crossover",
       maType: "sma",
       maFastPeriod: 10,
       maSlowPeriod: 30,
@@ -76,7 +76,11 @@ export function StrategyWizard({ onClose, onComplete }: Props) {
     if (state.step === 1) {
       return state.answers.name.trim() !== "";
     }
-    if (state.step === 4 && state.answers.signalType === "ma_crossover") {
+    if (
+      state.step === 4 &&
+      (state.answers.signalType === "sma_crossover" ||
+        state.answers.signalType === "ema_crossover")
+    ) {
       return (
         (state.answers.maFastPeriod || 10) < (state.answers.maSlowPeriod || 30)
       );
@@ -164,20 +168,43 @@ export function StrategyWizard({ onClose, onComplete }: Props) {
           />
         );
       case 4:
-        return state.answers.signalType === "ma_crossover" ? (
-          <StepMAConfig
-            values={{
-              maType: state.answers.maType,
-              maFastPeriod: state.answers.maFastPeriod,
-              maSlowPeriod: state.answers.maSlowPeriod,
-            }}
-            onChange={updateAnswers}
-          />
-        ) : (
-          <StepRSIConfig
-            value={state.answers.rsiPeriod || 14}
-            onChange={updateAnswers}
-          />
+        if (
+          state.answers.signalType === "sma_crossover" ||
+          state.answers.signalType === "ema_crossover"
+        ) {
+          return (
+            <StepMAConfig
+              values={{
+                maType:
+                  state.answers.signalType === "sma_crossover" ? "sma" : "ema",
+                maFastPeriod: state.answers.maFastPeriod,
+                maSlowPeriod: state.answers.maSlowPeriod,
+              }}
+              onChange={updateAnswers}
+            />
+          );
+        }
+        if (state.answers.signalType === "rsi_reversion") {
+          return (
+            <StepRSIConfig
+              value={state.answers.rsiPeriod || 14}
+              onChange={updateAnswers}
+            />
+          );
+        }
+        // Bollinger / MACD: show standard defaults
+        return (
+          <div>
+            <h3 className="mb-2 text-lg font-medium">Configuration</h3>
+            <p className="mb-4 text-sm text-muted-foreground">
+              {state.answers.signalType === "bollinger_breakout"
+                ? "Bollinger Bands will use standard settings: 20-period with 2 standard deviations."
+                : "MACD will use standard settings: fast 12, slow 26, signal 9."}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              You can fine-tune these after the wizard in the strategy canvas.
+            </p>
+          </div>
         );
       case 5:
         return (
