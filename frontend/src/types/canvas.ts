@@ -5,6 +5,15 @@ export type BlockCategory = "input" | "indicator" | "logic" | "signal" | "risk";
 export type InputBlockType = "price" | "volume" | "constant" | "yesterday_close" | "price_variation_pct";
 export type IndicatorBlockType = "sma" | "ema" | "rsi" | "macd" | "bollinger" | "atr" | "stochastic" | "adx" | "ichimoku" | "obv" | "fibonacci";
 export const ESSENTIAL_INDICATORS: readonly IndicatorBlockType[] = ["sma", "ema", "rsi", "bollinger", "macd"];
+
+/** Plain-English labels for essential indicators (Essentials mode only). */
+export const PLAIN_LABEL_MAP: Partial<Record<IndicatorBlockType, string>> = {
+  sma: "Moving Average",
+  ema: "Exponential Moving Average",
+  rsi: "Momentum Indicator",
+  bollinger: "Volatility Bands",
+  macd: "Trend & Momentum",
+};
 export type LogicBlockType = "compare" | "crossover" | "and" | "or" | "not";
 export type SignalBlockType = "entry_signal" | "exit_signal";
 export type RiskBlockType = "position_size" | "take_profit" | "stop_loss" | "max_drawdown" | "time_exit" | "trailing_stop";
