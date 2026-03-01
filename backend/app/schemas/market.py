@@ -1,5 +1,5 @@
 """Market data response schemas."""
-from datetime import datetime
+from datetime import date, datetime
 from typing import Literal, Optional
 
 from pydantic import BaseModel
@@ -55,6 +55,16 @@ class MarketSentimentResponse(BaseModel):
     long_short_ratio: SentimentIndicator
     funding: SentimentIndicator
     source_status: SourceStatus
+
+
+class DataAvailabilityResponse(BaseModel):
+    """Response for /market/data-availability endpoint."""
+
+    asset: str
+    timeframe: str
+    earliest_date: Optional[date] = None
+    latest_date: Optional[date] = None
+    source: str  # "metadata" or "candle_fallback"
 
 
 class BacktestSentimentResponse(BaseModel):

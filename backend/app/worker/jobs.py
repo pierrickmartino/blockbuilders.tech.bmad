@@ -506,6 +506,16 @@ def validate_data_quality_daily() -> None:
         skipped = 0
 
         for asset, timeframe in asset_timeframe_pairs:
+            # Compute global earliest/latest candle dates for this pair (once)
+            range_stmt = (
+                select(func.min(Candle.timestamp), func.max(Candle.timestamp))
+                .where(Candle.asset == asset)
+                .where(Candle.timeframe == timeframe)
+            )
+            range_result = session.exec(range_stmt).first()
+            earliest_candle = range_result[0].date() if range_result and range_result[0] else None
+            latest_candle = range_result[1].date() if range_result and range_result[1] else None
+
             # Process each day in the lookback window
             current_date = start_date
             while current_date <= today:
@@ -553,6 +563,8 @@ def validate_data_quality_daily() -> None:
                         outlier_count=metrics["outlier_count"],
                         volume_consistency=metrics["volume_consistency"],
                         has_issues=has_issues,
+                        earliest_candle_date=earliest_candle,
+                        latest_candle_date=latest_candle,
                     )
                     session.add(quality_metric)
                     processed += 1

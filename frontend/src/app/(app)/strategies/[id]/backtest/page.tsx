@@ -18,7 +18,7 @@ import {
   ReferenceArea,
   ReferenceLine,
 } from "recharts";
-import { apiFetch, ApiError, fetchDataQuality, fetchDataCompleteness } from "@/lib/api";
+import { apiFetch, ApiError, fetchDataQuality, fetchDataCompleteness, fetchDataAvailability } from "@/lib/api";
 import { trackEvent } from "@/lib/analytics";
 import {
   formatDateTime,
@@ -39,6 +39,7 @@ import {
   BacktestStatus,
   BacktestStatusResponse,
   BacktestSummary,
+  DataAvailabilityResponse,
   DataQualityMetrics,
   DataCompletenessResponse,
   TradeDetail,
@@ -569,6 +570,10 @@ export default function StrategyBacktestPage({ params }: Props) {
   // Data completeness state
   const [completeness, setCompleteness] = useState<DataCompletenessResponse | null>(null);
 
+  // Data availability state
+  const [dataAvailability, setDataAvailability] = useState<DataAvailabilityResponse | null>(null);
+  const [availabilityWarning, setAvailabilityWarning] = useState<string | null>(null);
+
   // Trade drawer state
   const [selectedTradeIdx, setSelectedTradeIdx] = useState<number | null>(null);
 
@@ -816,6 +821,7 @@ export default function StrategyBacktestPage({ params }: Props) {
 
   // Handle period preset changes
   const handlePeriodChange = useCallback((preset: PeriodPreset) => {
+    setAvailabilityWarning(null);
     setPeriodPreset(preset);
     const dates = getDatesFromPreset(preset);
     if (dates) {
@@ -850,6 +856,30 @@ export default function StrategyBacktestPage({ params }: Props) {
       .then((data) => setCompleteness(data as DataCompletenessResponse))
       .catch(() => setCompleteness(null));
   }, [strategy]);
+
+  // Fetch data availability when strategy loads
+  useEffect(() => {
+    if (!strategy) {
+      setDataAvailability(null);
+      return;
+    }
+
+    fetchDataAvailability(strategy.asset, strategy.timeframe)
+      .then((data) => setDataAvailability(data as DataAvailabilityResponse))
+      .catch(() => setDataAvailability(null));
+  }, [strategy]);
+
+  // Auto-adjust dateFrom if before earliest available date
+  useEffect(() => {
+    if (!dataAvailability?.earliest_date || !dateFrom) return;
+    if (dateFrom < dataAvailability.earliest_date) {
+      setAvailabilityWarning(
+        `Data for ${dataAvailability.asset} starts at ${dataAvailability.earliest_date}. Your backtest will use the available range.`
+      );
+      setDateFrom(dataAvailability.earliest_date);
+      setPeriodPreset("custom");
+    }
+  }, [dateFrom, dataAvailability]);
 
   // Detect if backtest period overlaps any gaps
   const gapOverlap = useMemo(() => {
@@ -1167,6 +1197,24 @@ export default function StrategyBacktestPage({ params }: Props) {
                   </SelectContent>
                 </Select>
               </div>
+              {/* Data availability line */}
+              <div className="md:col-span-2 text-sm text-muted-foreground">
+                {dataAvailability?.earliest_date ? (
+                  <span>
+                    Data available: {dataAvailability.earliest_date} &ndash; Present
+                  </span>
+                ) : dataAvailability === null && strategy ? (
+                  <span>Loading data availability&hellip;</span>
+                ) : (
+                  <span>Data availability not found</span>
+                )}
+              </div>
+              {/* Auto-adjust warning */}
+              {availabilityWarning && (
+                <div className="md:col-span-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-300">
+                  {availabilityWarning}
+                </div>
+              )}
               <div className="min-w-0">
                 <label className="block text-sm font-medium">Date from</label>
                 <Input
@@ -1174,6 +1222,7 @@ export default function StrategyBacktestPage({ params }: Props) {
                   value={dateFrom}
                   max={dateTo}
                   onChange={(e) => {
+                    setAvailabilityWarning(null);
                     setDateFrom(e.target.value);
                     setPeriodPreset("custom");
                   }}
