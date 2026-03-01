@@ -44,6 +44,7 @@ import { generateNodeSummary } from "@/lib/node-summary";
 import StrategyCanvas, { CanvasEdge } from "@/components/canvas/StrategyCanvas";
 import BlockPalette from "@/components/canvas/BlockPalette";
 import BlockLibrarySheet from "@/components/canvas/BlockLibrarySheet";
+import { useIndicatorMode } from "@/hooks/useIndicatorMode";
 import InspectorPanel from "@/components/canvas/InspectorPanel";
 import { StrategyTabs } from "@/components/StrategyTabs";
 import { Badge } from "@/components/ui/badge";
@@ -98,6 +99,9 @@ export default function StrategyEditorPage({ params }: Props) {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
   const [expandedNodeIds, setExpandedNodeIds] = useState<Set<string>>(new Set());
+
+  // Indicator palette mode (essentials vs all)
+  const { mode: indicatorMode, toggle: toggleIndicatorMode } = useIndicatorMode(nodes);
 
   // History state
   const [history, setHistory] = useState<HistoryState>(() => resetHistory([], []));
@@ -1615,7 +1619,7 @@ export default function StrategyEditorPage({ params }: Props) {
         {/* Left Panel - Block Palette (hidden on mobile, drawer) */}
         {isLeftPanelOpen && (
           <div className="hidden w-64 flex-shrink-0 border-r lg:block">
-            <BlockPalette onDragStart={handlePaletteDragStart} isMobileMode={isMobileCanvasMode} />
+            <BlockPalette onDragStart={handlePaletteDragStart} isMobileMode={isMobileCanvasMode} indicatorMode={indicatorMode} onToggleIndicatorMode={toggleIndicatorMode} />
           </div>
         )}
 
@@ -1676,6 +1680,8 @@ export default function StrategyEditorPage({ params }: Props) {
               onAddNode={handleAddNode}
               reactFlowInstance={reactFlowRef}
               isMobileMode={isMobileCanvasMode}
+              indicatorMode={indicatorMode}
+              onToggleIndicatorMode={toggleIndicatorMode}
             />
             <button
               onClick={() => setShowProperties(true)}

@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { BLOCK_REGISTRY, BlockCategory, BlockMeta } from "@/types/canvas";
+import { BLOCK_REGISTRY, BlockCategory, BlockMeta, ESSENTIAL_INDICATORS, IndicatorBlockType } from "@/types/canvas";
+import type { IndicatorMode } from "@/lib/block-library-storage";
 import InfoIcon from "@/components/InfoIcon";
 import { blockToGlossaryId, getTooltip } from "@/lib/tooltip-content";
 import { cn } from "@/lib/utils";
@@ -12,6 +13,8 @@ interface BlockPaletteProps {
     blockMeta: BlockMeta
   ) => void;
   isMobileMode?: boolean;
+  indicatorMode: IndicatorMode;
+  onToggleIndicatorMode: () => void;
 }
 
 const categories: { key: BlockCategory; label: string }[] = [
@@ -30,7 +33,7 @@ const categoryColors: Record<BlockCategory, string> = {
   risk: "bg-red-100 text-red-700 border-red-200",
 };
 
-export default function BlockPalette({ onDragStart, isMobileMode = false }: BlockPaletteProps) {
+export default function BlockPalette({ onDragStart, isMobileMode = false, indicatorMode, onToggleIndicatorMode }: BlockPaletteProps) {
   const [expandedCategories, setExpandedCategories] = useState<Set<BlockCategory>>(
     new Set(categories.map((c) => c.key))
   );
@@ -47,9 +50,16 @@ export default function BlockPalette({ onDragStart, isMobileMode = false }: Bloc
     });
   };
 
+  const essentials = new Set<string>(ESSENTIAL_INDICATORS);
   const blocksByCategory = categories.map((cat) => ({
     ...cat,
-    blocks: BLOCK_REGISTRY.filter((b) => b.category === cat.key),
+    blocks: BLOCK_REGISTRY.filter((b) => {
+      if (b.category !== cat.key) return false;
+      if (cat.key === "indicator" && indicatorMode === "essentials") {
+        return essentials.has(b.type as IndicatorBlockType);
+      }
+      return true;
+    }),
   }));
 
   return (
@@ -96,6 +106,14 @@ export default function BlockPalette({ onDragStart, isMobileMode = false }: Bloc
                     </div>
                   );
                 })}
+                {key === "indicator" && (
+                  <button
+                    onClick={onToggleIndicatorMode}
+                    className="mt-1.5 w-full text-center text-[11px] text-blue-600 hover:text-blue-800 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
+                  >
+                    {indicatorMode === "essentials" ? "Show all indicators" : "Show essentials only"}
+                  </button>
+                )}
               </div>
             )}
           </div>

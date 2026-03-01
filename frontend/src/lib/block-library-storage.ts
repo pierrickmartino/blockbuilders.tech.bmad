@@ -7,7 +7,10 @@ import { BlockType } from "@/types/canvas";
 
 const RECENT_BLOCKS_KEY = "bb.canvas.recent-blocks";
 const FAVORITE_BLOCKS_KEY = "bb.canvas.favorite-blocks";
+const INDICATOR_MODE_KEY = "bb.canvas.palette_indicator_mode";
 const MAX_RECENT_BLOCKS = 8;
+
+export type IndicatorMode = "essentials" | "all";
 
 /**
  * Get storage instance (localStorage with availability check).
@@ -126,4 +129,32 @@ export function getFavoriteBlocks(): BlockType[] {
 export function isFavoriteBlock(blockType: BlockType): boolean {
   const favorites = getFavoriteBlocks();
   return favorites.includes(blockType);
+}
+
+/**
+ * Get the stored indicator palette mode. Returns null if not yet set.
+ */
+export function getIndicatorMode(): IndicatorMode | null {
+  const storage = getStorage();
+  if (!storage) return null;
+  try {
+    const val = storage.getItem(INDICATOR_MODE_KEY);
+    if (val === "essentials" || val === "all") return val;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Persist indicator palette mode to localStorage.
+ */
+export function setIndicatorMode(mode: IndicatorMode): void {
+  const storage = getStorage();
+  if (!storage) return;
+  try {
+    storage.setItem(INDICATOR_MODE_KEY, mode);
+  } catch {
+    // Storage unavailable — mode stays in-memory only
+  }
 }
