@@ -1,7 +1,7 @@
 # Blockbuilders – Product Documentation
 
 **Status:** Current Product Truth
-**Last Updated:** 2026-02-28
+**Last Updated:** 2026-03-01
 **Purpose:** Comprehensive documentation of all implemented features
 
 ---
@@ -1328,6 +1328,10 @@ Plain-Language Error Messages
 - Block palette drawer (mobile-responsive); Bottom sheet block library with search, categories, and recent/favorite blocks to replace the floating + button
 - Inspector panel opens on block tap for touch-friendly parameter editing, presets, and inline validation
 - Essentials-first indicator palette mode defaults to 5 indicators for new users (SMA, EMA, RSI, Bollinger Bands, MACD) with a "Show all indicators" toggle to reveal the full set (ATR, Stochastic, ADX, Ichimoku Cloud, OBV, Fibonacci, etc.); toggle preference persists in localStorage and existing users with non-essential indicators default to "All"
+- In Essentials mode, indicator cards use plain-English primary labels with technical-name subtitles: Moving Average/SMA, Exponential Moving Average/EMA, Momentum Indicator/RSI, Volatility Bands/Bollinger Bands, Trend & Momentum/MACD
+- Existing 1–2 sentence hover tooltips remain unchanged for all indicator cards
+- Indicator primary label and subtitle text meet WCAG 2.1 AA contrast requirements (NFR-09)
+- In "All" mode, non-essential indicators keep existing technical-only names (no plain-English rename)
 - Compact node display mode with one-line summaries and tap-to-expand details
 - Version tabs and switcher
 - Save button (creates new version)
@@ -2099,6 +2103,7 @@ Plain-Language Error Messages
 | **Visual Builder** | ✅ Complete | 20 block types, drag-drop, enhanced Inspector panel with period presets and source quick-swaps, mobile-responsive |
 | **Expanded Indicator Palette & Price Variation Input** | ✅ Complete | Stochastic, ADX, Ichimoku Cloud, OBV, Fibonacci retracements, and price variation % input block |
 | **Essentials-First Block Palette Toggle** | 📝 Spec Ready | Default 5-indicator essentials mode for new users, toggle to full indicator list, localStorage persistence, legacy-user fallback to all, frontend-only state switch with `palette_mode_changed` analytics event |
+| **Plain-English Indicator Labels** | 📝 Spec Ready | Essentials mode indicator cards show plain-English primary labels with technical subtitles (SMA/EMA/RSI/Bollinger Bands/MACD), retain existing hover tooltips, enforce WCAG 2.1 AA contrast for both label levels, and keep non-essential indicators technical-only in All mode |
 | **Mobile-Optimized Canvas** | ✅ Complete | Touch-first controls, simplified palette, gesture-based connections |
 | **Bottom Action Bar for Canvas Tools** | ✅ Complete | Replace left tool stack with a mobile bottom action bar for core canvas tools (Pan/Select, Zoom In/Out, Fit to Screen, Undo/Redo) with 44px tap targets |
 | **Canvas Minimap with Section Shortcuts** | ✅ Complete | Minimap overlay (180×120px) with real-time viewport indicator and quick-jump buttons to Entry, Exit, and Risk sections |
@@ -2420,6 +2425,7 @@ npm run type-check    # TypeScript validation
 - `docs/prd-risk-metrics-expansion.md` - Risk metrics expansion PRD
 - `docs/prd-expanded-indicator-palette-price-variation-input.md` - Expanded indicator palette + price variation input PRD
 - `docs/prd-essentials-first-block-palette-toggle.md` - Essentials-first block palette toggle PRD
+- `docs/prd-plain-english-indicator-labels.md` - Plain-English indicator labels PRD
 - `docs/prd-copy-paste-blocks-subgraphs.md` - Copy/paste blocks & subgraphs PRD (IMPLEMENTED)
 - `docs/prd-canvas-undo-redo.md` - Canvas undo/redo PRD (IMPLEMENTED)
 - `docs/prd-keyboard-shortcuts.md` - Keyboard shortcuts & reference PRD
@@ -2458,6 +2464,7 @@ npm run type-check    # TypeScript validation
 - `docs/prd-enhanced-trade-explanation-view.md` - Enhanced trade explanation view PRD (IMPLEMENTED - Phase 1)
 - `docs/tst-enhanced-trade-explanation-view.md` - Enhanced trade explanation view test checklist
 - `docs/tst-essentials-first-block-palette-toggle.md` - Essentials-first block palette toggle test checklist
+- `docs/tst-plain-english-indicator-labels.md` - Plain-English indicator labels test checklist
 - `CLAUDE.md` - Instructions for Claude Code
 - `README.md` - Quick start guide
 
@@ -2504,6 +2511,7 @@ npm run type-check    # TypeScript validation
 
 ## 18. Changelog
 
+- **2026-03-01:** Added PRD/TST planning for plain-English indicator labels in Essentials mode, including technical subtitles, tooltip retention, All-mode naming rules, and WCAG 2.1 AA contrast requirements.
 - **2026-02-24:** Added PRD/TST planning for an Onboarding Funnel Dashboard in PostHog with required steps (`signup_completed` → `second_session`), conversion visibility, and date-range/cohort filters.
 - **2026-02-24:** Added PRD/TST planning for backend PostHog worker lifecycle tracking (`backtest_job_started`, `backtest_job_completed`, `backtest_job_failed`) with async fire-and-forget dispatch guidance.
 - **2026-02-23:** Added PRD/TST planning for PostHog analytics with GDPR consent and documented planned product analytics coverage.
