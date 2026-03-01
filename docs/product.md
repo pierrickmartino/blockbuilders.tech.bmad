@@ -582,6 +582,8 @@ Plain-Language Error Messages
 **Wizard Characteristics:**
 - 4–6 questions max, single-column layout
 - Copy explains in plain language (no trading jargon when possible)
+- Indicator/strategy-type question is Essentials-only for new users and shows exactly five options with plain-English labels: Use a Moving Average crossover, Use an Exponential Moving Average crossover, Use momentum (RSI), Use volatility bands (Bollinger Bands), Use trend & momentum (MACD)
+- Advanced indicators Ichimoku, Fibonacci, ADX, OBV, and Stochastic are never presented as wizard options
 - Uses existing block types (no new backend fields)
 - Produces the same definition JSON used by the canvas
 
@@ -1322,6 +1324,7 @@ Plain-Language Error Messages
   - Last run timestamp
   - Actions: Open, Clone (one-click duplicate), Archive
 - Empty state + create menu offer “Strategy Building Wizard” for guided creation
+- Wizard indicator/strategy-type step is constrained to the 5 Essentials indicators with plain-English option labels (no advanced-indicator jargon for first-time users)
 
 **Strategy Editor** (`/strategies/[id]`)
 - Visual canvas with drag-drop blocks
@@ -2115,6 +2118,7 @@ Plain-Language Error Messages
 | **Canvas Undo/Redo** | ✅ Implemented | Toolbar buttons + keyboard shortcuts for reverting canvas edits |
 | **Keyboard Shortcuts & Reference** | ✅ Complete | Cmd/Ctrl+S save, Cmd/Ctrl+R run backtest, ? help modal, editor-only |
 | **Strategy Building Wizard** | ✅ Complete | Guided Q&A that generates editable strategy JSON |
+| **Wizard Essentials-Only Constraint** | 📝 Spec Ready | Wizard indicator/strategy-type step shows only 5 Essentials options with plain-English labels and excludes Ichimoku/Fibonacci/ADX/OBV/Stochastic; post-wizard canvas palette still follows current toggle state (Essentials by default for new users) |
 | **Backtesting** | ✅ Complete | Full engine with TP ladder, SL, max drawdown, equity curves, trade detail, risk-adjusted metrics |
 | **Enhanced Trade Explanation View** | ✅ Complete (Phase 1) | Per-trade entry/exit explanation with condition breakdown (✓ markers), price-pane indicator overlays (SMA, EMA, Bollinger), entry/exit candle markers; compute-on-read with graceful fallback |
 | **Transaction Cost Analysis** | ✅ Complete | Breakdown of fees/slippage/spread, cost % of gross return, and per-trade cost visibility |
@@ -2426,6 +2430,8 @@ npm run type-check    # TypeScript validation
 - `docs/prd-expanded-indicator-palette-price-variation-input.md` - Expanded indicator palette + price variation input PRD
 - `docs/prd-essentials-first-block-palette-toggle.md` - Essentials-first block palette toggle PRD
 - `docs/prd-plain-english-indicator-labels.md` - Plain-English indicator labels PRD
+- `docs/prd-wizard-essentials-only-constraint.md` - Wizard essentials-only constraint PRD
+- `docs/tst-wizard-essentials-only-constraint.md` - Wizard essentials-only constraint TST
 - `docs/prd-copy-paste-blocks-subgraphs.md` - Copy/paste blocks & subgraphs PRD (IMPLEMENTED)
 - `docs/prd-canvas-undo-redo.md` - Canvas undo/redo PRD (IMPLEMENTED)
 - `docs/prd-keyboard-shortcuts.md` - Keyboard shortcuts & reference PRD
