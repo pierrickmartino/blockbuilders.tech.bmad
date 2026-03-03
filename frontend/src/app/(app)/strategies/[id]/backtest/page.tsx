@@ -64,6 +64,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -573,6 +581,7 @@ export default function StrategyBacktestPage({ params }: Props) {
   // Data availability state
   const [dataAvailability, setDataAvailability] = useState<DataAvailabilityResponse | null>(null);
   const [availabilityWarning, setAvailabilityWarning] = useState<string | null>(null);
+  const [showDownloadConfirm, setShowDownloadConfirm] = useState(false);
 
   // Trade drawer state
   const [selectedTradeIdx, setSelectedTradeIdx] = useState<number | null>(null);
@@ -869,17 +878,27 @@ export default function StrategyBacktestPage({ params }: Props) {
       .catch(() => setDataAvailability(null));
   }, [strategy]);
 
-  // Auto-adjust dateFrom if before earliest available date
+  // Handle dateFrom before earliest available date
+  // Beta users: warn but allow override (triggers data download)
+  // Regular users: auto-adjust to earliest available date
   useEffect(() => {
     if (!dataAvailability?.earliest_date || !dateFrom) return;
     if (dateFrom < dataAvailability.earliest_date) {
-      setAvailabilityWarning(
-        `Data for ${dataAvailability.asset} starts at ${dataAvailability.earliest_date}. Your backtest will use the available range.`
-      );
-      setDateFrom(dataAvailability.earliest_date);
-      setPeriodPreset("custom");
+      if (isBetaGrandfatheredUser) {
+        setAvailabilityWarning(
+          `Data for ${dataAvailability.asset} starts at ${dataAvailability.earliest_date}. Running this backtest will download earlier data and may take longer.`
+        );
+      } else {
+        setAvailabilityWarning(
+          `Data for ${dataAvailability.asset} starts at ${dataAvailability.earliest_date}. Your backtest will use the available range.`
+        );
+        setDateFrom(dataAvailability.earliest_date);
+        setPeriodPreset("custom");
+      }
+    } else {
+      setAvailabilityWarning(null);
     }
-  }, [dateFrom, dataAvailability]);
+  }, [dateFrom, dataAvailability, isBetaGrandfatheredUser]);
 
   // Detect if backtest period overlaps any gaps
   const gapOverlap = useMemo(() => {
@@ -893,24 +912,10 @@ export default function StrategyBacktestPage({ params }: Props) {
     });
   }, [completeness, dateFrom, dateTo]);
 
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    if (isSubmitting) return;
-    setStatusMessage(null);
-    setError(null);
-
-    if (!dateFrom || !dateTo) {
-      setError("Please select a start and end date.");
-      return;
-    }
-
+  const submitBacktest = async () => {
+    if (!dateFrom || !dateTo) return;
     const fromDate = new Date(`${dateFrom}T00:00:00Z`);
     const toDate = new Date(`${dateTo}T23:59:59Z`);
-
-    if (fromDate >= toDate) {
-      setError("End date must be after start date.");
-      return;
-    }
 
     const payload: Record<string, unknown> = {
       strategy_id: id,
@@ -945,6 +950,33 @@ export default function StrategyBacktestPage({ params }: Props) {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (isSubmitting) return;
+    setStatusMessage(null);
+    setError(null);
+
+    if (!dateFrom || !dateTo) {
+      setError("Please select a start and end date.");
+      return;
+    }
+
+    const fromDate = new Date(`${dateFrom}T00:00:00Z`);
+    const toDate = new Date(`${dateTo}T23:59:59Z`);
+
+    if (fromDate >= toDate) {
+      setError("End date must be after start date.");
+      return;
+    }
+
+    if (availabilityWarning) {
+      setShowDownloadConfirm(true);
+      return;
+    }
+
+    await submitBacktest();
   };
 
   // Handle keyboard shortcuts
@@ -2321,6 +2353,37 @@ export default function StrategyBacktestPage({ params }: Props) {
           runId={selectedRunId}
         />
       )}
+
+      {/* Download confirmation dialog for out-of-range start date */}
+      <Dialog open={showDownloadConfirm} onOpenChange={setShowDownloadConfirm}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Download earlier data?</DialogTitle>
+            <DialogDescription>
+              Data for {dataAvailability?.asset} currently starts at{" "}
+              {dataAvailability?.earliest_date}. Your selected start date ({dateFrom}) is
+              before the available range.
+            </DialogDescription>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            The missing historical data will be downloaded automatically. This backtest may
+            take longer than usual while data is fetched.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDownloadConfirm(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                setShowDownloadConfirm(false);
+                submitBacktest();
+              }}
+            >
+              Download &amp; run
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

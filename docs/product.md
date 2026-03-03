@@ -857,7 +857,7 @@ Plain-Language Error Messages
 **Historical Depth Enforcement:**
 - Backtest date range cannot exceed the plan’s historical depth cap.
 - Backtest configuration shows selected asset data availability: `Data available: [earliest date] – Present` (or latest ingested date when not current).
-- If the user selects a start date before available history, show an inline warning and auto-adjust to the earliest available date without blocking execution.
+- If the user selects a start date before available history: regular users see a warning and the date auto-adjusts to the earliest available; beta users see a warning but keep their date, and a confirmation dialog on submit lets them trigger a data download.
 
 **Get Backtest** (`GET /backtests/{run_id}`)
 - Returns status and summary metrics
@@ -2136,7 +2136,7 @@ Plain-Language Error Messages
 | **Drawdown Chart** | ✅ Complete | Underwater equity % chart highlighting max drawdown period |
 | **Data Management** | ✅ Complete | Candle DB cache, CryptoCompare integration, S3/MinIO storage |
 | **Data Quality & Completeness Indicators** | ✅ Complete | Gap %, outlier count, volume consistency, data availability timeline, backtest warnings |
-| **Data Availability Display & Date Range Warning** | 📝 Spec Ready | Backtest config shows `Data available: [earliest date] – Present`, warns on out-of-range start dates, and auto-adjusts to earliest available data. |
+| **Data Availability Display & Date Range Warning** | ✅ Implemented | Backtest config shows `Data available: [earliest date] – Present`, warns on out-of-range start dates, and lets users confirm to download earlier data on demand. |
 | **Scheduled Updates** | ✅ Complete | Daily scheduler for auto-update strategies (paper trading) |
 | **Performance Alerts (Simple)** | ✅ Complete | Drawdown threshold alerts on scheduled re-backtests |
 | **Price Alerts** | ✅ Complete | Threshold alerts per pair with in-app/email/webhook delivery; dedicated Alerts page |
@@ -2525,7 +2525,8 @@ npm run type-check    # TypeScript validation
 
 ## 18. Changelog
 
-- **2026-03-01:** Added PRD/TST planning for data availability display and date range auto-adjust warnings in backtest configuration, including `data_quality_metrics` earliest/latest candle date columns and daily job backfill requirements.
+- **2026-03-02:** Updated data availability feature: regular users keep auto-adjust; beta users can force earlier start dates via confirmation dialog to trigger on-demand data download.
+- **2026-03-01:** Added PRD/TST planning for data availability display and date range warnings in backtest configuration, including `data_quality_metrics` earliest/latest candle date columns and daily job backfill requirements.
 - **2026-03-01:** Added PRD/TST planning for plain-English indicator labels in Essentials mode, including technical subtitles, tooltip retention, All-mode naming rules, and WCAG 2.1 AA contrast requirements.
 - **2026-02-24:** Added PRD/TST planning for an Onboarding Funnel Dashboard in PostHog with required steps (`signup_completed` → `second_session`), conversion visibility, and date-range/cohort filters.
 - **2026-02-24:** Added PRD/TST planning for backend PostHog worker lifecycle tracking (`backtest_job_started`, `backtest_job_completed`, `backtest_job_failed`) with async fire-and-forget dispatch guidance.

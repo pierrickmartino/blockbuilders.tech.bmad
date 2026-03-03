@@ -16,18 +16,22 @@
 - [ ] Backtest configuration shows `Data available: [earliest date] – Present` after asset selection.
 - [ ] Availability text updates immediately when asset changes.
 - [ ] Availability text updates when timeframe changes (if timeframe selector exists).
-- [ ] If start date is before earliest available date, inline warning appears with exact approved copy.
-- [ ] Out-of-range start date auto-adjusts to earliest available date.
-- [ ] Adjusted start date remains user-visible in date input after correction.
-- [ ] Date auto-adjust does not block backtest submission.
-- [ ] Limited-history asset scenario (e.g., SUI + 5-year range) shows warning and adjusts correctly.
-- [ ] Warning clears when start date is in range.
+- [ ] Regular users: out-of-range start date shows warning and auto-adjusts to earliest available date.
+- [ ] Regular users: adjusted start date remains visible in date input after correction.
+- [ ] Regular users: auto-adjust does not block backtest submission.
+- [ ] Beta users: out-of-range start date shows warning without changing the date value.
+- [ ] Beta users: submitting with out-of-range date opens confirmation dialog explaining data download.
+- [ ] Beta users: confirming the dialog ("Download & run") submits the backtest normally.
+- [ ] Beta users: cancelling the dialog returns to the form with the date unchanged.
+- [ ] Beta users: confirmation dialog is responsive on mobile (stacked buttons).
+- [ ] Limited-history asset scenario (e.g., SUI + 5-year range) auto-adjusts for regular users, shows dialog for beta users.
+- [ ] Warning clears when start date is changed to be within available range (both user types).
 
 ### Integration / Regression
 - [ ] `POST /backtests` accepts adjusted range and creates run successfully.
 - [ ] Existing historical depth limit validation still works as before.
 - [ ] Existing gap/completeness indicators still render correctly with new availability line.
-- [ ] No new modal or blocking flow introduced in backtest configuration.
+- [ ] Lightweight confirmation dialog is the only new modal; no multi-step flows introduced.
 
 ### Edge Cases
 - [ ] Asset with same-day earliest/latest data still renders valid availability text.

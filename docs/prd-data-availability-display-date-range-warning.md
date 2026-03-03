@@ -1,14 +1,14 @@
 # PRD: Data Availability Display and Date Range Warning
 
 ## 1. Summary
-Add a simple data availability indicator in backtest configuration and auto-adjust invalid start dates. Users will immediately see how far back data exists for the selected asset/timeframe, get a clear inline warning when requesting unavailable history, and still be able to run backtests without extra steps.
+Add a simple data availability indicator in backtest configuration and warn users about out-of-range start dates. Users will immediately see how far back data exists for the selected asset/timeframe, get a clear inline warning when requesting unavailable history, and can confirm to download earlier data on demand.
 
 ## 2. Problem Statement
 Users can currently select date ranges that start before available candle history, which creates confusion about what period is actually tested. This causes trust and usability issues, especially for newer assets with short history (e.g., SUI).
 
 ## 3. Goals
 - Make data availability explicit in backtest configuration for the selected asset/timeframe.
-- Prevent silent out-of-range behavior by warning and auto-adjusting the start date.
+- Prevent silent out-of-range behavior by warning and letting users confirm data download.
 - Reuse existing data quality metadata and avoid new external dependencies.
 
 ## 4. Non-Goals
@@ -22,25 +22,24 @@ Users can currently select date ranges that start before available candle histor
 
 ### 5.2 User Stories
 - As a user, I want to see available history for my selected asset, so that I pick a realistic range.
-- As a user, I want the app to auto-correct invalid start dates with a clear warning, so that I can continue quickly without guessing.
+- As a user, I want a clear warning when my start date is before available data, so I can confirm and trigger a download of earlier history.
 
 ## 6. Scope & Functional Requirements
 ### 6.1 In Scope
 - Show `Data available: [earliest date] – Present` on backtest configuration when asset/timeframe is selected or changed.
 - Fetch earliest/latest availability from `data_quality_metrics` when present; fallback to candle-data min/max when needed.
-- Inline warning when selected `date_from` is before earliest available date, with automatic start-date adjustment.
+- Inline warning when selected `date_from` is before earliest available date, with confirmation dialog to download earlier data on demand.
 - Schema migration adding `earliest_candle_date` and `latest_candle_date` to `data_quality_metrics` when missing.
 - Daily validation job updates and backfills earliest/latest metadata.
 
 ### 6.2 Out of Scope
 - Changes to pricing tiers or historical depth plan limits.
-- New modal flows, confirmation dialogs, or multi-step correction UX.
+- Multi-step correction wizards or complex modal flows beyond the lightweight download confirmation dialog.
 
 ### 6.3 Functional Requirements
 - On asset/timeframe change, UI requests data availability metadata and renders a one-line availability hint.
-- If user-selected start date is earlier than availability start, UI shows: `Data for [asset] starts at [date]. Your backtest will use the available range.`
-- UI updates `date_from` to earliest available date automatically and keeps `date_to` unchanged unless existing validations require otherwise.
-- Backtest submission is allowed after adjustment; no hard block for this condition.
+- **Regular users:** If user-selected start date is earlier than availability start, UI shows inline warning and auto-adjusts `date_from` to the earliest available date. Users cannot force a date before available data.
+- **Beta users:** If user-selected start date is earlier than availability start, UI shows inline warning but preserves the user's date. On submission, a lightweight confirmation dialog explains that missing data will be downloaded and the run may take longer. User confirms ("Download & run") or cancels. The existing worker downloads missing candles on demand.
 - Backend migration ensures `data_quality_metrics.earliest_candle_date` and `data_quality_metrics.latest_candle_date` exist.
 - Daily validation job writes earliest/latest for each tracked asset/timeframe pair.
 
@@ -50,8 +49,9 @@ Users can currently select date ranges that start before available candle histor
 2. User selects/changes asset (and timeframe if applicable).
 3. UI displays availability line for that selection.
 4. User picks date range.
-5. If `date_from` is out of range, inline warning appears and start date auto-adjusts.
-6. User continues and runs backtest normally.
+5. If `date_from` is out of range:
+   - **Regular users:** inline warning appears and start date auto-adjusts to earliest available. User continues normally.
+   - **Beta users:** inline warning appears but date is preserved. On submit, confirmation dialog explains data will be downloaded. User confirms ("Download & run") or cancels.
 
 ### 7.2 States
 - Loading: Show lightweight placeholder text for availability line.
@@ -62,7 +62,8 @@ Users can currently select date ranges that start before available candle histor
 ### 7.3 Design Notes
 - Keep copy short and explicit; no tooltip required.
 - Place availability line directly near date inputs for context.
-- Warning should be inline under start date field and persist long enough to explain the auto-adjustment.
+- Warning should be inline near date inputs and persist as long as the date is out of range.
+- Confirmation dialog uses shadcn/ui Dialog, max-width `sm:max-w-md`, responsive footer (stacked on mobile).
 
 ## 8. Data Requirements
 ### 8.1 Data Model
@@ -73,7 +74,7 @@ Users can currently select date ranges that start before available candle histor
 ### 8.2 Calculations / Definitions (if applicable)
 - **Availability start**: `earliest_candle_date` from metadata; fallback `MIN(candles.timestamp)` for asset/timeframe.
 - **Availability end**: `latest_candle_date` from metadata; fallback `MAX(candles.timestamp)` for asset/timeframe.
-- **Adjusted start date**: `max(user_date_from, availability_start)`.
+- **User start date**: preserved as entered; not auto-adjusted.
 
 ## 9. API / Backend Requirements (Minimal)
 ### 9.1 Endpoints
@@ -88,8 +89,9 @@ Users can currently select date ranges that start before available candle histor
 ## 10. Implementation Notes (Minimal)
 ### 10.1 Frontend
 - Reuse existing backtest configuration form state and inline validation area.
-- Apply start-date auto-adjust in the same handler that validates date range changes.
-- Keep warning copy exactly aligned with acceptance criteria text.
+- Show warning via `useEffect` when `dateFrom < earliest_date`; do not auto-correct the value.
+- Gate `handleSubmit` to show confirmation dialog when warning is active.
+- Keep warning and dialog copy aligned with acceptance criteria text.
 
 ### 10.2 Backend
 - Add migration for `data_quality_metrics` date columns if not already present.
@@ -104,15 +106,19 @@ Users can currently select date ranges that start before available candle histor
 
 ## 12. Acceptance Criteria
 - [ ] Selecting/changing asset displays `Data available: [earliest date] – Present` using metadata table or candle fallback.
-- [ ] Selecting a start date before available history shows warning text and auto-adjusts start date to earliest available.
-- [ ] Limited-history assets (e.g., SUI) clearly show actual range and still allow backtest submission.
+- [ ] Regular users: selecting a start date before available history shows warning and auto-adjusts to earliest available date.
+- [ ] Regular users: cannot submit a backtest with a start date before available data.
+- [ ] Beta users: selecting a start date before available history shows warning without changing the date.
+- [ ] Beta users: submitting with an out-of-range start date opens a confirmation dialog explaining data download.
+- [ ] Beta users: confirming the dialog submits the backtest; cancelling returns to the form with date unchanged.
+- [ ] Limited-history assets (e.g., SUI) clearly show actual range and still allow submission (beta) or auto-adjust (regular).
 - [ ] Migration adds `earliest_candle_date`/`latest_candle_date` to `data_quality_metrics` when missing.
 - [ ] Daily validation job populates and maintains earliest/latest candle dates for tracked assets/timeframes.
 
 ## 13. Tracking Metrics (Optional)
-- Percent of backtest form interactions that trigger start-date auto-adjust.
+- Percent of backtest form interactions that trigger the out-of-range warning.
 - Availability lookup fallback rate (metadata miss → candle aggregation).
-- Backtest submission success rate after auto-adjust warning shown.
+- Backtest submission success rate after download confirmation shown.
 
 ## 14. Dependencies (Optional)
 - Existing `data_quality_metrics` table and daily validation job.
