@@ -1137,7 +1137,7 @@ Plain-Language Error Messages
 
 ---
 
-## 7. Scheduled Re-Backtests (Paper Trading)
+## 7. Scheduled Re-Backtests (Strategy Monitor)
 
 ### 7.1. Auto-Update Feature
 
@@ -1145,10 +1145,12 @@ Plain-Language Error Messages
 - `auto_update_enabled`: boolean (enable/disable daily updates)
 - `auto_update_lookback_days`: integer (default 365)
 - `last_auto_run_at`: timestamp (tracks last auto-run)
+- User-facing label: **Strategy Monitor**
+- Helper copy: **"Automated daily re-testing of your strategy against the latest market data"**
 
 **User Flow:**
 1. Edit strategy settings
-2. Toggle "Auto-update daily" checkbox
+2. Toggle "Strategy Monitor" (auto-update daily)
 3. Set lookback period (default 1 year)
 4. Save settings
 
@@ -2137,7 +2139,7 @@ Plain-Language Error Messages
 | **Data Management** | ✅ Complete | Candle DB cache, CryptoCompare integration, S3/MinIO storage |
 | **Data Quality & Completeness Indicators** | ✅ Complete | Gap %, outlier count, volume consistency, data availability timeline, backtest warnings |
 | **Data Availability Display & Date Range Warning** | ✅ Implemented | Backtest config shows `Data available: [earliest date] – Present`, warns on out-of-range start dates, and lets users confirm to download earlier data on demand. |
-| **Scheduled Updates** | ✅ Complete | Daily scheduler for auto-update strategies (paper trading) |
+| **Scheduled Updates** | ✅ Complete | Daily scheduler for auto-update strategies (Strategy Monitor) |
 | **Performance Alerts (Simple)** | ✅ Complete | Drawdown threshold alerts on scheduled re-backtests |
 | **Price Alerts** | ✅ Complete | Threshold alerts per pair with in-app/email/webhook delivery; dedicated Alerts page |
 | **Usage Limits** | ✅ Complete | Plan-based caps on strategies, daily backtests, and historical depth |
@@ -2248,7 +2250,7 @@ Plain-Language Error Messages
 - ✅ Timezone preference
 - ✅ Take profit ladder (multiple levels)
 - ✅ Max drawdown risk management
-- ✅ Scheduled re-backtests (paper trading)
+- ✅ Scheduled re-backtests (Strategy Monitor)
 - ✅ In-app notifications
 
 **Proposed (Not Yet Implemented):**
@@ -2477,6 +2479,8 @@ npm run type-check    # TypeScript validation
 - `docs/tst-enhanced-trade-explanation-view.md` - Enhanced trade explanation view test checklist
 - `docs/prd-data-availability-display-date-range-warning.md` - Data availability display and date range warning PRD
 - `docs/tst-data-availability-display-date-range-warning.md` - Data availability display and date range warning test checklist
+- `docs/prd-rename-paper-trading-to-strategy-monitor.md` - Rename Paper Trading to Strategy Monitor PRD
+- `docs/tst-rename-paper-trading-to-strategy-monitor.md` - Rename Paper Trading to Strategy Monitor test checklist
 - `docs/tst-essentials-first-block-palette-toggle.md` - Essentials-first block palette toggle test checklist
 - `docs/tst-plain-english-indicator-labels.md` - Plain-English indicator labels test checklist
 - `CLAUDE.md` - Instructions for Claude Code
@@ -2546,7 +2550,7 @@ npm run type-check    # TypeScript validation
 - Timezone preference
 - Take profit ladder
 - Max drawdown risk management
-- Scheduled re-backtests (paper trading)
+- Scheduled re-backtests (Strategy Monitor)
 - Usage limits and tracking
 - Full API reference
 - Database schema with 7 migrations

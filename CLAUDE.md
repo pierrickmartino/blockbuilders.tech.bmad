@@ -134,7 +134,7 @@ High-level, you are allowed to implement / extend:
   - Lists of strategies and backtest runs.
   - Re-opening and re-running past backtests.
 
-- **Basic “paper trading” via scheduled re-backtests**
+- **Basic “Strategy Monitor” via scheduled re-backtests**
   - Scheduled re-runs (e.g. daily) of saved strategies on fresh data.
   - Simple in-app indication of new runs.
 
@@ -150,7 +150,7 @@ High-level, you are allowed to implement / extend:
 Even if it sounds cool or “easy”, **do not** introduce in MVP:
 
 - Real-time trading or brokerage integration.
-- True live / tick-by-tick paper trading.
+- True live / tick-by-tick simulated trading.
 - Multi-asset or multi-timeframe strategies.
 - Strategy marketplace, monetization, or complex sharing mechanics.
 - Complex billing, usage-based pricing, or anything beyond simple flat-rate tiers defined in the active spec/PRD.
