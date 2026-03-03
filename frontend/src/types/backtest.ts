@@ -159,6 +159,14 @@ export interface GapRange {
   end: string;
 }
 
+export interface DataAvailabilityResponse {
+  asset: string;
+  timeframe: string;
+  earliest_date: string | null;
+  latest_date: string | null;
+  source: string;
+}
+
 export interface DataCompletenessResponse {
   asset: string;
   timeframe: string;

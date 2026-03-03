@@ -6,7 +6,7 @@ from typing import Optional
 from uuid import UUID
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from redis import Redis
 from sqlmodel import Session, select
 
@@ -20,8 +20,10 @@ from app.core.config import settings
 from app.core.database import get_session
 from app.models.candle import Candle
 from app.models.user import User
+from app.models.data_quality_metric import DataQualityMetric
 from app.schemas.market import (
     BacktestSentimentResponse,
+    DataAvailabilityResponse,
     HistoryPoint,
     MarketSentimentResponse,
     SentimentIndicator,
@@ -385,6 +387,63 @@ def get_tickers(
     redis.setex(CACHE_KEY, CACHE_TTL_SECONDS, json.dumps(cache_dict))
 
     return response_data
+
+
+@router.get("/market/data-availability", response_model=DataAvailabilityResponse)
+def get_data_availability(
+    asset: str = Query(..., description="Asset pair (e.g., BTC/USDT)"),
+    timeframe: str = Query(..., description="Timeframe (e.g., 1d, 4h)"),
+    session: Session = Depends(get_session),
+) -> DataAvailabilityResponse:
+    """Get data availability date range for asset/timeframe.
+
+    Prefers cached metadata from data_quality_metrics; falls back to candle min/max.
+    No authentication required.
+    """
+    # Try metadata first: most recent row with earliest_candle_date populated
+    stmt = (
+        select(DataQualityMetric)
+        .where(DataQualityMetric.asset == asset)
+        .where(DataQualityMetric.timeframe == timeframe)
+        .where(DataQualityMetric.earliest_candle_date.is_not(None))  # type: ignore[union-attr]
+        .order_by(DataQualityMetric.date.desc())
+        .limit(1)
+    )
+    metric = session.exec(stmt).first()
+
+    if metric and metric.earliest_candle_date:
+        return DataAvailabilityResponse(
+            asset=asset,
+            timeframe=timeframe,
+            earliest_date=metric.earliest_candle_date,
+            latest_date=metric.latest_candle_date,
+            source="metadata",
+        )
+
+    # Fallback: query candles directly
+    from sqlmodel import func as sqlfunc
+
+    fallback_stmt = (
+        select(sqlfunc.min(Candle.timestamp), sqlfunc.max(Candle.timestamp))
+        .where(Candle.asset == asset)
+        .where(Candle.timeframe == timeframe)
+    )
+    result = session.exec(fallback_stmt).first()
+
+    if not result or result[0] is None:
+        return DataAvailabilityResponse(
+            asset=asset,
+            timeframe=timeframe,
+            source="candle_fallback",
+        )
+
+    return DataAvailabilityResponse(
+        asset=asset,
+        timeframe=timeframe,
+        earliest_date=result[0].date() if result[0] else None,
+        latest_date=result[1].date() if result[1] else None,
+        source="candle_fallback",
+    )
 
 
 @router.get("/market/sentiment", response_model=MarketSentimentResponse)

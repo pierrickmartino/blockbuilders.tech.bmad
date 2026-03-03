@@ -158,3 +158,12 @@ export async function fetchDataCompleteness(
     `/backtests/data-completeness?asset=${encodeURIComponent(asset)}&timeframe=${timeframe}`
   );
 }
+
+export async function fetchDataAvailability(
+  asset: string,
+  timeframe: string
+) {
+  return apiFetch(
+    `/market/data-availability?asset=${encodeURIComponent(asset)}&timeframe=${timeframe}`
+  );
+}
