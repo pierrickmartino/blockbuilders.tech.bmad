@@ -977,7 +977,7 @@ export default function StrategyEditorPage({ params }: Props) {
       });
       setStrategy(updated);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update auto-update setting");
+      setError(err instanceof Error ? err.message : "Failed to update Strategy Monitor setting");
     } finally {
       setIsUpdatingAutoUpdate(false);
     }
@@ -1268,7 +1268,7 @@ export default function StrategyEditorPage({ params }: Props) {
                   onClick={() => handleAutoUpdateToggle(!strategy.auto_update_enabled)}
                   disabled={isUpdatingAutoUpdate}
                 >
-                  {strategy.auto_update_enabled ? "Disable" : "Enable"} Auto-update
+                  {strategy.auto_update_enabled ? "Disable" : "Enable"} Strategy Monitor
                 </DropdownMenuItem>
                 {strategy.auto_update_enabled && (
                   <>
@@ -1601,9 +1601,10 @@ export default function StrategyEditorPage({ params }: Props) {
               </div>
             </div>
 
-            {/* Auto-Update Status */}
+            {/* Strategy Monitor Status */}
             <div>
-              <h4 className="text-sm font-semibold">Auto-Update</h4>
+              <h4 className="text-sm font-semibold">Strategy Monitor</h4>
+              <p className="text-xs text-muted-foreground mb-1">Automated daily re-testing of your strategy against the latest market data</p>
               <p className="text-sm text-muted-foreground">
                 {strategy.auto_update_enabled
                   ? `Enabled (${strategy.auto_update_lookback_days} days lookback)`
