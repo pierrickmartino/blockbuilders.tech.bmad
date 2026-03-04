@@ -9,7 +9,7 @@ A web-based, no-code strategy lab where retail crypto traders can visually build
 - **Logic Blocks** - Comparisons, crossovers, AND/OR/NOT operators
 - **Risk Management** - Position sizing, take profit, stop loss
 - **Backtesting Engine** - OHLCV-based simulation with equity curves and trade analysis
-- **Scheduled Re-Backtests** - Daily auto-updates on saved strategies (paper trading mode)
+- **Scheduled Re-Backtests** - Daily auto-updates on saved strategies (Strategy Monitor)
 - **Usage Limits** - Soft per-user limits with transparent tracking
 
 ## Supported Assets & Timeframes

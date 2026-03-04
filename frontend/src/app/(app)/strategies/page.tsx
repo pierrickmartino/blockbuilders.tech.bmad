@@ -895,7 +895,7 @@ export default function StrategiesPage() {
                             <Badge variant="secondary">Archived</Badge>
                           )}
                           {strategy.auto_update_enabled && (
-                            <Badge variant="outline" className="bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300">Auto</Badge>
+                            <Badge variant="outline" className="bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300">Monitor</Badge>
                           )}
                         </div>
                         {strategy.tags && strategy.tags.length > 0 && (
@@ -1002,7 +1002,7 @@ export default function StrategiesPage() {
                           <Badge variant="secondary">Archived</Badge>
                         )}
                         {strategy.auto_update_enabled && (
-                          <Badge variant="outline" className="bg-blue-50 text-blue-700">Auto: On</Badge>
+                          <Badge variant="outline" className="bg-blue-50 text-blue-700">Monitor: On</Badge>
                         )}
                         {strategy.tags?.map((tag) => (
                           <Badge key={tag.id} variant="outline" className="bg-purple-50 text-purple-700">
