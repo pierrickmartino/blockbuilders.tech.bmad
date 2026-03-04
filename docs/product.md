@@ -1,7 +1,7 @@
 # Blockbuilders – Product Documentation
 
 **Status:** Current Product Truth
-**Last Updated:** 2026-03-01
+**Last Updated:** 2026-03-04
 **Purpose:** Comprehensive documentation of all implemented features
 
 ---
@@ -86,6 +86,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - default_fee_percent, default_slippage_percent, default_spread_percent
 - timezone_preference (enum: local/utc)
 - digest_email_enabled (boolean, default true)
+- has_completed_onboarding (boolean, default false; controls post-auth routing to wizard vs dashboard)
 - favorite_metrics (JSON array of metric keys for backtest summary pinning, nullable)
 - auth_provider, provider_user_id (OAuth fields)
 - reset_token, reset_token_expires_at
@@ -1296,6 +1297,9 @@ Plain-Language Error Messages
 - Email + password inputs with validation
 - OAuth buttons: "Continue with Google", "Continue with GitHub"
 - "Forgot password?" link
+- Post-auth routing rule:
+  - `has_completed_onboarding=false` -> Strategy Wizard first-run entry (with subtle "Skip to dashboard")
+  - `has_completed_onboarding=true` -> Dashboard
 
 **Password Reset Request** (`/forgot-password`)
 - Email input
@@ -1310,7 +1314,9 @@ Plain-Language Error Messages
 **OAuth Callback** (`/auth/callback`)
 - Processes OAuth token from provider
 - Exchanges for JWT
-- Redirects to dashboard
+- Redirects based on onboarding status:
+  - New user (`has_completed_onboarding=false`) -> Strategy Wizard first-run entry
+  - Returning/onboarded user (`has_completed_onboarding=true`) -> Dashboard
 
 **Components:** `frontend/src/app/(auth)/`
 
@@ -1619,7 +1625,7 @@ Plain-Language Error Messages
 
 **v1 Event Coverage:**
 - Lifecycle events: `page_view`, `signup_completed`, `login_completed`
-- Feature events: `wizard_started`, `strategy_created`, `strategy_saved`, `backtest_started`, `backtest_completed`, `results_viewed`
+- Feature events: `wizard_started`, `wizard_first_run_started`, `strategy_created`, `strategy_saved`, `backtest_started`, `backtest_completed`, `results_viewed`
 - Backend worker backtest lifecycle events: `backtest_job_started`, `backtest_job_completed`, `backtest_job_failed`
 - Onboarding retention event: `second_session` (used as final step in onboarding funnel)
 
@@ -1835,6 +1841,7 @@ Plain-Language Error Messages
 - subscription_status (ENUM: active/past_due/canceled/trialing, nullable)
 - timezone_preference (ENUM: local/utc, default local)
 - digest_email_enabled (BOOLEAN, default true)
+- has_completed_onboarding (BOOLEAN, default false)
 - reset_token (VARCHAR, nullable)
 - reset_token_expires_at (TIMESTAMP, nullable)
 - auth_provider (VARCHAR, nullable)
@@ -2115,6 +2122,7 @@ Plain-Language Error Messages
 | Feature Area | Status | Details |
 |---|---|---|
 | **Authentication** | ✅ Complete | Email/password, OAuth (Google, GitHub), password reset |
+| **Wizard as Default Post-Signup Destination** | 📝 Spec Ready | New signups route to wizard first-run experience (with subtle “Skip to dashboard”), emit `wizard_first_run_started`, and keep returning onboarded users on dashboard via `users.has_completed_onboarding` + migration backfill from `backtest_runs` |
 | **Account Management** | ✅ Complete | Profile, settings (fees, slippage, timezone), usage tracking |
 | **Digest Email Opt-Out Controls** | ✅ Done | Global weekly digest opt-out (`users.digest_email_enabled`) plus per-strategy opt-out (`strategies.digest_email_enabled`) in profile notification settings |
 | **Product Analytics (PostHog + Consent + Backend Events + Onboarding Funnel Dashboard)** | ✅ Complete | GDPR-aware consent banner + event tracking for auth/key strategy-backtest actions plus backend worker lifecycle events (`backtest_job_started/completed/failed`) and a dedicated PostHog onboarding funnel (`signup_completed → ... → second_session`) with date-range/cohort filters |
@@ -2455,6 +2463,8 @@ npm run type-check    # TypeScript validation
 - `docs/prd-plain-english-indicator-labels.md` - Plain-English indicator labels PRD
 - `docs/prd-wizard-essentials-only-constraint.md` - Wizard essentials-only constraint PRD
 - `docs/tst-wizard-essentials-only-constraint.md` - Wizard essentials-only constraint TST
+- `docs/prd-wizard-default-post-signup-destination.md` - Wizard as default post-signup destination PRD
+- `docs/tst-wizard-default-post-signup-destination.md` - Wizard as default post-signup destination test checklist
 - `docs/prd-copy-paste-blocks-subgraphs.md` - Copy/paste blocks & subgraphs PRD (IMPLEMENTED)
 - `docs/prd-canvas-undo-redo.md` - Canvas undo/redo PRD (IMPLEMENTED)
 - `docs/prd-keyboard-shortcuts.md` - Keyboard shortcuts & reference PRD
@@ -2544,6 +2554,7 @@ npm run type-check    # TypeScript validation
 
 ## 18. Changelog
 
+- **2026-03-04:** Added PRD/TST planning for wizard-first post-signup routing with subtle dashboard skip link, `wizard_first_run_started` analytics event, and `users.has_completed_onboarding` migration/backfill requirements.
 - **2026-03-04:** Added PRD/TST planning for digest email opt-out controls, including `users.digest_email_enabled`, `strategies.digest_email_enabled`, and profile notification toggle requirements.
 - **2026-03-02:** Updated data availability feature: regular users keep auto-adjust; beta users can force earlier start dates via confirmation dialog to trigger on-demand data download.
 - **2026-03-01:** Added PRD/TST planning for data availability display and date range warnings in backtest configuration, including `data_quality_metrics` earliest/latest candle date columns and daily job backfill requirements.
