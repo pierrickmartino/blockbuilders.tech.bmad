@@ -17,5 +17,6 @@ class Strategy(SQLModel, table=True):
     auto_update_enabled: bool = Field(default=False)
     auto_update_lookback_days: int = Field(default=365)
     last_auto_run_at: Optional[datetime] = Field(default=None)
+    digest_email_enabled: bool = Field(default=True)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)

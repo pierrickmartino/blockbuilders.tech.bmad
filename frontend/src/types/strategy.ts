@@ -14,6 +14,7 @@ export interface Strategy {
   auto_update_enabled: boolean;
   auto_update_lookback_days: number;
   last_auto_run_at: string | null;
+  digest_email_enabled: boolean;
   created_at: string;
   updated_at: string;
   tags?: StrategyTag[];
@@ -48,6 +49,7 @@ export interface StrategyUpdateRequest {
   auto_update_enabled?: boolean;
   auto_update_lookback_days?: number;
   tag_ids?: string[];
+  digest_email_enabled?: boolean;
 }
 
 export interface StrategyVersionCreateRequest {

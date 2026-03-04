@@ -105,3 +105,6 @@ class User(SQLModel, table=True):
     show_contributions: bool = Field(default=True)
     show_badges: bool = Field(default=True)
     follower_count: int = Field(default=0)
+
+    # Digest email preferences
+    digest_email_enabled: bool = Field(default=True)
