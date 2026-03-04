@@ -27,7 +27,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string) => Promise<void>;
   logout: () => void;
-  refreshUser: () => Promise<void>;
+  refreshUser: () => Promise<User | null>;
   refreshUsage: () => Promise<void>;
   requestPasswordReset: (email: string) => Promise<string>;
   confirmPasswordReset: (token: string, newPassword: string) => Promise<string>;
@@ -42,23 +42,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [usage, setUsage] = useState<Usage | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const refreshUser = useCallback(async () => {
+  const refreshUser = useCallback(async (): Promise<User | null> => {
     try {
       const profileData = await apiFetch<ProfileResponse>("/users/me");
-      setUser({
+      const nextUser: User = {
         id: profileData.id,
         email: profileData.email,
         default_fee_percent: profileData.settings.default_fee_percent,
         default_slippage_percent: profileData.settings.default_slippage_percent,
         timezone_preference: profileData.settings.timezone_preference,
         favorite_metrics: profileData.settings.favorite_metrics,
-      });
+        has_completed_onboarding: profileData.settings.has_completed_onboarding,
+      };
+      setUser(nextUser);
+      return nextUser;
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
         localStorage.removeItem("token");
         setUser(null);
         setUsage(null);
       }
+      return null;
     }
   }, []);
 

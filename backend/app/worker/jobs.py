@@ -283,6 +283,12 @@ def run_backtest_job(
                     # Evaluate performance alerts
                     evaluate_alerts_for_run(run, session)
 
+                # Mark user as onboarded on first completed backtest
+                onboarding_user = session.get(User, run.user_id)
+                if onboarding_user and not onboarding_user.has_completed_onboarding:
+                    onboarding_user.has_completed_onboarding = True
+                    session.add(onboarding_user)
+
                 session.commit()
 
                 duration_ms = int((time.monotonic() - started_at) * 1000)

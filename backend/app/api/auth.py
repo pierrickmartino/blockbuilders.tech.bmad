@@ -83,6 +83,7 @@ def _build_user_response(user: User) -> UserResponse:
         default_fee_percent=user.default_fee_percent,
         default_slippage_percent=user.default_slippage_percent,
         timezone_preference=user.timezone_preference,
+        has_completed_onboarding=user.has_completed_onboarding,
     )
 
 

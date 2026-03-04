@@ -80,7 +80,7 @@ function AuthForm() {
 
   useEffect(() => {
     if (!isLoading && user) {
-      router.push("/dashboard");
+      router.push(user.has_completed_onboarding ? "/dashboard" : "/strategies?wizard=true");
     }
   }, [user, isLoading, router]);
 
@@ -148,7 +148,7 @@ function AuthForm() {
       } else {
         await signup(email, password);
       }
-      router.push("/dashboard");
+      // Routing handled by the useEffect watching user state
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message);

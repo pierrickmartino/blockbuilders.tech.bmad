@@ -14,16 +14,51 @@ import { AppSidebar, SiteHeader } from "@/components/app-sidebar";
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, refreshUser } = useAuth();
+  const onboardingRefreshPathRef = useRef<string | null>(null);
   const [consent, setConsent] = useState<"accepted" | "declined" | null>(() =>
     getConsent()
   );
 
   useEffect(() => {
-    if (!isLoading && !user) {
+    if (isLoading) return;
+
+    if (!user) {
       router.push("/login");
+      return;
     }
-  }, [user, isLoading, router]);
+
+    // Redirect unonboarded users to wizard (unless already on strategies page).
+    // Refresh user once per path first so backtest-completed onboarding is respected immediately.
+    if (!user.has_completed_onboarding && !pathname.startsWith("/strategies")) {
+      if (onboardingRefreshPathRef.current === pathname) {
+        router.push("/strategies?wizard=true");
+        return;
+      }
+
+      let isCancelled = false;
+      onboardingRefreshPathRef.current = pathname;
+
+      const refreshBeforeRedirect = async () => {
+        const refreshedUser = await refreshUser();
+        if (isCancelled) return;
+
+        if (!refreshedUser || !refreshedUser.has_completed_onboarding) {
+          router.push("/strategies?wizard=true");
+          return;
+        }
+
+        onboardingRefreshPathRef.current = null;
+      };
+
+      void refreshBeforeRedirect();
+      return () => {
+        isCancelled = true;
+      };
+    }
+
+    onboardingRefreshPathRef.current = null;
+  }, [user, isLoading, router, pathname, refreshUser]);
 
   useEffect(() => {
     const syncConsent = () => setConsent(getConsent());

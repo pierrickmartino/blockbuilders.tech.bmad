@@ -10,6 +10,7 @@ from app.models.backtest_run import BacktestRun
 from app.models.strategy import Strategy
 from app.models.user import User
 from app.schemas.auth import (
+    MessageResponse,
     ProfileResponse,
     SettingsResponse,
     UsageBundle,
@@ -66,6 +67,7 @@ def _build_profile_response(user: User, session: Session) -> ProfileResponse:
             favorite_metrics=user.favorite_metrics,
             user_tier=user.user_tier,
             digest_email_enabled=user.digest_email_enabled,
+            has_completed_onboarding=user.has_completed_onboarding,
         ),
         usage=UsageBundle(
             strategies=UsageItem(
@@ -121,3 +123,17 @@ def update_me(
     session.commit()
     session.refresh(user)
     return _build_profile_response(user, session)
+
+
+@router.post("/me/complete-onboarding", response_model=MessageResponse)
+def complete_onboarding(
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> MessageResponse:
+    """Mark onboarding as complete (e.g. when user skips wizard)."""
+    if not user.has_completed_onboarding:
+        user.has_completed_onboarding = True
+        user.updated_at = datetime.now(timezone.utc)
+        session.add(user)
+        session.commit()
+    return MessageResponse(message="Onboarding completed")
