@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useDisplay } from "@/context/display";
 import { getConsent, setConsent } from "@/lib/analytics";
 import { apiFetch, ApiError, safeRedirect } from "@/lib/api";
@@ -52,7 +52,11 @@ export default function ProfilePage() {
   const [digestEnabled, setDigestEnabled] = useState(true);
   const [strategies, setStrategies] = useState<Strategy[]>([]);
   const [strategiesLoading, setStrategiesLoading] = useState(true);
+  const [pendingStrategyToggleIds, setPendingStrategyToggleIds] = useState<Set<string>>(new Set());
   const [digestMessage, setDigestMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const digestRequestSeqRef = useRef(0);
+  const committedDigestEnabledRef = useRef(true);
+  const pendingStrategyToggleIdsRef = useRef(new Set<string>());
 
   useEffect(() => {
     setAnalyticsConsent(getConsent());
@@ -77,6 +81,7 @@ export default function ProfilePage() {
           setTheme(data.settings.theme_preference);
         }
         setDigestEnabled(data.settings.digest_email_enabled);
+        committedDigestEnabledRef.current = data.settings.digest_email_enabled;
       } catch {
         setError("Couldn't load profile. Please try again.");
       } finally {
@@ -164,18 +169,31 @@ export default function ProfilePage() {
   }
 
   async function handleDigestGlobalToggle(enabled: boolean) {
-    const previous = digestEnabled;
+    const requestSeq = ++digestRequestSeqRef.current;
     setDigestEnabled(enabled);
     setDigestMessage(null);
+
     try {
       const updated = await apiFetch<ProfileResponse>("/users/me", {
         method: "PUT",
         body: JSON.stringify({ digest_email_enabled: enabled }),
       });
+      if (requestSeq !== digestRequestSeqRef.current) {
+        return;
+      }
+      const persistedDigestEnabled = updated.settings.digest_email_enabled;
+      committedDigestEnabledRef.current = persistedDigestEnabled;
       setProfile(updated);
-      setDigestMessage({ type: "success", text: enabled ? "Digest emails enabled" : "Digest emails paused" });
+      setDigestEnabled(persistedDigestEnabled);
+      setDigestMessage({
+        type: "success",
+        text: persistedDigestEnabled ? "Digest emails enabled" : "Digest emails paused",
+      });
     } catch (err) {
-      setDigestEnabled(previous);
+      if (requestSeq !== digestRequestSeqRef.current) {
+        return;
+      }
+      setDigestEnabled(committedDigestEnabledRef.current);
       setDigestMessage({
         type: "error",
         text: err instanceof ApiError ? err.message : "Failed to update digest preference",
@@ -184,10 +202,28 @@ export default function ProfilePage() {
   }
 
   async function handleStrategyDigestToggle(strategyId: string, enabled: boolean) {
+    if (pendingStrategyToggleIdsRef.current.has(strategyId)) {
+      return;
+    }
+
+    const strategy = strategies.find((s) => s.id === strategyId);
+    if (!strategy) {
+      return;
+    }
+
+    const previousDigestEnabled = strategy.digest_email_enabled;
+    pendingStrategyToggleIdsRef.current.add(strategyId);
+    setPendingStrategyToggleIds((prev) => {
+      const next = new Set(prev);
+      next.add(strategyId);
+      return next;
+    });
+
     setStrategies((prev) =>
       prev.map((s) => (s.id === strategyId ? { ...s, digest_email_enabled: enabled } : s))
     );
     setDigestMessage(null);
+
     try {
       await apiFetch(`/strategies/${strategyId}`, {
         method: "PATCH",
@@ -195,11 +231,20 @@ export default function ProfilePage() {
       });
     } catch (err) {
       setStrategies((prev) =>
-        prev.map((s) => (s.id === strategyId ? { ...s, digest_email_enabled: !enabled } : s))
+        prev.map((s) =>
+          s.id === strategyId ? { ...s, digest_email_enabled: previousDigestEnabled } : s
+        )
       );
       setDigestMessage({
         type: "error",
         text: err instanceof ApiError ? err.message : "Failed to update strategy digest preference",
+      });
+    } finally {
+      pendingStrategyToggleIdsRef.current.delete(strategyId);
+      setPendingStrategyToggleIds((prev) => {
+        const next = new Set(prev);
+        next.delete(strategyId);
+        return next;
       });
     }
   }
@@ -586,6 +631,7 @@ export default function ProfilePage() {
                         <input
                           type="checkbox"
                           checked={s.digest_email_enabled}
+                          disabled={pendingStrategyToggleIds.has(s.id)}
                           onChange={(e) => handleStrategyDigestToggle(s.id, e.target.checked)}
                           className="h-4 w-4 shrink-0 rounded border-gray-300"
                         />
