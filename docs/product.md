@@ -76,11 +76,16 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
   - Theme preference (system/light/dark)
   - Compact node display mode (compact/expanded, default compact)
   - Applied to all timestamps in UI
+- Digest preferences:
+  - Global weekly strategy digest toggle (`users.digest_email_enabled`, default true)
+  - Per-strategy weekly digest toggles (`strategies.digest_email_enabled`, default true)
+  - Global off supersedes per-strategy toggles at send time
 
 **User Model Fields:**
 - id, email, password_hash (nullable for OAuth)
 - default_fee_percent, default_slippage_percent, default_spread_percent
 - timezone_preference (enum: local/utc)
+- digest_email_enabled (boolean, default true)
 - favorite_metrics (JSON array of metric keys for backtest summary pinning, nullable)
 - auth_provider, provider_user_id (OAuth fields)
 - reset_token, reset_token_expires_at
@@ -1389,6 +1394,9 @@ Plain-Language Error Messages
   - Timezone toggle (local or UTC)
   - Theme toggle (system/light/dark)
   - Compact node display toggle (compact/expanded, default compact)
+- Digest Preferences:
+  - Global `Weekly Strategy Digest` toggle (default on)
+  - Per-strategy toggle list (defaults on for all strategies)
 - Usage section:
   - Strategies progress bar (X / 10)
   - Daily backtests progress bar (X / 50)
@@ -1826,6 +1834,7 @@ Plain-Language Error Messages
 - stripe_subscription_id (VARCHAR, nullable)
 - subscription_status (ENUM: active/past_due/canceled/trialing, nullable)
 - timezone_preference (ENUM: local/utc, default local)
+- digest_email_enabled (BOOLEAN, default true)
 - reset_token (VARCHAR, nullable)
 - reset_token_expires_at (TIMESTAMP, nullable)
 - auth_provider (VARCHAR, nullable)
@@ -1841,6 +1850,7 @@ Plain-Language Error Messages
 - is_archived (BOOLEAN, default false)
 - auto_update_enabled (BOOLEAN, default false)
 - auto_update_lookback_days (INT, default 365)
+- digest_email_enabled (BOOLEAN, default true)
 - last_auto_run_at (TIMESTAMP, nullable)
 - created_at, updated_at (TIMESTAMP)
 
@@ -1967,6 +1977,7 @@ Plain-Language Error Messages
 23. `023_add_transaction_cost_fields` - Transaction cost analysis fields
 24. `024_add_profile_fields` - Public profile and follower fields
 25. `025_add_performance_indexes` - Composite indexes for query optimization
+26. `026_add_digest_email_opt_out_fields` - Global and per-strategy digest opt-out fields
 
 **Migration Commands:**
 - `alembic upgrade head` - Apply all pending migrations
@@ -2104,6 +2115,7 @@ Plain-Language Error Messages
 |---|---|---|
 | **Authentication** | ✅ Complete | Email/password, OAuth (Google, GitHub), password reset |
 | **Account Management** | ✅ Complete | Profile, settings (fees, slippage, timezone), usage tracking |
+| **Digest Email Opt-Out Controls** | 📝 Spec Ready | Global weekly digest opt-out (`users.digest_email_enabled`) plus per-strategy opt-out (`strategies.digest_email_enabled`) in profile notification settings |
 | **Product Analytics (PostHog + Consent + Backend Events + Onboarding Funnel Dashboard)** | ✅ Complete | GDPR-aware consent banner + event tracking for auth/key strategy-backtest actions plus backend worker lifecycle events (`backtest_job_started/completed/failed`) and a dedicated PostHog onboarding funnel (`signup_completed → ... → second_session`) with date-range/cohort filters |
 | **Structured Logging with Correlation IDs** | ✅ Complete | JSON logs to stdout for FastAPI + worker with shared `correlation_id` across request/job lifecycle and structured tracebacks for failures |
 | **User Profiles & Reputation** | ✅ Complete | Opt-in public profiles (/u/{handle}), follower counts, contributions, auto-awarded badges, privacy toggles |
@@ -2424,6 +2436,8 @@ npm run type-check    # TypeScript validation
 - `docs/prd-canvas-minimap-section-shortcuts.md` - Canvas minimap with section shortcuts PRD
 - `docs/prd-improved-error-messages.md` - Improved error messages PRD
 - `docs/prd-in-app-notifications.md` - In-app notifications PRD
+- `docs/prd-digest-email-opt-out-controls.md` - Digest email opt-out controls PRD
+- `docs/tst-digest-email-opt-out-controls.md` - Digest email opt-out controls test checklist
 - `docs/prd-multi-strategy-dashboard.md` - Multi-strategy dashboard PRD
 - `docs/prd-drawdown-chart.md` - Drawdown chart PRD
 - `docs/prd-backtest-comparison-view.md` - Backtest comparison view PRD
@@ -2529,6 +2543,7 @@ npm run type-check    # TypeScript validation
 
 ## 18. Changelog
 
+- **2026-03-04:** Added PRD/TST planning for digest email opt-out controls, including `users.digest_email_enabled`, `strategies.digest_email_enabled`, and profile notification toggle requirements.
 - **2026-03-02:** Updated data availability feature: regular users keep auto-adjust; beta users can force earlier start dates via confirmation dialog to trigger on-demand data download.
 - **2026-03-01:** Added PRD/TST planning for data availability display and date range warnings in backtest configuration, including `data_quality_metrics` earliest/latest candle date columns and daily job backfill requirements.
 - **2026-03-01:** Added PRD/TST planning for plain-English indicator labels in Essentials mode, including technical subtitles, tooltip retention, All-mode naming rules, and WCAG 2.1 AA contrast requirements.
