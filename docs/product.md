@@ -593,6 +593,7 @@ Plain-Language Error Messages
 - Advanced indicators Ichimoku, Fibonacci, ADX, OBV, and Stochastic are never presented as wizard options
 - Uses existing block types (no new backend fields)
 - Produces the same definition JSON used by the canvas
+- Final CTA can run an auto-save + auto-backtest path: clicking “See how it would have performed” should save valid wizard output, enqueue a backtest, and keep users in one continuous flow until results are ready
 
 **Implementation Notes:**
 - Generates blocks + connections locally in the frontend
@@ -1344,6 +1345,7 @@ Plain-Language Error Messages
   - Actions: Open, Clone (one-click duplicate), Archive
 - Empty state + create menu offer “Strategy Building Wizard” for guided creation
 - Wizard indicator/strategy-type step is constrained to the 5 Essentials indicators with plain-English option labels (no advanced-indicator jargon for first-time users)
+- Wizard completion supports a one-click “See how it would have performed” CTA that runs save + backtest automatically and then routes directly to results
 
 **Strategy Editor** (`/strategies/[id]`)
 - Visual canvas with drag-drop blocks
@@ -1842,7 +1844,7 @@ Plain-Language Error Messages
 - subscription_status (ENUM: active/past_due/canceled/trialing, nullable)
 - timezone_preference (ENUM: local/utc, default local)
 - digest_email_enabled (BOOLEAN, default true)
-- has_completed_onboarding (BOOLEAN, default false)
+- has_completed_onboarding (BOOLEAN, default false; set to true when wizard auto-backtest results are reached)
 - reset_token (VARCHAR, nullable)
 - reset_token_expires_at (TIMESTAMP, nullable)
 - auth_provider (VARCHAR, nullable)
@@ -2148,6 +2150,7 @@ Plain-Language Error Messages
 | **Canvas Undo/Redo** | ✅ Implemented | Toolbar buttons + keyboard shortcuts for reverting canvas edits |
 | **Keyboard Shortcuts & Reference** | ✅ Complete | Cmd/Ctrl+S save, Cmd/Ctrl+R run backtest, ? help modal, editor-only |
 | **Strategy Building Wizard** | ✅ Complete | Guided Q&A that generates editable strategy JSON |
+| **Auto-Backtest on Wizard Completion** | 📝 Spec Ready | Final wizard CTA auto-saves valid strategy JSON, enqueues a backtest, shows engaging progress messaging (including “Almost there...” for slow runs), and navigates directly to results while setting `users.has_completed_onboarding=true` |
 | **Wizard Essentials-Only Constraint** | 📝 Spec Ready | Wizard indicator/strategy-type step shows only 5 Essentials options with plain-English labels and excludes Ichimoku/Fibonacci/ADX/OBV/Stochastic; post-wizard canvas palette still follows current toggle state (Essentials by default for new users) |
 | **Backtesting** | ✅ Complete | Full engine with TP ladder, SL, max drawdown, equity curves, trade detail, risk-adjusted metrics |
 | **Enhanced Trade Explanation View** | ✅ Complete (Phase 1) | Per-trade entry/exit explanation with condition breakdown (✓ markers), price-pane indicator overlays (SMA, EMA, Bollinger), entry/exit candle markers; compute-on-read with graceful fallback |
@@ -2467,6 +2470,8 @@ npm run type-check    # TypeScript validation
 - `docs/tst-wizard-essentials-only-constraint.md` - Wizard essentials-only constraint TST
 - `docs/prd-wizard-default-post-signup-destination.md` - Wizard as default post-signup destination PRD
 - `docs/tst-wizard-default-post-signup-destination.md` - Wizard as default post-signup destination test checklist
+- `docs/prd-auto-backtest-on-wizard-completion.md` - Auto-backtest on wizard completion PRD
+- `docs/tst-auto-backtest-on-wizard-completion.md` - Auto-backtest on wizard completion test checklist
 - `docs/prd-copy-paste-blocks-subgraphs.md` - Copy/paste blocks & subgraphs PRD (IMPLEMENTED)
 - `docs/prd-canvas-undo-redo.md` - Canvas undo/redo PRD (IMPLEMENTED)
 - `docs/prd-keyboard-shortcuts.md` - Keyboard shortcuts & reference PRD
@@ -2557,6 +2562,7 @@ npm run type-check    # TypeScript validation
 ## 18. Changelog
 
 - **2026-03-04:** Added PRD/TST planning for wizard-first post-signup routing with subtle dashboard skip link, `wizard_first_run_started` analytics event, and `users.has_completed_onboarding` migration/backfill requirements.
+- **2026-03-04:** Added PRD/TST planning for auto-backtest on wizard completion with one-click save+enqueue flow, engaging progress states, 30-second result target, and onboarding completion flag update on successful results.
 - **2026-03-04:** Added PRD/TST planning for digest email opt-out controls, including `users.digest_email_enabled`, `strategies.digest_email_enabled`, and profile notification toggle requirements.
 - **2026-03-02:** Updated data availability feature: regular users keep auto-adjust; beta users can force earlier start dates via confirmation dialog to trigger on-demand data download.
 - **2026-03-01:** Added PRD/TST planning for data availability display and date range warnings in backtest configuration, including `data_quality_metrics` earliest/latest candle date columns and daily job backfill requirements.
