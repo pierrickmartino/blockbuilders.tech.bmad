@@ -36,6 +36,7 @@ class UserUpdateRequest(BaseModel):
     timezone_preference: Optional[TimezonePreference] = None
     theme_preference: Optional[ThemePreference] = None
     favorite_metrics: Optional[List[str]] = None
+    digest_email_enabled: Optional[bool] = None
 
 
 # Profile page bundled response types
@@ -57,6 +58,7 @@ class SettingsResponse(BaseModel):
     extra_strategy_slots: int = 0
     favorite_metrics: Optional[List[str]] = None
     user_tier: str = "standard"
+    digest_email_enabled: bool = True
 
 
 class UsageBundle(BaseModel):

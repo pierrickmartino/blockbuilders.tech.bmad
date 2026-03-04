@@ -67,6 +67,7 @@ class StrategyUpdateRequest(BaseModel):
     auto_update_enabled: Optional[bool] = None
     auto_update_lookback_days: Optional[int] = Field(default=None, ge=30, le=730)
     tag_ids: Optional[list[UUID]] = Field(default=None, max_length=20)
+    digest_email_enabled: Optional[bool] = None
 
     @field_validator("asset")
     @classmethod
@@ -119,6 +120,7 @@ class StrategyResponse(BaseModel):
     auto_update_enabled: bool
     auto_update_lookback_days: int
     last_auto_run_at: Optional[datetime] = None
+    digest_email_enabled: bool = True
     created_at: datetime
     updated_at: datetime
     tags: list[StrategyTagResponse] = Field(default_factory=list)

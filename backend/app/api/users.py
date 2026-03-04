@@ -65,6 +65,7 @@ def _build_profile_response(user: User, session: Session) -> ProfileResponse:
             extra_strategy_slots=user.extra_strategy_slots,
             favorite_metrics=user.favorite_metrics,
             user_tier=user.user_tier,
+            digest_email_enabled=user.digest_email_enabled,
         ),
         usage=UsageBundle(
             strategies=UsageItem(
@@ -113,6 +114,8 @@ def update_me(
         user.theme_preference = data.theme_preference
     if data.favorite_metrics is not None:
         user.favorite_metrics = data.favorite_metrics
+    if data.digest_email_enabled is not None:
+        user.digest_email_enabled = data.digest_email_enabled
     user.updated_at = datetime.now(timezone.utc)
     session.add(user)
     session.commit()

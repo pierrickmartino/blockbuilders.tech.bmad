@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useDisplay } from "@/context/display";
 import { getConsent, setConsent } from "@/lib/analytics";
 import { apiFetch, ApiError, safeRedirect } from "@/lib/api";
@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { ProfileSettingsSection } from "./profile-settings-section";
+import { Strategy } from "@/types/strategy";
 import {
   User,
   Settings,
@@ -29,6 +30,7 @@ import {
   Check,
   Sparkles,
   Shield,
+  Mail,
 } from "lucide-react";
 
 export default function ProfilePage() {
@@ -47,6 +49,14 @@ export default function ProfilePage() {
   const [billingError, setBillingError] = useState<string | null>(null);
   const [isPurchasingPack, setIsPurchasingPack] = useState<string | null>(null);
   const [analyticsConsent, setAnalyticsConsent] = useState<"accepted" | "declined" | null>(null);
+  const [digestEnabled, setDigestEnabled] = useState(true);
+  const [strategies, setStrategies] = useState<Strategy[]>([]);
+  const [strategiesLoading, setStrategiesLoading] = useState(true);
+  const [pendingStrategyToggleIds, setPendingStrategyToggleIds] = useState<Set<string>>(new Set());
+  const [digestMessage, setDigestMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const digestRequestSeqRef = useRef(0);
+  const committedDigestEnabledRef = useRef(true);
+  const pendingStrategyToggleIdsRef = useRef(new Set<string>());
 
   useEffect(() => {
     setAnalyticsConsent(getConsent());
@@ -70,6 +80,8 @@ export default function ProfilePage() {
         if (data.settings.theme_preference) {
           setTheme(data.settings.theme_preference);
         }
+        setDigestEnabled(data.settings.digest_email_enabled);
+        committedDigestEnabledRef.current = data.settings.digest_email_enabled;
       } catch {
         setError("Couldn't load profile. Please try again.");
       } finally {
@@ -78,6 +90,20 @@ export default function ProfilePage() {
     }
     fetchProfile();
   }, [setTimezone, setTheme]);
+
+  useEffect(() => {
+    async function fetchStrategies() {
+      try {
+        const data = await apiFetch<Strategy[]>("/strategies");
+        setStrategies(data);
+      } catch {
+        // Non-critical: digest section will show error state
+      } finally {
+        setStrategiesLoading(false);
+      }
+    }
+    fetchStrategies();
+  }, []);
 
   async function handleSaveDefaults(e: React.FormEvent) {
     e.preventDefault();
@@ -140,6 +166,87 @@ export default function ProfilePage() {
 
   function handleNodeDisplayModeChange(mode: "compact" | "expanded") {
     setNodeDisplayMode(mode);
+  }
+
+  async function handleDigestGlobalToggle(enabled: boolean) {
+    const requestSeq = ++digestRequestSeqRef.current;
+    setDigestEnabled(enabled);
+    setDigestMessage(null);
+
+    try {
+      const updated = await apiFetch<ProfileResponse>("/users/me", {
+        method: "PUT",
+        body: JSON.stringify({ digest_email_enabled: enabled }),
+      });
+      if (requestSeq !== digestRequestSeqRef.current) {
+        return;
+      }
+      const persistedDigestEnabled = updated.settings.digest_email_enabled;
+      committedDigestEnabledRef.current = persistedDigestEnabled;
+      setProfile(updated);
+      setDigestEnabled(persistedDigestEnabled);
+      setDigestMessage({
+        type: "success",
+        text: persistedDigestEnabled ? "Digest emails enabled" : "Digest emails paused",
+      });
+    } catch (err) {
+      if (requestSeq !== digestRequestSeqRef.current) {
+        return;
+      }
+      setDigestEnabled(committedDigestEnabledRef.current);
+      setDigestMessage({
+        type: "error",
+        text: err instanceof ApiError ? err.message : "Failed to update digest preference",
+      });
+    }
+  }
+
+  async function handleStrategyDigestToggle(strategyId: string, enabled: boolean) {
+    if (pendingStrategyToggleIdsRef.current.has(strategyId)) {
+      return;
+    }
+
+    const strategy = strategies.find((s) => s.id === strategyId);
+    if (!strategy) {
+      return;
+    }
+
+    const previousDigestEnabled = strategy.digest_email_enabled;
+    pendingStrategyToggleIdsRef.current.add(strategyId);
+    setPendingStrategyToggleIds((prev) => {
+      const next = new Set(prev);
+      next.add(strategyId);
+      return next;
+    });
+
+    setStrategies((prev) =>
+      prev.map((s) => (s.id === strategyId ? { ...s, digest_email_enabled: enabled } : s))
+    );
+    setDigestMessage(null);
+
+    try {
+      await apiFetch(`/strategies/${strategyId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ digest_email_enabled: enabled }),
+      });
+    } catch (err) {
+      setStrategies((prev) =>
+        prev.map((s) =>
+          s.id === strategyId ? { ...s, digest_email_enabled: previousDigestEnabled } : s
+        )
+      );
+      setDigestMessage({
+        type: "error",
+        text: err instanceof ApiError ? err.message : "Failed to update strategy digest preference",
+      });
+    } finally {
+      pendingStrategyToggleIdsRef.current.delete(strategyId);
+      setPendingStrategyToggleIds((prev) => {
+        const next = new Set(prev);
+        next.delete(strategyId);
+        return next;
+      });
+    }
   }
 
   async function handleUpgrade(
@@ -451,6 +558,87 @@ export default function ProfilePage() {
                 <p className="mt-2 text-xs text-muted-foreground">
                   Compact mode shows one-line summaries. Click nodes to expand details.
                 </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Email Digest Preferences */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Mail className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-base">Email Digest Preferences</CardTitle>
+            </div>
+            <CardDescription>
+              Control weekly strategy performance digest emails.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {digestMessage && (
+                <div
+                  className={cn(
+                    "rounded-lg border px-4 py-3 text-sm",
+                    digestMessage.type === "success"
+                      ? "border-green-200 bg-green-50 text-green-600 dark:border-green-800 dark:bg-green-950 dark:text-green-400"
+                      : "border-destructive/30 bg-destructive/5 text-destructive"
+                  )}
+                >
+                  {digestMessage.text}
+                </div>
+              )}
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <label htmlFor="digest-global" className="text-sm font-medium">
+                    Weekly Strategy Digest
+                  </label>
+                  <p className="text-xs text-muted-foreground">
+                    Receive a weekly summary of your strategy performance by email.
+                  </p>
+                </div>
+                <input
+                  type="checkbox"
+                  id="digest-global"
+                  checked={digestEnabled}
+                  onChange={(e) => handleDigestGlobalToggle(e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300"
+                />
+              </div>
+
+              {!digestEnabled && (
+                <p className="text-xs text-muted-foreground">
+                  All digest emails are paused. Per-strategy preferences below are saved for when you re-enable.
+                </p>
+              )}
+
+              <div className="border-t pt-4">
+                <h4 className="mb-3 text-sm font-medium">Per-Strategy Digest</h4>
+                {strategiesLoading ? (
+                  <div className="space-y-2">
+                    {[1, 2, 3].map((i) => (
+                      <Skeleton key={i} className="h-8 w-full" />
+                    ))}
+                  </div>
+                ) : strategies.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No strategies yet.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {strategies.map((s) => (
+                      <div key={s.id} className="flex items-center justify-between rounded-md border px-3 py-2">
+                        <span className="truncate text-sm">{s.name}</span>
+                        <input
+                          type="checkbox"
+                          checked={s.digest_email_enabled}
+                          disabled={pendingStrategyToggleIds.has(s.id)}
+                          onChange={(e) => handleStrategyDigestToggle(s.id, e.target.checked)}
+                          className="h-4 w-4 shrink-0 rounded border-gray-300"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </CardContent>

@@ -18,6 +18,7 @@ export interface UserUpdateRequest {
   timezone_preference?: "local" | "utc";
   theme_preference?: "system" | "light" | "dark";
   favorite_metrics?: string[] | null;
+  digest_email_enabled?: boolean;
 }
 
 // Legacy Usage type (kept for /usage/me endpoint compatibility)
@@ -48,6 +49,7 @@ export interface SettingsResponse {
   extra_strategy_slots: number;
   favorite_metrics: string[] | null;
   user_tier: "standard" | "beta";
+  digest_email_enabled: boolean;
 }
 
 export interface UsageBundle {

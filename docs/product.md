@@ -1977,7 +1977,8 @@ Plain-Language Error Messages
 23. `023_add_transaction_cost_fields` - Transaction cost analysis fields
 24. `024_add_profile_fields` - Public profile and follower fields
 25. `025_add_performance_indexes` - Composite indexes for query optimization
-26. `026_add_digest_email_opt_out_fields` - Global and per-strategy digest opt-out fields
+26. `026_add_candle_date_range_to_data_quality` - Earliest/latest candle date columns on data_quality_metrics
+27. `027_add_digest_email_enabled` - Global and per-strategy digest opt-out fields
 
 **Migration Commands:**
 - `alembic upgrade head` - Apply all pending migrations
@@ -2115,7 +2116,7 @@ Plain-Language Error Messages
 |---|---|---|
 | **Authentication** | ✅ Complete | Email/password, OAuth (Google, GitHub), password reset |
 | **Account Management** | ✅ Complete | Profile, settings (fees, slippage, timezone), usage tracking |
-| **Digest Email Opt-Out Controls** | 📝 Spec Ready | Global weekly digest opt-out (`users.digest_email_enabled`) plus per-strategy opt-out (`strategies.digest_email_enabled`) in profile notification settings |
+| **Digest Email Opt-Out Controls** | ✅ Done | Global weekly digest opt-out (`users.digest_email_enabled`) plus per-strategy opt-out (`strategies.digest_email_enabled`) in profile notification settings |
 | **Product Analytics (PostHog + Consent + Backend Events + Onboarding Funnel Dashboard)** | ✅ Complete | GDPR-aware consent banner + event tracking for auth/key strategy-backtest actions plus backend worker lifecycle events (`backtest_job_started/completed/failed`) and a dedicated PostHog onboarding funnel (`signup_completed → ... → second_session`) with date-range/cohort filters |
 | **Structured Logging with Correlation IDs** | ✅ Complete | JSON logs to stdout for FastAPI + worker with shared `correlation_id` across request/job lifecycle and structured tracebacks for failures |
 | **User Profiles & Reputation** | ✅ Complete | Opt-in public profiles (/u/{handle}), follower counts, contributions, auto-awarded badges, privacy toggles |

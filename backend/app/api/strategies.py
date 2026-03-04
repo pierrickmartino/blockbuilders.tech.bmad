@@ -148,6 +148,7 @@ def create_strategy(
         auto_update_enabled=strategy.auto_update_enabled,
         auto_update_lookback_days=strategy.auto_update_lookback_days,
         last_auto_run_at=strategy.last_auto_run_at,
+        digest_email_enabled=strategy.digest_email_enabled,
         created_at=strategy.created_at,
         updated_at=strategy.updated_at,
         tags=[],
@@ -237,6 +238,7 @@ def list_strategies(
             auto_update_enabled=s.auto_update_enabled,
             auto_update_lookback_days=s.auto_update_lookback_days,
             last_auto_run_at=s.last_auto_run_at,
+            digest_email_enabled=s.digest_email_enabled,
             created_at=s.created_at,
             updated_at=s.updated_at,
             latest_total_return_pct=backtest.total_return if backtest else None,
@@ -267,6 +269,7 @@ def get_strategy(
         auto_update_enabled=strategy.auto_update_enabled,
         auto_update_lookback_days=strategy.auto_update_lookback_days,
         last_auto_run_at=strategy.last_auto_run_at,
+        digest_email_enabled=strategy.digest_email_enabled,
         created_at=strategy.created_at,
         updated_at=strategy.updated_at,
         tags=load_strategy_tags(strategy_id, session),
@@ -295,6 +298,8 @@ def update_strategy(
         strategy.auto_update_enabled = data.auto_update_enabled
     if data.auto_update_lookback_days is not None:
         strategy.auto_update_lookback_days = data.auto_update_lookback_days
+    if data.digest_email_enabled is not None:
+        strategy.digest_email_enabled = data.digest_email_enabled
 
     # Handle tag updates
     if data.tag_ids is not None:
@@ -337,6 +342,7 @@ def update_strategy(
         auto_update_enabled=strategy.auto_update_enabled,
         auto_update_lookback_days=strategy.auto_update_lookback_days,
         last_auto_run_at=strategy.last_auto_run_at,
+        digest_email_enabled=strategy.digest_email_enabled,
         created_at=strategy.created_at,
         updated_at=strategy.updated_at,
         tags=load_strategy_tags(strategy_id, session),
@@ -407,6 +413,7 @@ def duplicate_strategy(
         auto_update_enabled=new_strategy.auto_update_enabled,
         auto_update_lookback_days=new_strategy.auto_update_lookback_days,
         last_auto_run_at=new_strategy.last_auto_run_at,
+        digest_email_enabled=new_strategy.digest_email_enabled,
         created_at=new_strategy.created_at,
         updated_at=new_strategy.updated_at,
     )
