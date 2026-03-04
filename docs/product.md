@@ -30,6 +30,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Create account with email + password
 - Password hashing with bcrypt
 - Returns JWT token (7-day expiration)
+- Post-signup routing: new users (`has_completed_onboarding=false`) are directed to the Strategy Wizard first-run experience; a "Skip to dashboard" link sets the flag permanently
 
 **Login** (`POST /auth/login`)
 - Email + password validation
@@ -1986,6 +1987,7 @@ Plain-Language Error Messages
 25. `025_add_performance_indexes` - Composite indexes for query optimization
 26. `026_add_candle_date_range_to_data_quality` - Earliest/latest candle date columns on data_quality_metrics
 27. `027_add_digest_email_enabled` - Global and per-strategy digest opt-out fields
+28. `028_add_has_completed_onboarding` - Onboarding flag on users with backfill from backtest_runs
 
 **Migration Commands:**
 - `alembic upgrade head` - Apply all pending migrations

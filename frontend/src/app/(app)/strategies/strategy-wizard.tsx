@@ -23,6 +23,7 @@ import {
 import { Button } from "@/components/ui/button";
 
 interface Props {
+  isFirstRun?: boolean;
   onClose: () => void;
   onComplete: (strategyId: string) => void;
 }
@@ -36,7 +37,7 @@ interface WizardState {
   };
 }
 
-export function StrategyWizard({ onClose, onComplete }: Props) {
+export function StrategyWizard({ isFirstRun, onClose, onComplete }: Props) {
   const { user } = useAuth();
   const [state, setState] = useState<WizardState>({
     step: 1,
@@ -62,7 +63,10 @@ export function StrategyWizard({ onClose, onComplete }: Props) {
 
   useEffect(() => {
     trackEvent("wizard_started", undefined, user?.id);
-  }, [user?.id]);
+    if (isFirstRun) {
+      trackEvent("wizard_first_run_started", undefined, user?.id);
+    }
+  }, [user?.id, isFirstRun]);
 
   const totalSteps = 6;
 

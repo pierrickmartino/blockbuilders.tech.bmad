@@ -23,7 +23,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     if (!isLoading && !user) {
       router.push("/login");
     }
-  }, [user, isLoading, router]);
+    // Redirect unonboarded users to wizard (unless already on strategies page)
+    if (!isLoading && user && !user.has_completed_onboarding && !pathname.startsWith("/strategies")) {
+      router.push("/strategies?wizard=true");
+    }
+  }, [user, isLoading, router, pathname]);
 
   useEffect(() => {
     const syncConsent = () => setConsent(getConsent());

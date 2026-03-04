@@ -23,6 +23,7 @@ class UserResponse(BaseModel):
     default_slippage_percent: Optional[float] = None
     timezone_preference: TimezonePreference = TimezonePreference.LOCAL
     favorite_metrics: Optional[List[str]] = None
+    has_completed_onboarding: bool = False
 
 
 class AuthResponse(BaseModel):
@@ -59,6 +60,7 @@ class SettingsResponse(BaseModel):
     favorite_metrics: Optional[List[str]] = None
     user_tier: str = "standard"
     digest_email_enabled: bool = True
+    has_completed_onboarding: bool = False
 
 
 class UsageBundle(BaseModel):

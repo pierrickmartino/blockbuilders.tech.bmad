@@ -52,6 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         default_slippage_percent: profileData.settings.default_slippage_percent,
         timezone_preference: profileData.settings.timezone_preference,
         favorite_metrics: profileData.settings.favorite_metrics,
+        has_completed_onboarding: profileData.settings.has_completed_onboarding,
       });
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {

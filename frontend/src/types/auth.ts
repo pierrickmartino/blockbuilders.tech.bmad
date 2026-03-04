@@ -5,6 +5,7 @@ export interface User {
   default_slippage_percent: number | null;
   timezone_preference: "local" | "utc";
   favorite_metrics: string[] | null;
+  has_completed_onboarding: boolean;
 }
 
 export interface AuthResponse {
@@ -50,6 +51,7 @@ export interface SettingsResponse {
   favorite_metrics: string[] | null;
   user_tier: "standard" | "beta";
   digest_email_enabled: boolean;
+  has_completed_onboarding: boolean;
 }
 
 export interface UsageBundle {

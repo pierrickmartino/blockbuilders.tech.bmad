@@ -108,3 +108,6 @@ class User(SQLModel, table=True):
 
     # Digest email preferences
     digest_email_enabled: bool = Field(default=True)
+
+    # Onboarding
+    has_completed_onboarding: bool = Field(default=False)

@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { apiFetch, ApiError } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
 import { useDisplay } from "@/context/display";
 import { useAuth } from "@/context/auth";
+import { trackEvent } from "@/lib/analytics";
 import { ALLOWED_ASSETS, Strategy, StrategyExportFile, StrategyTag, StrategyVersion, StrategyVersionDetail } from "@/types/strategy";
 import type { ValidationResponse } from "@/types/canvas";
 import NewStrategyModal from "./new-strategy-modal";
@@ -52,8 +53,10 @@ type LastRunFilter = "all" | "7days" | "30days" | "never";
 
 export default function StrategiesPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { timezone } = useDisplay();
-  const { refreshUsage } = useAuth();
+  const { user, refreshUsage, refreshUser } = useAuth();
+  const isFirstRun = searchParams.get("wizard") === "true";
   const [strategies, setStrategies] = useState<Strategy[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -62,7 +65,8 @@ export default function StrategiesPage() {
   const [sortField, setSortField] = useState<SortField>("total_return");
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
   const [showModal, setShowModal] = useState(false);
-  const [showWizard, setShowWizard] = useState(false);
+  const [showWizard, setShowWizard] = useState(isFirstRun);
+  const [isSkipping, setIsSkipping] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);
   const [importData, setImportData] = useState<StrategyExportFile | null>(null);
@@ -1094,13 +1098,42 @@ export default function StrategiesPage() {
 
       {showWizard && (
         <StrategyWizard
-          onClose={() => setShowWizard(false)}
+          isFirstRun={isFirstRun}
+          onClose={() => {
+            setShowWizard(false);
+            // Clean up query param when closing wizard outside first-run
+            if (isFirstRun) {
+              router.replace("/strategies");
+            }
+          }}
           onComplete={(strategyId) => {
             setShowWizard(false);
             router.push(`/strategies/${strategyId}`);
             refreshUsage();
           }}
         />
+      )}
+
+      {isFirstRun && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
+          <button
+            type="button"
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+            disabled={isSkipping}
+            onClick={async () => {
+              setIsSkipping(true);
+              try {
+                await apiFetch("/users/me/complete-onboarding", { method: "POST" });
+                await refreshUser();
+                router.push("/dashboard");
+              } catch {
+                setIsSkipping(false);
+              }
+            }}
+          >
+            {isSkipping ? "Redirecting..." : "Skip to dashboard"}
+          </button>
+        </div>
       )}
 
       <Dialog open={showBulkTagDialog} onOpenChange={setShowBulkTagDialog}>

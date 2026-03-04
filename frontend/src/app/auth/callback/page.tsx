@@ -12,8 +12,15 @@ import { Loader2 } from "lucide-react";
 function OAuthCallbackHandler() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { completeOAuth } = useAuth();
+  const { user, completeOAuth } = useAuth();
   const [error, setError] = useState("");
+
+  // Route based on onboarding flag once user is available
+  useEffect(() => {
+    if (user) {
+      router.push(user.has_completed_onboarding ? "/dashboard" : "/strategies?wizard=true");
+    }
+  }, [user, router]);
 
   useEffect(() => {
     const code = searchParams.get("code");
@@ -32,18 +39,14 @@ function OAuthCallbackHandler() {
     }
     localStorage.removeItem("oauth_provider");
 
-    completeOAuth(provider, code, state)
-      .then(() => {
-        router.push("/dashboard");
-      })
-      .catch((err) => {
-        if (err instanceof ApiError) {
-          setError(err.message);
-        } else {
-          setError("Authentication failed. Please try again.");
-        }
-      });
-  }, [searchParams, router, completeOAuth]);
+    completeOAuth(provider, code, state).catch((err) => {
+      if (err instanceof ApiError) {
+        setError(err.message);
+      } else {
+        setError("Authentication failed. Please try again.");
+      }
+    });
+  }, [searchParams, completeOAuth]);
 
   if (error) {
     return (
