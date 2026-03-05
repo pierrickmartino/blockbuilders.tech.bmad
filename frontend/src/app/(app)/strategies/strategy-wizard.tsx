@@ -5,6 +5,7 @@ import { apiFetch, ApiError } from "@/lib/api";
 import { trackEvent } from "@/lib/analytics";
 import { useAuth } from "@/context/auth";
 import type { Strategy } from "@/types/strategy";
+import type { BacktestCreateResponse, BacktestStatusResponse } from "@/types/backtest";
 import { generateTemplate, type WizardAnswers } from "./wizard-template-generator";
 import { StepName } from "./wizard-steps/step-name";
 import { StepAsset } from "./wizard-steps/step-asset";
@@ -22,6 +23,15 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
+const LOADING_MESSAGES = [
+  "Building your strategy...",
+  "Running against 365 days of data...",
+  "Calculating results...",
+  "Almost there...",
+];
+
+type BacktestPhase = "idle" | "enqueuing" | "polling" | "done" | "error";
+
 interface Props {
   isFirstRun?: boolean;
   onClose: () => void;
@@ -38,7 +48,7 @@ interface WizardState {
 }
 
 export function StrategyWizard({ isFirstRun, onClose, onComplete }: Props) {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [state, setState] = useState<WizardState>({
     step: 1,
     answers: {
@@ -60,6 +70,9 @@ export function StrategyWizard({ isFirstRun, onClose, onComplete }: Props) {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [backtestPhase, setBacktestPhase] = useState<BacktestPhase>("idle");
+  const [savedStrategyId, setSavedStrategyId] = useState<string | null>(null);
+  const [loadingMessageIdx, setLoadingMessageIdx] = useState(0);
 
   useEffect(() => {
     trackEvent("wizard_started", undefined, user?.id);
@@ -67,6 +80,21 @@ export function StrategyWizard({ isFirstRun, onClose, onComplete }: Props) {
       trackEvent("wizard_first_run_started", undefined, user?.id);
     }
   }, [user?.id, isFirstRun]);
+
+  // Rotate loading messages during auto-backtest
+  useEffect(() => {
+    if (backtestPhase === "idle" || backtestPhase === "done" || backtestPhase === "error") return;
+    const start = Date.now();
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - start;
+      if (elapsed > 25000) {
+        setLoadingMessageIdx(3); // "Almost there..."
+      } else {
+        setLoadingMessageIdx((prev) => (prev + 1) % 3);
+      }
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [backtestPhase]);
 
   const totalSteps = 6;
 
@@ -132,8 +160,87 @@ export function StrategyWizard({ isFirstRun, onClose, onComplete }: Props) {
         timeframe: state.answers.timeframe,
         source: "wizard",
       }, user?.id);
-      onComplete(strategy.id);
+
+      // Non-first-run: existing behavior
+      if (!isFirstRun) {
+        onComplete(strategy.id);
+        return;
+      }
+
+      // First-run: auto-enqueue backtest
+      setSavedStrategyId(strategy.id);
+      setBacktestPhase("enqueuing");
+
+      const now = new Date();
+      const yearAgo = new Date(now);
+      yearAgo.setFullYear(yearAgo.getFullYear() - 1);
+
+      const res = await apiFetch<BacktestCreateResponse>("/backtests/", {
+        method: "POST",
+        body: JSON.stringify({
+          strategy_id: strategy.id,
+          date_from: yearAgo.toISOString(),
+          date_to: now.toISOString(),
+        }),
+      });
+
+      trackEvent("auto_backtest_started", {
+        strategy_id: strategy.id,
+        run_id: res.run_id,
+        source: "wizard_first_run",
+      }, user?.id);
+
+      setBacktestPhase("polling");
+
+      // Poll for completion (max 5 min at 5s intervals)
+      const maxAttempts = 60;
+      for (let i = 0; i < maxAttempts; i++) {
+        await new Promise((r) => setTimeout(r, 5000));
+        const detail = await apiFetch<BacktestStatusResponse>(
+          `/backtests/${res.run_id}`
+        );
+        if (detail.status === "completed") {
+          setBacktestPhase("done");
+          trackEvent("auto_backtest_completed", {
+            strategy_id: strategy.id,
+            run_id: res.run_id,
+          }, user?.id);
+          // Mark onboarding complete (non-critical)
+          try {
+            await apiFetch("/users/me/complete-onboarding", { method: "POST" });
+            await refreshUser();
+          } catch {
+            // Don't block navigation
+          }
+          onComplete(strategy.id);
+          return;
+        }
+        if (detail.status === "failed") {
+          setBacktestPhase("error");
+          setError(
+            detail.error_message ||
+            "The backtest could not complete. You can try again from the strategy page."
+          );
+          setIsSubmitting(false);
+          return;
+        }
+      }
+      // Timeout
+      setBacktestPhase("error");
+      setError(
+        "The backtest is taking longer than expected. You can check results from the strategy page."
+      );
+      setIsSubmitting(false);
     } catch (err) {
+      if (backtestPhase !== "idle") {
+        // Strategy saved but backtest enqueue failed
+        setBacktestPhase("error");
+        setError(
+          "Your strategy was saved, but we couldn't start the backtest. You can run it from the strategy page."
+        );
+        setIsSubmitting(false);
+        return;
+      }
       if (err instanceof ApiError && err.status === 403) {
         setError(
           "You've reached the maximum number of strategies. Archive some existing strategies to create new ones."
@@ -144,7 +251,9 @@ export function StrategyWizard({ isFirstRun, onClose, onComplete }: Props) {
         );
       }
     } finally {
-      setIsSubmitting(false);
+      if (backtestPhase === "idle") {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -238,7 +347,7 @@ export function StrategyWizard({ isFirstRun, onClose, onComplete }: Props) {
   };
 
   return (
-    <Dialog open onOpenChange={(open) => !open && onClose()}>
+    <Dialog open onOpenChange={(open) => !open && backtestPhase === "idle" && onClose()}>
       <DialogContent className="max-h-[85vh] w-full overflow-y-auto sm:max-w-xl md:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Strategy Wizard</DialogTitle>
@@ -259,19 +368,39 @@ export function StrategyWizard({ isFirstRun, onClose, onComplete }: Props) {
 
         {/* Error message */}
         {error && (
-          <div className="rounded border border-red-200 bg-red-50 p-3 text-sm text-red-600">
+          <div className="rounded border border-red-200 bg-red-50 p-3 text-sm text-red-600 dark:border-red-800 dark:bg-red-950 dark:text-red-400">
             {error}
+            {backtestPhase === "error" && savedStrategyId && (
+              <div className="mt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onComplete(savedStrategyId)}
+                >
+                  Go to Strategy
+                </Button>
+              </div>
+            )}
           </div>
         )}
 
-        {/* Step content */}
-        <div className="py-4">{renderStep()}</div>
+        {/* Loading state during auto-backtest */}
+        {isFirstRun && backtestPhase !== "idle" && backtestPhase !== "error" ? (
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <div className="mb-4 h-8 w-8 animate-spin rounded-full border-2 border-muted border-t-primary" />
+            <p className="text-sm font-medium">
+              {LOADING_MESSAGES[loadingMessageIdx]}
+            </p>
+          </div>
+        ) : (
+          <div className="py-4">{renderStep()}</div>
+        )}
 
         <DialogFooter className="flex justify-between sm:justify-between">
           <Button
             variant="ghost"
             onClick={handleBack}
-            disabled={state.step === 1}
+            disabled={state.step === 1 || backtestPhase !== "idle"}
           >
             Back
           </Button>
@@ -280,9 +409,11 @@ export function StrategyWizard({ isFirstRun, onClose, onComplete }: Props) {
             disabled={!isStepValid || isSubmitting}
           >
             {isSubmitting
-              ? "Creating..."
+              ? (isFirstRun && backtestPhase !== "idle"
+                  ? LOADING_MESSAGES[loadingMessageIdx]
+                  : "Creating...")
               : state.step === totalSteps
-                ? "Create Strategy"
+                ? (isFirstRun ? "See how it would have performed" : "Create Strategy")
                 : "Next"}
           </Button>
         </DialogFooter>

@@ -2150,7 +2150,7 @@ Plain-Language Error Messages
 | **Canvas Undo/Redo** | ✅ Implemented | Toolbar buttons + keyboard shortcuts for reverting canvas edits |
 | **Keyboard Shortcuts & Reference** | ✅ Complete | Cmd/Ctrl+S save, Cmd/Ctrl+R run backtest, ? help modal, editor-only |
 | **Strategy Building Wizard** | ✅ Complete | Guided Q&A that generates editable strategy JSON |
-| **Auto-Backtest on Wizard Completion** | 📝 Spec Ready | Final wizard CTA auto-saves valid strategy JSON, enqueues a backtest, shows engaging progress messaging (including “Almost there...” for slow runs), and navigates directly to results while setting `users.has_completed_onboarding=true` |
+| **Auto-Backtest on Wizard Completion** | ✅ Complete | Final wizard CTA (“See how it would have performed”) auto-saves strategy, enqueues a 365-day backtest, shows rotating progress messages (including “Almost there...” after 25s), polls for completion, navigates directly to results, and sets `users.has_completed_onboarding=true` client-side |
 | **Wizard Essentials-Only Constraint** | 📝 Spec Ready | Wizard indicator/strategy-type step shows only 5 Essentials options with plain-English labels and excludes Ichimoku/Fibonacci/ADX/OBV/Stochastic; post-wizard canvas palette still follows current toggle state (Essentials by default for new users) |
 | **Backtesting** | ✅ Complete | Full engine with TP ladder, SL, max drawdown, equity curves, trade detail, risk-adjusted metrics |
 | **Enhanced Trade Explanation View** | ✅ Complete (Phase 1) | Per-trade entry/exit explanation with condition breakdown (✓ markers), price-pane indicator overlays (SMA, EMA, Bollinger), entry/exit candle markers; compute-on-read with graceful fallback |
@@ -2561,6 +2561,7 @@ npm run type-check    # TypeScript validation
 
 ## 18. Changelog
 
+- **2026-03-05:** Implemented auto-backtest on wizard completion: final CTA "See how it would have performed" auto-saves strategy, enqueues 365-day backtest, shows rotating progress messages with "Almost there..." threshold, polls for completion, navigates to results, and marks onboarding complete client-side.
 - **2026-03-04:** Added PRD/TST planning for wizard-first post-signup routing with subtle dashboard skip link, `wizard_first_run_started` analytics event, and `users.has_completed_onboarding` migration/backfill requirements.
 - **2026-03-04:** Added PRD/TST planning for auto-backtest on wizard completion with one-click save+enqueue flow, engaging progress states, 30-second result target, and onboarding completion flag update on successful results.
 - **2026-03-04:** Added PRD/TST planning for digest email opt-out controls, including `users.digest_email_enabled`, `strategies.digest_email_enabled`, and profile notification toggle requirements.
