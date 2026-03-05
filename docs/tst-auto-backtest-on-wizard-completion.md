@@ -1,26 +1,26 @@
 # TST: Auto-Backtest on Wizard Completion
 
-- [ ] Verify final wizard CTA label is “See how it would have performed”.
-- [ ] Verify clicking final CTA with valid generated strategy JSON triggers automatic strategy save (no manual save action required).
-- [ ] Verify clicking final CTA enqueues a backtest automatically (no separate backtest-page navigation required).
-- [ ] Verify loading state appears immediately after CTA click.
-- [ ] Verify loading messaging includes:
-  - [ ] “Building your strategy...”
-  - [ ] “Running against 365 days of data...”
-  - [ ] “Calculating results...”
-- [ ] Verify in normal environment the results screen is displayed within 30 seconds (NFR-01).
-- [ ] Verify user is routed directly to results page once run completes.
-- [ ] Verify `users.has_completed_onboarding` is set to `true` when wizard-generated run completes and results are shown.
-- [ ] Verify user is never forced through a separate backtest configuration page in this flow.
-- [ ] Slow-run behavior:
-  - [ ] Simulate run duration near/over 30s.
-  - [ ] Verify loading UI shows “Almost there...”.
-  - [ ] Verify no timeout error is shown solely due to slow processing.
-- [ ] Failure handling:
-  - [ ] Simulate invalid strategy JSON and verify plain-language validation error + recovery path.
-  - [ ] Simulate save failure and verify plain-language error + retry.
+- [x] Verify final wizard CTA label is “See how it would have performed”.
+- [x] Verify clicking final CTA with valid generated strategy JSON triggers automatic strategy save (no manual save action required).
+- [x] Verify clicking final CTA enqueues a backtest automatically (no separate backtest-page navigation required).
+- [x] Verify loading state appears immediately after CTA click.
+- [x] Verify loading messaging includes:
+  - [x] “Building your strategy...”
+  - [x] “Running against 365 days of data...”
+  - [x] “Calculating results...”
+- [x] Verify in normal environment the results screen is displayed within 30 seconds (NFR-01).
+- [x] Verify user is routed directly to results page once run completes.
+- [x] Verify `users.has_completed_onboarding` is set to `true` when wizard-generated run completes and results are shown.
+- [x] Verify user is never forced through a separate backtest configuration page in this flow.
+- [x] Slow-run behavior:
+  - [x] Simulate run duration near/over 30s.
+  - [x] Verify loading UI shows “Almost there...”.
+  - [x] Verify no timeout error is shown solely due to slow processing.
+- [x] Failure handling:
+  - [x] Simulate invalid strategy JSON and verify plain-language validation error + recovery path.
+  - [x] Simulate save failure and verify plain-language error + retry.
   - [ ] Simulate enqueue failure after save and verify plain-language error + retry without losing saved strategy.
-- [ ] Regression checks:
-  - [ ] Existing manual backtest flow still works.
-  - [ ] Existing onboarding routing logic (`has_completed_onboarding` false/true behavior) remains correct.
+- [x] Regression checks:
+  - [x] Existing manual backtest flow still works.
+  - [x] Existing onboarding routing logic (`has_completed_onboarding` false/true behavior) remains correct.
   - [ ] Existing analytics events for wizard/backtest funnel still fire as expected.

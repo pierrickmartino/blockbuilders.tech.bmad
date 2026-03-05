@@ -1108,7 +1108,11 @@ export default function StrategiesPage() {
           }}
           onComplete={(strategyId) => {
             setShowWizard(false);
-            router.push(`/strategies/${strategyId}`);
+            router.push(
+              isFirstRun
+                ? `/strategies/${strategyId}/backtest`
+                : `/strategies/${strategyId}`
+            );
             refreshUsage();
           }}
         />
