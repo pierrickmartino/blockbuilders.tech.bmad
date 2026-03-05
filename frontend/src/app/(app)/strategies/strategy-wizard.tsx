@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { apiFetch, ApiError } from "@/lib/api";
 import { trackEvent } from "@/lib/analytics";
 import { useAuth } from "@/context/auth";
@@ -71,8 +71,14 @@ export function StrategyWizard({ isFirstRun, onClose, onComplete }: Props) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [backtestPhase, setBacktestPhase] = useState<BacktestPhase>("idle");
+  const backtestPhaseRef = useRef<BacktestPhase>("idle");
   const [savedStrategyId, setSavedStrategyId] = useState<string | null>(null);
   const [loadingMessageIdx, setLoadingMessageIdx] = useState(0);
+
+  const updateBacktestPhase = (phase: BacktestPhase) => {
+    backtestPhaseRef.current = phase;
+    setBacktestPhase(phase);
+  };
 
   useEffect(() => {
     trackEvent("wizard_started", undefined, user?.id);
@@ -169,7 +175,7 @@ export function StrategyWizard({ isFirstRun, onClose, onComplete }: Props) {
 
       // First-run: auto-enqueue backtest
       setSavedStrategyId(strategy.id);
-      setBacktestPhase("enqueuing");
+      updateBacktestPhase("enqueuing");
 
       const now = new Date();
       const yearAgo = new Date(now);
@@ -190,7 +196,7 @@ export function StrategyWizard({ isFirstRun, onClose, onComplete }: Props) {
         source: "wizard_first_run",
       }, user?.id);
 
-      setBacktestPhase("polling");
+      updateBacktestPhase("polling");
 
       // Poll for completion (max 5 min at 5s intervals)
       const maxAttempts = 60;
@@ -200,7 +206,7 @@ export function StrategyWizard({ isFirstRun, onClose, onComplete }: Props) {
           `/backtests/${res.run_id}`
         );
         if (detail.status === "completed") {
-          setBacktestPhase("done");
+          updateBacktestPhase("done");
           trackEvent("auto_backtest_completed", {
             strategy_id: strategy.id,
             run_id: res.run_id,
@@ -216,7 +222,7 @@ export function StrategyWizard({ isFirstRun, onClose, onComplete }: Props) {
           return;
         }
         if (detail.status === "failed") {
-          setBacktestPhase("error");
+          updateBacktestPhase("error");
           setError(
             detail.error_message ||
             "The backtest could not complete. You can try again from the strategy page."
@@ -226,15 +232,15 @@ export function StrategyWizard({ isFirstRun, onClose, onComplete }: Props) {
         }
       }
       // Timeout
-      setBacktestPhase("error");
+      updateBacktestPhase("error");
       setError(
         "The backtest is taking longer than expected. You can check results from the strategy page."
       );
       setIsSubmitting(false);
     } catch (err) {
-      if (backtestPhase !== "idle") {
+      if (backtestPhaseRef.current !== "idle") {
         // Strategy saved but backtest enqueue failed
-        setBacktestPhase("error");
+        updateBacktestPhase("error");
         setError(
           "Your strategy was saved, but we couldn't start the backtest. You can run it from the strategy page."
         );
@@ -251,7 +257,7 @@ export function StrategyWizard({ isFirstRun, onClose, onComplete }: Props) {
         );
       }
     } finally {
-      if (backtestPhase === "idle") {
+      if (backtestPhaseRef.current === "idle") {
         setIsSubmitting(false);
       }
     }
