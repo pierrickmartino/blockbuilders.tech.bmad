@@ -959,6 +959,11 @@ Plain-Language Error Messages
 
 **Comparison Use:** These metrics power the backtest comparison table when multiple runs are viewed side-by-side.
 
+**First-Run Guided Metric Explanations (Planned):**
+- On the user's first-ever backtest results view immediately after onboarding completion, show inline muted plain-language helper text (1-2 sentences) under 5 default metrics: Total Return %, Max Drawdown %, Win Rate, Number of Trades, and vs. Buy-and-Hold %.
+- On subsequent results views, collapse the explanations behind compact `?` hover/click icons next to those metric labels.
+- Track one-time display state via `users.has_completed_onboarding` transition and a persisted seen flag (localStorage and/or user record).
+
 ### 5.5. Backtest Results
 
 **Equity Curve** (`GET /backtests/{run_id}/equity-curve`)
@@ -1380,6 +1385,7 @@ Plain-Language Error Messages
 - Summary metrics cards:
   - Total return, CAGR, max drawdown
   - Number of trades, win rate
+- First-run metric explainer mode: inline muted helper copy beneath the 5 default metrics for first-time results viewers; collapsed `?` helper icons on later visits.
 - Favorite metrics row that lets users pin/reorder the summary metrics they care about most (stored per user).
 - Equity curve chart (responsive Recharts line chart with touch gestures)
 - Trades table with sorting and pagination
@@ -1631,6 +1637,7 @@ Plain-Language Error Messages
 - Feature events: `wizard_started`, `wizard_first_run_started`, `strategy_created`, `strategy_saved`, `backtest_started`, `backtest_completed`, `results_viewed`
 - Backend worker backtest lifecycle events: `backtest_job_started`, `backtest_job_completed`, `backtest_job_failed`
 - Onboarding retention event: `second_session` (used as final step in onboarding funnel)
+- First-run backtest education event: `first_run_overlay_completed` (fires when the first-time viewer scrolls past or interacts with results)
 
 **Onboarding Funnel Dashboard (PostHog):**
 - Saved PostHog funnel: `Onboarding Funnel Dashboard`
@@ -2151,6 +2158,7 @@ Plain-Language Error Messages
 | **Keyboard Shortcuts & Reference** | ✅ Complete | Cmd/Ctrl+S save, Cmd/Ctrl+R run backtest, ? help modal, editor-only |
 | **Strategy Building Wizard** | ✅ Complete | Guided Q&A that generates editable strategy JSON |
 | **Auto-Backtest on Wizard Completion** | ✅ Complete | Final wizard CTA (“See how it would have performed”) auto-saves strategy, enqueues a 365-day backtest, shows rotating progress messages (including “Almost there...” after 25s), polls for completion, navigates directly to results, and sets `users.has_completed_onboarding=true` client-side |
+| **First-Run Guided Metric Explanations** | 📝 Spec Ready | First-ever results view shows inline 1-2 sentence plain-language explanations under 5 default metrics; subsequent views collapse copy behind `?` hover/click helpers, and PostHog tracks `first_run_overlay_completed` on scroll/interaction |
 | **Wizard Essentials-Only Constraint** | 📝 Spec Ready | Wizard indicator/strategy-type step shows only 5 Essentials options with plain-English labels and excludes Ichimoku/Fibonacci/ADX/OBV/Stochastic; post-wizard canvas palette still follows current toggle state (Essentials by default for new users) |
 | **Backtesting** | ✅ Complete | Full engine with TP ladder, SL, max drawdown, equity curves, trade detail, risk-adjusted metrics |
 | **Enhanced Trade Explanation View** | ✅ Complete (Phase 1) | Per-trade entry/exit explanation with condition breakdown (✓ markers), price-pane indicator overlays (SMA, EMA, Bollinger), entry/exit candle markers; compute-on-read with graceful fallback |
@@ -2497,6 +2505,8 @@ npm run type-check    # TypeScript validation
 - `docs/prd-quick-strategy-clone.md` - Quick strategy clone (list action) PRD
 - `docs/prd-progress-dashboard.md` - Progress dashboard PRD
 - `docs/prd-posthog-analytics-privacy-consent.md` - PostHog analytics with privacy consent PRD
+- `docs/prd-first-run-guided-metric-explanations.md` - First-run guided metric explanations PRD
+- `docs/tst-first-run-guided-metric-explanations.md` - First-run guided metric explanations test checklist
 - `docs/prd-backend-event-tracking-backtest-lifecycle.md` - Backend event tracking for backtest lifecycle PRD
 - `docs/tst-backend-event-tracking-backtest-lifecycle.md` - Backend event tracking for backtest lifecycle test checklist
 - `docs/prd-onboarding-funnel-dashboard.md` - Onboarding funnel dashboard (PostHog) PRD
@@ -2561,6 +2571,7 @@ npm run type-check    # TypeScript validation
 
 ## 18. Changelog
 
+- **2026-03-05:** Added PRD/TST planning for first-run guided metric explanations on backtest results, including inline helper copy for first-time viewers, collapsed `?` helpers for return visits, and `first_run_overlay_completed` PostHog event tracking on scroll/interaction.
 - **2026-03-05:** Implemented auto-backtest on wizard completion: final CTA "See how it would have performed" auto-saves strategy, enqueues 365-day backtest, shows rotating progress messages with "Almost there..." threshold, polls for completion, navigates to results, and marks onboarding complete client-side.
 - **2026-03-04:** Added PRD/TST planning for wizard-first post-signup routing with subtle dashboard skip link, `wizard_first_run_started` analytics event, and `users.has_completed_onboarding` migration/backfill requirements.
 - **2026-03-04:** Added PRD/TST planning for auto-backtest on wizard completion with one-click save+enqueue flow, engaging progress states, 30-second result target, and onboarding completion flag update on successful results.
