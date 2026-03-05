@@ -256,10 +256,6 @@ Use **shadcn/ui** for common UI elements. Components are in `frontend/src/compon
 - Import from `@/components/ui/[component]`
 - Use `cn()` from `@/lib/utils` for conditional class names
 
-**Do NOT migrate to shadcn/ui:**
-- Canvas nodes (BaseNode.tsx, all node types) — specialized color-coded category system
-- Components with complex internal state where migration adds no value
-
 #### 6.2.2. Design System Compliance
 
 All frontend development **must** comply with the design documentation:

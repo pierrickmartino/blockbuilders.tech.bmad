@@ -2582,26 +2582,11 @@ npm run type-check    # TypeScript validation
 - **2026-02-24:** Added PRD/TST planning for an Onboarding Funnel Dashboard in PostHog with required steps (`signup_completed` → `second_session`), conversion visibility, and date-range/cohort filters.
 - **2026-02-24:** Added PRD/TST planning for backend PostHog worker lifecycle tracking (`backtest_job_started`, `backtest_job_completed`, `backtest_job_failed`) with async fire-and-forget dispatch guidance.
 - **2026-02-23:** Added PRD/TST planning for PostHog analytics with GDPR consent and documented planned product analytics coverage.
-**2026-01-03** - Enhanced trade explanation view documentation
-- Added planned backtest trade explanation view details (condition breakdowns, indicator overlays, condition-candle highlights)
-- Added PRD/TST references for implementation planning
-
-**2025-12-30** - Strategy building wizard
-- Added beginner wizard to generate editable strategy JSON
-
-**2025-12-28** - Initial product documentation
-- Documented all implemented features
-- 20 block types in visual builder
-- OAuth integration (Google, GitHub)
-- Password reset flow
-- Timezone preference
-- Take profit ladder
-- Max drawdown risk management
-- Scheduled re-backtests (Strategy Monitor)
-- Usage limits and tracking
-- Full API reference
-- Database schema with 7 migrations
-- Deployment guide
+- **2026-01-03:** Enhanced trade explanation view documentation
+- **2026-01-03:** Added planned backtest trade explanation view details (condition breakdowns, indicator overlays, condition-candle highlights)
+- **2026-01-03:** Added PRD/TST references for implementation planning
+- **2025-12-30:** Strategy building wizard - Added beginner wizard to generate editable strategy JSON
+- **2025-12-28:** Initial product documentation
 
 ---
 
