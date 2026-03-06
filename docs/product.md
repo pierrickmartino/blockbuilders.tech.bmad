@@ -959,10 +959,10 @@ Plain-Language Error Messages
 
 **Comparison Use:** These metrics power the backtest comparison table when multiple runs are viewed side-by-side.
 
-**First-Run Guided Metric Explanations (Planned):**
-- On the user's first-ever backtest results view immediately after onboarding completion, show inline muted plain-language helper text (1-2 sentences) under 5 default metrics: Total Return %, Max Drawdown %, Win Rate, Number of Trades, and vs. Buy-and-Hold %.
-- On subsequent results views, collapse the explanations behind compact `?` hover/click icons next to those metric labels.
-- Track one-time display state via `users.has_completed_onboarding` transition and a persisted seen flag (localStorage and/or user record).
+**What You Just Learned Summary Card (Planned):**
+- On the user's first-ever backtest results view, show a dedicated card below the results titled **"What you just learned"**.
+- Card copy must be 1–2 plain-language sentences summarizing what was tested and how it performed versus buy-and-hold (including the performance-point delta).
+- On second and later backtest results views, do not render this card.
 
 ### 5.5. Backtest Results
 
@@ -1385,7 +1385,7 @@ Plain-Language Error Messages
 - Summary metrics cards:
   - Total return, CAGR, max drawdown
   - Number of trades, win rate
-- First-run metric explainer mode: inline muted helper copy beneath the 5 default metrics for first-time results viewers; collapsed `?` helper icons on later visits.
+- First-run takeaway card mode: show a "What you just learned" summary card below results only on the first-ever backtest results view; hide it on all later results views.
 - Favorite metrics row that lets users pin/reorder the summary metrics they care about most (stored per user).
 - Equity curve chart (responsive Recharts line chart with touch gestures)
 - Trades table with sorting and pagination
@@ -2158,7 +2158,7 @@ Plain-Language Error Messages
 | **Keyboard Shortcuts & Reference** | ✅ Complete | Cmd/Ctrl+S save, Cmd/Ctrl+R run backtest, ? help modal, editor-only |
 | **Strategy Building Wizard** | ✅ Complete | Guided Q&A that generates editable strategy JSON |
 | **Auto-Backtest on Wizard Completion** | ✅ Complete | Final wizard CTA (“See how it would have performed”) auto-saves strategy, enqueues a 365-day backtest, shows rotating progress messages (including “Almost there...” after 25s), polls for completion, navigates directly to results, and sets `users.has_completed_onboarding=true` client-side |
-| **First-Run Guided Metric Explanations** | 📝 Spec Ready | First-ever results view shows inline 1-2 sentence plain-language explanations under 5 default metrics; subsequent views collapse copy behind `?` hover/click helpers, and PostHog tracks `first_run_overlay_completed` on scroll/interaction |
+| **What You Just Learned Summary Card** | 📝 Spec Ready | First-ever results view shows a dedicated “What you just learned” card below results with a 1-2 sentence strategy-vs-buy-and-hold takeaway (including percentage-point delta); the card is hidden on second+ results views |
 | **Wizard Essentials-Only Constraint** | 📝 Spec Ready | Wizard indicator/strategy-type step shows only 5 Essentials options with plain-English labels and excludes Ichimoku/Fibonacci/ADX/OBV/Stochastic; post-wizard canvas palette still follows current toggle state (Essentials by default for new users) |
 | **Backtesting** | ✅ Complete | Full engine with TP ladder, SL, max drawdown, equity curves, trade detail, risk-adjusted metrics |
 | **Enhanced Trade Explanation View** | ✅ Complete (Phase 1) | Per-trade entry/exit explanation with condition breakdown (✓ markers), price-pane indicator overlays (SMA, EMA, Bollinger), entry/exit candle markers; compute-on-read with graceful fallback |
@@ -2450,6 +2450,8 @@ npm run type-check    # TypeScript validation
 - `docs/prd-data-completeness-indicators.md` - Data completeness indicators PRD
 - `docs/prd-metrics-glossary.md` - Metrics glossary PRD
 - `docs/prd-favorite-metrics-backtest-summary.md` - Favorite metrics (backtest summary) PRD
+- `docs/prd-what-you-just-learned-summary-card.md` - What You Just Learned summary card PRD
+- `docs/tst-what-you-just-learned-summary-card.md` - What You Just Learned summary card test checklist
 - `docs/prd-strategy-notes-annotations.md` - Strategy notes & annotations PRD
 - `docs/prd-strategy-explanation-generator.md` - Strategy explanation generator PRD
 - `docs/prd-strategy-import-export.md` - Strategy import/export PRD
@@ -2571,7 +2573,7 @@ npm run type-check    # TypeScript validation
 
 ## 18. Changelog
 
-- **2026-03-05:** Added PRD/TST planning for first-run guided metric explanations on backtest results, including inline helper copy for first-time viewers, collapsed `?` helpers for return visits, and `first_run_overlay_completed` PostHog event tracking on scroll/interaction.
+- **2026-03-05:** Added PRD/TST planning for a first-run-only “What you just learned” summary card on backtest results, including 1-2 sentence strategy-vs-buy-and-hold takeaway copy and suppression on second+ results views.
 - **2026-03-05:** Implemented auto-backtest on wizard completion: final CTA "See how it would have performed" auto-saves strategy, enqueues 365-day backtest, shows rotating progress messages with "Almost there..." threshold, polls for completion, navigates to results, and marks onboarding complete client-side.
 - **2026-03-04:** Added PRD/TST planning for wizard-first post-signup routing with subtle dashboard skip link, `wizard_first_run_started` analytics event, and `users.has_completed_onboarding` migration/backfill requirements.
 - **2026-03-04:** Added PRD/TST planning for auto-backtest on wizard completion with one-click save+enqueue flow, engaging progress states, 30-second result target, and onboarding completion flag update on successful results.
