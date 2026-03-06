@@ -648,6 +648,7 @@ export default function StrategyBacktestPage({ params }: Props) {
   // First-run metric explanations state
   const [showFirstRunExplanations, setShowFirstRunExplanations] = useState(false);
   const firstRunEventFired = useRef(false);
+  const firstRunResultsRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (user?.has_completed_onboarding && !getFirstRunSeen()) {
@@ -655,12 +656,39 @@ export default function StrategyBacktestPage({ params }: Props) {
     }
   }, [user?.has_completed_onboarding]);
 
+  const hasVisibleFirstRunMetrics = useCallback(() => {
+    if (typeof window === "undefined") return false;
+    const container = firstRunResultsRef.current;
+    if (!container) return false;
+    return container.querySelector('[data-first-run-metrics="true"]') !== null;
+  }, []);
+
   const handleFirstRunInteraction = useCallback(() => {
-    if (!showFirstRunExplanations || firstRunEventFired.current) return;
+    if (!showFirstRunExplanations || firstRunEventFired.current || !hasVisibleFirstRunMetrics()) return;
     firstRunEventFired.current = true;
     trackEvent("first_run_overlay_completed", undefined, user?.id);
     markFirstRunSeen();
-  }, [showFirstRunExplanations, user?.id]);
+  }, [hasVisibleFirstRunMetrics, showFirstRunExplanations, user?.id]);
+
+  useEffect(() => {
+    if (!showFirstRunExplanations || firstRunEventFired.current) return;
+
+    const handleScrollCompletion = () => {
+      if (firstRunEventFired.current || !hasVisibleFirstRunMetrics()) return;
+      const container = firstRunResultsRef.current;
+      if (!container) return;
+
+      const rect = container.getBoundingClientRect();
+      if (rect.bottom <= window.innerHeight) {
+        handleFirstRunInteraction();
+      }
+    };
+
+    window.addEventListener("scroll", handleScrollCompletion, { capture: true, passive: true });
+    return () => {
+      window.removeEventListener("scroll", handleScrollCompletion, { capture: true });
+    };
+  }, [handleFirstRunInteraction, hasVisibleFirstRunMetrics, showFirstRunExplanations]);
 
   // Use custom hook for backtest results (trades, equity curve, benchmark, polling)
   const prevRunStatusByIdRef = useRef<Map<string, BacktestStatus>>(new Map());
@@ -1640,7 +1668,7 @@ export default function StrategyBacktestPage({ params }: Props) {
             <p className="text-sm text-muted-foreground">Loading backtest details...</p>
           )}
           {selectedRun && (
-            <div className="space-y-3" onClick={handleFirstRunInteraction}>
+            <div ref={firstRunResultsRef} className="space-y-3" onClick={handleFirstRunInteraction}>
               <div className="text-sm text-muted-foreground">
                 <span className="font-medium">Range:</span>{" "}
                 {selectedRunRange}
@@ -1650,7 +1678,7 @@ export default function StrategyBacktestPage({ params }: Props) {
                   {selectedRun.error_message || "Backtest failed. Please try again."}
                 </div>
               ) : selectedRun.summary ? (
-                <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+                <div data-first-run-metrics="true" className="grid grid-cols-2 gap-3 lg:grid-cols-3">
                   {getOrderedMetrics(selectedRun.summary, user?.favorite_metrics || null).map((metric) => {
                     const isPinned = user?.favorite_metrics?.includes(metric.key) || false;
                     const pinnedMetrics = user?.favorite_metrics || [];
