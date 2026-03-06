@@ -49,6 +49,7 @@ import { StrategyTabs } from "@/components/StrategyTabs";
 import TradeDrawer from "@/components/TradeDrawer";
 import InfoIcon from "@/components/InfoIcon";
 import { BacktestSentimentStrip } from "@/components/BacktestSentimentStrip";
+import { WhatYouLearnedCard } from "@/components/WhatYouLearnedCard";
 import { DataAvailabilitySection } from "@/components/DataAvailabilitySection";
 import { ShareBacktestModal } from "@/components/ShareBacktestModal";
 import { TransactionCostAnalysis } from "@/components/TransactionCostAnalysis";
@@ -1710,6 +1711,18 @@ export default function StrategyBacktestPage({ params }: Props) {
                   Backtest is {selectedRun.status}. We&apos;ll keep polling for results.
                 </p>
               )}
+
+              {/* What You Just Learned — first-run only */}
+              {showFirstRunExplanations &&
+                selectedRun?.summary &&
+                selectedRun.summary.benchmark_return_pct != null && (
+                  <WhatYouLearnedCard
+                    strategyReturnPct={selectedRun.summary.total_return_pct}
+                    benchmarkReturnPct={selectedRun.summary.benchmark_return_pct}
+                    asset={selectedRun.asset}
+                    dateRange={selectedRunRange || "the test period"}
+                  />
+                )}
 
               {/* Sentiment Context Strip */}
               {selectedRunId && selectedRun?.status === "completed" && (
