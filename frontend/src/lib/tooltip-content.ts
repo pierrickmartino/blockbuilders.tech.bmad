@@ -1,6 +1,7 @@
 export interface TooltipContent {
   short: string;
   long?: string;
+  firstRun?: string;
   category: "block" | "metric" | "param";
 }
 
@@ -169,11 +170,13 @@ export const TOOLTIP_CONTENT: Record<string, TooltipContent> = {
   "metric-total-return": {
     short: "Percentage gain/loss from initial balance to final balance.",
     long: "Total Return = ((Final Balance - Initial Balance) / Initial Balance) × 100. Shows overall profitability of the strategy.",
+    firstRun: "This is how much your strategy would have made or lost overall. Green means profit, red means loss.",
     category: "metric",
   },
   "metric-max-drawdown": {
     short: "Largest peak-to-trough decline in portfolio value during the backtest.",
     long: "Max Drawdown measures the worst loss from a peak. Lower is better. Helps assess risk and resilience during downturns.",
+    firstRun: "The biggest drop your portfolio experienced from a high point. Smaller drawdowns mean less risk.",
     category: "metric",
   },
   "metric-cagr": {
@@ -184,16 +187,19 @@ export const TOOLTIP_CONTENT: Record<string, TooltipContent> = {
   "metric-trades": {
     short: "Total number of trades executed during the backtest.",
     long: "Number of Trades shows how many complete trade cycles (entry and exit) were executed. More trades may provide more statistical confidence.",
+    firstRun: "How many times your strategy bought and sold during the test. More trades give more confidence in the results.",
     category: "metric",
   },
   "metric-win-rate": {
     short: "Percentage of trades that were profitable.",
     long: "Win Rate = (Winning Trades / Total Trades) × 100. Higher is generally better, but quality matters more than quantity—a few big wins can beat many small wins.",
+    firstRun: "The percentage of your trades that ended in profit. Higher is better, but big wins can matter more than many small ones.",
     category: "metric",
   },
   "metric-benchmark-return": {
     short: "Buy-and-hold return for the same period (comparison baseline).",
     long: "Benchmark Return shows what you would have earned by simply buying and holding the asset. Your strategy should ideally beat this to justify active trading.",
+    firstRun: "What you would have earned by simply buying and holding. Your strategy should ideally beat this number.",
     category: "metric",
   },
   "metric-alpha": {

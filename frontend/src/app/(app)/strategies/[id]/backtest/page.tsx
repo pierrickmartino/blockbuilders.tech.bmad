@@ -53,6 +53,12 @@ import { DataAvailabilitySection } from "@/components/DataAvailabilitySection";
 import { ShareBacktestModal } from "@/components/ShareBacktestModal";
 import { TransactionCostAnalysis } from "@/components/TransactionCostAnalysis";
 import { metricToGlossaryId, getTooltip } from "@/lib/tooltip-content";
+import {
+  Tooltip as RadixTooltip,
+  TooltipTrigger as RadixTooltipTrigger,
+  TooltipContent as RadixTooltipContent,
+  TooltipProvider,
+} from "@/components/ui/tooltip";
 import { trackBacktestView } from "@/lib/recent-views";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
@@ -149,6 +155,21 @@ const statusStyles: Record<BacktestStatus, string> = {
   failed: "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400",
 };
 
+const FIRST_RUN_KEY = "bb.first_run_metric_explanations_seen";
+const FIRST_RUN_METRIC_KEYS = ["total-return", "max-drawdown", "win-rate", "trades", "benchmark-return"];
+
+function getFirstRunSeen(): boolean {
+  if (typeof window === "undefined") return true;
+  try { return localStorage.getItem(FIRST_RUN_KEY) === "true"; }
+  catch { return true; }
+}
+
+function markFirstRunSeen(): void {
+  if (typeof window === "undefined") return;
+  try { localStorage.setItem(FIRST_RUN_KEY, "true"); }
+  catch { /* storage unavailable */ }
+}
+
 interface MetricConfig {
   key: string;
   label: string;
@@ -200,6 +221,8 @@ function MetricCard({
   onMoveLeft,
   onMoveRight,
   disabled = false,
+  firstRunExplanation,
+  showFirstRunHelper = false,
 }: {
   metricKey: string;
   label: string;
@@ -211,6 +234,8 @@ function MetricCard({
   onMoveLeft?: () => void;
   onMoveRight?: () => void;
   disabled?: boolean;
+  firstRunExplanation?: string;
+  showFirstRunHelper?: boolean;
 }) {
   const tooltip = getTooltip(metricToGlossaryId(metricKey));
 
@@ -219,7 +244,25 @@ function MetricCard({
       <div className="flex items-center justify-between gap-1 text-xs uppercase text-muted-foreground">
         <div className="flex min-w-0 items-center gap-1">
           <span className="truncate" title={tooltip?.short}>{label}</span>
-          <InfoIcon tooltip={tooltip} className="hidden flex-shrink-0 sm:inline-flex" />
+          {showFirstRunHelper && tooltip?.firstRun ? (
+            <TooltipProvider delayDuration={0}>
+              <RadixTooltip>
+                <RadixTooltipTrigger asChild>
+                  <button
+                    className="inline-flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full border text-[10px] leading-none text-muted-foreground transition-colors hover:text-primary"
+                    aria-label="Explain metric"
+                  >
+                    ?
+                  </button>
+                </RadixTooltipTrigger>
+                <RadixTooltipContent side="top" className="max-w-[220px] text-xs">
+                  {tooltip.firstRun}
+                </RadixTooltipContent>
+              </RadixTooltip>
+            </TooltipProvider>
+          ) : (
+            <InfoIcon tooltip={tooltip} className="hidden flex-shrink-0 sm:inline-flex" />
+          )}
         </div>
 
         <button
@@ -235,6 +278,10 @@ function MetricCard({
       </div>
 
       <div className="text-base font-semibold tabular-nums sm:text-lg">{value}</div>
+
+      {firstRunExplanation && (
+        <p className="mt-1 text-xs text-muted-foreground/70">{firstRunExplanation}</p>
+      )}
 
       {isPinned && (
         <div className="mt-2 hidden gap-1 sm:flex">
@@ -597,6 +644,23 @@ export default function StrategyBacktestPage({ params }: Props) {
 
   // Keyboard shortcuts modal state
   const [showShortcutsModal, setShowShortcutsModal] = useState(false);
+
+  // First-run metric explanations state
+  const [showFirstRunExplanations, setShowFirstRunExplanations] = useState(false);
+  const firstRunEventFired = useRef(false);
+
+  useEffect(() => {
+    if (user?.has_completed_onboarding && !getFirstRunSeen()) {
+      setShowFirstRunExplanations(true);
+    }
+  }, [user?.has_completed_onboarding]);
+
+  const handleFirstRunInteraction = useCallback(() => {
+    if (!showFirstRunExplanations || firstRunEventFired.current) return;
+    firstRunEventFired.current = true;
+    trackEvent("first_run_overlay_completed", undefined, user?.id);
+    markFirstRunSeen();
+  }, [showFirstRunExplanations, user?.id]);
 
   // Use custom hook for backtest results (trades, equity curve, benchmark, polling)
   const prevRunStatusByIdRef = useRef<Map<string, BacktestStatus>>(new Map());
@@ -1576,7 +1640,7 @@ export default function StrategyBacktestPage({ params }: Props) {
             <p className="text-sm text-muted-foreground">Loading backtest details...</p>
           )}
           {selectedRun && (
-            <div className="space-y-3">
+            <div className="space-y-3" onClick={handleFirstRunInteraction}>
               <div className="text-sm text-muted-foreground">
                 <span className="font-medium">Range:</span>{" "}
                 {selectedRunRange}
@@ -1591,6 +1655,8 @@ export default function StrategyBacktestPage({ params }: Props) {
                     const isPinned = user?.favorite_metrics?.includes(metric.key) || false;
                     const pinnedMetrics = user?.favorite_metrics || [];
                     const pinnedIndex = pinnedMetrics.indexOf(metric.key);
+                    const isFirstRunMetric = FIRST_RUN_METRIC_KEYS.includes(metric.key);
+                    const metricTooltip = getTooltip(metricToGlossaryId(metric.key));
 
                     return (
                       <MetricCard
@@ -1605,6 +1671,8 @@ export default function StrategyBacktestPage({ params }: Props) {
                         onMoveLeft={() => handleReorderFavorite(metric.key, "left")}
                         onMoveRight={() => handleReorderFavorite(metric.key, "right")}
                         disabled={savingMetrics}
+                        firstRunExplanation={showFirstRunExplanations && isFirstRunMetric ? metricTooltip?.firstRun : undefined}
+                        showFirstRunHelper={!showFirstRunExplanations && isFirstRunMetric && !!metricTooltip?.firstRun}
                       />
                     );
                   })}
