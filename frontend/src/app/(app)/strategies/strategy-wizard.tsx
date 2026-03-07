@@ -36,6 +36,7 @@ interface Props {
   isFirstRun?: boolean;
   onClose: () => void;
   onComplete: (strategyId: string) => void;
+  onSkipToCanvas?: () => void;
 }
 
 interface WizardState {
@@ -47,7 +48,7 @@ interface WizardState {
   };
 }
 
-export function StrategyWizard({ isFirstRun, onClose, onComplete }: Props) {
+export function StrategyWizard({ isFirstRun, onClose, onComplete, onSkipToCanvas }: Props) {
   const { user, refreshUser } = useAuth();
   const [state, setState] = useState<WizardState>({
     step: 1,
@@ -69,6 +70,7 @@ export function StrategyWizard({ isFirstRun, onClose, onComplete }: Props) {
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSkippingToCanvas, setIsSkippingToCanvas] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [backtestPhase, setBacktestPhase] = useState<BacktestPhase>("idle");
   const backtestPhaseRef = useRef<BacktestPhase>("idle");
@@ -127,6 +129,7 @@ export function StrategyWizard({ isFirstRun, onClose, onComplete }: Props) {
   }, [state]);
 
   const handleNext = () => {
+    if (isSkippingToCanvas) return;
     if (state.step === totalSteps) {
       handleComplete();
     } else {
@@ -135,10 +138,28 @@ export function StrategyWizard({ isFirstRun, onClose, onComplete }: Props) {
   };
 
   const handleBack = () => {
+    if (isSkippingToCanvas) return;
     setState((s) => ({ ...s, step: Math.max(1, s.step - 1) }));
   };
 
+  const handleSkipToCanvas = async () => {
+    setIsSkippingToCanvas(true);
+    setError(null);
+    trackEvent("wizard_skipped", {
+      step: state.step,
+      entry_point: "first_run",
+    }, user?.id);
+    try {
+      await apiFetch("/users/me/complete-onboarding", { method: "POST" });
+      await refreshUser();
+    } catch {
+      // Non-blocking: still proceed
+    }
+    onSkipToCanvas!();
+  };
+
   const handleComplete = async () => {
+    if (isSkippingToCanvas) return;
     setIsSubmitting(true);
     setError(null);
 
@@ -402,17 +423,30 @@ export function StrategyWizard({ isFirstRun, onClose, onComplete }: Props) {
           <div className="py-4">{renderStep()}</div>
         )}
 
+        {isFirstRun && onSkipToCanvas && backtestPhase === "idle" && (
+          <div className="text-center">
+            <button
+              type="button"
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+              disabled={isSkippingToCanvas || isSubmitting}
+              onClick={handleSkipToCanvas}
+            >
+              {isSkippingToCanvas ? "Creating blank strategy..." : "I want to build manually"}
+            </button>
+          </div>
+        )}
+
         <DialogFooter className="flex justify-between sm:justify-between">
           <Button
             variant="ghost"
             onClick={handleBack}
-            disabled={state.step === 1 || backtestPhase !== "idle"}
+            disabled={state.step === 1 || backtestPhase !== "idle" || isSkippingToCanvas}
           >
             Back
           </Button>
           <Button
             onClick={handleNext}
-            disabled={!isStepValid || isSubmitting}
+            disabled={!isStepValid || isSubmitting || isSkippingToCanvas}
           >
             {isSubmitting
               ? (isFirstRun && backtestPhase !== "idle"

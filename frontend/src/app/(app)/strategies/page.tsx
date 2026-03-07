@@ -1115,6 +1115,10 @@ export default function StrategiesPage() {
             );
             refreshUsage();
           }}
+          onSkipToCanvas={() => {
+            setShowWizard(false);
+            setShowModal(true);
+          }}
         />
       )}
 
