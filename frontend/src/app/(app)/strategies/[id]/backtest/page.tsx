@@ -49,6 +49,7 @@ import { StrategyTabs } from "@/components/StrategyTabs";
 import TradeDrawer from "@/components/TradeDrawer";
 import InfoIcon from "@/components/InfoIcon";
 import { BacktestSentimentStrip } from "@/components/BacktestSentimentStrip";
+import { WhatYouLearnedCard } from "@/components/WhatYouLearnedCard";
 import { DataAvailabilitySection } from "@/components/DataAvailabilitySection";
 import { ShareBacktestModal } from "@/components/ShareBacktestModal";
 import { TransactionCostAnalysis } from "@/components/TransactionCostAnalysis";
@@ -156,6 +157,7 @@ const statusStyles: Record<BacktestStatus, string> = {
 };
 
 const FIRST_RUN_KEY = "bb.first_run_metric_explanations_seen";
+const SUMMARY_CARD_KEY = "bb.first_run_summary_card_seen";
 const FIRST_RUN_METRIC_KEYS = ["total-return", "max-drawdown", "win-rate", "trades", "benchmark-return"];
 
 function getFirstRunSeen(): boolean {
@@ -167,6 +169,18 @@ function getFirstRunSeen(): boolean {
 function markFirstRunSeen(): void {
   if (typeof window === "undefined") return;
   try { localStorage.setItem(FIRST_RUN_KEY, "true"); }
+  catch { /* storage unavailable */ }
+}
+
+function getSummaryCardSeen(): boolean {
+  if (typeof window === "undefined") return true;
+  try { return localStorage.getItem(SUMMARY_CARD_KEY) === "true"; }
+  catch { return true; }
+}
+
+function markSummaryCardSeen(): void {
+  if (typeof window === "undefined") return;
+  try { localStorage.setItem(SUMMARY_CARD_KEY, "true"); }
   catch { /* storage unavailable */ }
 }
 
@@ -650,11 +664,16 @@ export default function StrategyBacktestPage({ params }: Props) {
   const firstRunEventFired = useRef(false);
   const firstRunResultsRef = useRef<HTMLDivElement | null>(null);
 
+  // Summary card has its own key so scroll-based overlay dismissal doesn't hide it
+  const [showSummaryCard, setShowSummaryCard] = useState(false);
+
   useEffect(() => {
-    if (user?.has_completed_onboarding && !getFirstRunSeen()) {
-      setShowFirstRunExplanations(true);
+    const isFirstRun = Boolean(user?.has_completed_onboarding && !getFirstRunSeen());
+    setShowFirstRunExplanations(isFirstRun);
+    if (!showSummaryCard) {
+      setShowSummaryCard(Boolean(user?.has_completed_onboarding && !getSummaryCardSeen()));
     }
-  }, [user?.has_completed_onboarding]);
+  }, [user?.has_completed_onboarding, selectedRunId, showSummaryCard]);
 
   const hasVisibleFirstRunMetrics = useCallback(() => {
     if (typeof window === "undefined") return false;
@@ -668,6 +687,7 @@ export default function StrategyBacktestPage({ params }: Props) {
     firstRunEventFired.current = true;
     trackEvent("first_run_overlay_completed", undefined, user?.id);
     markFirstRunSeen();
+    setShowFirstRunExplanations(false);
   }, [hasVisibleFirstRunMetrics, showFirstRunExplanations, user?.id]);
 
   useEffect(() => {
@@ -1710,6 +1730,22 @@ export default function StrategyBacktestPage({ params }: Props) {
                   Backtest is {selectedRun.status}. We&apos;ll keep polling for results.
                 </p>
               )}
+
+              {/* What You Just Learned — first-run only */}
+              {showSummaryCard &&
+                selectedRun?.summary &&
+                selectedRun.summary.benchmark_return_pct != null && (
+                  <WhatYouLearnedCard
+                    strategyReturnPct={selectedRun.summary.total_return_pct}
+                    benchmarkReturnPct={selectedRun.summary.benchmark_return_pct}
+                    asset={selectedRun.asset}
+                    dateRange={selectedRunRange || "the test period"}
+                    onDismiss={() => {
+                      markSummaryCardSeen();
+                      setShowSummaryCard(false);
+                    }}
+                  />
+                )}
 
               {/* Sentiment Context Strip */}
               {selectedRunId && selectedRun?.status === "completed" && (

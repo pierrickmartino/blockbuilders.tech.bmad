@@ -959,10 +959,11 @@ Plain-Language Error Messages
 
 **Comparison Use:** These metrics power the backtest comparison table when multiple runs are viewed side-by-side.
 
-**What You Just Learned Summary Card (Planned):**
-- On the user's first-ever backtest results view, show a dedicated card below the results titled **"What you just learned"**.
-- Card copy must be 1–2 plain-language sentences summarizing what was tested and how it performed versus buy-and-hold (including the performance-point delta).
-- On second and later backtest results views, do not render this card.
+**What You Just Learned Summary Card (Implemented):**
+- On the user's first-ever backtest results view, a dedicated card titled **"What you just learned"** appears below the metrics grid.
+- Card copy is 1–2 plain-language sentences summarizing what was tested and how it performed versus buy-and-hold (including the percentage-point delta, colored green/red).
+- Gated by the same `showFirstRunExplanations` localStorage flag used for first-run metric overlays; hidden on second and later results views.
+- If benchmark return data is unavailable, the card is suppressed silently.
 
 ### 5.5. Backtest Results
 
@@ -2158,7 +2159,7 @@ Plain-Language Error Messages
 | **Keyboard Shortcuts & Reference** | ✅ Complete | Cmd/Ctrl+S save, Cmd/Ctrl+R run backtest, ? help modal, editor-only |
 | **Strategy Building Wizard** | ✅ Complete | Guided Q&A that generates editable strategy JSON |
 | **Auto-Backtest on Wizard Completion** | ✅ Complete | Final wizard CTA (“See how it would have performed”) auto-saves strategy, enqueues a 365-day backtest, shows rotating progress messages (including “Almost there...” after 25s), polls for completion, navigates directly to results, and sets `users.has_completed_onboarding=true` client-side |
-| **What You Just Learned Summary Card** | 📝 Spec Ready | First-ever results view shows a dedicated “What you just learned” card below results with a 1-2 sentence strategy-vs-buy-and-hold takeaway (including percentage-point delta); the card is hidden on second+ results views |
+| **What You Just Learned Summary Card** | ✅ Complete | First-ever results view shows a dedicated “What you just learned” card below metrics grid with a 1-2 sentence strategy-vs-buy-and-hold takeaway (including percentage-point delta); the card is hidden on second+ results views; reuses existing first-run localStorage gating |
 | **Wizard Essentials-Only Constraint** | 📝 Spec Ready | Wizard indicator/strategy-type step shows only 5 Essentials options with plain-English labels and excludes Ichimoku/Fibonacci/ADX/OBV/Stochastic; post-wizard canvas palette still follows current toggle state (Essentials by default for new users) |
 | **Backtesting** | ✅ Complete | Full engine with TP ladder, SL, max drawdown, equity curves, trade detail, risk-adjusted metrics |
 | **Enhanced Trade Explanation View** | ✅ Complete (Phase 1) | Per-trade entry/exit explanation with condition breakdown (✓ markers), price-pane indicator overlays (SMA, EMA, Bollinger), entry/exit candle markers; compute-on-read with graceful fallback |
