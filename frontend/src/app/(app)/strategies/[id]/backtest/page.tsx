@@ -652,10 +652,8 @@ export default function StrategyBacktestPage({ params }: Props) {
   const firstRunResultsRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    if (user?.has_completed_onboarding && !getFirstRunSeen()) {
-      setShowFirstRunExplanations(true);
-    }
-  }, [user?.has_completed_onboarding]);
+    setShowFirstRunExplanations(Boolean(user?.has_completed_onboarding && !getFirstRunSeen()));
+  }, [user?.has_completed_onboarding, selectedRunId]);
 
   const hasVisibleFirstRunMetrics = useCallback(() => {
     if (typeof window === "undefined") return false;
@@ -669,6 +667,7 @@ export default function StrategyBacktestPage({ params }: Props) {
     firstRunEventFired.current = true;
     trackEvent("first_run_overlay_completed", undefined, user?.id);
     markFirstRunSeen();
+    setShowFirstRunExplanations(false);
   }, [hasVisibleFirstRunMetrics, showFirstRunExplanations, user?.id]);
 
   useEffect(() => {
