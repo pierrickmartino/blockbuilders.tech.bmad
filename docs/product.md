@@ -1,7 +1,7 @@
 # Blockbuilders – Product Documentation
 
 **Status:** Current Product Truth
-**Last Updated:** 2026-03-04
+**Last Updated:** 2026-03-07
 **Purpose:** Comprehensive documentation of all implemented features
 
 ---
@@ -30,7 +30,7 @@ Blockbuilders is a **web-based, no-code strategy lab** where retail crypto trade
 - Create account with email + password
 - Password hashing with bcrypt
 - Returns JWT token (7-day expiration)
-- Post-signup routing: new users (`has_completed_onboarding=false`) are directed to the Strategy Wizard first-run experience; a "Skip to dashboard" link sets the flag permanently
+- Post-signup routing: new users (`has_completed_onboarding=false`) are directed to the Strategy Wizard first-run experience; an "I want to build manually" link skips directly to a blank canvas strategy, sets onboarding complete, and fires `wizard_skipped`
 
 **Login** (`POST /auth/login`)
 - Email + password validation
@@ -594,6 +594,7 @@ Plain-Language Error Messages
 - Uses existing block types (no new backend fields)
 - Produces the same definition JSON used by the canvas
 - Final CTA can run an auto-save + auto-backtest path: clicking “See how it would have performed” should save valid wizard output, enqueue a backtest, and keep users in one continuous flow until results are ready
+- Include a subtle escape hatch link: “I want to build manually”. Clicking it should create a new blank strategy, route to the empty canvas editor for that strategy, fire `wizard_skipped`, and set `has_completed_onboarding=true`.
 
 **Implementation Notes:**
 - Generates blocks + connections locally in the frontend
@@ -1306,7 +1307,7 @@ Plain-Language Error Messages
 - OAuth buttons: "Continue with Google", "Continue with GitHub"
 - "Forgot password?" link
 - Post-auth routing rule:
-  - `has_completed_onboarding=false` -> Strategy Wizard first-run entry (with subtle "Skip to dashboard")
+  - `has_completed_onboarding=false` -> Strategy Wizard first-run entry (with subtle "I want to build manually" link that routes to empty canvas)
   - `has_completed_onboarding=true` -> Dashboard
 
 **Password Reset Request** (`/forgot-password`)
@@ -1635,7 +1636,7 @@ Plain-Language Error Messages
 
 **v1 Event Coverage:**
 - Lifecycle events: `page_view`, `signup_completed`, `login_completed`
-- Feature events: `wizard_started`, `wizard_first_run_started`, `strategy_created`, `strategy_saved`, `backtest_started`, `backtest_completed`, `results_viewed`
+- Feature events: `wizard_started`, `wizard_first_run_started`, `wizard_skipped`, `strategy_created`, `strategy_saved`, `backtest_started`, `backtest_completed`, `results_viewed`
 - Backend worker backtest lifecycle events: `backtest_job_started`, `backtest_job_completed`, `backtest_job_failed`
 - Onboarding retention event: `second_session` (used as final step in onboarding funnel)
 - First-run backtest education event: `first_run_overlay_completed` (fires when the first-time viewer scrolls past or interacts with results)
@@ -1852,7 +1853,7 @@ Plain-Language Error Messages
 - subscription_status (ENUM: active/past_due/canceled/trialing, nullable)
 - timezone_preference (ENUM: local/utc, default local)
 - digest_email_enabled (BOOLEAN, default true)
-- has_completed_onboarding (BOOLEAN, default false; set to true when wizard auto-backtest results are reached)
+- has_completed_onboarding (BOOLEAN, default false; set to true when wizard auto-backtest results are reached or user skips wizard to manual canvas)
 - reset_token (VARCHAR, nullable)
 - reset_token_expires_at (TIMESTAMP, nullable)
 - auth_provider (VARCHAR, nullable)
@@ -2134,7 +2135,8 @@ Plain-Language Error Messages
 | Feature Area | Status | Details |
 |---|---|---|
 | **Authentication** | ✅ Complete | Email/password, OAuth (Google, GitHub), password reset |
-| **Wizard as Default Post-Signup Destination** | 📝 Spec Ready | New signups route to wizard first-run experience (with subtle “Skip to dashboard”), emit `wizard_first_run_started`, and keep returning onboarded users on dashboard via `users.has_completed_onboarding` + migration backfill from `backtest_runs` |
+| **Wizard as Default Post-Signup Destination** | 📝 Spec Ready | New signups route to wizard first-run experience, emit `wizard_first_run_started`, and keep returning onboarded users on dashboard via `users.has_completed_onboarding` + migration backfill from `backtest_runs` |
+| **Canvas Escape Hatch from Wizard** | 📝 Spec Ready | Wizard first-run includes subtle “I want to build manually” link that creates a blank strategy, routes directly to empty canvas editor, fires `wizard_skipped`, and sets `users.has_completed_onboarding=true` |
 | **Account Management** | ✅ Complete | Profile, settings (fees, slippage, timezone), usage tracking |
 | **Digest Email Opt-Out Controls** | ✅ Done | Global weekly digest opt-out (`users.digest_email_enabled`) plus per-strategy opt-out (`strategies.digest_email_enabled`) in profile notification settings |
 | **Product Analytics (PostHog + Consent + Backend Events + Onboarding Funnel Dashboard)** | ✅ Complete | GDPR-aware consent banner + event tracking for auth/key strategy-backtest actions plus backend worker lifecycle events (`backtest_job_started/completed/failed`) and a dedicated PostHog onboarding funnel (`signup_completed → ... → second_session`) with date-range/cohort filters |
@@ -2483,6 +2485,8 @@ npm run type-check    # TypeScript validation
 - `docs/tst-wizard-default-post-signup-destination.md` - Wizard as default post-signup destination test checklist
 - `docs/prd-auto-backtest-on-wizard-completion.md` - Auto-backtest on wizard completion PRD
 - `docs/tst-auto-backtest-on-wizard-completion.md` - Auto-backtest on wizard completion test checklist
+- `docs/prd-canvas-escape-hatch-from-wizard.md` - Canvas escape hatch from wizard PRD
+- `docs/tst-canvas-escape-hatch-from-wizard.md` - Canvas escape hatch from wizard test checklist
 - `docs/prd-copy-paste-blocks-subgraphs.md` - Copy/paste blocks & subgraphs PRD (IMPLEMENTED)
 - `docs/prd-canvas-undo-redo.md` - Canvas undo/redo PRD (IMPLEMENTED)
 - `docs/prd-keyboard-shortcuts.md` - Keyboard shortcuts & reference PRD
@@ -2574,6 +2578,7 @@ npm run type-check    # TypeScript validation
 
 ## 18. Changelog
 
+- **2026-03-07:** Added PRD/TST planning for a wizard escape hatch (“I want to build manually”) that creates a blank strategy, routes directly to the empty canvas, fires `wizard_skipped`, and sets `users.has_completed_onboarding=true`.
 - **2026-03-05:** Added PRD/TST planning for a first-run-only “What you just learned” summary card on backtest results, including 1-2 sentence strategy-vs-buy-and-hold takeaway copy and suppression on second+ results views.
 - **2026-03-05:** Implemented auto-backtest on wizard completion: final CTA "See how it would have performed" auto-saves strategy, enqueues 365-day backtest, shows rotating progress messages with "Almost there..." threshold, polls for completion, navigates to results, and marks onboarding complete client-side.
 - **2026-03-04:** Added PRD/TST planning for wizard-first post-signup routing with subtle dashboard skip link, `wizard_first_run_started` analytics event, and `users.has_completed_onboarding` migration/backfill requirements.
