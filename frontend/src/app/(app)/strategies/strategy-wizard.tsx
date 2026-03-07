@@ -129,6 +129,7 @@ export function StrategyWizard({ isFirstRun, onClose, onComplete, onSkipToCanvas
   }, [state]);
 
   const handleNext = () => {
+    if (isSkippingToCanvas) return;
     if (state.step === totalSteps) {
       handleComplete();
     } else {
@@ -137,6 +138,7 @@ export function StrategyWizard({ isFirstRun, onClose, onComplete, onSkipToCanvas
   };
 
   const handleBack = () => {
+    if (isSkippingToCanvas) return;
     setState((s) => ({ ...s, step: Math.max(1, s.step - 1) }));
   };
 
@@ -178,6 +180,7 @@ export function StrategyWizard({ isFirstRun, onClose, onComplete, onSkipToCanvas
   };
 
   const handleComplete = async () => {
+    if (isSkippingToCanvas) return;
     setIsSubmitting(true);
     setError(null);
 
@@ -458,13 +461,13 @@ export function StrategyWizard({ isFirstRun, onClose, onComplete, onSkipToCanvas
           <Button
             variant="ghost"
             onClick={handleBack}
-            disabled={state.step === 1 || backtestPhase !== "idle"}
+            disabled={state.step === 1 || backtestPhase !== "idle" || isSkippingToCanvas}
           >
             Back
           </Button>
           <Button
             onClick={handleNext}
-            disabled={!isStepValid || isSubmitting}
+            disabled={!isStepValid || isSubmitting || isSkippingToCanvas}
           >
             {isSubmitting
               ? (isFirstRun && backtestPhase !== "idle"
