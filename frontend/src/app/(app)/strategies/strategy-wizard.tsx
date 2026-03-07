@@ -36,6 +36,7 @@ interface Props {
   isFirstRun?: boolean;
   onClose: () => void;
   onComplete: (strategyId: string) => void;
+  onSkipToCanvas?: (strategyId: string) => void;
 }
 
 interface WizardState {
@@ -47,7 +48,7 @@ interface WizardState {
   };
 }
 
-export function StrategyWizard({ isFirstRun, onClose, onComplete }: Props) {
+export function StrategyWizard({ isFirstRun, onClose, onComplete, onSkipToCanvas }: Props) {
   const { user, refreshUser } = useAuth();
   const [state, setState] = useState<WizardState>({
     step: 1,
@@ -69,6 +70,7 @@ export function StrategyWizard({ isFirstRun, onClose, onComplete }: Props) {
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSkippingToCanvas, setIsSkippingToCanvas] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [backtestPhase, setBacktestPhase] = useState<BacktestPhase>("idle");
   const backtestPhaseRef = useRef<BacktestPhase>("idle");
@@ -136,6 +138,43 @@ export function StrategyWizard({ isFirstRun, onClose, onComplete }: Props) {
 
   const handleBack = () => {
     setState((s) => ({ ...s, step: Math.max(1, s.step - 1) }));
+  };
+
+  const handleSkipToCanvas = async () => {
+    setIsSkippingToCanvas(true);
+    setError(null);
+    try {
+      const strategy = await apiFetch<Strategy>("/strategies/", {
+        method: "POST",
+        body: JSON.stringify({
+          name: "Untitled Strategy",
+          asset: "BTC/USDT",
+          timeframe: "1d",
+        }),
+      });
+      trackEvent("wizard_skipped", {
+        step: state.step,
+        entry_point: "first_run",
+      }, user?.id);
+      try {
+        await apiFetch("/users/me/complete-onboarding", { method: "POST" });
+        await refreshUser();
+      } catch {
+        // Non-blocking: still navigate to canvas
+      }
+      onSkipToCanvas!(strategy.id);
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 403) {
+        setError(
+          "You've reached the maximum number of strategies. Archive some existing strategies to create new ones."
+        );
+      } else {
+        setError(
+          "We couldn't create a blank strategy. Please try again, or continue with the wizard."
+        );
+      }
+      setIsSkippingToCanvas(false);
+    }
   };
 
   const handleComplete = async () => {
@@ -400,6 +439,19 @@ export function StrategyWizard({ isFirstRun, onClose, onComplete }: Props) {
           </div>
         ) : (
           <div className="py-4">{renderStep()}</div>
+        )}
+
+        {isFirstRun && onSkipToCanvas && backtestPhase === "idle" && (
+          <div className="text-center">
+            <button
+              type="button"
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+              disabled={isSkippingToCanvas || isSubmitting}
+              onClick={handleSkipToCanvas}
+            >
+              {isSkippingToCanvas ? "Creating blank strategy..." : "I want to build manually"}
+            </button>
+          </div>
         )}
 
         <DialogFooter className="flex justify-between sm:justify-between">
