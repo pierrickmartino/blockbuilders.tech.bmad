@@ -1115,10 +1115,9 @@ export default function StrategiesPage() {
             );
             refreshUsage();
           }}
-          onSkipToCanvas={(strategyId) => {
+          onSkipToCanvas={() => {
             setShowWizard(false);
-            router.push(`/strategies/${strategyId}`);
-            refreshUsage();
+            setShowModal(true);
           }}
         />
       )}

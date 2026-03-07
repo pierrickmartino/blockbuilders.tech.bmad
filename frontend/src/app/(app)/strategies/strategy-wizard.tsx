@@ -36,7 +36,7 @@ interface Props {
   isFirstRun?: boolean;
   onClose: () => void;
   onComplete: (strategyId: string) => void;
-  onSkipToCanvas?: (strategyId: string) => void;
+  onSkipToCanvas?: () => void;
 }
 
 interface WizardState {
@@ -145,38 +145,17 @@ export function StrategyWizard({ isFirstRun, onClose, onComplete, onSkipToCanvas
   const handleSkipToCanvas = async () => {
     setIsSkippingToCanvas(true);
     setError(null);
+    trackEvent("wizard_skipped", {
+      step: state.step,
+      entry_point: "first_run",
+    }, user?.id);
     try {
-      const strategy = await apiFetch<Strategy>("/strategies/", {
-        method: "POST",
-        body: JSON.stringify({
-          name: "Untitled Strategy",
-          asset: "BTC/USDT",
-          timeframe: "1d",
-        }),
-      });
-      trackEvent("wizard_skipped", {
-        step: state.step,
-        entry_point: "first_run",
-      }, user?.id);
-      try {
-        await apiFetch("/users/me/complete-onboarding", { method: "POST" });
-        await refreshUser();
-      } catch {
-        // Non-blocking: still navigate to canvas
-      }
-      onSkipToCanvas!(strategy.id);
-    } catch (err) {
-      if (err instanceof ApiError && err.status === 403) {
-        setError(
-          "You've reached the maximum number of strategies. Archive some existing strategies to create new ones."
-        );
-      } else {
-        setError(
-          "We couldn't create a blank strategy. Please try again, or continue with the wizard."
-        );
-      }
-      setIsSkippingToCanvas(false);
+      await apiFetch("/users/me/complete-onboarding", { method: "POST" });
+      await refreshUser();
+    } catch {
+      // Non-blocking: still proceed
     }
+    onSkipToCanvas!();
   };
 
   const handleComplete = async () => {
