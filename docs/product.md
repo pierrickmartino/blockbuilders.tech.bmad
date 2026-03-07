@@ -966,6 +966,14 @@ Plain-Language Error Messages
 - Gated by the same `showFirstRunExplanations` localStorage flag used for first-run metric overlays; hidden on second and later results views.
 - If benchmark return data is unavailable, the card is suppressed silently.
 
+
+**Narrative Summary Generation (Backend)** *(📝 Spec Ready)*
+- `GET /backtests/{id}` will include a server-generated `narrative` string for completed runs.
+- Narrative will be generated in `backend/app/backtest/narrative.py` using deterministic template-based rendering from existing backtest metrics.
+- For runs with trades, the narrative will include: starting balance -> ending balance, best period, worst period (max drawdown in dollar terms), total trades, and buy-and-hold comparison in percentage points.
+- For zero-trade runs, narrative will return a fixed guidance message explaining no entry signals fired.
+- Narrative generation overhead target is <=200ms added response time.
+
 ### 5.5. Backtest Results
 
 **Equity Curve** (`GET /backtests/{run_id}/equity-curve`)
@@ -2162,6 +2170,7 @@ Plain-Language Error Messages
 | **Strategy Building Wizard** | ✅ Complete | Guided Q&A that generates editable strategy JSON |
 | **Auto-Backtest on Wizard Completion** | ✅ Complete | Final wizard CTA (“See how it would have performed”) auto-saves strategy, enqueues a 365-day backtest, shows rotating progress messages (including “Almost there...” after 25s), polls for completion, navigates directly to results, and sets `users.has_completed_onboarding=true` client-side |
 | **What You Just Learned Summary Card** | ✅ Complete | First-ever results view shows a dedicated “What you just learned” card below metrics grid with a 1-2 sentence strategy-vs-buy-and-hold takeaway (including percentage-point delta); the card is hidden on second+ results views; reuses existing first-run localStorage gating |
+| **Narrative Summary Generation (Backend)** | 📝 Spec Ready | Add a deterministic server-side `narrative` field to `GET /backtests/{id}` that summarizes start→end balance, best/worst periods (including experiential max drawdown in dollars), total trades, and buy-and-hold delta; return exact fallback copy for zero-trade runs with <=200ms overhead |
 | **Wizard Essentials-Only Constraint** | 📝 Spec Ready | Wizard indicator/strategy-type step shows only 5 Essentials options with plain-English labels and excludes Ichimoku/Fibonacci/ADX/OBV/Stochastic; post-wizard canvas palette still follows current toggle state (Essentials by default for new users) |
 | **Backtesting** | ✅ Complete | Full engine with TP ladder, SL, max drawdown, equity curves, trade detail, risk-adjusted metrics |
 | **Enhanced Trade Explanation View** | ✅ Complete (Phase 1) | Per-trade entry/exit explanation with condition breakdown (✓ markers), price-pane indicator overlays (SMA, EMA, Bollinger), entry/exit candle markers; compute-on-read with graceful fallback |
@@ -2455,6 +2464,8 @@ npm run type-check    # TypeScript validation
 - `docs/prd-favorite-metrics-backtest-summary.md` - Favorite metrics (backtest summary) PRD
 - `docs/prd-what-you-just-learned-summary-card.md` - What You Just Learned summary card PRD
 - `docs/tst-what-you-just-learned-summary-card.md` - What You Just Learned summary card test checklist
+- `docs/prd-backtest-narrative-summary-generation-backend.md` - Narrative summary generation (backend) PRD
+- `docs/tst-backtest-narrative-summary-generation-backend.md` - Narrative summary generation (backend) test checklist
 - `docs/prd-strategy-notes-annotations.md` - Strategy notes & annotations PRD
 - `docs/prd-strategy-explanation-generator.md` - Strategy explanation generator PRD
 - `docs/prd-strategy-import-export.md` - Strategy import/export PRD
