@@ -157,6 +157,7 @@ const statusStyles: Record<BacktestStatus, string> = {
 };
 
 const FIRST_RUN_KEY = "bb.first_run_metric_explanations_seen";
+const SUMMARY_CARD_KEY = "bb.first_run_summary_card_seen";
 const FIRST_RUN_METRIC_KEYS = ["total-return", "max-drawdown", "win-rate", "trades", "benchmark-return"];
 
 function getFirstRunSeen(): boolean {
@@ -168,6 +169,18 @@ function getFirstRunSeen(): boolean {
 function markFirstRunSeen(): void {
   if (typeof window === "undefined") return;
   try { localStorage.setItem(FIRST_RUN_KEY, "true"); }
+  catch { /* storage unavailable */ }
+}
+
+function getSummaryCardSeen(): boolean {
+  if (typeof window === "undefined") return true;
+  try { return localStorage.getItem(SUMMARY_CARD_KEY) === "true"; }
+  catch { return true; }
+}
+
+function markSummaryCardSeen(): void {
+  if (typeof window === "undefined") return;
+  try { localStorage.setItem(SUMMARY_CARD_KEY, "true"); }
   catch { /* storage unavailable */ }
 }
 
@@ -651,9 +664,16 @@ export default function StrategyBacktestPage({ params }: Props) {
   const firstRunEventFired = useRef(false);
   const firstRunResultsRef = useRef<HTMLDivElement | null>(null);
 
+  // Summary card has its own key so scroll-based overlay dismissal doesn't hide it
+  const [showSummaryCard, setShowSummaryCard] = useState(false);
+
   useEffect(() => {
-    setShowFirstRunExplanations(Boolean(user?.has_completed_onboarding && !getFirstRunSeen()));
-  }, [user?.has_completed_onboarding, selectedRunId]);
+    const isFirstRun = Boolean(user?.has_completed_onboarding && !getFirstRunSeen());
+    setShowFirstRunExplanations(isFirstRun);
+    if (!showSummaryCard) {
+      setShowSummaryCard(Boolean(user?.has_completed_onboarding && !getSummaryCardSeen()));
+    }
+  }, [user?.has_completed_onboarding, selectedRunId, showSummaryCard]);
 
   const hasVisibleFirstRunMetrics = useCallback(() => {
     if (typeof window === "undefined") return false;
@@ -1712,7 +1732,7 @@ export default function StrategyBacktestPage({ params }: Props) {
               )}
 
               {/* What You Just Learned — first-run only */}
-              {showFirstRunExplanations &&
+              {showSummaryCard &&
                 selectedRun?.summary &&
                 selectedRun.summary.benchmark_return_pct != null && (
                   <WhatYouLearnedCard
@@ -1720,6 +1740,10 @@ export default function StrategyBacktestPage({ params }: Props) {
                     benchmarkReturnPct={selectedRun.summary.benchmark_return_pct}
                     asset={selectedRun.asset}
                     dateRange={selectedRunRange || "the test period"}
+                    onDismiss={() => {
+                      markSummaryCardSeen();
+                      setShowSummaryCard(false);
+                    }}
                   />
                 )}
 

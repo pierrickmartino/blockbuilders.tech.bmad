@@ -5,6 +5,7 @@ interface WhatYouLearnedCardProps {
   benchmarkReturnPct: number;
   asset: string;
   dateRange: string;
+  onDismiss?: () => void;
 }
 
 export function WhatYouLearnedCard({
@@ -12,6 +13,7 @@ export function WhatYouLearnedCard({
   benchmarkReturnPct,
   asset,
   dateRange,
+  onDismiss,
 }: WhatYouLearnedCardProps) {
   const delta = strategyReturnPct - benchmarkReturnPct;
   const absDelta = Math.abs(delta).toFixed(1);
@@ -40,9 +42,20 @@ export function WhatYouLearnedCard({
   return (
     <Card className="border-primary/20 bg-primary/5">
       <CardHeader className="pb-2 pt-4 px-4">
-        <CardTitle className="text-sm font-semibold">
-          What you just learned
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm font-semibold">
+            What you just learned
+          </CardTitle>
+          {onDismiss && (
+            <button
+              onClick={onDismiss}
+              className="text-muted-foreground hover:text-foreground text-xs transition-colors"
+              aria-label="Dismiss"
+            >
+              Got it
+            </button>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="px-4 pb-4 pt-0">
         <p className="text-sm text-muted-foreground">
