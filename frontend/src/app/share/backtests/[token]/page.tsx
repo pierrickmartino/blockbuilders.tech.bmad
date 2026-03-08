@@ -16,6 +16,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Loader2, TrendingUp, AlertCircle } from "lucide-react";
+import { LowTradeCountWarning } from "@/components/LowTradeCountWarning";
 
 interface PublicBacktestView {
   asset: string;
@@ -163,6 +164,7 @@ export default function SharedBacktestPage({ params }: Props) {
             <h2 className="mb-4 font-semibold tracking-tight">
               Performance Metrics
             </h2>
+            <LowTradeCountWarning numTrades={data.summary.num_trades} />
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
               {metrics.map((metric) => (
                 <div
