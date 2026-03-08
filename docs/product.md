@@ -960,6 +960,12 @@ Plain-Language Error Messages
 
 **Comparison Use:** These metrics power the backtest comparison table when multiple runs are viewed side-by-side.
 
+**Simplified Default Metrics View** *(📝 Spec Ready)*
+- Default results view shows exactly 5 metrics for users who have not pinned favorites: **Total Return %**, **Max Drawdown %**, **Win Rate**, **Number of Trades**, and **vs. Buy-and-Hold %**.
+- All other metrics (Sharpe, Sortino, Calmar, alpha, beta, CAGR, costs, etc.) are hidden behind a collapsed-by-default **"Show detailed analysis"** section.
+- If the user has pinned/favorite metrics (FR-12), pinned metrics replace the 5-metric default; the detailed analysis section still reveals the full metric set.
+- Expanded/collapsed detailed-analysis state does not persist between page loads (always collapsed on load).
+
 **What You Just Learned Summary Card (Implemented):**
 - On the user's first-ever backtest results view, a dedicated card titled **"What you just learned"** appears below the metrics grid.
 - Card copy is 1–2 plain-language sentences summarizing what was tested and how it performed versus buy-and-hold (including the percentage-point delta, colored green/red).
@@ -983,6 +989,9 @@ Plain-Language Error Messages
 ### 5.5. Backtest Results
 
 - Narrative-first layout rule: narrative card appears before all metrics/charts; for zero-trade runs, render only the narrative card + `Modify Strategy` CTA and suppress metric/chart sections.
+
+- Metrics panel behavior: top row shows either (a) the 5-metric default set or (b) user pinned favorites; a **"Show detailed analysis"** toggle reveals all remaining metrics in an expandable section below.
+- Detailed-analysis section defaults to collapsed on every results page load.
 
 **Equity Curve** (`GET /backtests/{run_id}/equity-curve`)
 - Array of {timestamp, equity} points
@@ -2213,6 +2222,7 @@ Plain-Language Error Messages
 | **Contextual Help & Tooltips** | ✅ Complete | Hover tooltips for indicators, logic blocks, metrics |
 | **Metrics Glossary** | ✅ Complete | Dedicated searchable page explaining backtest metrics |
 | **Favorite Metrics (Backtest Summary)** | ✅ Complete | Users can pin/reorder the metrics shown in backtest summary cards |
+| **Simplified Default Metrics View** | 📝 Spec Ready | Default to exactly 5 key metrics when no favorites are pinned, with a collapsed-by-default "Show detailed analysis" section for all advanced metrics; pinned favorites still override the default row |
 | **Strategy Notes & Annotations** | ✅ Complete | Floating text notes on canvas (280 char limit), drag to position |
 | **Visual Validation Feedback** | ✅ Complete | Inline canvas highlights and messages for validation errors |
 | **Improved Error Messages** | ✅ Complete | Plain-language, actionable validation + error copy with help doc links (/strategy-guide) |
@@ -2471,6 +2481,8 @@ npm run type-check    # TypeScript validation
 - `docs/prd-data-completeness-indicators.md` - Data completeness indicators PRD
 - `docs/prd-metrics-glossary.md` - Metrics glossary PRD
 - `docs/prd-favorite-metrics-backtest-summary.md` - Favorite metrics (backtest summary) PRD
+- `docs/prd-simplified-default-metrics-view.md` - Simplified default metrics view PRD
+- `docs/tst-simplified-default-metrics-view.md` - Simplified default metrics view test checklist
 - `docs/prd-what-you-just-learned-summary-card.md` - What You Just Learned summary card PRD
 - `docs/tst-what-you-just-learned-summary-card.md` - What You Just Learned summary card test checklist
 - `docs/prd-backtest-narrative-summary-generation-backend.md` - Narrative summary generation (backend) PRD
