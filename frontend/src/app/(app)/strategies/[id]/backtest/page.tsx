@@ -669,6 +669,7 @@ export default function StrategyBacktestPage({ params }: Props) {
   // Summary card has its own key so scroll-based overlay dismissal doesn't hide it
   const [showSummaryCard, setShowSummaryCard] = useState(false);
   const [showDetailedAnalysis, setShowDetailedAnalysis] = useState(false);
+  const hasFavoriteMetrics = (user?.favorite_metrics?.length ?? 0) > 0;
 
   useEffect(() => {
     const isFirstRun = Boolean(user?.has_completed_onboarding && !getFirstRunSeen());
@@ -677,6 +678,18 @@ export default function StrategyBacktestPage({ params }: Props) {
       setShowSummaryCard(Boolean(user?.has_completed_onboarding && !getSummaryCardSeen()));
     }
   }, [user?.has_completed_onboarding, selectedRunId, showSummaryCard]);
+
+  useEffect(() => {
+    // Detailed metrics should always start collapsed when the active run changes.
+    setShowDetailedAnalysis(false);
+  }, [selectedRunId]);
+
+  useEffect(() => {
+    // Returning to default metric mode (no favorites) should reset to collapsed.
+    if (!hasFavoriteMetrics) {
+      setShowDetailedAnalysis(false);
+    }
+  }, [hasFavoriteMetrics]);
 
   const hasVisibleFirstRunMetrics = useCallback(() => {
     if (typeof window === "undefined") return false;
@@ -1718,8 +1731,7 @@ export default function StrategyBacktestPage({ params }: Props) {
               ) : isZeroTradeNarrativeMode ? null : (
                 selectedRun.summary ? ((() => {
                   const orderedMetrics = getOrderedMetrics(selectedRun.summary!, user?.favorite_metrics || null);
-                  const hasFavorites = (user?.favorite_metrics?.length ?? 0) > 0;
-                  const primaryKeys = hasFavorites ? user!.favorite_metrics! : DEFAULT_METRIC_KEYS;
+                  const primaryKeys = hasFavoriteMetrics ? user!.favorite_metrics! : DEFAULT_METRIC_KEYS;
                   const primaryMetrics = orderedMetrics.filter(m => primaryKeys.includes(m.key));
                   const detailedMetrics = orderedMetrics.filter(m => !primaryKeys.includes(m.key));
 
