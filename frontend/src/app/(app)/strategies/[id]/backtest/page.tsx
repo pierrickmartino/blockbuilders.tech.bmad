@@ -1148,6 +1148,9 @@ export default function StrategyBacktestPage({ params }: Props) {
     selectedRun?.status === "completed" &&
     selectedRun?.summary?.num_trades === 0;
 
+  const isZeroTradeNarrativeMode =
+    isZeroTradeRun && Boolean(selectedRun?.narrative);
+
   // Merge equity curve and benchmark for chart
   const chartData = useMemo(() => {
     if (equityCurve.length === 0) return [];
@@ -1643,7 +1646,7 @@ export default function StrategyBacktestPage({ params }: Props) {
               >
                 Metrics glossary
               </Link>
-              {selectedRun?.status === "completed" && selectedRun.summary && (
+              {selectedRun?.status === "completed" && selectedRun.summary && !isZeroTradeNarrativeMode && (
                 <>
                   <Button
                     variant="outline"
@@ -1710,42 +1713,45 @@ export default function StrategyBacktestPage({ params }: Props) {
                 <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
                   {selectedRun.error_message || "Backtest failed. Please try again."}
                 </div>
-              ) : selectedRun.summary ? (
-                <div data-first-run-metrics="true" className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-                  {getOrderedMetrics(selectedRun.summary, user?.favorite_metrics || null).map((metric) => {
-                    const isPinned = user?.favorite_metrics?.includes(metric.key) || false;
-                    const pinnedMetrics = user?.favorite_metrics || [];
-                    const pinnedIndex = pinnedMetrics.indexOf(metric.key);
-                    const isFirstRunMetric = FIRST_RUN_METRIC_KEYS.includes(metric.key);
-                    const metricTooltip = getTooltip(metricToGlossaryId(metric.key));
+              ) : isZeroTradeNarrativeMode ? null : (
+                selectedRun.summary ? (
+                  <div data-first-run-metrics="true" className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+                    {getOrderedMetrics(selectedRun.summary, user?.favorite_metrics || null).map((metric) => {
+                      const isPinned = user?.favorite_metrics?.includes(metric.key) || false;
+                      const pinnedMetrics = user?.favorite_metrics || [];
+                      const pinnedIndex = pinnedMetrics.indexOf(metric.key);
+                      const isFirstRunMetric = FIRST_RUN_METRIC_KEYS.includes(metric.key);
+                      const metricTooltip = getTooltip(metricToGlossaryId(metric.key));
 
-                    return (
-                      <MetricCard
-                        key={metric.key}
-                        metricKey={metric.key}
-                        label={metric.label}
-                        value={metric.getValue(selectedRun.summary!)}
-                        isPinned={isPinned}
-                        canMoveLeft={isPinned && pinnedIndex > 0}
-                        canMoveRight={isPinned && pinnedIndex < pinnedMetrics.length - 1}
-                        onTogglePin={() => handleToggleFavorite(metric.key)}
-                        onMoveLeft={() => handleReorderFavorite(metric.key, "left")}
-                        onMoveRight={() => handleReorderFavorite(metric.key, "right")}
-                        disabled={savingMetrics}
-                        firstRunExplanation={showFirstRunExplanations && isFirstRunMetric ? metricTooltip?.firstRun : undefined}
-                        showFirstRunHelper={!showFirstRunExplanations && isFirstRunMetric && !!metricTooltip?.firstRun}
-                      />
-                    );
-                  })}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  Backtest is {selectedRun.status}. We&apos;ll keep polling for results.
-                </p>
+                      return (
+                        <MetricCard
+                          key={metric.key}
+                          metricKey={metric.key}
+                          label={metric.label}
+                          value={metric.getValue(selectedRun.summary!)}
+                          isPinned={isPinned}
+                          canMoveLeft={isPinned && pinnedIndex > 0}
+                          canMoveRight={isPinned && pinnedIndex < pinnedMetrics.length - 1}
+                          onTogglePin={() => handleToggleFavorite(metric.key)}
+                          onMoveLeft={() => handleReorderFavorite(metric.key, "left")}
+                          onMoveRight={() => handleReorderFavorite(metric.key, "right")}
+                          disabled={savingMetrics}
+                          firstRunExplanation={showFirstRunExplanations && isFirstRunMetric ? metricTooltip?.firstRun : undefined}
+                          showFirstRunHelper={!showFirstRunExplanations && isFirstRunMetric && !!metricTooltip?.firstRun}
+                        />
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Backtest is {selectedRun.status}. We&apos;ll keep polling for results.
+                  </p>
+                )
               )}
 
               {/* What You Just Learned — first-run only */}
-              {showSummaryCard &&
+              {!isZeroTradeNarrativeMode &&
+                showSummaryCard &&
                 selectedRun?.summary &&
                 selectedRun.summary.benchmark_return_pct != null && (
                   <WhatYouLearnedCard
@@ -1761,7 +1767,7 @@ export default function StrategyBacktestPage({ params }: Props) {
                 )}
 
               {/* Sentiment Context Strip */}
-              {selectedRunId && selectedRun?.status === "completed" && (
+              {!isZeroTradeNarrativeMode && selectedRunId && selectedRun?.status === "completed" && (
                 <BacktestSentimentStrip runId={selectedRunId} />
               )}
             </div>
@@ -1769,7 +1775,7 @@ export default function StrategyBacktestPage({ params }: Props) {
         </section>
 
         {/* Charts, metrics & trades — hidden in zero-trade mode with narrative */}
-        {!(isZeroTradeRun && selectedRun?.narrative) && (
+        {!isZeroTradeNarrativeMode && (
           <>
         {/* Equity Curve Chart - only show for completed runs */}
         {selectedRun?.status === "completed" && (
