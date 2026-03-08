@@ -107,6 +107,7 @@ class BacktestStatusResponse(BaseModel):
     date_to: datetime
     triggered_by: str = "manual"
     summary: Optional[BacktestSummary] = None
+    narrative: Optional[str] = None
     error_message: Optional[str] = None
     data_quality: Optional[DataQualityMetrics] = None
 
