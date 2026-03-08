@@ -986,9 +986,18 @@ Plain-Language Error Messages
 - For zero-trade narratives, show a `Modify Strategy` CTA in the card and hide all performance metrics/charts below it.
 - Frontend fires PostHog event `narrative_viewed` when the narrative card first becomes visible in the viewport.
 
+**Low Trade Count Warning (Frontend)** *(📝 Spec Ready)*
+- If `num_trades` is between 1 and 9 (inclusive), render a yellow warning banner below the narrative card (when present) or at the top of the metrics section.
+- Banner copy (exact): "Your strategy triggered [N] trades over this period. With so few trades, results can vary a lot — try a longer date range or looser entry conditions to get more data points."
+- If `num_trades` is 0 or >=10, do not show this banner.
+- Fire PostHog event `health_warning_shown` with property `warning_type: low_trade_count` when the warning first renders.
+- Check runs entirely in frontend from `num_trades`; no backend blocking and no impact to completion flow (NFR-08).
+- Warning banner styling must meet WCAG 2.1 AA contrast requirements (NFR-09).
+
 ### 5.5. Backtest Results
 
 - Narrative-first layout rule: narrative card appears before all metrics/charts; for zero-trade runs, render only the narrative card + `Modify Strategy` CTA and suppress metric/chart sections.
+- Low-trade coaching warning rule: when `num_trades` is 1-9, show a yellow coaching banner under narrative (or above metrics if no narrative) and track with `health_warning_shown` + `warning_type=low_trade_count`.
 
 - Metrics panel behavior: top row shows either (a) the 5-metric default set or (b) user pinned favorites; a **"Show detailed analysis"** toggle reveals all remaining metrics in an expandable section below.
 - Detailed-analysis section defaults to collapsed on every results page load.
@@ -1661,7 +1670,7 @@ Plain-Language Error Messages
 
 **v1 Event Coverage:**
 - Lifecycle events: `page_view`, `signup_completed`, `login_completed`
-- Feature events: `wizard_started`, `wizard_first_run_started`, `wizard_skipped`, `strategy_created`, `strategy_saved`, `backtest_started`, `backtest_completed`, `results_viewed`, `narrative_viewed`
+- Feature events: `wizard_started`, `wizard_first_run_started`, `wizard_skipped`, `strategy_created`, `strategy_saved`, `backtest_started`, `backtest_completed`, `results_viewed`, `narrative_viewed`, `health_warning_shown`
 - Backend worker backtest lifecycle events: `backtest_job_started`, `backtest_job_completed`, `backtest_job_failed`
 - Onboarding retention event: `second_session` (used as final step in onboarding funnel)
 - First-run backtest education event: `first_run_overlay_completed` (fires when the first-time viewer scrolls past or interacts with results)
@@ -2189,6 +2198,7 @@ Plain-Language Error Messages
 | **What You Just Learned Summary Card** | ✅ Complete | First-ever results view shows a dedicated “What you just learned” card below metrics grid with a 1-2 sentence strategy-vs-buy-and-hold takeaway (including percentage-point delta); the card is hidden on second+ results views; reuses existing first-run localStorage gating |
 | **Narrative Summary Generation (Backend)** | 📝 Spec Ready | Add a deterministic server-side `narrative` field to `GET /backtests/{id}` that summarizes start→end balance, best/worst periods (including experiential max drawdown in dollars), total trades, and buy-and-hold delta; return exact fallback copy for zero-trade runs with <=200ms overhead |
 | **Narrative Display on Results Page (Frontend)** | 📝 Spec Ready | Render narrative as the first results element in a distinct card with larger text, fire PostHog `narrative_viewed` when visible, and for zero-trade runs show `Modify Strategy` CTA while hiding all performance metrics/charts |
+| **Low Trade Count Warning** | 📝 Spec Ready | Frontend-only `num_trades` check shows a yellow coaching banner when trades are 1-9, hides it at 0 or >=10, and tracks `health_warning_shown` with `warning_type=low_trade_count` while meeting WCAG 2.1 AA contrast |
 | **Wizard Essentials-Only Constraint** | 📝 Spec Ready | Wizard indicator/strategy-type step shows only 5 Essentials options with plain-English labels and excludes Ichimoku/Fibonacci/ADX/OBV/Stochastic; post-wizard canvas palette still follows current toggle state (Essentials by default for new users) |
 | **Backtesting** | ✅ Complete | Full engine with TP ladder, SL, max drawdown, equity curves, trade detail, risk-adjusted metrics |
 | **Enhanced Trade Explanation View** | ✅ Complete (Phase 1) | Per-trade entry/exit explanation with condition breakdown (✓ markers), price-pane indicator overlays (SMA, EMA, Bollinger), entry/exit candle markers; compute-on-read with graceful fallback |
@@ -2489,6 +2499,8 @@ npm run type-check    # TypeScript validation
 - `docs/tst-backtest-narrative-summary-generation-backend.md` - Narrative summary generation (backend) test checklist
 - `docs/prd-narrative-display-results-page-frontend.md` - Narrative display on results page (frontend) PRD
 - `docs/tst-narrative-display-results-page-frontend.md` - Narrative display on results page (frontend) test checklist
+- `docs/prd-low-trade-count-warning.md` - Low trade count warning PRD
+- `docs/tst-low-trade-count-warning.md` - Low trade count warning test checklist
 - `docs/prd-strategy-notes-annotations.md` - Strategy notes & annotations PRD
 - `docs/prd-strategy-explanation-generator.md` - Strategy explanation generator PRD
 - `docs/prd-strategy-import-export.md` - Strategy import/export PRD
@@ -2612,6 +2624,7 @@ npm run type-check    # TypeScript validation
 
 ## 18. Changelog
 
+- **2026-03-08:** Added PRD/TST planning for low trade count warning on results pages, including frontend-only `num_trades` check (1-9), coaching banner placement/copy, WCAG AA contrast, and `health_warning_shown` analytics with `warning_type=low_trade_count`.
 - **2026-03-08:** Added PRD/TST planning for frontend narrative-first results layout: narrative card before metrics, `narrative_viewed` PostHog event on viewport visibility, and zero-trade `Modify Strategy` CTA with metrics hidden.
 - **2026-03-07:** Added PRD/TST planning for a wizard escape hatch (“I want to build manually”) that creates a blank strategy, routes directly to the empty canvas, fires `wizard_skipped`, and sets `users.has_completed_onboarding=true`.
 - **2026-03-05:** Added PRD/TST planning for a first-run-only “What you just learned” summary card on backtest results, including 1-2 sentence strategy-vs-buy-and-hold takeaway copy and suppression on second+ results views.
