@@ -344,7 +344,7 @@ Plain-Language Error Messages
   - `GET /strategy-templates` - List all published templates
   - `GET /strategy-templates/{id}` - Get template detail with full definition
   - `POST /strategy-templates/{id}/clone` - Clone template into user strategy
-- **Database:** `strategy_templates` table with name, description, logic summary, use cases, parameter ranges, definition JSON, source, status
+- **Database:** `strategy_templates` table with name, description, logic summary, use cases, parameter ranges, `teaches_description`, `difficulty` (`beginner`/`intermediate`/`advanced`), `sort_order`, definition JSON, source, status
 - **Seeding:** Alembic migration seeds initial 3 templates (RSI Oversold Bounce, MA Crossover, Bollinger Breakout)
 - **Access:** Templates list available from "Browse Templates" button on strategies page
 
@@ -356,6 +356,13 @@ Plain-Language Error Messages
   - Suggested parameter ranges for customization
   - Asset and timeframe defaults
   - Complete strategy definition JSON
+- Templates list is ordered by `sort_order` ascending, with beginner templates first by default
+- Difficulty label mapping in UI:
+  - `beginner` -> **Start Here**
+  - `intermediate` -> **Level Up**
+  - `advanced` -> **Deep Dive**
+- Template detail page shows a **What this teaches** section above the Clone button when `teaches_description` is present
+- If `teaches_description` is empty, the section is hidden without empty placeholders
 - Users can **Clone** a template to create a new editable strategy
 - Cloning respects user capacity limits (plan tier + extra slots)
 - Cloned strategies open directly in canvas editor
@@ -364,7 +371,7 @@ Plain-Language Error Messages
 **Files:**
 - Backend: `backend/app/models/strategy_template.py`, `backend/app/api/strategy_templates.py`, `backend/app/schemas/strategy_template.py`, `backend/app/data/strategy_templates.py`
 - Frontend: `frontend/src/app/(app)/strategies/templates/page.tsx`, `frontend/src/types/strategy-template.ts`
-- Migration: `backend/alembic/versions/017_add_strategy_templates.py`
+- Migrations: `backend/alembic/versions/017_add_strategy_templates.py`, `backend/alembic/versions/029_add_template_teaches_difficulty_sort_order.py` (planned)
 
 ---
 
@@ -1387,6 +1394,9 @@ Plain-Language Error Messages
 - Empty state + create menu offer “Strategy Building Wizard” for guided creation
 - Wizard indicator/strategy-type step is constrained to the 5 Essentials indicators with plain-English option labels (no advanced-indicator jargon for first-time users)
 - Wizard completion supports a one-click “See how it would have performed” CTA that runs save + backtest automatically and then routes directly to results
+- Templates browser (`/strategies/templates`) shows subtle difficulty badges on each card: Start Here / Level Up / Deep Dive
+- Templates are rendered in ascending `sort_order` so users can learn progressively
+- Template detail shows a plain-English **What this teaches** section above Clone when authored
 
 **Strategy Editor** (`/strategies/[id]`)
 - Visual canvas with drag-drop blocks
@@ -1928,6 +1938,21 @@ Plain-Language Error Messages
 - created_at (TIMESTAMP)
 - Unique constraint: (strategy_id, version_number)
 
+**strategy_templates**
+- id (UUID, PK)
+- name (VARCHAR)
+- description (TEXT)
+- logic_summary (TEXT)
+- use_cases (JSON/ARRAY)
+- parameter_ranges (JSON)
+- teaches_description (TEXT, nullable)
+- difficulty (VARCHAR, default `beginner`)
+- sort_order (INT, default 0)
+- definition_json (JSON)
+- source (VARCHAR)
+- status (VARCHAR)
+- created_at, updated_at (TIMESTAMP)
+
 **backtest_runs**
 - id (UUID, PK)
 - user_id (UUID, FK to users)
@@ -2033,6 +2058,7 @@ Plain-Language Error Messages
 26. `026_add_candle_date_range_to_data_quality` - Earliest/latest candle date columns on data_quality_metrics
 27. `027_add_digest_email_enabled` - Global and per-strategy digest opt-out fields
 28. `028_add_has_completed_onboarding` - Onboarding flag on users with backfill from backtest_runs
+29. `029_add_template_teaches_difficulty_sort_order` - Adds `teaches_description`, `difficulty`, and `sort_order` to strategy_templates with seed backfill
 
 **Migration Commands:**
 - `alembic upgrade head` - Apply all pending migrations
@@ -2238,6 +2264,7 @@ Plain-Language Error Messages
 | **Improved Error Messages** | ✅ Complete | Plain-language, actionable validation + error copy with help doc links (/strategy-guide) |
 | **Strategy Explanation Generator** | ✅ Complete | Template-based plain-English explanation from strategy JSON |
 | **Strategy Import/Export** | ✅ Complete | JSON export/download + import/upload with validation |
+| **Template Educational Fields & Difficulty Ordering** | 📝 Spec Ready | Adds `teaches_description`, `difficulty`, and `sort_order`, surfaces Start Here/Level Up/Deep Dive badges, orders templates progressively, and shows a conditional “What this teaches” section above Clone on detail pages |
 | **Strategy Templates Marketplace** | ✅ Complete | Curated template library with 3 templates, clone-to-edit workflow, dedicated browser page |
 | **Worker Infrastructure** | ✅ Complete | RQ job queue, scheduler, background processing |
 | **API** | ✅ Complete | RESTful endpoints, JWT auth, OpenAPI docs |
@@ -2505,6 +2532,8 @@ npm run type-check    # TypeScript validation
 - `docs/prd-strategy-explanation-generator.md` - Strategy explanation generator PRD
 - `docs/prd-strategy-import-export.md` - Strategy import/export PRD
 - `docs/prd-strategy-templates-marketplace.md` - Strategy templates marketplace PRD
+- `docs/prd-template-educational-fields-difficulty-ordering.md` - Template educational fields and difficulty ordering PRD
+- `docs/tst-template-educational-fields-difficulty-ordering.md` - Template educational fields and difficulty ordering test checklist
 - `docs/prd-visual-strategy-validation-feedback.md` - Visual validation feedback PRD
 - `docs/prd-canvas-minimap-section-shortcuts.md` - Canvas minimap with section shortcuts PRD
 - `docs/prd-improved-error-messages.md` - Improved error messages PRD
@@ -2624,6 +2653,7 @@ npm run type-check    # TypeScript validation
 
 ## 18. Changelog
 
+- **2026-03-08:** Added PRD/TST planning for template educational fields + difficulty ordering, including `strategy_templates.teaches_description`, difficulty badge mapping (Start Here/Level Up/Deep Dive), `sort_order` ordering, and conditional “What this teaches” detail copy above Clone.
 - **2026-03-08:** Added PRD/TST planning for low trade count warning on results pages, including frontend-only `num_trades` check (1-9), coaching banner placement/copy, WCAG AA contrast, and `health_warning_shown` analytics with `warning_type=low_trade_count`.
 - **2026-03-08:** Added PRD/TST planning for frontend narrative-first results layout: narrative card before metrics, `narrative_viewed` PostHog event on viewport visibility, and zero-trade `Modify Strategy` CTA with metrics hidden.
 - **2026-03-07:** Added PRD/TST planning for a wizard escape hatch (“I want to build manually”) that creates a blank strategy, routes directly to the empty canvas, fires `wizard_skipped`, and sets `users.has_completed_onboarding=true`.

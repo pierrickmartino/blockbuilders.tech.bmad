@@ -85,7 +85,7 @@ If you add or change the block library (palette UI, search, categories, favorite
 If you add or change the block parameter inspector/properties panel behavior, update `docs/product.md` Sections 4 and 9.3 and the feature summary in Section 13.
 For canvas auto-layout or connection tidying improvements, update the related canvas section in `docs/product.md` and the feature summary in Section 13.
 If you add or change display/theme preferences (including dark mode), update `docs/product.md` Sections 2.3 and 9.5 and the feature summary in Section 13.
-If you add or change the strategy templates marketplace/library, update `docs/product.md` Section 3.7 and the feature summary in Section 13.
+If you add or change the strategy templates marketplace/library, update `docs/product.md` Section 3.7 and the feature summary in Section 13. If the change affects template learning content, difficulty labels, or template ordering, also update `docs/product.md` Sections 9.3, 11, and 17.1 with the PRD/TST links.
 If you add or change the progress dashboard, update `docs/product.md` Section 9.11 and the feature summary in Section 13.
 **Credits & add-ons:** If the spec calls for one-time usage credits or add-on capacity, keep tracking as **simple integer fields on the user record** and avoid extra tables or complex metering unless explicitly required.
 **Strategy metadata:** If you need to store non-execution data in a strategy version JSON (e.g., notes), keep it under a top-level `metadata` key so the interpreter can ignore it safely.
