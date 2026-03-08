@@ -50,6 +50,7 @@ import TradeDrawer from "@/components/TradeDrawer";
 import InfoIcon from "@/components/InfoIcon";
 import { BacktestSentimentStrip } from "@/components/BacktestSentimentStrip";
 import { WhatYouLearnedCard } from "@/components/WhatYouLearnedCard";
+import { NarrativeCard } from "@/components/NarrativeCard";
 import { DataAvailabilitySection } from "@/components/DataAvailabilitySection";
 import { ShareBacktestModal } from "@/components/ShareBacktestModal";
 import { TransactionCostAnalysis } from "@/components/TransactionCostAnalysis";
@@ -1143,6 +1144,10 @@ export default function StrategyBacktestPage({ params }: Props) {
     return `${formatDateTime(selectedRun.date_from, timezone).split(" ")[0]} → ${formatDateTime(selectedRun.date_to, timezone).split(" ")[0]}`;
   }, [selectedRun, timezone]);
 
+  const isZeroTradeRun =
+    selectedRun?.status === "completed" &&
+    selectedRun?.summary?.num_trades === 0;
+
   // Merge equity curve and benchmark for chart
   const chartData = useMemo(() => {
     if (equityCurve.length === 0) return [];
@@ -1693,6 +1698,14 @@ export default function StrategyBacktestPage({ params }: Props) {
                 <span className="font-medium">Range:</span>{" "}
                 {selectedRunRange}
               </div>
+              {selectedRun.narrative && (
+                <NarrativeCard
+                  narrative={selectedRun.narrative}
+                  strategyId={id}
+                  isZeroTradeRun={!!isZeroTradeRun}
+                  userId={user?.id}
+                />
+              )}
               {selectedRun.status === "failed" ? (
                 <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
                   {selectedRun.error_message || "Backtest failed. Please try again."}
@@ -1755,6 +1768,9 @@ export default function StrategyBacktestPage({ params }: Props) {
           )}
         </section>
 
+        {/* Charts, metrics & trades — hidden in zero-trade mode with narrative */}
+        {!(isZeroTradeRun && selectedRun?.narrative) && (
+          <>
         {/* Equity Curve Chart - only show for completed runs */}
         {selectedRun?.status === "completed" && (
           <section className="rounded-xl border bg-card p-3 shadow-sm sm:p-4">
@@ -2457,6 +2473,8 @@ export default function StrategyBacktestPage({ params }: Props) {
         {/* Transaction Cost Analysis - only show for completed runs */}
         {selectedRun?.status === "completed" && selectedRun.summary && (
           <TransactionCostAnalysis summary={selectedRun.summary} />
+        )}
+          </>
         )}
       </div>
 
