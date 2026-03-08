@@ -960,7 +960,7 @@ Plain-Language Error Messages
 
 **Comparison Use:** These metrics power the backtest comparison table when multiple runs are viewed side-by-side.
 
-**Simplified Default Metrics View** *(📝 Spec Ready)*
+**Simplified Default Metrics View** *(✅ Implemented)*
 - Default results view shows exactly 5 metrics for users who have not pinned favorites: **Total Return %**, **Max Drawdown %**, **Win Rate**, **Number of Trades**, and **vs. Buy-and-Hold %**.
 - All other metrics (Sharpe, Sortino, Calmar, alpha, beta, CAGR, costs, etc.) are hidden behind a collapsed-by-default **"Show detailed analysis"** section.
 - If the user has pinned/favorite metrics (FR-12), pinned metrics replace the 5-metric default; the detailed analysis section still reveals the full metric set.
@@ -2222,7 +2222,7 @@ Plain-Language Error Messages
 | **Contextual Help & Tooltips** | ✅ Complete | Hover tooltips for indicators, logic blocks, metrics |
 | **Metrics Glossary** | ✅ Complete | Dedicated searchable page explaining backtest metrics |
 | **Favorite Metrics (Backtest Summary)** | ✅ Complete | Users can pin/reorder the metrics shown in backtest summary cards |
-| **Simplified Default Metrics View** | 📝 Spec Ready | Default to exactly 5 key metrics when no favorites are pinned, with a collapsed-by-default "Show detailed analysis" section for all advanced metrics; pinned favorites still override the default row |
+| **Simplified Default Metrics View** | ✅ Complete | Default to exactly 5 key metrics when no favorites are pinned, with a collapsed-by-default "Show detailed analysis" section for all advanced metrics; pinned favorites still override the default row |
 | **Strategy Notes & Annotations** | ✅ Complete | Floating text notes on canvas (280 char limit), drag to position |
 | **Visual Validation Feedback** | ✅ Complete | Inline canvas highlights and messages for validation errors |
 | **Improved Error Messages** | ✅ Complete | Plain-language, actionable validation + error copy with help doc links (/strategy-guide) |
