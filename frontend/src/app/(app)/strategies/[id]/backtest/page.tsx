@@ -51,6 +51,7 @@ import InfoIcon from "@/components/InfoIcon";
 import { BacktestSentimentStrip } from "@/components/BacktestSentimentStrip";
 import { WhatYouLearnedCard } from "@/components/WhatYouLearnedCard";
 import { NarrativeCard } from "@/components/NarrativeCard";
+import { LowTradeCountWarning } from "@/components/LowTradeCountWarning";
 import { DataAvailabilitySection } from "@/components/DataAvailabilitySection";
 import { ShareBacktestModal } from "@/components/ShareBacktestModal";
 import { TransactionCostAnalysis } from "@/components/TransactionCostAnalysis";
@@ -1724,6 +1725,7 @@ export default function StrategyBacktestPage({ params }: Props) {
                   userId={user?.id}
                 />
               )}
+              <LowTradeCountWarning numTrades={selectedRun.summary?.num_trades} userId={user?.id} />
               {selectedRun.status === "failed" ? (
                 <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
                   {selectedRun.error_message || "Backtest failed. Please try again."}
