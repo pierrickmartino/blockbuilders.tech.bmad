@@ -73,8 +73,8 @@ class TestNarrativePositiveReturn:
         # Data point 3: trade count
         assert "25 trades" in result
 
-        # Data point 4: max drawdown in dollars
-        assert "$8,800" in result  # 10000 * (1 - 12/100)
+        # Data point 4: max drawdown from peak equity
+        assert "12.0% from its peak equity" in result
 
         # Data point 5: buy-and-hold comparison
         assert "outperformed" in result
@@ -112,25 +112,24 @@ class TestNarrativeNegativeReturn:
         assert "$8,500" in result
         assert "15.0%" in result
         assert "30 trades" in result
-        assert "$8,000" in result  # 10000 * (1 - 20/100)
+        assert "20.0% from its peak equity" in result
 
 
 class TestDrawdownCalculation:
     def test_prd_example_26pct(self):
-        """PRD example: $10,000 with 26% drawdown → $7,400."""
+        """Drawdown is expressed as a percentage from peak equity."""
         summary = make_summary(
             initial_balance=10_000,
             max_drawdown_pct=26.0,
         )
         result = generate_narrative(summary)
-        assert "$7,400" in result
+        assert "26.0% from its peak equity" in result
 
     def test_zero_drawdown(self):
         """Zero drawdown should not produce odd text."""
         summary = make_summary(max_drawdown_pct=0.0)
         result = generate_narrative(summary)
         assert "never experienced a significant drawdown" in result
-        assert "$" not in result.split("drawdown")[0].split(".")[-1] or True
 
 
 class TestBenchmarkComparison:

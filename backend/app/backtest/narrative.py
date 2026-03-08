@@ -53,11 +53,9 @@ def generate_narrative(summary: BacktestSummary) -> str:
 
         # Sentence 2: max drawdown (experiential)
         if dd > 0:
-            trough = initial * (1 - dd / 100)
             drawdown_text = (
-                f"At its worst, you would have watched your "
-                f"{_fmt_usd(initial)} drop to {_fmt_usd(trough)} before recovering, "
-                f"a {_fmt_pct(dd)}% maximum drawdown."
+                f"At its worst, your portfolio was down {_fmt_pct(dd)}% from its "
+                f"peak equity, its maximum drawdown."
             )
         else:
             drawdown_text = (
