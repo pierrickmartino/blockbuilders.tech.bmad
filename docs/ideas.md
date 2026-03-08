@@ -1,0 +1,2 @@
+- Brainstorming about sentiment analysis on backtest results
+- Brainstorming about canvas display and clear separation between Entry signal / Exis signal / Risk inputs
