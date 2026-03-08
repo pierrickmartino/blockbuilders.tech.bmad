@@ -160,6 +160,7 @@ const statusStyles: Record<BacktestStatus, string> = {
 const FIRST_RUN_KEY = "bb.first_run_metric_explanations_seen";
 const SUMMARY_CARD_KEY = "bb.first_run_summary_card_seen";
 const FIRST_RUN_METRIC_KEYS = ["total-return", "max-drawdown", "win-rate", "trades", "benchmark-return"];
+const DEFAULT_METRIC_KEYS = FIRST_RUN_METRIC_KEYS;
 
 function getFirstRunSeen(): boolean {
   if (typeof window === "undefined") return true;
@@ -667,6 +668,8 @@ export default function StrategyBacktestPage({ params }: Props) {
 
   // Summary card has its own key so scroll-based overlay dismissal doesn't hide it
   const [showSummaryCard, setShowSummaryCard] = useState(false);
+  const [showDetailedAnalysis, setShowDetailedAnalysis] = useState(false);
+  const hasFavoriteMetrics = (user?.favorite_metrics?.length ?? 0) > 0;
 
   useEffect(() => {
     const isFirstRun = Boolean(user?.has_completed_onboarding && !getFirstRunSeen());
@@ -675,6 +678,18 @@ export default function StrategyBacktestPage({ params }: Props) {
       setShowSummaryCard(Boolean(user?.has_completed_onboarding && !getSummaryCardSeen()));
     }
   }, [user?.has_completed_onboarding, selectedRunId, showSummaryCard]);
+
+  useEffect(() => {
+    // Detailed metrics should always start collapsed when the active run changes.
+    setShowDetailedAnalysis(false);
+  }, [selectedRunId]);
+
+  useEffect(() => {
+    // Returning to default metric mode (no favorites) should reset to collapsed.
+    if (!hasFavoriteMetrics) {
+      setShowDetailedAnalysis(false);
+    }
+  }, [hasFavoriteMetrics]);
 
   const hasVisibleFirstRunMetrics = useCallback(() => {
     if (typeof window === "undefined") return false;
@@ -1714,35 +1729,68 @@ export default function StrategyBacktestPage({ params }: Props) {
                   {selectedRun.error_message || "Backtest failed. Please try again."}
                 </div>
               ) : isZeroTradeNarrativeMode ? null : (
-                selectedRun.summary ? (
-                  <div data-first-run-metrics="true" className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-                    {getOrderedMetrics(selectedRun.summary, user?.favorite_metrics || null).map((metric) => {
-                      const isPinned = user?.favorite_metrics?.includes(metric.key) || false;
-                      const pinnedMetrics = user?.favorite_metrics || [];
-                      const pinnedIndex = pinnedMetrics.indexOf(metric.key);
-                      const isFirstRunMetric = FIRST_RUN_METRIC_KEYS.includes(metric.key);
-                      const metricTooltip = getTooltip(metricToGlossaryId(metric.key));
+                selectedRun.summary ? ((() => {
+                  const orderedMetrics = getOrderedMetrics(selectedRun.summary!, user?.favorite_metrics || null);
+                  const primaryKeys = hasFavoriteMetrics ? user!.favorite_metrics! : DEFAULT_METRIC_KEYS;
+                  const primaryMetrics = orderedMetrics.filter(m => primaryKeys.includes(m.key));
+                  const detailedMetrics = orderedMetrics.filter(m => !primaryKeys.includes(m.key));
 
-                      return (
-                        <MetricCard
-                          key={metric.key}
-                          metricKey={metric.key}
-                          label={metric.label}
-                          value={metric.getValue(selectedRun.summary!)}
-                          isPinned={isPinned}
-                          canMoveLeft={isPinned && pinnedIndex > 0}
-                          canMoveRight={isPinned && pinnedIndex < pinnedMetrics.length - 1}
-                          onTogglePin={() => handleToggleFavorite(metric.key)}
-                          onMoveLeft={() => handleReorderFavorite(metric.key, "left")}
-                          onMoveRight={() => handleReorderFavorite(metric.key, "right")}
-                          disabled={savingMetrics}
-                          firstRunExplanation={showFirstRunExplanations && isFirstRunMetric ? metricTooltip?.firstRun : undefined}
-                          showFirstRunHelper={!showFirstRunExplanations && isFirstRunMetric && !!metricTooltip?.firstRun}
-                        />
-                      );
-                    })}
-                  </div>
-                ) : (
+                  const renderMetricCard = (metric: MetricConfig) => {
+                    const isPinned = user?.favorite_metrics?.includes(metric.key) || false;
+                    const pinnedMetrics = user?.favorite_metrics || [];
+                    const pinnedIndex = pinnedMetrics.indexOf(metric.key);
+                    const isFirstRunMetric = FIRST_RUN_METRIC_KEYS.includes(metric.key);
+                    const metricTooltip = getTooltip(metricToGlossaryId(metric.key));
+
+                    return (
+                      <MetricCard
+                        key={metric.key}
+                        metricKey={metric.key}
+                        label={metric.label}
+                        value={metric.getValue(selectedRun.summary!)}
+                        isPinned={isPinned}
+                        canMoveLeft={isPinned && pinnedIndex > 0}
+                        canMoveRight={isPinned && pinnedIndex < pinnedMetrics.length - 1}
+                        onTogglePin={() => handleToggleFavorite(metric.key)}
+                        onMoveLeft={() => handleReorderFavorite(metric.key, "left")}
+                        onMoveRight={() => handleReorderFavorite(metric.key, "right")}
+                        disabled={savingMetrics}
+                        firstRunExplanation={showFirstRunExplanations && isFirstRunMetric ? metricTooltip?.firstRun : undefined}
+                        showFirstRunHelper={!showFirstRunExplanations && isFirstRunMetric && !!metricTooltip?.firstRun}
+                      />
+                    );
+                  };
+
+                  return (
+                    <div className="space-y-3" data-first-run-metrics="true">
+                      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+                        {primaryMetrics.map(renderMetricCard)}
+                      </div>
+                      {detailedMetrics.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setShowDetailedAnalysis(prev => !prev)}
+                          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors"
+                        >
+                          <svg
+                            className={`h-4 w-4 transition-transform ${showDetailedAnalysis ? "rotate-180" : ""}`}
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                          {showDetailedAnalysis ? "Hide detailed analysis" : "Show detailed analysis"}
+                        </button>
+                      )}
+                      {showDetailedAnalysis && detailedMetrics.length > 0 && (
+                        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+                          {detailedMetrics.map(renderMetricCard)}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()) : (
                   <p className="text-sm text-muted-foreground">
                     Backtest is {selectedRun.status}. We&apos;ll keep polling for results.
                   </p>
