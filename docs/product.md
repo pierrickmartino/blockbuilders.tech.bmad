@@ -974,7 +974,15 @@ Plain-Language Error Messages
 - For zero-trade runs, narrative will return a fixed guidance message explaining no entry signals fired.
 - Narrative generation overhead target is <=200ms added response time.
 
+**Narrative Display on Results Page (Frontend)** *(📝 Spec Ready)*
+- Results pages will render the narrative card as the first content element before any metric grid, charts, or trade tables.
+- Narrative card uses distinct styling (prominent card container + larger paragraph text) to visually separate story context from numeric metrics.
+- For zero-trade narratives, show a `Modify Strategy` CTA in the card and hide all performance metrics/charts below it.
+- Frontend fires PostHog event `narrative_viewed` when the narrative card first becomes visible in the viewport.
+
 ### 5.5. Backtest Results
+
+- Narrative-first layout rule: narrative card appears before all metrics/charts; for zero-trade runs, render only the narrative card + `Modify Strategy` CTA and suppress metric/chart sections.
 
 **Equity Curve** (`GET /backtests/{run_id}/equity-curve`)
 - Array of {timestamp, equity} points
@@ -1644,7 +1652,7 @@ Plain-Language Error Messages
 
 **v1 Event Coverage:**
 - Lifecycle events: `page_view`, `signup_completed`, `login_completed`
-- Feature events: `wizard_started`, `wizard_first_run_started`, `wizard_skipped`, `strategy_created`, `strategy_saved`, `backtest_started`, `backtest_completed`, `results_viewed`
+- Feature events: `wizard_started`, `wizard_first_run_started`, `wizard_skipped`, `strategy_created`, `strategy_saved`, `backtest_started`, `backtest_completed`, `results_viewed`, `narrative_viewed`
 - Backend worker backtest lifecycle events: `backtest_job_started`, `backtest_job_completed`, `backtest_job_failed`
 - Onboarding retention event: `second_session` (used as final step in onboarding funnel)
 - First-run backtest education event: `first_run_overlay_completed` (fires when the first-time viewer scrolls past or interacts with results)
@@ -2171,6 +2179,7 @@ Plain-Language Error Messages
 | **Auto-Backtest on Wizard Completion** | ✅ Complete | Final wizard CTA (“See how it would have performed”) auto-saves strategy, enqueues a 365-day backtest, shows rotating progress messages (including “Almost there...” after 25s), polls for completion, navigates directly to results, and sets `users.has_completed_onboarding=true` client-side |
 | **What You Just Learned Summary Card** | ✅ Complete | First-ever results view shows a dedicated “What you just learned” card below metrics grid with a 1-2 sentence strategy-vs-buy-and-hold takeaway (including percentage-point delta); the card is hidden on second+ results views; reuses existing first-run localStorage gating |
 | **Narrative Summary Generation (Backend)** | 📝 Spec Ready | Add a deterministic server-side `narrative` field to `GET /backtests/{id}` that summarizes start→end balance, best/worst periods (including experiential max drawdown in dollars), total trades, and buy-and-hold delta; return exact fallback copy for zero-trade runs with <=200ms overhead |
+| **Narrative Display on Results Page (Frontend)** | 📝 Spec Ready | Render narrative as the first results element in a distinct card with larger text, fire PostHog `narrative_viewed` when visible, and for zero-trade runs show `Modify Strategy` CTA while hiding all performance metrics/charts |
 | **Wizard Essentials-Only Constraint** | 📝 Spec Ready | Wizard indicator/strategy-type step shows only 5 Essentials options with plain-English labels and excludes Ichimoku/Fibonacci/ADX/OBV/Stochastic; post-wizard canvas palette still follows current toggle state (Essentials by default for new users) |
 | **Backtesting** | ✅ Complete | Full engine with TP ladder, SL, max drawdown, equity curves, trade detail, risk-adjusted metrics |
 | **Enhanced Trade Explanation View** | ✅ Complete (Phase 1) | Per-trade entry/exit explanation with condition breakdown (✓ markers), price-pane indicator overlays (SMA, EMA, Bollinger), entry/exit candle markers; compute-on-read with graceful fallback |
@@ -2466,6 +2475,8 @@ npm run type-check    # TypeScript validation
 - `docs/tst-what-you-just-learned-summary-card.md` - What You Just Learned summary card test checklist
 - `docs/prd-backtest-narrative-summary-generation-backend.md` - Narrative summary generation (backend) PRD
 - `docs/tst-backtest-narrative-summary-generation-backend.md` - Narrative summary generation (backend) test checklist
+- `docs/prd-narrative-display-results-page-frontend.md` - Narrative display on results page (frontend) PRD
+- `docs/tst-narrative-display-results-page-frontend.md` - Narrative display on results page (frontend) test checklist
 - `docs/prd-strategy-notes-annotations.md` - Strategy notes & annotations PRD
 - `docs/prd-strategy-explanation-generator.md` - Strategy explanation generator PRD
 - `docs/prd-strategy-import-export.md` - Strategy import/export PRD
@@ -2589,6 +2600,7 @@ npm run type-check    # TypeScript validation
 
 ## 18. Changelog
 
+- **2026-03-08:** Added PRD/TST planning for frontend narrative-first results layout: narrative card before metrics, `narrative_viewed` PostHog event on viewport visibility, and zero-trade `Modify Strategy` CTA with metrics hidden.
 - **2026-03-07:** Added PRD/TST planning for a wizard escape hatch (“I want to build manually”) that creates a blank strategy, routes directly to the empty canvas, fires `wizard_skipped`, and sets `users.has_completed_onboarding=true`.
 - **2026-03-05:** Added PRD/TST planning for a first-run-only “What you just learned” summary card on backtest results, including 1-2 sentence strategy-vs-buy-and-hold takeaway copy and suppression on second+ results views.
 - **2026-03-05:** Implemented auto-backtest on wizard completion: final CTA "See how it would have performed" auto-saves strategy, enqueues 365-day backtest, shows rotating progress messages with "Almost there..." threshold, polls for completion, navigates to results, and marks onboarding complete client-side.
