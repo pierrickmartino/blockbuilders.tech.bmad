@@ -26,6 +26,7 @@ from app.models.user import User, UserTier
 from app.backtest.data_quality import query_metrics_for_range, compute_completeness_metrics
 from app.backtest.storage import download_json
 from app.backtest.explanation import build_trade_explanation
+from app.backtest.narrative import generate_narrative
 from app.schemas.backtest import (
     BacktestCompareRequest,
     BacktestCompareResponse,
@@ -393,6 +394,11 @@ def get_backtest_status(
             avg_cost_per_trade_usd=run.avg_cost_per_trade_usd,
         )
 
+    # Generate narrative summary for completed runs
+    narrative = None
+    if summary is not None:
+        narrative = generate_narrative(summary)
+
     # Query data quality metrics for the run's period
     data_quality = None
     try:
@@ -446,6 +452,7 @@ def get_backtest_status(
         date_to=run.date_to,
         triggered_by=run.triggered_by,
         summary=summary,
+        narrative=narrative,
         error_message=run.error_message,
         data_quality=data_quality,
     )
