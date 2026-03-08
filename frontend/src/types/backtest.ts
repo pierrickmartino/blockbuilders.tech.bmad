@@ -53,6 +53,7 @@ export interface BacktestStatusResponse {
   triggered_by: string;
   summary?: BacktestSummary | null;
   error_message?: string | null;
+  narrative?: string | null;
   data_quality?: DataQualityMetrics | null;
 }
 
