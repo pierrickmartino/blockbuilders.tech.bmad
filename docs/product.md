@@ -371,7 +371,7 @@ Plain-Language Error Messages
 **Files:**
 - Backend: `backend/app/models/strategy_template.py`, `backend/app/api/strategy_templates.py`, `backend/app/schemas/strategy_template.py`, `backend/app/data/strategy_templates.py`
 - Frontend: `frontend/src/app/(app)/strategies/templates/page.tsx`, `frontend/src/types/strategy-template.ts`
-- Migrations: `backend/alembic/versions/017_add_strategy_templates.py`, `backend/alembic/versions/029_add_template_teaches_difficulty_sort_order.py` (planned)
+- Migrations: `backend/alembic/versions/017_add_strategy_templates.py`, `backend/alembic/versions/029_add_template_teaches_difficulty_sort_order.py`
 
 ---
 
@@ -2195,8 +2195,8 @@ Plain-Language Error Messages
 | Feature Area | Status | Details |
 |---|---|---|
 | **Authentication** | ✅ Complete | Email/password, OAuth (Google, GitHub), password reset |
-| **Wizard as Default Post-Signup Destination** | 📝 Spec Ready | New signups route to wizard first-run experience, emit `wizard_first_run_started`, and keep returning onboarded users on dashboard via `users.has_completed_onboarding` + migration backfill from `backtest_runs` |
-| **Canvas Escape Hatch from Wizard** | 📝 Spec Ready | Wizard first-run includes subtle “I want to build manually” link that creates a blank strategy, routes directly to empty canvas editor, fires `wizard_skipped`, and sets `users.has_completed_onboarding=true` |
+| **Wizard as Default Post-Signup Destination** | ✅ Complete | New signups route to wizard first-run experience, emit `wizard_first_run_started`, and keep returning onboarded users on dashboard via `users.has_completed_onboarding` + migration backfill from `backtest_runs` |
+| **Canvas Escape Hatch from Wizard** | ✅ Complete | Wizard first-run includes subtle “I want to build manually” link that creates a blank strategy, routes directly to empty canvas editor, fires `wizard_skipped`, and sets `users.has_completed_onboarding=true` |
 | **Account Management** | ✅ Complete | Profile, settings (fees, slippage, timezone), usage tracking |
 | **Digest Email Opt-Out Controls** | ✅ Done | Global weekly digest opt-out (`users.digest_email_enabled`) plus per-strategy opt-out (`strategies.digest_email_enabled`) in profile notification settings |
 | **Product Analytics (PostHog + Consent + Backend Events + Onboarding Funnel Dashboard)** | ✅ Complete | GDPR-aware consent banner + event tracking for auth/key strategy-backtest actions plus backend worker lifecycle events (`backtest_job_started/completed/failed`) and a dedicated PostHog onboarding funnel (`signup_completed → ... → second_session`) with date-range/cohort filters |
@@ -2207,7 +2207,7 @@ Plain-Language Error Messages
 | **Strategy Groups/Tags** | ✅ Complete | Custom tags, tag filtering, many-to-many strategy organization |
 | **Visual Builder** | ✅ Complete | 20 block types, drag-drop, enhanced Inspector panel with period presets and source quick-swaps, mobile-responsive |
 | **Expanded Indicator Palette & Price Variation Input** | ✅ Complete | Stochastic, ADX, Ichimoku Cloud, OBV, Fibonacci retracements, and price variation % input block |
-| **Essentials-First Block Palette Toggle** | 📝 Spec Ready | Default 5-indicator essentials mode for new users, toggle to full indicator list, localStorage persistence, legacy-user fallback to all, frontend-only state switch with `palette_mode_changed` analytics event |
+| **Essentials-First Block Palette Toggle** | ✅ Complete | Default 5-indicator essentials mode for new users, toggle to full indicator list, localStorage persistence, legacy-user fallback to all, frontend-only state switch with `palette_mode_changed` analytics event |
 | **Plain-English Indicator Labels** | ✅ Complete | Essentials mode indicator cards show plain-English primary labels with technical subtitles (SMA/EMA/RSI/Bollinger Bands/MACD), retain existing hover tooltips, enforce WCAG 2.1 AA contrast for both label levels, and keep non-essential indicators technical-only in All mode |
 | **Mobile-Optimized Canvas** | ✅ Complete | Touch-first controls, simplified palette, gesture-based connections |
 | **Bottom Action Bar for Canvas Tools** | ✅ Complete | Replace left tool stack with a mobile bottom action bar for core canvas tools (Pan/Select, Zoom In/Out, Fit to Screen, Undo/Redo) with 44px tap targets |
@@ -2222,10 +2222,10 @@ Plain-Language Error Messages
 | **Strategy Building Wizard** | ✅ Complete | Guided Q&A that generates editable strategy JSON |
 | **Auto-Backtest on Wizard Completion** | ✅ Complete | Final wizard CTA (“See how it would have performed”) auto-saves strategy, enqueues a 365-day backtest, shows rotating progress messages (including “Almost there...” after 25s), polls for completion, navigates directly to results, and sets `users.has_completed_onboarding=true` client-side |
 | **What You Just Learned Summary Card** | ✅ Complete | First-ever results view shows a dedicated “What you just learned” card below metrics grid with a 1-2 sentence strategy-vs-buy-and-hold takeaway (including percentage-point delta); the card is hidden on second+ results views; reuses existing first-run localStorage gating |
-| **Narrative Summary Generation (Backend)** | 📝 Spec Ready | Add a deterministic server-side `narrative` field to `GET /backtests/{id}` that summarizes start→end balance, best/worst periods (including experiential max drawdown in dollars), total trades, and buy-and-hold delta; return exact fallback copy for zero-trade runs with <=200ms overhead |
-| **Narrative Display on Results Page (Frontend)** | 📝 Spec Ready | Render narrative as the first results element in a distinct card with larger text, fire PostHog `narrative_viewed` when visible, and for zero-trade runs show `Modify Strategy` CTA while hiding all performance metrics/charts |
-| **Low Trade Count Warning** | 📝 Spec Ready | Frontend-only `num_trades` check shows a yellow coaching banner when trades are 1-9, hides it at 0 or >=10, and tracks `health_warning_shown` with `warning_type=low_trade_count` while meeting WCAG 2.1 AA contrast |
-| **Wizard Essentials-Only Constraint** | 📝 Spec Ready | Wizard indicator/strategy-type step shows only 5 Essentials options with plain-English labels and excludes Ichimoku/Fibonacci/ADX/OBV/Stochastic; post-wizard canvas palette still follows current toggle state (Essentials by default for new users) |
+| **Narrative Summary Generation (Backend)** | ✅ Complete | Add a deterministic server-side `narrative` field to `GET /backtests/{id}` that summarizes start→end balance, best/worst periods (including experiential max drawdown in dollars), total trades, and buy-and-hold delta; return exact fallback copy for zero-trade runs with <=200ms overhead |
+| **Narrative Display on Results Page (Frontend)** | ✅ Complete | Render narrative as the first results element in a distinct card with larger text, fire PostHog `narrative_viewed` when visible, and for zero-trade runs show `Modify Strategy` CTA while hiding all performance metrics/charts |
+| **Low Trade Count Warning** | ✅ Complete | Frontend-only `num_trades` check shows a yellow coaching banner when trades are 1-9, hides it at 0 or >=10, and tracks `health_warning_shown` with `warning_type=low_trade_count` while meeting WCAG 2.1 AA contrast |
+| **Wizard Essentials-Only Constraint** | ✅ Complete | Wizard indicator/strategy-type step shows only 5 Essentials options with plain-English labels and excludes Ichimoku/Fibonacci/ADX/OBV/Stochastic; post-wizard canvas palette still follows current toggle state (Essentials by default for new users) |
 | **Backtesting** | ✅ Complete | Full engine with TP ladder, SL, max drawdown, equity curves, trade detail, risk-adjusted metrics |
 | **Enhanced Trade Explanation View** | ✅ Complete (Phase 1) | Per-trade entry/exit explanation with condition breakdown (✓ markers), price-pane indicator overlays (SMA, EMA, Bollinger), entry/exit candle markers; compute-on-read with graceful fallback |
 | **Transaction Cost Analysis** | ✅ Complete | Breakdown of fees/slippage/spread, cost % of gross return, and per-trade cost visibility |
@@ -2342,58 +2342,9 @@ Plain-Language Error Messages
 
 ---
 
-## 15. Future Roadmap
+## 15. Development Guide
 
-### 15.1. Phase 2 Enhancements (Proposed)
-
-**Completed:**
-- ✅ OAuth integration (Google, GitHub)
-- ✅ Password reset flow
-- ✅ Timezone preference
-- ✅ Take profit ladder (multiple levels)
-- ✅ Max drawdown risk management
-- ✅ Scheduled re-backtests (Strategy Monitor)
-- ✅ In-app notifications
-
-**Proposed (Not Yet Implemented):**
-- Multi-timeframe strategies (Phase 2+)
-- Expanded indicator palette (Stochastic, ADX, Ichimoku Cloud, OBV, Fibonacci retracements) + price variation % input block
-- Short selling support
-- Advanced order types (limit, stop-limit)
-- Strategy templates marketplace (curated library with clone-to-edit)
-- Favorite metrics pinning in backtest summaries
-- Data quality upgrades (multi-vendor reconciliation, extended anomaly detection)
-- Improved analytics (drawdown analysis, trade tagging)
-- Email notifications for auto-updates
-- Shareable backtest result links (results only, not strategy logic)
-
-### 15.2. Post-MVP Considerations
-
-**Product:**
-- Expand asset coverage (more pairs, stocks, forex)
-- Add more timeframes (15m, 5m, 1w)
-- Multi-asset portfolio strategies
-- Walk-forward optimization
-- Monte Carlo simulation
-
-**Operations:**
-- Team billing and seat management
-- Usage-based pricing (only if the simple tier model proves insufficient)
-- Email/SMS alerts for backtest completion
-- Telegram/Discord bot integrations
-
-**Architecture (Only If Needed):**
-- Horizontal worker scaling (Kubernetes)
-- Read replicas for PostgreSQL
-- Separate analytics database (TimescaleDB)
-- CDN for static assets
-- Multi-region deployment
-
----
-
-## 16. Development Guide
-
-### 16.1. Local Setup
+### 15.1. Local Setup
 
 **Prerequisites:**
 - Docker and Docker Compose
@@ -2413,7 +2364,7 @@ docker compose exec api alembic upgrade head
 - API Docs: http://localhost:8000/docs
 - MinIO Console: http://localhost:9001
 
-### 16.2. Development Workflow
+### 15.2. Development Workflow
 
 **Frontend Development:**
 ```bash
@@ -2441,7 +2392,7 @@ docker compose exec api alembic downgrade -1      # Rollback
 docker compose exec api alembic current           # Show current version
 ```
 
-### 16.3. Key File Locations
+### 15.3. Key File Locations
 
 **Frontend:**
 - Pages: `frontend/src/app/(auth)/` and `frontend/src/app/(app)/`
@@ -2467,7 +2418,7 @@ docker compose exec api alembic current           # Show current version
 - `frontend/Dockerfile` - Frontend image
 - `backend/Dockerfile` - Backend/worker image
 
-### 16.4. Testing
+### 15.4. Testing
 
 **Backend Tests:**
 ```bash
@@ -2503,9 +2454,9 @@ npm run type-check    # TypeScript validation
 
 ---
 
-## 17. Support & Resources
+## 16. Support & Resources
 
-### 17.1. Documentation
+### 16.1. Documentation
 
 **Internal Docs:**
 - `docs/mvp.md` - MVP specification (baseline)
@@ -2617,14 +2568,14 @@ npm run type-check    # TypeScript validation
 - SQLModel: https://sqlmodel.tiangolo.com
 - Alembic: https://alembic.sqlalchemy.org
 
-### 17.2. API Documentation
+### 16.2. API Documentation
 
 **Interactive Docs:**
 - Swagger UI: http://localhost:8000/docs
 - ReDoc: http://localhost:8000/redoc
 - OpenAPI JSON: http://localhost:8000/openapi.json
 
-### 17.3. Troubleshooting
+### 16.3. Troubleshooting
 
 **Common Issues:**
 
@@ -2651,7 +2602,7 @@ npm run type-check    # TypeScript validation
 
 ---
 
-## 18. Changelog
+## 17. Changelog
 
 - **2026-03-08:** Added PRD/TST planning for template educational fields + difficulty ordering, including `strategy_templates.teaches_description`, difficulty badge mapping (Start Here/Level Up/Deep Dive), `sort_order` ordering, and conditional “What this teaches” detail copy above Clone.
 - **2026-03-08:** Added PRD/TST planning for low trade count warning on results pages, including frontend-only `num_trades` check (1-9), coaching banner placement/copy, WCAG AA contrast, and `health_warning_shown` analytics with `warning_type=low_trade_count`.
