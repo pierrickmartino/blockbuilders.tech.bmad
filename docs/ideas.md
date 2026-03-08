@@ -1,3 +1,4 @@
 - Brainstorming about sentiment analysis on backtest results
 - Brainstorming about canvas display and clear separation between Entry signal / Exis signal / Risk inputs
 - Brainstorming about favorite metrics on backtest results
+- Brainstorming about timeframes options
