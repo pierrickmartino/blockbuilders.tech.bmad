@@ -9,6 +9,9 @@ export interface StrategyTemplate {
   parameter_ranges: Record<string, string>;
   asset: string;
   timeframe: string;
+  difficulty: string;
+  sort_order: number;
+  teaches_description: string | null;
   created_at: string;
 }
 
