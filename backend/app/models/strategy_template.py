@@ -19,5 +19,8 @@ class StrategyTemplate(SQLModel, table=True):
     status: str = Field(default="published")
     asset: str
     timeframe: str
+    teaches_description: Optional[str] = Field(default=None)
+    difficulty: str = Field(default="beginner")
+    sort_order: int = Field(default=0)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)

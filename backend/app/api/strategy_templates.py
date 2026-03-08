@@ -24,7 +24,7 @@ def list_templates(
     templates = session.exec(
         select(StrategyTemplate)
         .where(StrategyTemplate.status == "published")
-        .order_by(StrategyTemplate.created_at.desc())
+        .order_by(StrategyTemplate.sort_order.asc(), StrategyTemplate.name.asc())
     ).all()
 
     return [
@@ -37,6 +37,9 @@ def list_templates(
             parameter_ranges=t.parameter_ranges,
             asset=t.asset,
             timeframe=t.timeframe,
+            difficulty=t.difficulty,
+            sort_order=t.sort_order,
+            teaches_description=t.teaches_description,
             created_at=t.created_at,
         )
         for t in templates
@@ -65,6 +68,9 @@ def get_template(
         parameter_ranges=template.parameter_ranges,
         asset=template.asset,
         timeframe=template.timeframe,
+        difficulty=template.difficulty,
+        sort_order=template.sort_order,
+        teaches_description=template.teaches_description,
         created_at=template.created_at,
         definition_json=template.definition_json,
     )

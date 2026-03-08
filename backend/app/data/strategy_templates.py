@@ -6,6 +6,9 @@ TEMPLATES = [
         "name": "RSI Oversold Bounce",
         "description": "Buy when RSI drops below 30 (oversold), sell when it rises above 70 (overbought). Classic mean-reversion strategy.",
         "logic_summary": "Enters long positions when RSI indicates oversold conditions and exits when overbought",
+        "teaches_description": "Learn how RSI measures momentum and how oversold/overbought zones signal potential reversals. This is the simplest indicator-based strategy pattern.",
+        "difficulty": "beginner",
+        "sort_order": 1,
         "use_cases": [
             "Sideways or ranging markets",
             "High volatility altcoins",
@@ -121,6 +124,9 @@ TEMPLATES = [
         "name": "MA Crossover",
         "description": "Buy when fast moving average crosses above slow moving average, sell on opposite crossover. Classic trend-following strategy.",
         "logic_summary": "Enters when fast SMA (10) crosses above slow SMA (30), exits on reverse crossover",
+        "teaches_description": "Understand how moving average crossovers identify trend changes. This foundational pattern is the basis of most trend-following strategies.",
+        "difficulty": "beginner",
+        "sort_order": 2,
         "use_cases": [
             "Trending markets with clear directional moves",
             "Medium to long-term trend following",
@@ -233,6 +239,9 @@ TEMPLATES = [
         "name": "Bollinger Breakout",
         "description": "Buy when price breaks above upper Bollinger Band, sell when it crosses back below the middle band. Momentum/breakout strategy.",
         "logic_summary": "Enters on upper band breakout (volatility expansion), exits on return to middle band",
+        "teaches_description": "Explore how Bollinger Bands measure volatility and how breakouts above the bands can signal strong momentum moves.",
+        "difficulty": "intermediate",
+        "sort_order": 3,
         "use_cases": [
             "Volatility breakouts in consolidating markets",
             "Momentum trading during high-volume periods",

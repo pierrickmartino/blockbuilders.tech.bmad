@@ -9,6 +9,21 @@ import { Badge } from "@/components/ui/badge";
 import type { StrategyTemplate } from "@/types/strategy-template";
 import type { Strategy } from "@/types/strategy";
 
+const DIFFICULTY_CONFIG: Record<string, { label: string; className: string }> = {
+  beginner: {
+    label: "Start Here",
+    className: "border-green-500/30 text-green-600 dark:text-green-400",
+  },
+  intermediate: {
+    label: "Level Up",
+    className: "border-amber-500/30 text-amber-600 dark:text-amber-400",
+  },
+  advanced: {
+    label: "Deep Dive",
+    className: "border-red-500/30 text-red-600 dark:text-red-400",
+  },
+};
+
 export default function TemplatesPage() {
   const router = useRouter();
   const [templates, setTemplates] = useState<StrategyTemplate[]>([]);
@@ -87,7 +102,17 @@ export default function TemplatesPage() {
           {templates.map((template) => (
             <Card key={template.id} className="group flex flex-col transition-all duration-200 hover:border-primary/20 hover:shadow-md">
               <CardContent className="flex-1 p-6">
-                <h3 className="text-lg font-semibold tracking-tight mb-3">{template.name}</h3>
+                <div className="flex items-start justify-between gap-2 mb-3">
+                  <h3 className="text-lg font-semibold tracking-tight">{template.name}</h3>
+                  {DIFFICULTY_CONFIG[template.difficulty] && (
+                    <Badge
+                      variant="outline"
+                      className={`shrink-0 ${DIFFICULTY_CONFIG[template.difficulty].className}`}
+                    >
+                      {DIFFICULTY_CONFIG[template.difficulty].label}
+                    </Badge>
+                  )}
+                </div>
 
                 <div className="flex gap-2 mb-3">
                   <Badge variant="secondary">{template.asset}</Badge>
@@ -117,7 +142,7 @@ export default function TemplatesPage() {
                   </ul>
                 </div>
 
-                <div className="mb-6">
+                <div className="mb-4">
                   <p className="text-sm font-medium mb-2">Parameter ranges:</p>
                   <div className="text-sm text-muted-foreground space-y-1">
                     {Object.entries(template.parameter_ranges).map(
@@ -129,6 +154,15 @@ export default function TemplatesPage() {
                     )}
                   </div>
                 </div>
+
+                {template.teaches_description && (
+                  <div className="mb-6 rounded-lg border border-primary/10 bg-primary/5 p-3">
+                    <p className="text-xs font-medium text-primary mb-1">What this teaches</p>
+                    <p className="text-sm text-muted-foreground">
+                      {template.teaches_description}
+                    </p>
+                  </div>
+                )}
 
                 <Button
                   className="w-full"
