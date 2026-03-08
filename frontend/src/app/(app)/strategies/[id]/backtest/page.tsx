@@ -1725,7 +1725,11 @@ export default function StrategyBacktestPage({ params }: Props) {
                   userId={user?.id}
                 />
               )}
-              <LowTradeCountWarning numTrades={selectedRun.summary?.num_trades} userId={user?.id} />
+              <LowTradeCountWarning
+                numTrades={selectedRun.summary?.num_trades}
+                runId={selectedRunId}
+                userId={user?.id}
+              />
               {selectedRun.status === "failed" ? (
                 <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
                   {selectedRun.error_message || "Backtest failed. Please try again."}

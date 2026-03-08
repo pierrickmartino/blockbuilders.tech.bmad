@@ -5,18 +5,24 @@ import { trackEvent } from "@/lib/analytics";
 
 interface LowTradeCountWarningProps {
   numTrades: number | undefined | null;
+  runId?: string | null;
   userId?: string;
 }
 
-export function LowTradeCountWarning({ numTrades, userId }: LowTradeCountWarningProps) {
-  const trackedRef = useRef<number | null>(null);
+export function LowTradeCountWarning({ numTrades, runId, userId }: LowTradeCountWarningProps) {
+  const trackedRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (numTrades == null || numTrades <= 0 || numTrades >= 10) return;
-    if (trackedRef.current === numTrades) return;
-    trackedRef.current = numTrades;
-    trackEvent("health_warning_shown", { warning_type: "low_trade_count", num_trades: numTrades }, userId);
-  }, [numTrades, userId]);
+    const impressionKey = runId ?? `num_trades:${numTrades}`;
+    if (trackedRef.current === impressionKey) return;
+    trackedRef.current = impressionKey;
+    trackEvent(
+      "health_warning_shown",
+      { warning_type: "low_trade_count", num_trades: numTrades, run_id: runId ?? undefined },
+      userId
+    );
+  }, [numTrades, runId, userId]);
 
   if (numTrades == null || !Number.isFinite(numTrades) || numTrades <= 0 || numTrades >= 10) {
     return null;
