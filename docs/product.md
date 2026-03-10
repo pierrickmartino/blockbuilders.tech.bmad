@@ -2217,6 +2217,7 @@ Plain-Language Error Messages
 | **Block Library Bottom Sheet with Search** | ✅ Complete | Bottom sheet block library with search, categories, and recent/favorite blocks |
 | **Copy/Paste Blocks & Subgraphs** | ✅ Complete | Multi-select blocks and copy/paste within or across strategies |
 | **Auto-Layout & Connection Tidying** | ✅ Complete | Auto-arrange blocks left-to-right or top-to-bottom and tidy wire paths without moving blocks |
+| **SmartCanvas Wrapper & Feature Flag Infrastructure** | 📝 Spec Ready | Introduce `SmartCanvas` as the single canvas entry point wrapping existing `StrategyCanvas`, with per-area PostHog feature-flag checks and default-off parity to preserve current behavior (undo/redo, autosave, copy/paste, minimap, auto-layout, keyboard shortcuts). |
 | **Canvas Undo/Redo** | ✅ Implemented | Toolbar buttons + keyboard shortcuts for reverting canvas edits |
 | **Keyboard Shortcuts & Reference** | ✅ Complete | Cmd/Ctrl+S save, Cmd/Ctrl+R run backtest, ? help modal, editor-only |
 | **Strategy Building Wizard** | ✅ Complete | Guided Q&A that generates editable strategy JSON |
@@ -2521,6 +2522,8 @@ npm run type-check    # TypeScript validation
 - `docs/prd-canvas-bottom-action-bar.md` - Bottom action bar for canvas tools PRD
 - `docs/prd-canvas-minimap-section-shortcuts.md` - Canvas minimap with section shortcuts PRD
 - `docs/prd-canvas-auto-layout-connection-tidying.md` - Auto-layout & connection tidying PRD
+- `docs/prd-smartcanvas-wrapper-feature-flag-infrastructure.md` - SmartCanvas wrapper & feature flag infrastructure PRD
+- `docs/tst-smartcanvas-wrapper-feature-flag-infrastructure.md` - SmartCanvas wrapper & feature flag infrastructure test checklist
 - `docs/prd-compact-node-display-mode.md` - Compact node display mode PRD
 - `docs/prd-inspector-panel-block-parameters.md` - Inspector panel for block parameters PRD
 - `docs/prd-block-library-bottom-sheet-search.md` - Block library bottom sheet with search PRD
@@ -2604,6 +2607,7 @@ npm run type-check    # TypeScript validation
 
 ## 17. Changelog
 
+- **2026-03-10:** Added PRD/TST planning for SmartCanvas wrapper + PostHog feature-flag infrastructure, requiring StrategyCanvas parity when flags are disabled and preserving existing canvas behaviors behind a new entry-point wrapper.
 - **2026-03-08:** Added PRD/TST planning for template educational fields + difficulty ordering, including `strategy_templates.teaches_description`, difficulty badge mapping (Start Here/Level Up/Deep Dive), `sort_order` ordering, and conditional “What this teaches” detail copy above Clone.
 - **2026-03-08:** Added PRD/TST planning for low trade count warning on results pages, including frontend-only `num_trades` check (1-9), coaching banner placement/copy, WCAG AA contrast, and `health_warning_shown` analytics with `warning_type=low_trade_count`.
 - **2026-03-08:** Added PRD/TST planning for frontend narrative-first results layout: narrative card before metrics, `narrative_viewed` PostHog event on viewport visibility, and zero-trade `Modify Strategy` CTA with metrics hidden.
