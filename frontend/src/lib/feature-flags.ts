@@ -15,19 +15,37 @@ export type CanvasFlagKey = (typeof CANVAS_FLAGS)[keyof typeof CANVAS_FLAGS];
 
 export type CanvasFlags = Record<CanvasFlagKey, boolean>;
 
+type FeatureFlagReadResult = {
+  value: boolean;
+  usedFallback: boolean;
+};
+
+function readFeatureFlag(key: string): FeatureFlagReadResult {
+  if (typeof window === "undefined") {
+    return { value: false, usedFallback: false };
+  }
+
+  if (getConsent() !== "accepted") {
+    return { value: false, usedFallback: false };
+  }
+
+  try {
+    const value = posthog.isFeatureEnabled(key);
+    if (value === true || value === false) {
+      return { value, usedFallback: false };
+    }
+    return { value: false, usedFallback: true };
+  } catch {
+    return { value: false, usedFallback: true };
+  }
+}
+
 /**
  * Safely read a PostHog feature flag.
  * Returns `false` if consent is not given, PostHog is unavailable, or any error occurs.
  */
 export function getFeatureFlag(key: string): boolean {
-  try {
-    if (typeof window === "undefined") return false;
-    if (getConsent() !== "accepted") return false;
-    const value = posthog.isFeatureEnabled(key);
-    return value === true;
-  } catch {
-    return false;
-  }
+  return readFeatureFlag(key).value;
 }
 
 /** Read all canvas feature flags at once. Returns false for any that fail. */
@@ -36,12 +54,9 @@ export function getCanvasFlags(): { flags: CanvasFlags; hadFallback: boolean } {
   const flags = {} as CanvasFlags;
 
   for (const key of Object.values(CANVAS_FLAGS)) {
-    try {
-      flags[key] = getFeatureFlag(key);
-    } catch {
-      flags[key] = false;
-      hadFallback = true;
-    }
+    const result = readFeatureFlag(key);
+    flags[key] = result.value;
+    hadFallback = hadFallback || result.usedFallback;
   }
 
   return { flags, hadFallback };
