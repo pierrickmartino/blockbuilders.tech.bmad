@@ -2,6 +2,8 @@ import posthog from "posthog-js";
 
 const CONSENT_KEY = "bb.analytics.consent";
 export const ANALYTICS_CONSENT_CHANGED_EVENT = "bb.analytics.consent.changed";
+export const ANALYTICS_POSTHOG_INITIALIZED_EVENT =
+  "bb.analytics.posthog.initialized";
 
 type ConsentStatus = "accepted" | "declined" | null;
 
@@ -53,6 +55,7 @@ export function initPostHog(): void {
     persistence: "localStorage+cookie",
   });
   initialized = true;
+  window.dispatchEvent(new Event(ANALYTICS_POSTHOG_INITIALIZED_EVENT));
 }
 
 function shutdownPostHog(): void {
