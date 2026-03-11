@@ -18,14 +18,25 @@ const RISK_BLOCK_TYPES: RiskBlockType[] = [
   "time_exit",
 ];
 
-function hasConnectedSignal(
+// Must stay aligned with backend _collect_validation_errors exit_rule_types.
+const EXIT_RISK_BLOCK_TYPES: RiskBlockType[] = [
+  "time_exit",
+  "trailing_stop",
+  "stop_loss",
+  "take_profit",
+  "max_drawdown",
+];
+
+function getSignalConnectivity(
   signalType: string,
   nodes: Node[],
-  edges: Edge[]
-): boolean {
-  const signalNode = nodes.find((n) => n.type === signalType);
-  if (!signalNode) return false;
-  return edges.some((e) => e.target === signalNode.id);
+  connectedTargets: Set<string>
+): { count: number; allConnected: boolean } {
+  const signalNodes = nodes.filter((n) => n.type === signalType);
+  return {
+    count: signalNodes.length,
+    allConnected: signalNodes.every((signalNode) => connectedTargets.has(signalNode.id)),
+  };
 }
 
 /**
@@ -34,11 +45,19 @@ function hasConnectedSignal(
  * Risk is advisory-only in v1 (warning when absent, never incomplete).
  */
 export function evaluateHealthBar(nodes: Node[], edges: Edge[]): HealthBarState {
-  const entry: SegmentStatus = hasConnectedSignal("entry_signal", nodes, edges)
+  const connectedTargets = new Set(edges.map((edge) => edge.target));
+
+  const entrySignals = getSignalConnectivity("entry_signal", nodes, connectedTargets);
+  const entry: SegmentStatus = (entrySignals.count > 0 && entrySignals.allConnected)
     ? "complete"
     : "incomplete";
 
-  const exit: SegmentStatus = hasConnectedSignal("exit_signal", nodes, edges)
+  const exitSignals = getSignalConnectivity("exit_signal", nodes, connectedTargets);
+  const hasExitRiskBlock = nodes.some((n) =>
+    EXIT_RISK_BLOCK_TYPES.includes(n.type as RiskBlockType)
+  );
+  const hasExitCondition = exitSignals.count > 0 || hasExitRiskBlock;
+  const exit: SegmentStatus = (hasExitCondition && exitSignals.allConnected)
     ? "complete"
     : "incomplete";
 
