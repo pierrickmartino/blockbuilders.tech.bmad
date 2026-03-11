@@ -75,24 +75,68 @@ When there is any conflict, follow this precedence order:
 4. `docs/mvp.md` — **MVP baseline + guardrails**
 5. `docs/mvp_plan.md` — **backlog/story seed** (helpful, not authoritative)
 
-**Doc hygiene:** When you add a new `docs/prd-*.md`, also create a matching `docs/tst-*.md` test checklist and list the PRD in `docs/product.md` (Section 17.1). If you change dashboard or strategy list behavior, update the UI notes in `docs/product.md` Section 9.3 and the feature summary in Section 13. If you add or change recently viewed shortcuts on the dashboard, update the UI notes in `docs/product.md` Section 9.3 and the feature summary in Section 13. For strategy list quick actions, prefer a visible, one-click button that calls an existing endpoint—avoid adding new modal flows unless required. For SmartCanvas wrapper or canvas feature-flag infrastructure changes, update `docs/product.md` feature coverage (Section 13), documentation index (Section 16.1), and changelog (Section 17) in the same PR. For bulk actions on strategy lists, keep the interaction to checkbox selection + a simple action dropdown, and avoid extra confirmation flows unless required for destructive actions. If you add or change backtest visualizations (including seasonality analysis, trade distribution analysis, or position analysis), update `docs/product.md` Section 5.5 and the feature summary in Section 13. If you add or change backtest comparison views, update `docs/product.md` Sections 5.4–5.5 and the feature summary in Section 13. If you add or change backtest data exports, update `docs/product.md` Section 5.5 and the feature summary in Section 13. If you add or change shareable backtest result links, update `docs/product.md` Section 5.5 and the feature summary in Section 13. If you add or change backtest trade explanation detail (entry/exit condition breakdowns, indicator overlays, condition candle highlights), update `docs/product.md` Section 5.5 and the feature summary in Section 13. If you add or change backtest summary metrics, update `docs/product.md` Sections 5.4–5.5, the feature summary in Section 13, and documentation links in Section 17.1. If you add or change backtest narrative summaries or how narrative cards render on results pages, update `docs/product.md` Sections 5.4–5.5, product analytics coverage in Section 9.13 when tracking changes are involved, the feature summary in Section 13, and documentation links in Section 17.1. If you add or change low-sample-size or data-confidence warnings on backtest results (for example low trade count banners), update `docs/product.md` Sections 5.4–5.5, Section 9.13 for tracking events, Section 13, and Section 17.1 in the same PR. If you add or change first-run backtest education UX (including the "What you just learned" summary card), update `docs/product.md` Sections 5.4 and 9.4, the feature summary in Section 13, and documentation links in Section 17.1. If you add or change transaction cost analysis, update `docs/product.md` Sections 5.4–5.5 and the feature summary in Section 13. If you add or change product analytics tracking, backend worker analytics, or consent behavior, update `docs/product.md` Section 9.13, the feature summary in Section 13, and documentation links in Section 17.1. If you add or change onboarding funnel analytics dashboards, update `docs/product.md` Section 9.13, the feature summary in Section 13, and documentation links in Section 17.1. If you add or change structured logging or correlation ID tracing, update `docs/product.md` Section 9.14, the feature summary in Section 13, and documentation links in Section 17.1. For canvas UX enhancements, add/update the related section in `docs/product.md` and keep the feature summary in Section 13 current. For node display mode changes (compact/expanded), update `docs/product.md` Section 4 and keep the feature summary in Section 13 current. For canvas history/undo-redo changes, update the canvas section in `docs/product.md` and keep the feature summary in Section 13 current. For keyboard shortcuts or shortcut help modal changes, update the canvas section in `docs/product.md` and keep the feature summary in Section 13 current. For mobile-specific canvas UX, maintain a dedicated subsection in `docs/product.md` (Section 4) and keep its status reflected in Section 13. For canvas toolbar/control layout changes, update the mobile canvas subsection in `docs/product.md` and keep the feature summary in Section 13 current. For editor header simplification, autosave indicator behavior, or history panel access changes, update `docs/product.md` Section 4.11 and the feature summary in Section 13. For market overview, live price ticker, volatility metrics, or market sentiment indicators work, update the UI notes in `docs/product.md` Section 9.9 and the feature summary in Section 13. For data completeness or data quality timeline work, update `docs/product.md` Section 6.4 and the feature summary in Section 13. For backtest data availability range display or start-date auto-adjust warnings, also update `docs/product.md` Sections 5.1 and 6.4, the feature summary in Section 13, and documentation links in Section 17.1. For backtest summary personalization (favorite/pinned metrics), update the UI notes in `docs/product.md` Section 9.4 and the feature summary in Section 13. For billing perks, user tiers, limit overrides, or pricing/discount adjustments, update `docs/product.md` Sections 2.3–2.4 and the feature summary in Section 13. If you add or change public user profiles, follower counts, or profile badges, update `docs/product.md` Section 2.3 and the feature summary in Section 13. If you add or change indicator palette blocks (indicator or price-derived inputs), update `docs/product.md` Section 9.3 and the feature summary in Section 13. If you add or change digest email preferences (global or per-strategy), update `docs/product.md` Sections 2.3, 9.5, and 11, plus the feature summary in Section 13 and documentation links in Section 17.1. If you add or change post-signup or post-login routing behavior for onboarding/wizard flows, update `docs/product.md` Sections 2.1, 9.2, 9.13, and 11, plus the feature summary in Section 13 and documentation links in Section 17.1.
-If you add or change wizard completion behavior (including final-CTA auto-save + auto-backtest), update `docs/product.md` Sections 4.4, 9.3, and 11, plus the feature summary in Section 13 and documentation links in Section 17.1.
-If you add or change a wizard escape hatch to open the canvas directly, document link copy, destination, blank-strategy creation, onboarding-flag updates, and analytics event requirements in the matching PRD/TST pair and `docs/product.md` Sections 2.1, 4.4, 9.2, 9.13, 11, 13, and 17.1.
-If you add or change indicator palette visibility modes (essentials vs all), also document the default indicator subset, persistence behavior, and analytics event requirements in the matching PRD/TST pair and `docs/product.md` Sections 9.3, 13, and 17.1.
-If you add or change plain-English naming for indicator cards, document the user-facing primary labels, technical subtitles, tooltip behavior, Essentials-vs-All mode rules, and WCAG 2.1 AA contrast requirement in the matching PRD/TST pair and `docs/product.md` Sections 9.3, 13, and 17.1.
-If you add or change strategy wizard indicator-selection behavior, document the Essentials-only option set, plain-English option copy, excluded advanced indicators, and post-wizard palette toggle behavior in the matching PRD/TST pair and `docs/product.md` Sections 4.4, 9.3, 13, and 17.1.
-If you add or change the block library (palette UI, search, categories, favorites/recents), update `docs/product.md` Sections 4 and 9.3 and the feature summary in Section 13.
-If you add or change the block parameter inspector/properties panel behavior, update `docs/product.md` Sections 4 and 9.3 and the feature summary in Section 13.
-For canvas auto-layout or connection tidying improvements, update the related canvas section in `docs/product.md` and the feature summary in Section 13.
-If you add or change a canvas health/completeness bar, document Entry/Exit/Risk segment rules, 200ms client-side re-evaluation timing, minimize persistence behavior, and feature-flag gating in the matching PRD/TST pair plus `docs/product.md` Sections 4, 13, 16.1, and 17.
-If you add or change display/theme preferences (including dark mode), update `docs/product.md` Sections 2.3 and 9.5 and the feature summary in Section 13.
-If you add or change the strategy templates marketplace/library, update `docs/product.md` Section 3.7 and the feature summary in Section 13. If the change affects template learning content, difficulty labels, or template ordering, also update `docs/product.md` Sections 9.3, 11, and 17.1 with the PRD/TST links.
-If you add or change the progress dashboard, update `docs/product.md` Section 9.11 and the feature summary in Section 13.
-**Credits & add-ons:** If the spec calls for one-time usage credits or add-on capacity, keep tracking as **simple integer fields on the user record** and avoid extra tables or complex metering unless explicitly required.
-**Strategy metadata:** If you need to store non-execution data in a strategy version JSON (e.g., notes), keep it under a top-level `metadata` key so the interpreter can ignore it safely.
-**Strategy portability:** Keep import/export formats minimal and stable (JSON only), favoring explicit validation over clever transforms.
-**Strategy explanations:** Keep explanation generation deterministic and derived from block JSON; store any generated text under `metadata.explanation` if persistence is required.
-**Strategy tags:** Store tags in relational tables tied to strategies/users (not inside strategy version JSON) so the interpreter stays untouched.
+
+**Doc hygiene checklist:**
+
+When adding or changing features, update `docs/product.md` and create/update related `docs/prd-*.md` and `docs/tst-*.md` files per the table below:
+
+| Feature change | Update sections | Notes |
+|---|---|---|
+| New PRD/feature | 17.1 (list it) + relevant sections | Also create matching `tst-*.md` |
+| Dashboard / strategy list behavior | 9.3, 13 | UI notes + feature summary |
+| Recently viewed shortcuts | 9.3, 13 | UI notes + feature summary |
+| Strategy list quick actions | 9.3, 13 | Prefer visible one-click buttons; avoid new modals |
+| Canvas feature-flags / SmartCanvas | 13, 16.1, 17 | Feature coverage, docs index, changelog |
+| Bulk actions on lists | 9.3, 13 | Use checkbox + action dropdown; avoid extra confirmations |
+| Backtest visualizations | 5.5, 13 | E.g., seasonality, trade distribution, position analysis |
+| Backtest comparison views | 5.4–5.5, 13 | Feature summary |
+| Backtest data exports | 5.5, 13 | Feature summary |
+| Shareable backtest links | 5.5, 13 | Feature summary |
+| Trade explanation detail | 5.5, 13 | Entry/exit breakdowns, indicator overlays, candle highlights |
+| Backtest summary metrics | 5.4–5.5, 13, 17.1 | Docs links |
+| Backtest narrative summaries | 5.4–5.5, 9.13, 13, 17.1 | Includes tracking events + docs |
+| Low-sample / data-confidence warnings | 5.4–5.5, 9.13, 13, 17.1 | Includes tracking events |
+| First-run backtest education ("What you learned") | 5.4, 9.4, 13, 17.1 | Docs links |
+| Transaction cost analysis | 5.4–5.5, 13 | Feature summary |
+| Product analytics / consent | 9.13, 13, 17.1 | Tracking, backend worker analytics, docs |
+| Onboarding funnel dashboards | 9.13, 13, 17.1 | Tracking + docs |
+| Structured logging / correlation IDs | 9.14, 13, 17.1 | Docs links |
+| Canvas UX enhancements | 4, 13 | Feature summary |
+| Node display modes (compact/expanded) | 4, 13 | Feature summary |
+| Canvas undo/redo | 4, 13 | Feature summary |
+| Keyboard shortcuts / help modal | 4, 13 | Feature summary |
+| Mobile canvas UX | 4 (subsection), 13 | Keep status current |
+| Canvas toolbar / control layout | 4 (mobile subsection), 13 | Feature summary |
+| Editor header / autosave / history panel | 4.11, 13 | Feature summary |
+| Market overview / price ticker / volatility | 9.9, 13 | UI notes + feature summary |
+| Data quality / completeness timeline | 6.4, 13 | Feature summary |
+| Backtest data range / start-date warnings | 5.1, 6.4, 13, 17.1 | Docs links |
+| Backtest summary personalization (favorites/pinned) | 9.4, 13 | UI notes + feature summary |
+| Billing / user tiers / limit overrides / pricing | 2.3–2.4, 13 | Feature summary |
+| Public user profiles / followers / badges | 2.3, 13 | Feature summary |
+| Indicator palette blocks | 9.3, 13 | Includes indicator or price-derived inputs |
+| Digest email preferences | 2.3, 9.5, 11, 13, 17.1 | Global/per-strategy + docs |
+| Post-signup/login routing / onboarding | 2.1, 9.2, 9.13, 11, 13, 17.1 | Includes analytics tracking + docs |
+| Wizard completion (auto-save + auto-backtest) | 4.4, 9.3, 11, 13, 17.1 | Docs links |
+| Wizard escape hatch (open canvas) | 2.1, 4.4, 9.2, 9.13, 11, 13, 17.1 | Link copy, blank-strategy creation, onboarding flag, analytics events, docs |
+| Indicator palette visibility (essentials vs all) | 9.3, 13, 17.1 | Default subset, persistence, analytics events, docs |
+| Plain-English indicator card names | 9.3, 13, 17.1 | Primary label, subtitle, tooltips, modes, WCAG 2.1 AA, docs |
+| Strategy wizard indicator selection | 4.4, 9.3, 13, 17.1 | Essentials-only set, copy, excluded indicators, post-wizard toggle, docs |
+| Block library (palette / search / categories / favorites) | 4, 9.3, 13 | Feature summary |
+| Block parameter inspector / properties panel | 4, 9.3, 13 | Feature summary |
+| Canvas auto-layout / connection tidying | 4, 13 | Feature summary |
+| Display/theme preferences (dark mode) | 2.3, 9.5, 13 | Feature summary |
+| Strategy templates marketplace | 3.7, 13 | + 9.3, 11, 17.1 if content/difficulty/ordering changes |
+| Progress dashboard | 9.11, 13 | Feature summary |
+
+**Data & persistence patterns:**
+
+- **Credits/add-ons:** Simple integer fields on user record (avoid extra tables).
+- **Strategy metadata:** Non-execution data (e.g., notes) goes under top-level `metadata` key so interpreter ignores it.
+- **Import/export:** JSON only, explicit validation, minimal format.
+- **Strategy explanations:** Deterministic, derived from block JSON; store under `metadata.explanation` if needed.
+- **Strategy tags:** Relational tables linked to strategies/users, **not** inside strategy version JSON.
+
 
 ### 3.2. Default behavior
 
