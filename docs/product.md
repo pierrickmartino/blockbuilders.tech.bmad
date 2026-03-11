@@ -1,7 +1,7 @@
 # Blockbuilders – Product Documentation
 
 **Status:** Current Product Truth
-**Last Updated:** 2026-03-07
+**Last Updated:** 2026-03-11
 **Purpose:** Comprehensive documentation of all implemented features
 
 ---
@@ -851,6 +851,31 @@ Plain-Language Error Messages
 - Prefer lightweight layout heuristics (no new dependencies unless already in use).
 - No strategy JSON changes required.
 
+### 4.17. Health Bar - Strategy Completeness Display
+
+**Purpose:** Give beginners always-visible strategy completeness feedback (Entry, Exit, Risk) without requiring a manual validation run.
+
+**Behavior:**
+- Render a persistent horizontal Health Bar above the React Flow canvas when `canvas_flag_health_bar` is enabled.
+- Show exactly 3 segments: **Entry**, **Exit**, **Risk**.
+- Each segment has one state:
+  - complete: green check icon + concise success text
+  - incomplete: red X icon + concise coaching text
+  - warning: amber exclamation icon + concise advisory text
+- Recompute segment states client-side within 200ms after any block or connection add/remove/update.
+- Use the same rule set as the validation endpoint to avoid drift in “complete/incomplete” outcomes.
+- Animate segment state transitions with 200ms ease.
+- Include a minimize control:
+  - Expanded mode: icons + coaching/advisory text
+  - Collapsed mode: icons only
+  - Persist collapsed/expanded state in `localStorage`.
+- If feature flag is disabled, render no Health Bar.
+
+**Implementation Notes:**
+- Frontend-only UI behavior with no new backend endpoint.
+- Keep rule-evaluation logic minimal by reusing existing validation rule helpers where possible.
+- Use text + icon states (not color-only) for accessibility.
+
 --- 
 
 ## 5. Backtesting Engine
@@ -1407,6 +1432,7 @@ Plain-Language Error Messages
 - Existing 1–2 sentence hover tooltips remain unchanged for all indicator cards
 - Indicator primary label and subtitle text meet WCAG 2.1 AA contrast requirements (NFR-09)
 - In "All" mode, non-essential indicators keep existing technical-only names (no plain-English rename)
+- Health Bar (feature-flagged) above canvas displays Entry/Exit/Risk completeness with live client-side updates and optional collapsed icon-only mode
 - Compact node display mode with one-line summaries and tap-to-expand details
 - Version tabs and switcher
 - Save button (creates new version)
@@ -2218,6 +2244,7 @@ Plain-Language Error Messages
 | **Copy/Paste Blocks & Subgraphs** | ✅ Complete | Multi-select blocks and copy/paste within or across strategies |
 | **Auto-Layout & Connection Tidying** | ✅ Complete | Auto-arrange blocks left-to-right or top-to-bottom and tidy wire paths without moving blocks |
 | **SmartCanvas Wrapper & Feature Flag Infrastructure** | ✅ Complete | `SmartCanvas` wraps `StrategyCanvas` as the single canvas entry point with per-area PostHog feature-flag checks (`canvas_flag_history`, `canvas_flag_autosave`, `canvas_flag_copy_paste`, `canvas_flag_minimap`, `canvas_flag_auto_layout`, `canvas_flag_shortcuts`) and default-off parity; tracks `smartcanvas_rendered` and `smartcanvas_flag_fallback_used` events. |
+| **Health Bar - Strategy Completeness Display** | 📝 Spec Ready | Feature-flagged bar above canvas with Entry/Exit/Risk segments, complete/incomplete/warning states, 200ms re-evaluation and transition targets, and localStorage-backed collapsed mode |
 | **Canvas Undo/Redo** | ✅ Implemented | Toolbar buttons + keyboard shortcuts for reverting canvas edits |
 | **Keyboard Shortcuts & Reference** | ✅ Complete | Cmd/Ctrl+S save, Cmd/Ctrl+R run backtest, ? help modal, editor-only |
 | **Strategy Building Wizard** | ✅ Complete | Guided Q&A that generates editable strategy JSON |
@@ -2524,6 +2551,8 @@ npm run type-check    # TypeScript validation
 - `docs/prd-canvas-auto-layout-connection-tidying.md` - Auto-layout & connection tidying PRD
 - `docs/prd-smartcanvas-wrapper-feature-flag-infrastructure.md` - SmartCanvas wrapper & feature flag infrastructure PRD
 - `docs/tst-smartcanvas-wrapper-feature-flag-infrastructure.md` - SmartCanvas wrapper & feature flag infrastructure test checklist
+- `docs/prd-health-bar-strategy-completeness-display.md` - Health Bar strategy completeness display PRD
+- `docs/tst-health-bar-strategy-completeness-display.md` - Health Bar strategy completeness display test checklist
 - `docs/prd-compact-node-display-mode.md` - Compact node display mode PRD
 - `docs/prd-inspector-panel-block-parameters.md` - Inspector panel for block parameters PRD
 - `docs/prd-block-library-bottom-sheet-search.md` - Block library bottom sheet with search PRD
@@ -2609,6 +2638,7 @@ npm run type-check    # TypeScript validation
 
 ## 17. Changelog
 
+- **2026-03-11:** Added PRD/TST planning for Health Bar strategy completeness display: feature-flagged persistent bar above canvas with Entry/Exit/Risk segment states (complete/incomplete/warning), <=200ms client-side re-evaluation target using validation-equivalent rules, 200ms ease transitions, and localStorage-backed collapsed mode.
 - **2026-03-11:** Implemented SmartCanvas wrapper & feature-flag infrastructure: `SmartCanvas` replaces `StrategyCanvas` at the strategy editor entry point, reads 6 PostHog canvas flags with safe fallback, tracks `smartcanvas_rendered` and `smartcanvas_flag_fallback_used` events, and preserves full canvas parity when all flags are off.
 - **2026-03-10:** Added PRD/TST planning for SmartCanvas wrapper + PostHog feature-flag infrastructure, requiring StrategyCanvas parity when flags are disabled and preserving existing canvas behaviors behind a new entry-point wrapper.
 - **2026-03-08:** Added PRD/TST planning for template educational fields + difficulty ordering, including `strategy_templates.teaches_description`, difficulty badge mapping (Start Here/Level Up/Deep Dive), `sort_order` ordering, and conditional “What this teaches” detail copy above Clone.
