@@ -84,6 +84,7 @@ If you add or change strategy wizard indicator-selection behavior, document the 
 If you add or change the block library (palette UI, search, categories, favorites/recents), update `docs/product.md` Sections 4 and 9.3 and the feature summary in Section 13.
 If you add or change the block parameter inspector/properties panel behavior, update `docs/product.md` Sections 4 and 9.3 and the feature summary in Section 13.
 For canvas auto-layout or connection tidying improvements, update the related canvas section in `docs/product.md` and the feature summary in Section 13.
+If you add or change a canvas health/completeness bar, document Entry/Exit/Risk segment rules, 200ms client-side re-evaluation timing, minimize persistence behavior, and feature-flag gating in the matching PRD/TST pair plus `docs/product.md` Sections 4, 13, 16.1, and 17.
 If you add or change display/theme preferences (including dark mode), update `docs/product.md` Sections 2.3 and 9.5 and the feature summary in Section 13.
 If you add or change the strategy templates marketplace/library, update `docs/product.md` Section 3.7 and the feature summary in Section 13. If the change affects template learning content, difficulty labels, or template ordering, also update `docs/product.md` Sections 9.3, 11, and 17.1 with the PRD/TST links.
 If you add or change the progress dashboard, update `docs/product.md` Section 9.11 and the feature summary in Section 13.
