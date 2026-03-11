@@ -41,7 +41,7 @@ import {
 import { trackStrategyView } from "@/lib/recent-views";
 import { generateExplanation } from "@/lib/explanation-generator";
 import { generateNodeSummary } from "@/lib/node-summary";
-import StrategyCanvas, { CanvasEdge } from "@/components/canvas/StrategyCanvas";
+import SmartCanvas, { CanvasEdge } from "@/components/canvas/SmartCanvas";
 import BlockPalette from "@/components/canvas/BlockPalette";
 import BlockLibrarySheet from "@/components/canvas/BlockLibrarySheet";
 import { useIndicatorMode } from "@/hooks/useIndicatorMode";
@@ -1696,7 +1696,7 @@ export default function StrategyEditorPage({ params }: Props) {
             </button>
           </div>
 
-          <StrategyCanvas
+          <SmartCanvas
             nodes={nodesWithMobileMode}
             edges={edges}
             onNodesChange={handleNodesChange}

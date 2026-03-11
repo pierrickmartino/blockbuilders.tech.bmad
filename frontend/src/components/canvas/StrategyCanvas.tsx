@@ -24,6 +24,7 @@ import { nodeTypes } from "./nodes";
 import DeleteButtonEdge, { DeleteButtonEdgeData } from "./edges/DeleteButtonEdge";
 import { BlockMeta, BlockType, getBlockMeta, ValidationError } from "@/types/canvas";
 import { generateBlockId } from "@/lib/canvas-utils";
+import type { CanvasFlags } from "@/lib/feature-flags";
 import { MobileBottomBar } from "./MobileBottomBar";
 import { CanvasMinimap } from "./CanvasMinimap";
 import {
@@ -36,7 +37,7 @@ import {
 
 export type CanvasEdge = Edge<DeleteButtonEdgeData, "deletable">;
 
-interface StrategyCanvasProps {
+export interface StrategyCanvasProps {
   nodes: Node[];
   edges: Edge[];
   onNodesChange: (nodes: Node[]) => void;
@@ -54,6 +55,7 @@ interface StrategyCanvasProps {
   onAutoArrange?: (direction: "LR" | "TB") => void;
   onTidyConnections?: () => void;
   onLayoutMenu?: () => void;
+  canvasFlags?: Partial<CanvasFlags>;
 }
 
 type ConnectionState =

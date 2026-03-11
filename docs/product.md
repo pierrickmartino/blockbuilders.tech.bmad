@@ -2217,7 +2217,7 @@ Plain-Language Error Messages
 | **Block Library Bottom Sheet with Search** | ✅ Complete | Bottom sheet block library with search, categories, and recent/favorite blocks |
 | **Copy/Paste Blocks & Subgraphs** | ✅ Complete | Multi-select blocks and copy/paste within or across strategies |
 | **Auto-Layout & Connection Tidying** | ✅ Complete | Auto-arrange blocks left-to-right or top-to-bottom and tidy wire paths without moving blocks |
-| **SmartCanvas Wrapper & Feature Flag Infrastructure** | 📝 Spec Ready | Introduce `SmartCanvas` as the single canvas entry point wrapping existing `StrategyCanvas`, with per-area PostHog feature-flag checks and default-off parity to preserve current behavior (undo/redo, autosave, copy/paste, minimap, auto-layout, keyboard shortcuts). |
+| **SmartCanvas Wrapper & Feature Flag Infrastructure** | ✅ Complete | `SmartCanvas` wraps `StrategyCanvas` as the single canvas entry point with per-area PostHog feature-flag checks (`canvas_flag_history`, `canvas_flag_autosave`, `canvas_flag_copy_paste`, `canvas_flag_minimap`, `canvas_flag_auto_layout`, `canvas_flag_shortcuts`) and default-off parity; tracks `smartcanvas_rendered` and `smartcanvas_flag_fallback_used` events. |
 | **Canvas Undo/Redo** | ✅ Implemented | Toolbar buttons + keyboard shortcuts for reverting canvas edits |
 | **Keyboard Shortcuts & Reference** | ✅ Complete | Cmd/Ctrl+S save, Cmd/Ctrl+R run backtest, ? help modal, editor-only |
 | **Strategy Building Wizard** | ✅ Complete | Guided Q&A that generates editable strategy JSON |
@@ -2561,6 +2561,8 @@ npm run type-check    # TypeScript validation
 - `docs/tst-rename-paper-trading-to-strategy-monitor.md` - Rename Paper Trading to Strategy Monitor test checklist
 - `docs/tst-essentials-first-block-palette-toggle.md` - Essentials-first block palette toggle test checklist
 - `docs/tst-plain-english-indicator-labels.md` - Plain-English indicator labels test checklist
+- `docs/prd-smartcanvas-wrapper-feature-flag-infrastructure.md` - SmartCanvas wrapper & feature flag infrastructure PRD
+- `docs/tst-smartcanvas-wrapper-feature-flag-infrastructure.md` - SmartCanvas wrapper & feature flag infrastructure test checklist
 - `CLAUDE.md` - Instructions for Claude Code
 - `README.md` - Quick start guide
 
@@ -2607,6 +2609,7 @@ npm run type-check    # TypeScript validation
 
 ## 17. Changelog
 
+- **2026-03-11:** Implemented SmartCanvas wrapper & feature-flag infrastructure: `SmartCanvas` replaces `StrategyCanvas` at the strategy editor entry point, reads 6 PostHog canvas flags with safe fallback, tracks `smartcanvas_rendered` and `smartcanvas_flag_fallback_used` events, and preserves full canvas parity when all flags are off.
 - **2026-03-10:** Added PRD/TST planning for SmartCanvas wrapper + PostHog feature-flag infrastructure, requiring StrategyCanvas parity when flags are disabled and preserving existing canvas behaviors behind a new entry-point wrapper.
 - **2026-03-08:** Added PRD/TST planning for template educational fields + difficulty ordering, including `strategy_templates.teaches_description`, difficulty badge mapping (Start Here/Level Up/Deep Dive), `sort_order` ordering, and conditional “What this teaches” detail copy above Clone.
 - **2026-03-08:** Added PRD/TST planning for low trade count warning on results pages, including frontend-only `num_trades` check (1-9), coaching banner placement/copy, WCAG AA contrast, and `health_warning_shown` analytics with `warning_type=low_trade_count`.
