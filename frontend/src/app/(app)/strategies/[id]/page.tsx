@@ -1627,7 +1627,7 @@ export default function StrategyEditorPage({ params }: Props) {
         {/* Center - Canvas */}
         <div className="relative flex-1">
           {/* Desktop side panel toggles */}
-          <div className="pointer-events-none absolute left-4 top-4 z-20 hidden flex-col items-start gap-2 lg:flex">
+          <div className="pointer-events-none absolute left-4 top-16 z-20 hidden flex-col items-start gap-2 lg:flex">
             <Button
               type="button"
               variant="outline"
@@ -1675,7 +1675,7 @@ export default function StrategyEditorPage({ params }: Props) {
           </div>
 
           {/* Mobile floating buttons */}
-          <div className="absolute left-4 top-4 z-10 flex flex-col gap-2">
+          <div className="absolute left-4 top-16 z-10 flex flex-col gap-2">
             <BlockLibrarySheet
               onDragStart={handlePaletteDragStart}
               onAddNode={handleAddNode}

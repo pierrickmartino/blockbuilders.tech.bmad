@@ -21,8 +21,16 @@ type FeatureFlagReadResult = {
   usedFallback: boolean;
 };
 
+function isDevEnvironment(): boolean {
+  const appEnv = process.env.NEXT_PUBLIC_APP_ENV?.trim().toLowerCase();
+  if (appEnv === "development" || appEnv === "dev" || appEnv === "local") {
+    return true;
+  }
+  return process.env.NODE_ENV === "development";
+}
+
 function isDevHealthBarOverrideEnabled(key: string): boolean {
-  if (process.env.NODE_ENV !== "development") return false;
+  if (!isDevEnvironment()) return false;
   if (key !== CANVAS_FLAGS.healthBar) return false;
 
   const raw = process.env.NEXT_PUBLIC_DEV_FORCE_CANVAS_FLAG_HEALTH_BAR;
