@@ -27,6 +27,7 @@ import { generateBlockId } from "@/lib/canvas-utils";
 import type { CanvasFlags } from "@/lib/feature-flags";
 import { MobileBottomBar } from "./MobileBottomBar";
 import { CanvasMinimap } from "./CanvasMinimap";
+import { HealthBar } from "./HealthBar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -80,6 +81,7 @@ function CanvasInner({
   onAutoArrange,
   onTidyConnections,
   onLayoutMenu,
+  canvasFlags,
 }: StrategyCanvasProps) {
   const edgeTypes = {
     deletable: DeleteButtonEdge,
@@ -247,6 +249,9 @@ function CanvasInner({
 
   return (
     <div ref={reactFlowWrapper} className="flex h-full w-full flex-col">
+      {canvasFlags?.canvas_flag_health_bar && (
+        <HealthBar nodes={nodes} edges={edges} />
+      )}
       {globalValidationErrors && globalValidationErrors.length > 0 && (
         <div className="mb-3 rounded-xl border border-rose-200/70 bg-white/90 px-4 py-3 text-sm text-rose-700 shadow-[0_10px_30px_-20px_rgba(15,23,42,0.45)] backdrop-blur-sm">
           <p className="font-medium">Strategy Issues:</p>
