@@ -42,6 +42,7 @@ import { trackStrategyView } from "@/lib/recent-views";
 import { generateExplanation } from "@/lib/explanation-generator";
 import { generateNodeSummary } from "@/lib/node-summary";
 import SmartCanvas, { CanvasEdge } from "@/components/canvas/SmartCanvas";
+import type { GuidedPlacementBlockType } from "@/components/canvas/HealthBar";
 import BlockPalette from "@/components/canvas/BlockPalette";
 import BlockLibrarySheet from "@/components/canvas/BlockLibrarySheet";
 import { useIndicatorMode } from "@/hooks/useIndicatorMode";
@@ -692,6 +693,51 @@ export default function StrategyEditorPage({ params }: Props) {
       triggerAutosave(newNodes, newEdges);
     }, 10000);
   }, [triggerAutosave]);
+
+  // Handle guided placement from Health Bar exit segment
+  const handlePlaceExitBlock = useCallback(
+    (blockType: GuidedPlacementBlockType) => {
+      const blockMeta = getBlockMeta(blockType);
+      if (!blockMeta) return;
+
+      const EXIT_TYPES = ["exit_signal", "stop_loss", "trailing_stop", "take_profit", "max_drawdown", "time_exit"];
+      const exitNodes = nodes.filter((n) => EXIT_TYPES.includes(n.type as string));
+
+      let position: { x: number; y: number };
+      if (exitNodes.length > 0) {
+        const cx = exitNodes.reduce((s, n) => s + n.position.x, 0) / exitNodes.length;
+        const cy = exitNodes.reduce((s, n) => s + n.position.y, 0) / exitNodes.length;
+        position = { x: cx + 50, y: cy + 120 };
+      } else {
+        position = { x: 600, y: 300 };
+      }
+      position.x += Math.random() * 20 - 10;
+      position.y += Math.random() * 20 - 10;
+
+      const newNode: Node = {
+        id: generateBlockId(),
+        type: blockMeta.type,
+        position,
+        data: {
+          label: blockMeta.label,
+          params: { ...blockMeta.defaultParams },
+          blockType: blockMeta.type,
+        },
+      };
+
+      const newNodes = [...nodes, newNode];
+      setNodes(newNodes);
+      scheduleSnapshot(newNodes, edges);
+
+      setTimeout(() => {
+        reactFlowRef.current?.setCenter(position.x, position.y, {
+          zoom: 1,
+          duration: 400,
+        });
+      }, 50);
+    },
+    [nodes, edges, scheduleSnapshot]
+  );
 
   // Handle parameter changes from properties panel
   const handleParamsChange = (nodeId: string, params: Record<string, unknown>) => {
@@ -1714,6 +1760,7 @@ export default function StrategyEditorPage({ params }: Props) {
             onAutoArrange={handleAutoArrange}
             onTidyConnections={handleTidyConnections}
             onLayoutMenu={() => setShowLayoutMenu(true)}
+            onPlaceExitBlock={handlePlaceExitBlock}
           />
         </div>
 
