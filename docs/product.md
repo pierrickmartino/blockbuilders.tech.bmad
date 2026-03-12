@@ -876,6 +876,29 @@ Plain-Language Error Messages
 - Keep rule-evaluation logic minimal by reusing existing validation rule helpers where possible.
 - Use text + icon states (not color-only) for accessibility.
 
+### 4.18. Health Bar - Guided Block Placement
+
+**Purpose:** Help beginners complete missing strategy sections by turning incomplete Health Bar segments into one-tap block insertion shortcuts.
+
+**Behavior:**
+- When the **Exit** segment is incomplete, clicking that segment scrolls/focuses the canvas to the logical exit area.
+- Show a contextual suggestion menu with one-tap options:
+  - Add Stop Loss
+  - Add Exit Signal
+  - Add Trailing Stop
+- When user chooses a suggestion (example: **Add Stop Loss**):
+  - Place the block automatically at a sensible position in the Exit area.
+  - Auto-create the most logical upstream/downstream connections.
+  - Update Health Bar Exit segment to complete if requirements are now satisfied.
+  - Wrap the entire placement + connection operation in a single undo transaction (`beginUndoTransaction` / `commitUndoTransaction`).
+  - Trigger autosave once after the transaction commits.
+- Keep behavior feature-flagged under Health Bar controls to enable gradual rollout.
+
+**Implementation Notes:**
+- Frontend-only orchestration using existing canvas block insertion, connection, undo, and autosave utilities.
+- Reuse existing Health Bar segment state + canvas section helpers rather than adding new placement engines.
+- Keep suggestion logic deterministic and minimal (simple first-valid placement heuristics).
+
 --- 
 
 ## 5. Backtesting Engine
@@ -1432,7 +1455,7 @@ Plain-Language Error Messages
 - Existing 1–2 sentence hover tooltips remain unchanged for all indicator cards
 - Indicator primary label and subtitle text meet WCAG 2.1 AA contrast requirements (NFR-09)
 - In "All" mode, non-essential indicators keep existing technical-only names (no plain-English rename)
-- Health Bar (feature-flagged) above canvas displays Entry/Exit/Risk completeness with live client-side updates and optional collapsed icon-only mode
+- Health Bar (feature-flagged) above canvas displays Entry/Exit/Risk completeness with live client-side updates, optional collapsed icon-only mode, and incomplete-segment guided block placement suggestions
 - Compact node display mode with one-line summaries and tap-to-expand details
 - Version tabs and switcher
 - Save button (creates new version)
@@ -2245,6 +2268,7 @@ Plain-Language Error Messages
 | **Auto-Layout & Connection Tidying** | ✅ Complete | Auto-arrange blocks left-to-right or top-to-bottom and tidy wire paths without moving blocks |
 | **SmartCanvas Wrapper & Feature Flag Infrastructure** | ✅ Complete | `SmartCanvas` wraps `StrategyCanvas` as the single canvas entry point with per-area PostHog feature-flag checks (`canvas_flag_history`, `canvas_flag_autosave`, `canvas_flag_copy_paste`, `canvas_flag_minimap`, `canvas_flag_auto_layout`, `canvas_flag_shortcuts`) and default-off parity; tracks `smartcanvas_rendered` and `smartcanvas_flag_fallback_used` events. |
 | **Health Bar - Strategy Completeness Display** | 📝 Spec Ready | Feature-flagged bar above canvas with Entry/Exit/Risk segments, complete/incomplete/warning states, 200ms re-evaluation and transition targets, and localStorage-backed collapsed mode |
+| **Health Bar - Guided Block Placement** | 📝 Spec Ready | Clicking incomplete Health Bar segments scrolls to the logical canvas area and opens one-tap block suggestions (Add Stop Loss / Add Exit Signal / Add Trailing Stop) with single-transaction undo support and autosave trigger. |
 | **Canvas Undo/Redo** | ✅ Implemented | Toolbar buttons + keyboard shortcuts for reverting canvas edits |
 | **Keyboard Shortcuts & Reference** | ✅ Complete | Cmd/Ctrl+S save, Cmd/Ctrl+R run backtest, ? help modal, editor-only |
 | **Strategy Building Wizard** | ✅ Complete | Guided Q&A that generates editable strategy JSON |
@@ -2553,6 +2577,8 @@ npm run type-check    # TypeScript validation
 - `docs/tst-smartcanvas-wrapper-feature-flag-infrastructure.md` - SmartCanvas wrapper & feature flag infrastructure test checklist
 - `docs/prd-health-bar-strategy-completeness-display.md` - Health Bar strategy completeness display PRD
 - `docs/tst-health-bar-strategy-completeness-display.md` - Health Bar strategy completeness display test checklist
+- `docs/prd-health-bar-guided-block-placement.md` - Health Bar guided block placement PRD
+- `docs/tst-health-bar-guided-block-placement.md` - Health Bar guided block placement test checklist
 - `docs/prd-compact-node-display-mode.md` - Compact node display mode PRD
 - `docs/prd-inspector-panel-block-parameters.md` - Inspector panel for block parameters PRD
 - `docs/prd-block-library-bottom-sheet-search.md` - Block library bottom sheet with search PRD
@@ -2638,6 +2664,7 @@ npm run type-check    # TypeScript validation
 
 ## 17. Changelog
 
+- **2026-03-12:** Added PRD/TST planning for Health Bar guided block placement: clicking incomplete Exit segment scrolls to logical canvas area, shows one-tap suggestions (Stop Loss / Exit Signal / Trailing Stop), performs auto-placement + auto-connect in a single undo transaction, updates completeness state, and triggers autosave.
 - **2026-03-11:** Added PRD/TST planning for Health Bar strategy completeness display: feature-flagged persistent bar above canvas with Entry/Exit/Risk segment states (complete/incomplete/warning), <=200ms client-side re-evaluation target using validation-equivalent rules, 200ms ease transitions, and localStorage-backed collapsed mode.
 - **2026-03-11:** Implemented SmartCanvas wrapper & feature-flag infrastructure: `SmartCanvas` replaces `StrategyCanvas` at the strategy editor entry point, reads 6 PostHog canvas flags with safe fallback, tracks `smartcanvas_rendered` and `smartcanvas_flag_fallback_used` events, and preserves full canvas parity when all flags are off.
 - **2026-03-10:** Added PRD/TST planning for SmartCanvas wrapper + PostHog feature-flag infrastructure, requiring StrategyCanvas parity when flags are disabled and preserving existing canvas behaviors behind a new entry-point wrapper.
