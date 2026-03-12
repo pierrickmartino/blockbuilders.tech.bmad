@@ -3,6 +3,12 @@
 import { useMemo, useState, useCallback } from "react";
 import type { Node, Edge } from "@xyflow/react";
 import { evaluateHealthBar, type SegmentStatus } from "@/lib/health-bar-evaluator";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const STORAGE_KEY = "healthBarCollapsed";
 
@@ -136,12 +142,15 @@ function CollapseIcon({ collapsed }: { collapsed: boolean }) {
   );
 }
 
+export type GuidedPlacementBlockType = "stop_loss" | "exit_signal" | "trailing_stop";
+
 interface HealthBarProps {
   nodes: Node[];
   edges: Edge[];
+  onPlaceExitBlock?: (blockType: GuidedPlacementBlockType) => void;
 }
 
-export function HealthBar({ nodes, edges }: HealthBarProps) {
+export function HealthBar({ nodes, edges, onPlaceExitBlock }: HealthBarProps) {
   const [collapsed, setCollapsed] = useState(readCollapsed);
 
   const state = useMemo(() => evaluateHealthBar(nodes, edges), [nodes, edges]);
@@ -160,19 +169,43 @@ export function HealthBar({ nodes, edges }: HealthBarProps) {
 
   const segments: Array<"entry" | "exit" | "risk"> = ["entry", "exit", "risk"];
 
+  const isExitClickable = state.exit !== "complete" && !!onPlaceExitBlock;
+
   return (
     <div className="mb-2 flex items-center gap-2 rounded-xl border border-slate-200/70 bg-white/90 px-3 py-2 shadow-sm backdrop-blur-sm transition-all duration-200 ease-in-out">
       {segments.map((key) => {
         const config = SEGMENT_CONFIG[key][state[key]];
-        return (
+        const segmentDiv = (
           <div
             key={key}
-            className={`flex items-center gap-1.5 rounded-lg border px-2 py-1 text-xs font-medium transition-all duration-200 ease-in-out ${config.className}`}
+            className={`flex items-center gap-1.5 rounded-lg border px-2 py-1 text-xs font-medium transition-all duration-200 ease-in-out ${config.className} ${key === "exit" && isExitClickable ? "cursor-pointer hover:ring-1 hover:ring-rose-300" : ""}`}
+            title={key === "exit" && isExitClickable ? "Click to add an exit block" : undefined}
           >
             {config.icon}
             {!collapsed && <span>{config.label}</span>}
           </div>
         );
+
+        if (key === "exit" && isExitClickable) {
+          return (
+            <DropdownMenu key={key}>
+              <DropdownMenuTrigger asChild>{segmentDiv}</DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem onClick={() => onPlaceExitBlock("stop_loss")}>
+                  Add Stop Loss
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onPlaceExitBlock("exit_signal")}>
+                  Add Exit Signal
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onPlaceExitBlock("trailing_stop")}>
+                  Add Trailing Stop
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          );
+        }
+
+        return segmentDiv;
       })}
       <button
         onClick={toggleCollapsed}
