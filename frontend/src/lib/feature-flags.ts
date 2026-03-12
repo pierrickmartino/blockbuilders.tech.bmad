@@ -21,9 +21,26 @@ type FeatureFlagReadResult = {
   usedFallback: boolean;
 };
 
+function isDevHealthBarOverrideEnabled(key: string): boolean {
+  if (process.env.NODE_ENV !== "development") return false;
+  if (key !== CANVAS_FLAGS.healthBar) return false;
+
+  const raw = process.env.NEXT_PUBLIC_DEV_FORCE_CANVAS_FLAG_HEALTH_BAR;
+  if (!raw) return false;
+
+  const normalized = raw.trim().toLowerCase();
+  return normalized === "1" || normalized === "true";
+}
+
 function readFeatureFlag(key: string): FeatureFlagReadResult {
   if (typeof window === "undefined") {
     return { value: false, usedFallback: false };
+  }
+
+  // Local development escape hatch: allows iterating on Health Bar UI
+  // without analytics consent and PostHog feature-flag plumbing.
+  if (isDevHealthBarOverrideEnabled(key)) {
+    return { value: true, usedFallback: false };
   }
 
   if (getConsent() !== "accepted") {
