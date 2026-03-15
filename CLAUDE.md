@@ -87,7 +87,7 @@ When adding or changing features, update `docs/product.md` and create/update rel
 | Recently viewed shortcuts | 9.3, 13 | UI notes + feature summary |
 | Strategy list quick actions | 9.3, 13 | Prefer visible one-click buttons; avoid new modals |
 | Canvas feature-flags / SmartCanvas | 13, 16.1, 17 | Feature coverage, docs index, changelog |
-| Canvas Health Bar (completeness + guided placement) | 4, 9.3, 13, 16.1, 17 | Include Entry/Exit/Risk states, feature flag, localStorage persistence, segment click guidance, docs links |
+| Canvas Health Bar (strategy completeness) | 4, 9.3, 13, 16.1, 17 | Include Entry/Exit/Risk states, feature flag, localStorage persistence, docs links |
 | Bulk actions on lists | 9.3, 13 | Use checkbox + action dropdown; avoid extra confirmations |
 | Backtest visualizations | 5.5, 13 | E.g., seasonality, trade distribution, position analysis |
 | Backtest comparison views | 5.4–5.5, 13 | Feature summary |
