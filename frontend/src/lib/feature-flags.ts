@@ -10,6 +10,7 @@ export const CANVAS_FLAGS = {
   autoLayout: "canvas_flag_auto_layout",
   shortcuts: "canvas_flag_shortcuts",
   healthBar: "canvas_flag_health_bar",
+  inlinePopover: "canvas_flag_inline_popover",
 } as const;
 
 export type CanvasFlagKey = (typeof CANVAS_FLAGS)[keyof typeof CANVAS_FLAGS];

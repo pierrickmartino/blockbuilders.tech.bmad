@@ -28,6 +28,7 @@ import type { CanvasFlags } from "@/lib/feature-flags";
 import { MobileBottomBar } from "./MobileBottomBar";
 import { CanvasMinimap } from "./CanvasMinimap";
 import { HealthBar } from "./HealthBar";
+import InlinePopover from "./InlinePopover";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -57,6 +58,12 @@ export interface StrategyCanvasProps {
   onTidyConnections?: () => void;
   onLayoutMenu?: () => void;
   canvasFlags?: Partial<CanvasFlags>;
+  inlinePopoverEnabled?: boolean;
+  popoverNodeId?: string | null;
+  onPopoverParamsChange?: (nodeId: string, params: Record<string, unknown>) => void;
+  onPopoverDeleteNode?: (nodeId: string) => void;
+  onPopoverClose?: () => void;
+  popoverValidationErrors?: ValidationError[];
 }
 
 type ConnectionState =
@@ -82,6 +89,12 @@ function CanvasInner({
   onTidyConnections,
   onLayoutMenu,
   canvasFlags,
+  inlinePopoverEnabled,
+  popoverNodeId,
+  onPopoverParamsChange,
+  onPopoverDeleteNode,
+  onPopoverClose,
+  popoverValidationErrors,
 }: StrategyCanvasProps) {
   const edgeTypes = {
     deletable: DeleteButtonEdge,
@@ -452,6 +465,19 @@ function CanvasInner({
             canUndo={canUndo || false}
             canRedo={canRedo || false}
             onLayoutMenu={onLayoutMenu || (() => {})}
+          />
+        )}
+
+        {/* Inline parameter popover */}
+        {inlinePopoverEnabled && onPopoverParamsChange && onPopoverDeleteNode && onPopoverClose && (
+          <InlinePopover
+            selectedNodeId={popoverNodeId ?? null}
+            nodes={nodes}
+            onParamsChange={onPopoverParamsChange}
+            onDeleteNode={onPopoverDeleteNode}
+            validationErrors={popoverValidationErrors ?? []}
+            onClose={onPopoverClose}
+            isMobileMode={isMobileMode}
           />
         )}
       </div>
