@@ -1,7 +1,7 @@
 # Blockbuilders – Product Documentation
 
 **Status:** Current Product Truth
-**Last Updated:** 2026-03-11
+**Last Updated:** 2026-03-15
 **Purpose:** Comprehensive documentation of all implemented features
 
 ---
@@ -389,6 +389,7 @@ Plain-Language Error Messages
 - `StrategyCanvas`: Main visual editor (`frontend/src/components/canvas/StrategyCanvas.tsx`)
 - `BlockPalette`: Draggable block library
 - `InspectorPanel`: Enhanced parameter inspector with period presets (14/20/50/200), source quick-swap controls (close/prev_close), and responsive mobile Sheet layout
+- `InlineParameterPopover` (feature-flagged): Block-anchored popover editor that reuses Inspector controls inline and auto-repositions to stay fully visible near canvas edges
 - `BlockLibrarySheet`: Bottom sheet with search, categories, favorites, and recent blocks
 - `StrategyTabs`: Version switcher and metadata editor
 
@@ -1426,7 +1427,7 @@ Plain-Language Error Messages
 **Strategy Editor** (`/strategies/[id]`)
 - Visual canvas with drag-drop blocks
 - Block palette drawer (mobile-responsive); Bottom sheet block library with search, categories, and recent/favorite blocks to replace the floating + button
-- Inspector panel opens on block tap for touch-friendly parameter editing, presets, and inline validation
+- Block tap opens an inline parameter popover anchored to the block (feature-flagged) with the same controls as the Inspector panel (sliders, dropdowns, number inputs, presets) and auto-positioning to avoid edge clipping; when the flag is disabled, the existing Inspector panel opens as before
 - Essentials-first indicator palette mode defaults to 5 indicators for new users (SMA, EMA, RSI, Bollinger Bands, MACD) with a "Show all indicators" toggle to reveal the full set (ATR, Stochastic, ADX, Ichimoku Cloud, OBV, Fibonacci, etc.); toggle preference persists in localStorage and existing users with non-essential indicators default to "All"
 - In Essentials mode, indicator cards use plain-English primary labels with technical-name subtitles: Moving Average/SMA, Exponential Moving Average/EMA, Momentum Indicator/RSI, Volatility Bands/Bollinger Bands, Trend & Momentum/MACD
 - Existing 1–2 sentence hover tooltips remain unchanged for all indicator cards
@@ -2232,6 +2233,7 @@ Plain-Language Error Messages
 | **Bulk Strategy Actions** | ✅ Complete | Multi-select strategies with checkbox selection + action dropdown for archive, tag, delete |
 | **Strategy Groups/Tags** | ✅ Complete | Custom tags, tag filtering, many-to-many strategy organization |
 | **Visual Builder** | ✅ Complete | 20 block types, drag-drop, enhanced Inspector panel with period presets and source quick-swaps, mobile-responsive |
+| **Inline Parameter Popover on Block Tap** | 📝 Spec Ready | Feature-flagged block-anchored parameter popover that reuses Inspector controls inline, auto-positions to remain fully visible (Floating UI/Radix), updates compact node labels in real time (<100ms target), commits on outside click with undo/redo + autosave debounce, and falls back to Inspector panel when flag is off |
 | **Expanded Indicator Palette & Price Variation Input** | ✅ Complete | Stochastic, ADX, Ichimoku Cloud, OBV, Fibonacci retracements, and price variation % input block |
 | **Essentials-First Block Palette Toggle** | ✅ Complete | Default 5-indicator essentials mode for new users, toggle to full indicator list, localStorage persistence, legacy-user fallback to all, frontend-only state switch with `palette_mode_changed` analytics event |
 | **Plain-English Indicator Labels** | ✅ Complete | Essentials mode indicator cards show plain-English primary labels with technical subtitles (SMA/EMA/RSI/Bollinger Bands/MACD), retain existing hover tooltips, enforce WCAG 2.1 AA contrast for both label levels, and keep non-essential indicators technical-only in All mode |
@@ -2555,6 +2557,8 @@ npm run type-check    # TypeScript validation
 - `docs/tst-health-bar-strategy-completeness-display.md` - Health Bar strategy completeness display test checklist
 - `docs/prd-compact-node-display-mode.md` - Compact node display mode PRD
 - `docs/prd-inspector-panel-block-parameters.md` - Inspector panel for block parameters PRD
+- `docs/prd-inline-parameter-popover-on-block-tap.md` - Inline parameter popover on block tap PRD
+- `docs/tst-inline-parameter-popover-on-block-tap.md` - Inline parameter popover on block tap test checklist
 - `docs/prd-block-library-bottom-sheet-search.md` - Block library bottom sheet with search PRD
 - `docs/prd-real-time-price-tickers.md` - Real-time price tickers PRD
 - `docs/prd-volatility-metrics-market-overview.md` - Volatility metrics (market overview) PRD
@@ -2638,6 +2642,7 @@ npm run type-check    # TypeScript validation
 
 ## 17. Changelog
 
+- **2026-03-15:** Added PRD/TST planning for inline parameter popovers on block tap: feature-flagged block-anchored parameter editing with Floating UI/Radix collision-aware positioning, real-time compact label updates (<100ms target), commit-on-close behavior wired to undo/redo + autosave debounce, and Inspector panel fallback when the feature flag is disabled.
 - **2026-03-11:** Added PRD/TST planning for Health Bar strategy completeness display: feature-flagged persistent bar above canvas with Entry/Exit/Risk segment states (complete/incomplete/warning), <=200ms client-side re-evaluation target using validation-equivalent rules, 200ms ease transitions, and localStorage-backed collapsed mode.
 - **2026-03-11:** Implemented SmartCanvas wrapper & feature-flag infrastructure: `SmartCanvas` replaces `StrategyCanvas` at the strategy editor entry point, reads 6 PostHog canvas flags with safe fallback, tracks `smartcanvas_rendered` and `smartcanvas_flag_fallback_used` events, and preserves full canvas parity when all flags are off.
 - **2026-03-10:** Added PRD/TST planning for SmartCanvas wrapper + PostHog feature-flag infrastructure, requiring StrategyCanvas parity when flags are disabled and preserving existing canvas behaviors behind a new entry-point wrapper.
