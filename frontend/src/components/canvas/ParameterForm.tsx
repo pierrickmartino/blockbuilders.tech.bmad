@@ -224,7 +224,13 @@ export default function ParameterForm({
   return (
     <div className={cn("space-y-4", compact ? "p-3" : "p-4")}>
       {/* Header */}
-      <div className={cn("flex items-center justify-between", compact && "pb-2 border-b border-gray-200 dark:border-gray-700")}>
+      <div
+        className={cn(
+          "flex items-center justify-between",
+          isMobileMode && !compact && "pr-12",
+          compact && "pb-2 border-b border-gray-200 dark:border-gray-700"
+        )}
+      >
         <div>
           <h3 className={cn("font-semibold text-gray-900 dark:text-gray-100", compact ? "text-xs" : "text-sm")}>
             {compact ? (blockMeta?.label || blockType) : "Inspector"}

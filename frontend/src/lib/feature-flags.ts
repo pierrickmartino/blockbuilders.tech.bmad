@@ -30,11 +30,17 @@ function isDevEnvironment(): boolean {
   return process.env.NODE_ENV === "development";
 }
 
-function isDevHealthBarOverrideEnabled(key: string): boolean {
-  if (!isDevEnvironment()) return false;
-  if (key !== CANVAS_FLAGS.healthBar) return false;
+const DEV_FORCE_FLAG_ENV_BY_KEY: Partial<Record<CanvasFlagKey, string>> = {
+  [CANVAS_FLAGS.healthBar]: "NEXT_PUBLIC_DEV_FORCE_CANVAS_FLAG_HEALTH_BAR",
+  [CANVAS_FLAGS.inlinePopover]: "NEXT_PUBLIC_DEV_FORCE_CANVAS_FLAG_INLINE_POPOVER",
+};
 
-  const raw = process.env.NEXT_PUBLIC_DEV_FORCE_CANVAS_FLAG_HEALTH_BAR;
+function isDevFlagOverrideEnabled(key: string): boolean {
+  if (!isDevEnvironment()) return false;
+  const overrideEnvVar = DEV_FORCE_FLAG_ENV_BY_KEY[key as CanvasFlagKey];
+  if (!overrideEnvVar) return false;
+
+  const raw = process.env[overrideEnvVar];
   if (!raw) return false;
 
   const normalized = raw.trim().toLowerCase();
@@ -46,9 +52,9 @@ function readFeatureFlag(key: string): FeatureFlagReadResult {
     return { value: false, usedFallback: false };
   }
 
-  // Local development escape hatch: allows iterating on Health Bar UI
+  // Local development escape hatch: allows iterating on flag-gated canvas UI
   // without analytics consent and PostHog feature-flag plumbing.
-  if (isDevHealthBarOverrideEnabled(key)) {
+  if (isDevFlagOverrideEnabled(key)) {
     return { value: true, usedFallback: false };
   }
 
