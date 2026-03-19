@@ -126,6 +126,7 @@ When adding or changing features, update `docs/product.md` and create/update rel
 | Block library (palette / search / categories / favorites) | 4, 9.3, 13 | Feature summary |
 | Block parameter inspector / properties panel | 4, 9.3, 13 | Feature summary |
 | Inline parameter popover on block tap | 4, 9.3, 13, 17.1 | Include feature-flag fallback to Inspector panel, popover positioning rules, and docs links |
+| Mobile bottom sheet parameter editing | 4, 9.3, 13, 17.1 | Use existing shadcn/ui Sheet on <768px, keep selected block label visible and live-updating, handle keyboard with visualViewport, and document commit-on-close behavior |
 | Canvas auto-layout / connection tidying | 4, 13 | Feature summary |
 | Display/theme preferences (dark mode) | 2.3, 9.5, 13 | Feature summary |
 | Strategy templates marketplace | 3.7, 13 | + 9.3, 11, 17.1 if content/difficulty/ordering changes |
