@@ -1,9 +1,11 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { Node } from "@xyflow/react";
-import { ValidationError } from "@/types/canvas";
+import { ValidationError, BlockType, getBlockMeta } from "@/types/canvas";
 import { Popover, PopoverContent, PopoverAnchor } from "@/components/ui/popover";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { useIsMobile } from "@/hooks/use-mobile";
 import ParameterForm from "./ParameterForm";
 
 interface InlinePopoverProps {
@@ -25,6 +27,8 @@ export default function InlinePopover({
   onClose,
   isMobileMode = false,
 }: InlinePopoverProps) {
+  const isMobile = useIsMobile();
+
   const selectedNode = useMemo(
     () => (selectedNodeId ? nodes.find((n) => n.id === selectedNodeId) ?? null : null),
     [selectedNodeId, nodes]
@@ -32,8 +36,12 @@ export default function InlinePopover({
 
   const isOpen = !!selectedNode;
 
-  // Virtual anchor ref — Radix calls getBoundingClientRect() on each positioning cycle,
-  // so a live getter naturally tracks the node as the canvas pans/zooms.
+  const blockLabel = useMemo(() => {
+    if (!selectedNode?.type) return "Block";
+    return getBlockMeta(selectedNode.type as BlockType)?.label ?? selectedNode.type;
+  }, [selectedNode?.type]);
+
+  // Virtual anchor ref for desktop popover positioning
   const virtualRef = useMemo(() => {
     if (!selectedNodeId) return undefined;
     return {
@@ -47,6 +55,53 @@ export default function InlinePopover({
     };
   }, [selectedNodeId]);
 
+  // Scroll active input into view when mobile keyboard changes the visual viewport
+  useEffect(() => {
+    if (!isMobile || !isOpen) return;
+    const vv = window.visualViewport;
+    if (!vv) return;
+
+    const onResize = () => {
+      const active = document.activeElement;
+      if (active instanceof HTMLElement && active.closest("[data-mobile-sheet]")) {
+        active.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      }
+    };
+
+    vv.addEventListener("resize", onResize);
+    return () => vv.removeEventListener("resize", onResize);
+  }, [isMobile, isOpen]);
+
+  // Mobile: bottom sheet
+  if (isMobile) {
+    return (
+      <Sheet open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+        <SheetContent
+          side="bottom"
+          className="max-h-[50vh] overflow-y-auto p-0 rounded-t-xl"
+          data-mobile-sheet
+        >
+          <SheetHeader className="sticky top-0 z-10 bg-background border-b px-4 pt-4 pb-3">
+            <SheetTitle className="text-sm font-semibold text-left">
+              {blockLabel}
+            </SheetTitle>
+          </SheetHeader>
+          {selectedNode && (
+            <ParameterForm
+              node={selectedNode}
+              onParamsChange={onParamsChange}
+              onDeleteNode={onDeleteNode}
+              validationErrors={validationErrors}
+              isMobileMode
+              compact
+            />
+          )}
+        </SheetContent>
+      </Sheet>
+    );
+  }
+
+  // Desktop/tablet: popover anchored to the node
   return (
     <Popover open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
       <PopoverAnchor virtualRef={virtualRef} />
