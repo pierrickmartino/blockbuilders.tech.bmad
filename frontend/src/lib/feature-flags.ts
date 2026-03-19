@@ -10,6 +10,7 @@ export const CANVAS_FLAGS = {
   autoLayout: "canvas_flag_auto_layout",
   shortcuts: "canvas_flag_shortcuts",
   healthBar: "canvas_flag_health_bar",
+  inlinePopover: "canvas_flag_inline_popover",
 } as const;
 
 export type CanvasFlagKey = (typeof CANVAS_FLAGS)[keyof typeof CANVAS_FLAGS];
@@ -29,11 +30,20 @@ function isDevEnvironment(): boolean {
   return process.env.NODE_ENV === "development";
 }
 
-function isDevHealthBarOverrideEnabled(key: string): boolean {
-  if (!isDevEnvironment()) return false;
-  if (key !== CANVAS_FLAGS.healthBar) return false;
+function getDevFlagOverrideValue(key: string): string | undefined {
+  switch (key) {
+    case CANVAS_FLAGS.healthBar:
+      return process.env.NEXT_PUBLIC_DEV_FORCE_CANVAS_FLAG_HEALTH_BAR;
+    case CANVAS_FLAGS.inlinePopover:
+      return process.env.NEXT_PUBLIC_DEV_FORCE_CANVAS_FLAG_INLINE_POPOVER;
+    default:
+      return undefined;
+  }
+}
 
-  const raw = process.env.NEXT_PUBLIC_DEV_FORCE_CANVAS_FLAG_HEALTH_BAR;
+function isDevFlagOverrideEnabled(key: string): boolean {
+  if (!isDevEnvironment()) return false;
+  const raw = getDevFlagOverrideValue(key);
   if (!raw) return false;
 
   const normalized = raw.trim().toLowerCase();
@@ -45,9 +55,9 @@ function readFeatureFlag(key: string): FeatureFlagReadResult {
     return { value: false, usedFallback: false };
   }
 
-  // Local development escape hatch: allows iterating on Health Bar UI
+  // Local development escape hatch: allows iterating on flag-gated canvas UI
   // without analytics consent and PostHog feature-flag plumbing.
-  if (isDevHealthBarOverrideEnabled(key)) {
+  if (isDevFlagOverrideEnabled(key)) {
     return { value: true, usedFallback: false };
   }
 
