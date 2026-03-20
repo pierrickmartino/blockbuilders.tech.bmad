@@ -126,6 +126,7 @@ When adding or changing features, update `docs/product.md` and create/update rel
 | Block library (palette / search / categories / favorites) | 4, 9.3, 13 | Feature summary |
 | Block parameter inspector / properties panel | 4, 9.3, 13 | Feature summary |
 | Inline parameter popover on block tap | 4, 9.3, 13, 17.1 | Include feature-flag fallback to Inspector panel, popover positioning rules, and docs links |
+| Inspector panel as secondary view | 4, 9.3, 13, 17.1 | Cover the popover Details-button handoff, same-block selection continuity, real-time sync between Inspector/popup/canvas label, and shortcut behavior when no popover is open |
 | Mobile bottom sheet parameter editing | 4, 9.3, 13, 17.1 | Use existing shadcn/ui Sheet on <768px, keep selected block label visible and live-updating, handle keyboard with visualViewport, and document commit-on-close behavior |
 | Canvas auto-layout / connection tidying | 4, 13 | Feature summary |
 | Display/theme preferences (dark mode) | 2.3, 9.5, 13 | Feature summary |
