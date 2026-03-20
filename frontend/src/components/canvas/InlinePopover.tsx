@@ -5,7 +5,6 @@ import { Node } from "@xyflow/react";
 import { ValidationError, BlockType, getBlockMeta } from "@/types/canvas";
 import { Popover, PopoverContent, PopoverAnchor } from "@/components/ui/popover";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { useIsMobile } from "@/hooks/use-mobile";
 import ParameterForm from "./ParameterForm";
 
 interface InlinePopoverProps {
@@ -27,7 +26,7 @@ export default function InlinePopover({
   onClose,
   isMobileMode = false,
 }: InlinePopoverProps) {
-  const isMobile = useIsMobile();
+  const renderAsMobileSheet = isMobileMode;
 
   const selectedNode = useMemo(
     () => (selectedNodeId ? nodes.find((n) => n.id === selectedNodeId) ?? null : null),
@@ -39,7 +38,7 @@ export default function InlinePopover({
   const blockLabel = useMemo(() => {
     if (!selectedNode?.type) return "Block";
     return getBlockMeta(selectedNode.type as BlockType)?.label ?? selectedNode.type;
-  }, [selectedNode?.type]);
+  }, [selectedNode]);
 
   // Virtual anchor ref for desktop popover positioning
   const virtualRef = useMemo(() => {
@@ -57,7 +56,7 @@ export default function InlinePopover({
 
   // Scroll active input into view when mobile keyboard changes the visual viewport
   useEffect(() => {
-    if (!isMobile || !isOpen) return;
+    if (!renderAsMobileSheet || !isOpen) return;
     const vv = window.visualViewport;
     if (!vv) return;
 
@@ -70,18 +69,18 @@ export default function InlinePopover({
 
     vv.addEventListener("resize", onResize);
     return () => vv.removeEventListener("resize", onResize);
-  }, [isMobile, isOpen]);
+  }, [renderAsMobileSheet, isOpen]);
 
   // Mobile: bottom sheet
-  if (isMobile) {
+  if (renderAsMobileSheet) {
     return (
       <Sheet open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
         <SheetContent
           side="bottom"
-          className="max-h-[50vh] overflow-y-auto p-0 rounded-t-xl"
+          className="max-h-[50vh] overflow-y-auto p-0 rounded-t-xl [&>button]:z-20"
           data-mobile-sheet
         >
-          <SheetHeader className="sticky top-0 z-10 bg-background border-b px-4 pt-4 pb-3">
+          <SheetHeader className="sticky top-0 z-10 bg-background border-b px-4 pr-14 pt-4 pb-3">
             <SheetTitle className="text-sm font-semibold text-left">
               {blockLabel}
             </SheetTitle>
