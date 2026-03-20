@@ -1,7 +1,7 @@
 # Blockbuilders – Product Documentation
 
 **Status:** Current Product Truth
-**Last Updated:** 2026-03-20
+**Last Updated:** 2026-03-19
 **Purpose:** Comprehensive documentation of all implemented features
 
 ---
@@ -389,7 +389,7 @@ Plain-Language Error Messages
 - `StrategyCanvas`: Main visual editor (`frontend/src/components/canvas/StrategyCanvas.tsx`)
 - `BlockPalette`: Draggable block library
 - `InspectorPanel`: Enhanced parameter inspector with period presets (14/20/50/200), source quick-swap controls (close/prev_close), and responsive mobile Sheet layout
-- `InlineParameterPopover` (feature-flagged): Block-anchored parameter editor on desktop/tablet and a mobile bottom-sheet editor below 768px that reuse the same Inspector controls, keep the selected block label visible, auto-position/reflow around viewport constraints, and offer a `Details` handoff into the full Inspector Panel
+- `InlineParameterPopover` (feature-flagged): Block-anchored parameter editor on desktop/tablet and a mobile bottom-sheet editor below 768px that reuse the same Inspector controls, keep the selected block label visible, and auto-position/reflow around viewport constraints
 - `BlockLibrarySheet`: Bottom sheet with search, categories, favorites, and recent blocks
 - `StrategyTabs`: Version switcher and metadata editor
 
@@ -1427,7 +1427,7 @@ Plain-Language Error Messages
 **Strategy Editor** (`/strategies/[id]`)
 - Visual canvas with drag-drop blocks
 - Block palette drawer (mobile-responsive); Bottom sheet block library with search, categories, and recent/favorite blocks to replace the floating + button
-- Block tap opens a feature-flagged inline parameter editor that uses a block-anchored popover on desktop/tablet and a half-screen bottom sheet on mobile (<768px); both reuse the same Inspector controls, keep the selected block label visible with real-time updates, commit on close, expose a `Details` button that opens the full Inspector Panel with the same block selected, and fall back to the existing Inspector panel when the flag is disabled
+- Block tap opens a feature-flagged inline parameter editor that uses a block-anchored popover on desktop/tablet and a half-screen bottom sheet on mobile (<768px); both reuse the same Inspector controls, keep the selected block label visible with real-time updates, commit on close, and fall back to the existing Inspector panel when the flag is disabled
 - Essentials-first indicator palette mode defaults to 5 indicators for new users (SMA, EMA, RSI, Bollinger Bands, MACD) with a "Show all indicators" toggle to reveal the full set (ATR, Stochastic, ADX, Ichimoku Cloud, OBV, Fibonacci, etc.); toggle preference persists in localStorage and existing users with non-essential indicators default to "All"
 - In Essentials mode, indicator cards use plain-English primary labels with technical-name subtitles: Moving Average/SMA, Exponential Moving Average/EMA, Momentum Indicator/RSI, Volatility Bands/Bollinger Bands, Trend & Momentum/MACD
 - Existing 1–2 sentence hover tooltips remain unchanged for all indicator cards
@@ -2234,7 +2234,6 @@ Plain-Language Error Messages
 | **Strategy Groups/Tags** | ✅ Complete | Custom tags, tag filtering, many-to-many strategy organization |
 | **Visual Builder** | ✅ Complete | 20 block types, drag-drop, enhanced Inspector panel with period presets and source quick-swaps, mobile-responsive |
 | **Inline Parameter Popover on Block Tap** | 📝 Spec Ready | Feature-flagged block-anchored parameter popover that reuses Inspector controls inline, auto-positions to remain fully visible (Floating UI/Radix), updates compact node labels in real time (<100ms target), commits on outside click with undo/redo + autosave debounce, and falls back to Inspector panel when flag is off |
-| **Inspector Panel as Secondary View** | 📝 Spec Ready | Adds a `Details` handoff from the inline editor to the existing Inspector Panel, preserves the same selected block during the switch, keeps block labels and any open inline editor in sync with Inspector edits, and preserves existing Inspector shortcut/menu behavior when no popover is open |
 | **Mobile Bottom Sheet Parameter Editing** | 📝 Spec Ready | On mobile viewports below 768px, tapping a block opens a half-screen shadcn/ui Sheet instead of a popover, keeps the block label visible and live-updating above the sheet, scrolls active inputs into view with `visualViewport`, and commits changes on swipe-down close with undo/redo + autosave |
 | **Expanded Indicator Palette & Price Variation Input** | ✅ Complete | Stochastic, ADX, Ichimoku Cloud, OBV, Fibonacci retracements, and price variation % input block |
 | **Essentials-First Block Palette Toggle** | ✅ Complete | Default 5-indicator essentials mode for new users, toggle to full indicator list, localStorage persistence, legacy-user fallback to all, frontend-only state switch with `palette_mode_changed` analytics event |
@@ -2561,8 +2560,6 @@ npm run type-check    # TypeScript validation
 - `docs/prd-inspector-panel-block-parameters.md` - Inspector panel for block parameters PRD
 - `docs/prd-inline-parameter-popover-on-block-tap.md` - Inline parameter popover on block tap PRD
 - `docs/tst-inline-parameter-popover-on-block-tap.md` - Inline parameter popover on block tap test checklist
-- `docs/prd-inspector-panel-as-secondary-view.md` - Inspector panel as secondary view PRD
-- `docs/tst-inspector-panel-as-secondary-view.md` - Inspector panel as secondary view test checklist
 - `docs/prd-mobile-bottom-sheet-parameter-editing.md` - Mobile bottom sheet parameter editing PRD
 - `docs/tst-mobile-bottom-sheet-parameter-editing.md` - Mobile bottom sheet parameter editing test checklist
 - `docs/prd-block-library-bottom-sheet-search.md` - Block library bottom sheet with search PRD
@@ -2648,7 +2645,6 @@ npm run type-check    # TypeScript validation
 
 ## 17. Changelog
 
-- **2026-03-20:** Added PRD/TST planning for Inspector Panel as a secondary canvas editing view: the inline editor now has a `Details` button that hands off to the existing Inspector Panel with the same block selected, closes the popover during the switch, keeps the canvas label and any open inline editor synced to Inspector edits, and preserves existing Inspector shortcut/menu behavior when no popover is open.
 - **2026-03-19:** Added PRD/TST planning for mobile bottom sheet parameter editing: on viewports below 768px, block parameter editing switches from popover to a half-screen shadcn/ui Sheet, keeps the selected block label visible and updating in real time above the sheet, uses `visualViewport` to keep the active field visible when the software keyboard opens, and commits changes on swipe-down close with undo/redo + autosave.
 - **2026-03-15:** Added PRD/TST planning for inline parameter popovers on block tap: feature-flagged block-anchored parameter editing with Floating UI/Radix collision-aware positioning, real-time compact label updates (<100ms target), commit-on-close behavior wired to undo/redo + autosave debounce, and Inspector panel fallback when the feature flag is disabled.
 - **2026-03-11:** Added PRD/TST planning for Health Bar strategy completeness display: feature-flagged persistent bar above canvas with Entry/Exit/Risk segment states (complete/incomplete/warning), <=200ms client-side re-evaluation target using validation-equivalent rules, 200ms ease transitions, and localStorage-backed collapsed mode.
