@@ -1,7 +1,7 @@
 # Blockbuilders – Product Documentation
 
 **Status:** Current Product Truth
-**Last Updated:** 2026-03-19
+**Last Updated:** 2026-03-21
 **Purpose:** Comprehensive documentation of all implemented features
 
 ---
@@ -1031,6 +1031,7 @@ Plain-Language Error Messages
 
 - Narrative-first layout rule: narrative card appears before all metrics/charts; for zero-trade runs, render only the narrative card + `Modify Strategy` CTA and suppress metric/chart sections.
 - Low-trade coaching warning rule: when `num_trades` is 1-9, show a yellow coaching banner under narrative (or above metrics if no narrative) and track with `health_warning_shown` + `warning_type=low_trade_count`.
+- Backtest results do not show sentiment analysis or sentiment period summaries. Keep results focused on strategy metrics, charts, trades, and plain-language guidance only.
 
 - Metrics panel behavior: top row shows either (a) the 5-metric default set or (b) user pinned favorites; a **"Show detailed analysis"** toggle reveals all remaining metrics in an expandable section below.
 - Detailed-analysis section defaults to collapsed on every results page load.
@@ -1585,7 +1586,7 @@ Plain-Language Error Messages
 - Simple "risk-on / risk-off" helper text based on Fear & Greed value
 - Partial failure support: unavailable data sources show badge instead of breaking page
 - 15-minute cache on backend, 60-second polling on frontend
-- Sentiment context also displayed in backtest results (start/end/average values for backtest period)
+- Sentiment indicators are available only in Market Overview; backtest results do not include sentiment context or sentiment period summaries
 
 **Update Behavior:**
 - Frontend polls every 4 seconds (middle of PRD's 3-5s requirement)
@@ -2256,6 +2257,7 @@ Plain-Language Error Messages
 | **Narrative Summary Generation (Backend)** | ✅ Complete | Add a deterministic server-side `narrative` field to `GET /backtests/{id}` that summarizes start→end balance, best/worst periods (including experiential max drawdown in dollars), total trades, and buy-and-hold delta; return exact fallback copy for zero-trade runs with <=200ms overhead |
 | **Narrative Display on Results Page (Frontend)** | ✅ Complete | Render narrative as the first results element in a distinct card with larger text, fire PostHog `narrative_viewed` when visible, and for zero-trade runs show `Modify Strategy` CTA while hiding all performance metrics/charts |
 | **Low Trade Count Warning** | ✅ Complete | Frontend-only `num_trades` check shows a yellow coaching banner when trades are 1-9, hides it at 0 or >=10, and tracks `health_warning_shown` with `warning_type=low_trade_count` while meeting WCAG 2.1 AA contrast |
+| **Remove Sentiment Analysis from Backtest Results** | 📝 Spec Ready | Remove sentiment analysis cards, summaries, and backtest-specific sentiment dependencies from authenticated and shared results views; keep Market Overview sentiment unchanged and avoid empty placeholders |
 | **Wizard Essentials-Only Constraint** | ✅ Complete | Wizard indicator/strategy-type step shows only 5 Essentials options with plain-English labels and excludes Ichimoku/Fibonacci/ADX/OBV/Stochastic; post-wizard canvas palette still follows current toggle state (Essentials by default for new users) |
 | **Backtesting** | ✅ Complete | Full engine with TP ladder, SL, max drawdown, equity curves, trade detail, risk-adjusted metrics |
 | **Enhanced Trade Explanation View** | ✅ Complete (Phase 1) | Per-trade entry/exit explanation with condition breakdown (✓ markers), price-pane indicator overlays (SMA, EMA, Bollinger), entry/exit candle markers; compute-on-read with graceful fallback |
@@ -2281,7 +2283,7 @@ Plain-Language Error Messages
 | **In-App Notifications** | ✅ Complete | Bell icon with unread count, notifications for key events |
 | **Real-Time Price Tickers** | ✅ Complete | Market overview with live price, 24h change, volume, trend; 4s polling, 3s Redis cache |
 | **Volatility Metrics (Market Overview)** | ✅ Complete | Show current + historical volatility with percentile rank per pair |
-| **Market Sentiment Indicators (Market Overview)** | ✅ Complete | Fear & Greed Index (Alternative.me), Long/Short Ratio (Binance), Funding Rates (Binance); 15min cache, partial failure support, backtest sentiment context |
+| **Market Sentiment Indicators (Market Overview)** | ✅ Complete | Fear & Greed Index (Alternative.me), Long/Short Ratio (Binance), Funding Rates (Binance); 15min cache, partial failure support, market overview only (no backtest results sentiment context) |
 | **Frontend UI** | ✅ Complete | Multi-strategy dashboard, strategy list/editor, backtest runner/results, profile |
 | **Recently Viewed Shortcuts (Dashboard)** | ✅ Complete | Quick links to recently viewed strategies and backtests from session history |
 | **Progress Dashboard** | ✅ Complete | Journey metrics, achievements, lessons learned, and next-step suggestions from usage data |
@@ -2566,6 +2568,8 @@ npm run type-check    # TypeScript validation
 - `docs/prd-real-time-price-tickers.md` - Real-time price tickers PRD
 - `docs/prd-volatility-metrics-market-overview.md` - Volatility metrics (market overview) PRD
 - `docs/prd-market-sentiment-indicators.md` - Market sentiment indicators PRD
+- `docs/prd-remove-sentiment-backtest-results.md` - Remove sentiment analysis from backtest results PRD
+- `docs/tst-remove-sentiment-backtest-results.md` - Remove sentiment analysis from backtest results test checklist
 - `docs/product.md` - This document (current product truth)
 - `docs/prd-strategy-tags-groups.md` - Strategy groups & tags PRD
 - `docs/prd-simple-tiered-subscription-plans.md` - Simple tiered subscription plans PRD
@@ -2645,6 +2649,7 @@ npm run type-check    # TypeScript validation
 
 ## 17. Changelog
 
+- **2026-03-21:** Added PRD/TST planning to remove sentiment analysis from backtest results, keeping sentiment limited to Market Overview and simplifying results payloads/UI by removing sentiment summaries, widgets, and empty placeholders.
 - **2026-03-19:** Added PRD/TST planning for mobile bottom sheet parameter editing: on viewports below 768px, block parameter editing switches from popover to a half-screen shadcn/ui Sheet, keeps the selected block label visible and updating in real time above the sheet, uses `visualViewport` to keep the active field visible when the software keyboard opens, and commits changes on swipe-down close with undo/redo + autosave.
 - **2026-03-15:** Added PRD/TST planning for inline parameter popovers on block tap: feature-flagged block-anchored parameter editing with Floating UI/Radix collision-aware positioning, real-time compact label updates (<100ms target), commit-on-close behavior wired to undo/redo + autosave debounce, and Inspector panel fallback when the feature flag is disabled.
 - **2026-03-11:** Added PRD/TST planning for Health Bar strategy completeness display: feature-flagged persistent bar above canvas with Entry/Exit/Risk segment states (complete/incomplete/warning), <=200ms client-side re-evaluation target using validation-equivalent rules, 200ms ease transitions, and localStorage-backed collapsed mode.

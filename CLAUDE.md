@@ -95,6 +95,7 @@ When adding or changing features, update `docs/product.md` and create/update rel
 | Shareable backtest links | 5.5, 13 | Feature summary |
 | Trade explanation detail | 5.5, 13 | Entry/exit breakdowns, indicator overlays, candle highlights |
 | Backtest summary metrics | 5.4–5.5, 13, 17.1 | Docs links |
+| Backtest results content removal / simplification | 5.4–5.5, 13, 17.1 | Remove UI/API output cleanly; avoid hidden placeholders |
 | Backtest narrative summaries | 5.4–5.5, 9.13, 13, 17.1 | Includes tracking events + docs |
 | Low-sample / data-confidence warnings | 5.4–5.5, 9.13, 13, 17.1 | Includes tracking events |
 | First-run backtest education ("What you learned") | 5.4, 9.4, 13, 17.1 | Docs links |
