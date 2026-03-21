@@ -11,10 +11,11 @@ interface MarketSentimentPanelProps {
 
 export function MarketSentimentPanel({ asset }: MarketSentimentPanelProps) {
   const { sentiment, isLoading, error } = useMarketSentiment(asset);
+  const panelClassName = "mb-6 rounded-lg border border-border bg-card p-4 text-card-foreground shadow-sm";
 
   if (isLoading) {
     return (
-      <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm mb-6">
+      <section className={panelClassName}>
         <h2 className="text-lg font-semibold mb-4">Market Sentiment</h2>
         <p className="text-sm text-muted-foreground">Loading sentiment data...</p>
       </section>
@@ -23,10 +24,10 @@ export function MarketSentimentPanel({ asset }: MarketSentimentPanelProps) {
 
   if (error) {
     return (
-      <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm mb-6">
+      <section className={panelClassName}>
         <h2 className="text-lg font-semibold mb-4">Market Sentiment</h2>
-        <div className="rounded border border-yellow-200 bg-yellow-50 p-3">
-          <p className="text-sm text-yellow-800">
+        <div className="rounded border border-amber-200 bg-amber-50 p-3 dark:border-amber-900 dark:bg-amber-950/40">
+          <p className="text-sm text-amber-800 dark:text-amber-200">
             Sentiment data temporarily unavailable. Showing price data only.
           </p>
         </div>
@@ -37,7 +38,7 @@ export function MarketSentimentPanel({ asset }: MarketSentimentPanelProps) {
   if (!sentiment) return null;
 
   return (
-    <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm mb-6">
+    <section className={panelClassName}>
       <h2 className="text-lg font-semibold mb-4">Market Sentiment</h2>
 
       {/* Desktop: 3-column grid */}
@@ -97,7 +98,7 @@ export function MarketSentimentPanel({ asset }: MarketSentimentPanelProps) {
       </div>
 
       {/* Helper text */}
-      <div className="text-xs text-gray-500">
+      <div className="text-xs text-muted-foreground">
         {sentiment.fear_greed.value !== null && sentiment.fear_greed.value >= 60 && (
           <p>📈 Market sentiment: <span className="font-medium">Risk-on</span> (high confidence)</p>
         )}

@@ -1559,7 +1559,7 @@ export default function StrategyBacktestPage({ params }: Props) {
                         onClick={() => setSelectedRunId(run.run_id)}
                         className={`group relative flex flex-1 overflow-hidden rounded-lg border transition-all ${
                           isSelected
-                            ? "border-blue-400 bg-blue-50 shadow-sm ring-1 ring-blue-100"
+                            ? "border-primary/40 bg-primary/10 shadow-sm ring-1 ring-primary/20"
                             : "border-border bg-card hover:border-border hover:shadow-sm"
                         }`}
                       >
@@ -1577,7 +1577,7 @@ export default function StrategyBacktestPage({ params }: Props) {
                                 {formatRelativeTime(run.created_at)}
                               </span>
                               {run.triggered_by === "schedule" && (
-                                <span className="flex h-4 items-center rounded bg-purple-100 px-1.5 text-[10px] font-medium text-purple-700">
+                                <span className="flex h-4 items-center rounded bg-purple-100 px-1.5 text-[10px] font-medium text-purple-700 dark:bg-purple-950 dark:text-purple-300">
                                   auto
                                 </span>
                               )}
@@ -1606,7 +1606,7 @@ export default function StrategyBacktestPage({ params }: Props) {
                               {formatDateTime(run.date_from, timezone).split(" ")[0]} → {formatDateTime(run.date_to, timezone).split(" ")[0]}
                             </span>
                             {run.status === "completed" && (
-                              <span className={`text-sm font-semibold tabular-nums ${isPositive ? "text-green-600 dark:text-green-400" : "text-red-500 dark:text-red-400"}`}>
+                              <span className={`text-sm font-semibold tabular-nums ${isPositive ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
                                 {isPositive ? "+" : ""}{formatPercent(run.total_return)}
                               </span>
                             )}
@@ -2387,7 +2387,7 @@ export default function StrategyBacktestPage({ params }: Props) {
                     >
                       <div className="mb-2 flex items-center justify-between">
                         <span className="text-xs font-medium uppercase text-muted-foreground">{trade.side}</span>
-                        <span className={`text-sm font-semibold ${trade.pnl >= 0 ? "text-green-600 dark:text-green-400" : "text-red-500 dark:text-red-400"}`}>
+                        <span className={`text-sm font-semibold ${trade.pnl >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
                           {trade.pnl_pct >= 0 ? "+" : ""}{formatPercent(trade.pnl_pct).replace("%", "")}%
                         </span>
                       </div>
@@ -2405,7 +2405,7 @@ export default function StrategyBacktestPage({ params }: Props) {
                       </div>
                       <div className="mt-2 flex justify-between border-t border-border pt-2">
                         <span className="text-xs text-muted-foreground">P&L</span>
-                        <span className={`text-sm font-medium ${trade.pnl >= 0 ? "text-green-600 dark:text-green-400" : "text-red-500 dark:text-red-400"}`}>
+                        <span className={`text-sm font-medium ${trade.pnl >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
                           {formatMoney(trade.pnl, "USDT", true)}
                         </span>
                       </div>
@@ -2471,14 +2471,14 @@ export default function StrategyBacktestPage({ params }: Props) {
                           </TableCell>
                           <TableCell
                             className={`text-right font-medium ${
-                              trade.pnl >= 0 ? "text-green-600 dark:text-green-400" : "text-red-500 dark:text-red-400"
+                              trade.pnl >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
                             }`}
                           >
                             {formatMoney(trade.pnl, "USDT", true)}
                           </TableCell>
                           <TableCell
                             className={`text-right ${
-                              trade.pnl_pct >= 0 ? "text-green-600 dark:text-green-400" : "text-red-500 dark:text-red-400"
+                              trade.pnl_pct >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
                             }`}
                           >
                             {trade.pnl_pct >= 0 ? "+" : ""}{formatPercent(trade.pnl_pct).replace("%", "")}%
