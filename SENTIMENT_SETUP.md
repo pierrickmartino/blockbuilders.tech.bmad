@@ -215,11 +215,3 @@ Returns current sentiment indicators for an asset.
 
 **Response:** `MarketSentimentResponse`
 
-### GET /backtests/{run_id}/sentiment
-
-Returns sentiment context for a specific backtest period.
-
-**Path Parameters:**
-- `run_id`: Backtest run UUID
-
-**Response:** `BacktestSentimentResponse` with start/end/average values aligned to the backtest date range.

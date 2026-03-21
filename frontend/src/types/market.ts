@@ -38,18 +38,3 @@ export interface MarketSentimentResponse {
   source_status: SourceStatus;
 }
 
-export interface BacktestSentimentResponse {
-  as_of: string;
-  asset: string;
-  date_from: string;
-  date_to: string;
-  fear_greed_start: number | null;
-  fear_greed_end: number | null;
-  fear_greed_avg: number | null;
-  long_short_ratio_avg: number | null;
-  funding_avg: number | null;
-  fear_greed_history: HistoryPoint[];
-  long_short_ratio_history: HistoryPoint[];
-  funding_history: HistoryPoint[];
-  source_status: SourceStatus;
-}

@@ -48,7 +48,6 @@ import { PlanResponse, ProfileResponse } from "@/types/auth";
 import { StrategyTabs } from "@/components/StrategyTabs";
 import TradeDrawer from "@/components/TradeDrawer";
 import InfoIcon from "@/components/InfoIcon";
-import { BacktestSentimentStrip } from "@/components/BacktestSentimentStrip";
 import { WhatYouLearnedCard } from "@/components/WhatYouLearnedCard";
 import { NarrativeCard } from "@/components/NarrativeCard";
 import { LowTradeCountWarning } from "@/components/LowTradeCountWarning";
@@ -1820,10 +1819,6 @@ export default function StrategyBacktestPage({ params }: Props) {
                   />
                 )}
 
-              {/* Sentiment Context Strip */}
-              {!isZeroTradeNarrativeMode && selectedRunId && selectedRun?.status === "completed" && (
-                <BacktestSentimentStrip runId={selectedRunId} />
-              )}
             </div>
           )}
         </section>
