@@ -37,22 +37,22 @@ export function DataAvailabilitySection({
   const hasOverallData = completeness && completeness.coverage_start && completeness.coverage_end;
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white">
+    <div className="rounded-lg border border-border bg-card text-card-foreground">
       {/* Header - Always visible */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="flex w-full items-center justify-between px-3 py-2 text-left transition hover:bg-gray-50 sm:px-4"
+        className="flex w-full items-center justify-between px-3 py-2 text-left transition hover:bg-muted/50 sm:px-4"
       >
         <div className="flex items-center gap-2">
-          <h3 className="text-sm font-medium text-gray-900">Data Availability</h3>
+          <h3 className="text-sm font-medium">Data Availability</h3>
           {hasIssues && !isExpanded && (
-            <span className="rounded bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-700">
+            <span className="rounded bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-950 dark:text-amber-300">
               ⚠️ Issues detected
             </span>
           )}
         </div>
         <svg
-          className={`h-5 w-5 text-gray-500 transition-transform ${isExpanded ? "rotate-180" : ""}`}
+          className={`h-5 w-5 text-muted-foreground transition-transform ${isExpanded ? "rotate-180" : ""}`}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -63,22 +63,22 @@ export function DataAvailabilitySection({
 
       {/* Expandable Content */}
       {isExpanded && (
-        <div className="space-y-4 border-t border-gray-200 px-3 py-3 sm:px-4">
+        <div className="space-y-4 border-t border-border px-3 py-3 sm:px-4">
           {/* Overall Coverage */}
           {hasOverallData && (
             <div>
               <div className="mb-2 flex items-center gap-2">
-                <h4 className="text-sm font-medium text-gray-700">Overall Data Coverage</h4>
+                <h4 className="text-sm font-medium">Overall Data Coverage</h4>
                 <InfoIcon
                   tooltip={{
                     short: "Shows the full range of available historical data in our database for this asset/timeframe.",
                     long: "This metric indicates data availability from the earliest to latest candle in our database. High coverage means we have most data points across the full time range, even if some candles are missing within that range.",
                     category: "metric",
                   }}
-                  className="text-gray-400"
+                  className="text-muted-foreground"
                 />
               </div>
-              <div className="mb-2 text-sm text-gray-600">
+              <div className="mb-2 text-sm text-muted-foreground">
                 <span className="font-semibold">{completeness.completeness_percent.toFixed(1)}%</span> complete from{" "}
                 <span className="font-medium">
                   {new Date(completeness.coverage_start!).toLocaleDateString()}
@@ -96,9 +96,9 @@ export function DataAvailabilitySection({
           {dataQuality && (
             <div>
               <div className="mb-2 flex items-center gap-2">
-                <h4 className="text-sm font-medium text-gray-700">
+                <h4 className="text-sm font-medium">
                   Selected Period Quality
-                  <span className="ml-1 text-xs font-normal text-gray-500">
+                  <span className="ml-1 text-xs font-normal text-muted-foreground">
                     ({formatLocalDate(dateFrom)} - {formatLocalDate(dateTo)})
                   </span>
                 </h4>
@@ -106,8 +106,8 @@ export function DataAvailabilitySection({
 
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                 {/* Missing Candles */}
-                <div className="rounded border border-gray-200 bg-gray-50 p-2 sm:p-3">
-                  <div className="flex items-center gap-1 text-xs text-gray-500">
+                <div className="rounded border border-border bg-muted/30 p-2 sm:p-3">
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
                     <span>Missing Candles</span>
                     <InfoIcon
                       tooltip={{
@@ -115,24 +115,26 @@ export function DataAvailabilitySection({
                         long: "This measures scattered missing data points within each day. For example, if we expect 24 hourly candles per day but only receive 20-21, that's ~12-16% missing. Missing candles can affect backtest accuracy.",
                         category: "metric",
                       }}
-                      className="text-gray-400"
+                      className="text-muted-foreground"
                     />
                   </div>
                   <div
                     className={`text-base font-semibold sm:text-lg ${
-                      dataQuality.gap_percent > 5 ? "text-yellow-700" : "text-gray-900"
+                      dataQuality.gap_percent > 5
+                        ? "text-amber-700 dark:text-amber-300"
+                        : "text-foreground"
                     }`}
                   >
                     {dataQuality.gap_percent.toFixed(1)}%
                   </div>
-                  <div className="text-xs text-gray-500">
+                  <div className="text-xs text-muted-foreground">
                     {dataQuality.gap_percent < 2 ? "Excellent" : dataQuality.gap_percent < 5 ? "Good" : "Poor"}
                   </div>
                 </div>
 
                 {/* Volume Consistency */}
-                <div className="rounded border border-gray-200 bg-gray-50 p-2 sm:p-3">
-                  <div className="flex items-center gap-1 text-xs text-gray-500">
+                <div className="rounded border border-border bg-muted/30 p-2 sm:p-3">
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
                     <span>Volume Consistency</span>
                     <InfoIcon
                       tooltip={{
@@ -140,24 +142,26 @@ export function DataAvailabilitySection({
                         long: "Shows how many candles have non-zero volume values. Low volume consistency may indicate data quality issues or periods of low market activity.",
                         category: "metric",
                       }}
-                      className="text-gray-400"
+                      className="text-muted-foreground"
                     />
                   </div>
                   <div
                     className={`text-base font-semibold sm:text-lg ${
-                      dataQuality.volume_consistency < 95 ? "text-yellow-700" : "text-gray-900"
+                      dataQuality.volume_consistency < 95
+                        ? "text-amber-700 dark:text-amber-300"
+                        : "text-foreground"
                     }`}
                   >
                     {dataQuality.volume_consistency.toFixed(1)}%
                   </div>
-                  <div className="text-xs text-gray-500">
+                  <div className="text-xs text-muted-foreground">
                     {dataQuality.volume_consistency >= 95 ? "Excellent" : "Needs attention"}
                   </div>
                 </div>
 
                 {/* Outliers */}
-                <div className="rounded border border-gray-200 bg-gray-50 p-2 sm:p-3">
-                  <div className="flex items-center gap-1 text-xs text-gray-500">
+                <div className="rounded border border-border bg-muted/30 p-2 sm:p-3">
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
                     <span>Price Outliers</span>
                     <InfoIcon
                       tooltip={{
@@ -165,13 +169,13 @@ export function DataAvailabilitySection({
                         long: "Counts candles where the price changed by more than 25% in a single period. These may indicate data errors or extreme market events.",
                         category: "metric",
                       }}
-                      className="text-gray-400"
+                      className="text-muted-foreground"
                     />
                   </div>
-                  <div className="text-base font-semibold text-gray-900 sm:text-lg">
+                  <div className="text-base font-semibold text-foreground sm:text-lg">
                     {dataQuality.outlier_count}
                   </div>
-                  <div className="text-xs text-gray-500">
+                  <div className="text-xs text-muted-foreground">
                     {dataQuality.outlier_count === 0 ? "None detected" : "Review advised"}
                   </div>
                 </div>
@@ -183,31 +187,31 @@ export function DataAvailabilitySection({
           {gapOverlap !== null && (
             <div>
               <div className="mb-2 flex items-center gap-2">
-                <h4 className="text-sm font-medium text-gray-700">Large Data Gaps</h4>
+                <h4 className="text-sm font-medium">Large Data Gaps</h4>
                 <InfoIcon
                   tooltip={{
                     short: "Continuous periods of missing data larger than expected.",
                     long: "Unlike scattered missing candles, these are significant continuous gaps where no data exists for multiple hours or days. These can seriously impact backtest results.",
                     category: "metric",
                   }}
-                  className="text-gray-400"
+                  className="text-muted-foreground"
                 />
               </div>
-              <div className="text-sm text-gray-600">
+              <div className="text-sm text-muted-foreground">
                 {gapOverlap.length === 0 ? (
-                  <span className="text-green-600">✓ No large gaps in your selected period</span>
+                  <span className="text-green-700 dark:text-green-400">✓ No large gaps in your selected period</span>
                 ) : (
                   <div className="space-y-1">
-                    <span className="font-medium text-orange-700">
+                    <span className="font-medium text-orange-700 dark:text-orange-300">
                       ⚠️ {gapOverlap.length} large gap{gapOverlap.length > 1 ? "s" : ""} detected
                     </span>
                     {gapOverlap.slice(0, 3).map((gap, idx) => (
-                      <div key={idx} className="ml-4 text-xs text-gray-600">
+                      <div key={idx} className="ml-4 text-xs text-muted-foreground">
                         • {new Date(gap.start).toLocaleString()} - {new Date(gap.end).toLocaleString()}
                       </div>
                     ))}
                     {gapOverlap.length > 3 && (
-                      <div className="ml-4 text-xs text-gray-500">
+                      <div className="ml-4 text-xs text-muted-foreground">
                         ... and {gapOverlap.length - 3} more
                       </div>
                     )}
@@ -219,9 +223,9 @@ export function DataAvailabilitySection({
 
           {/* Overall Warning Summary */}
           {hasIssues && (
-            <div className="rounded border border-yellow-200 bg-yellow-50 px-3 py-2">
-              <div className="mb-1 text-sm font-medium text-yellow-800">⚠️ Data Quality Warning</div>
-              <div className="text-sm text-yellow-700">
+            <div className="rounded border border-amber-300 bg-amber-50 px-3 py-2 dark:border-amber-700 dark:bg-amber-950/40">
+              <div className="mb-1 text-sm font-medium text-amber-900 dark:text-amber-300">⚠️ Data Quality Warning</div>
+              <div className="text-sm text-amber-800 dark:text-amber-200">
                 {dataQuality?.issues_description && (
                   <div className="mb-1">{dataQuality.issues_description}</div>
                 )}

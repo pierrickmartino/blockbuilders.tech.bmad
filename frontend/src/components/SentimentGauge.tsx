@@ -22,7 +22,7 @@ export function SentimentGauge({
     return (
       <Card>
         <CardContent className="p-3">
-          <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{label}</div>
+          <div className="mb-2 text-sm font-medium text-muted-foreground">{label}</div>
           <Badge variant="outline" className="text-xs">Unavailable</Badge>
         </CardContent>
       </Card>
@@ -34,7 +34,7 @@ export function SentimentGauge({
   return (
     <Card>
       <CardContent className="p-3">
-        <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{label}</div>
+        <div className="mb-2 text-sm font-medium text-muted-foreground">{label}</div>
 
         {/* Value display */}
         <div className="text-2xl font-bold mb-2">
@@ -42,14 +42,14 @@ export function SentimentGauge({
         </div>
 
         {/* Simple progress bar gauge */}
-        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+        <div className="h-2 w-full rounded-full bg-muted">
           <div
             className="bg-blue-600 h-2 rounded-full transition-all"
             style={{ width: `${percentage}%` }}
           />
         </div>
 
-        <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
+        <div className="mt-1 flex justify-between text-xs text-muted-foreground">
           <span>{min}</span>
           <span>{max}</span>
         </div>

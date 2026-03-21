@@ -21,7 +21,7 @@ export function DataCompletenessTimeline({
   // Handle case where no data exists
   if (!coverage_start || !coverage_end) {
     return (
-      <div className="text-sm text-gray-500">
+      <div className="text-sm text-muted-foreground">
         No historical data available for this asset/timeframe.
       </div>
     );
@@ -115,7 +115,7 @@ export function DataCompletenessTimeline({
   return (
     <div className="space-y-2">
       {/* Timeline bar */}
-      <div className="relative h-8 rounded border border-gray-200 bg-gray-50 overflow-hidden">
+      <div className="relative h-8 overflow-hidden rounded border border-border bg-muted/30">
         <div className="absolute inset-0 flex">
           {segments.map((segment, idx) => (
             <div
@@ -145,19 +145,19 @@ export function DataCompletenessTimeline({
       </div>
 
       {/* Timeline labels */}
-      <div className="flex justify-between text-xs text-gray-500">
+      <div className="flex justify-between text-xs text-muted-foreground">
         <span>{formatDate(coverage_start)}</span>
         <span>{formatDate(coverage_end)}</span>
       </div>
 
       {/* Summary text */}
-      <div className="text-xs text-gray-600">
+      <div className="text-xs text-muted-foreground">
         {summaryText}
       </div>
 
       {/* Legend */}
       {gap_count > 0 && (
-        <div className="flex items-center gap-4 text-xs text-gray-500">
+        <div className="flex items-center gap-4 text-xs text-muted-foreground">
           <div className="flex items-center gap-1">
             <div className="w-3 h-3 bg-green-500 rounded" />
             <span>Data available</span>

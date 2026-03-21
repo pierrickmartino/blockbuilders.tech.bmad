@@ -171,7 +171,7 @@ def test_bulk_delete_endpoint_deletes_and_reports_failures(client, auth_headers,
 
 
 
-def test_market_sentiment_and_backtest_sentiment_endpoints_return_valid_payload(client, auth_headers, seeded_objects, monkeypatch):
+def test_market_sentiment_endpoint_returns_valid_payload(client, auth_headers, seeded_objects, monkeypatch):
     _mock_market_dependencies(monkeypatch)
 
     sentiment = client.get("/market/sentiment", headers=auth_headers, params={"asset": "BTC/USDT"})
@@ -179,12 +179,6 @@ def test_market_sentiment_and_backtest_sentiment_endpoints_return_valid_payload(
     sentiment_body = sentiment.json()
     assert sentiment_body["asset"] == "BTC/USDT"
     assert "fear_greed" in sentiment_body
-
-    backtest_sentiment = client.get(f"/backtests/{seeded_objects['run'].id}/sentiment", headers=auth_headers)
-    assert backtest_sentiment.status_code == 200
-    backtest_body = backtest_sentiment.json()
-    assert "as_of" in backtest_body
-    assert "source_status" in backtest_body
 
 
 

@@ -22,7 +22,6 @@ from app.models.candle import Candle
 from app.models.user import User
 from app.models.data_quality_metric import DataQualityMetric
 from app.schemas.market import (
-    BacktestSentimentResponse,
     DataAvailabilityResponse,
     HistoryPoint,
     MarketSentimentResponse,
@@ -519,97 +518,3 @@ def get_market_sentiment(
     return response_data
 
 
-@router.get("/backtests/{run_id}/sentiment", response_model=BacktestSentimentResponse)
-def get_backtest_sentiment(
-    run_id: UUID,
-    user: User = Depends(get_current_user),
-    session: Session = Depends(get_session),
-) -> BacktestSentimentResponse:
-    """
-    Get sentiment indicators for a backtest date range.
-
-    Protected endpoint. Reuses cached market sentiment data where possible.
-
-    Args:
-        run_id: Backtest run UUID
-
-    Returns:
-        BacktestSentimentResponse with start/end/average values
-
-    Raises:
-        HTTPException: 404 if backtest not found, 503 if all providers fail
-    """
-    from app.models.backtest_run import BacktestRun
-
-    # Fetch backtest run
-    run = session.get(BacktestRun, run_id)
-    if not run or run.user_id != user.id:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Backtest run not found"
-        )
-
-    # Calculate days in backtest range
-    delta = (run.date_to - run.date_from).days
-    lookback_days = max(30, delta)  # At least 30 days for context
-
-    # Fetch sentiment data (same as market endpoint)
-    fear_greed, fg_status = _fetch_fear_greed_index(days=lookback_days)
-    long_short, ls_status = _fetch_long_short_ratio(run.asset, days=lookback_days)
-    funding, fr_status = _fetch_funding_rate(run.asset, days=lookback_days)
-
-    if fg_status == "unavailable" and ls_status == "unavailable" and fr_status == "unavailable":
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="All sentiment providers unavailable"
-        )
-
-    # Calculate start/end/average for backtest range
-    def get_range_stats(indicator: Optional[SentimentIndicator], start_date: datetime, end_date: datetime):
-        """Extract start, end, and average values within date range."""
-        if not indicator or not indicator.history:
-            return None, None, None
-
-        start_str = start_date.strftime("%Y-%m-%d")
-        end_str = end_date.strftime("%Y-%m-%d")
-
-        # Filter history to backtest range
-        in_range = [
-            h for h in indicator.history
-            if start_str <= h.t <= end_str
-        ]
-
-        if not in_range:
-            return None, None, None
-
-        start_val = in_range[0].v
-        end_val = in_range[-1].v
-        avg_val = sum(h.v for h in in_range) / len(in_range)
-
-        return start_val, end_val, avg_val
-
-    fg_start, fg_end, fg_avg = get_range_stats(fear_greed, run.date_from, run.date_to)
-    _, _, ls_avg = get_range_stats(long_short, run.date_from, run.date_to)
-    _, _, fr_avg = get_range_stats(funding, run.date_from, run.date_to)
-
-    response_data = BacktestSentimentResponse(
-        as_of=datetime.now(timezone.utc),
-        asset=run.asset,
-        date_from=run.date_from,
-        date_to=run.date_to,
-        fear_greed_start=fg_start,
-        fear_greed_end=fg_end,
-        fear_greed_avg=fg_avg,
-        long_short_ratio_avg=ls_avg,
-        funding_avg=fr_avg,
-        fear_greed_history=fear_greed.history if fear_greed else [],
-        long_short_ratio_history=long_short.history if long_short else [],
-        funding_history=funding.history if funding else [],
-        source_status=SourceStatus(
-            fear_greed=fg_status,
-            long_short_ratio=ls_status,
-            funding=fr_status
-        )
-    )
-
-    return response_data

@@ -22,7 +22,7 @@ export function SentimentSparkline({
     return (
       <Card>
         <CardContent className="p-3">
-          <div className="text-sm font-medium text-gray-700 mb-2">{label}</div>
+          <div className="mb-2 text-sm font-medium text-muted-foreground">{label}</div>
           <Badge variant="outline" className="text-xs">
             {status === "unavailable" ? "Unavailable" : "No data"}
           </Badge>
@@ -36,7 +36,7 @@ export function SentimentSparkline({
   return (
     <Card>
       <CardContent className="p-3">
-        <div className="text-sm font-medium text-gray-700 mb-1">{label}</div>
+        <div className="mb-1 text-sm font-medium text-muted-foreground">{label}</div>
         <div className="text-lg font-semibold mb-2">
           {formatter ? formatter(latest.v) : latest.v.toLocaleString()}
         </div>
@@ -55,7 +55,7 @@ export function SentimentSparkline({
           </ResponsiveContainer>
         </div>
 
-        <div className="text-xs text-gray-500 mt-1">
+        <div className="mt-1 text-xs text-muted-foreground">
           {history[0].t} → {latest.t}
         </div>
       </CardContent>

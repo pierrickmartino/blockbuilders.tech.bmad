@@ -67,19 +67,3 @@ class DataAvailabilityResponse(BaseModel):
     source: str  # "metadata" or "candle_fallback"
 
 
-class BacktestSentimentResponse(BaseModel):
-    """Response for /backtests/{run_id}/sentiment endpoint."""
-
-    as_of: datetime
-    asset: str
-    date_from: datetime
-    date_to: datetime
-    fear_greed_start: Optional[float] = None
-    fear_greed_end: Optional[float] = None
-    fear_greed_avg: Optional[float] = None
-    long_short_ratio_avg: Optional[float] = None
-    funding_avg: Optional[float] = None
-    fear_greed_history: list[HistoryPoint] = []
-    long_short_ratio_history: list[HistoryPoint] = []
-    funding_history: list[HistoryPoint] = []
-    source_status: SourceStatus
