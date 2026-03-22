@@ -1,0 +1,38 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Docs/Introduction" />
+
+# Blockbuilders Component Library
+
+This Storybook documents the reusable UI components for the Blockbuilders frontend.
+
+## Design alignment
+
+All components follow the design specifications defined in two authoritative documents:
+
+- **`docs/design-system.json`** — Design tokens (colors, typography, spacing, border-radius, shadows), component specs, and layout patterns.
+- **`docs/design_concept.json`** — Brand identity, design philosophy, color strategy, and visual techniques.
+
+These are the single source of truth for design decisions. When a component's appearance conflicts with these documents, the documents win.
+
+## Key principles
+
+1. **Semantic colors via CSS variables** — Components use `--primary`, `--secondary`, `--muted`, `--destructive`, and other tokens defined in `globals.css`. Never create color values outside the token system.
+2. **Dark mode** — Every component must support dark mode. Use the theme toggle in the toolbar above to preview both themes.
+3. **Mobile-first** — Layouts degrade gracefully. Use Tailwind responsive utilities (`sm:`, `md:`, `lg:`).
+4. **shadcn/ui base** — Most UI primitives come from shadcn/ui (Radix + CVA + Tailwind). Canvas nodes are custom and not documented here.
+
+## Component categories
+
+- **UI** — shadcn/ui primitives (Button, Card, Badge, Input, Tabs, Dialog, Select, etc.)
+- **Components** — Custom shared components (InfoIcon, LowTradeCountWarning, WhatYouLearnedCard, NarrativeCard)
+
+## Contributing a new story
+
+1. Create `ComponentName.stories.tsx` next to the component file.
+2. Use the CSF3 format (see existing stories for examples).
+3. Add `tags: ["autodocs"]` to generate a docs page automatically.
+4. Cover: default state, all variants, disabled state, and dark mode (handled by the global decorator).
+5. Run `npm run storybook` from the `frontend/` directory to preview locally.
+
+See **`docs/storybook-guide.md`** for the full onboarding guide.
