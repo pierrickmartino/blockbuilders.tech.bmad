@@ -1,5 +1,20 @@
 import type { Preview } from "@storybook/react";
+import { useEffect, type ReactNode } from "react";
 import "../src/app/globals.css";
+
+function ThemeRoot({
+  theme,
+  children,
+}: {
+  theme: "light" | "dark";
+  children: ReactNode;
+}) {
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", theme === "dark");
+  }, [theme]);
+
+  return <div className="bg-background text-foreground p-4">{children}</div>;
+}
 
 const preview: Preview = {
   parameters: {
@@ -23,13 +38,11 @@ const preview: Preview = {
   initialGlobals: { theme: "light" },
   decorators: [
     (Story, context) => {
-      const theme = context.globals.theme ?? "light";
+      const theme = context.globals.theme === "dark" ? "dark" : "light";
       return (
-        <div className={theme === "dark" ? "dark" : ""}>
-          <div className="bg-background text-foreground p-4">
-            <Story />
-          </div>
-        </div>
+        <ThemeRoot theme={theme}>
+          <Story />
+        </ThemeRoot>
       );
     },
   ],

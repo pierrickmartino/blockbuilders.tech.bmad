@@ -5,6 +5,11 @@ const meta = {
   title: "Components/NarrativeCard",
   component: NarrativeCard,
   tags: ["autodocs"],
+  parameters: {
+    nextjs: {
+      appDirectory: true,
+    },
+  },
 } satisfies Meta<typeof NarrativeCard>;
 
 export default meta;
