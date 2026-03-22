@@ -132,6 +132,7 @@ When adding or changing features, update `docs/product.md` and create/update rel
 | Display/theme preferences (dark mode) | 2.3, 9.5, 13 | Feature summary |
 | Strategy templates marketplace | 3.7, 13 | + 9.3, 11, 17.1 if content/difficulty/ordering changes |
 | Progress dashboard | 9.11, 13 | Feature summary |
+| Storybook framework / component documentation | 13, 16.1, 17.1 | Add PRD/TST references and keep Storybook docs aligned with `docs/design-system.json` and `docs/design_concept.json` |
 
 **Data & persistence patterns:**
 
@@ -318,6 +319,12 @@ All frontend development **must** comply with the design documentation:
 2. Use existing design tokens from the design system (colors, typography, spacing, border-radius, shadows)
 3. Follow component specifications for buttons, inputs, cards, badges, dialogs, tables, etc.
 4. Apply layout patterns defined in the system (page containers, grids, forms, lists, states)
+
+**When working on Storybook or component documentation:**
+- Treat Storybook as the official reference for reusable frontend components once the feature is implemented
+- Reuse the exact app tokens/styles already defined in `docs/design-system.json`, `docs/design_concept.json`, `frontend/src/app/globals.css`, and Tailwind config rather than creating a parallel theme
+- Document component variants, states, responsive behavior, and dark-mode behavior in Storybook stories/docs
+- Keep onboarding and usage guidance in a simple markdown doc so new frontend contributors can find Storybook quickly and use it without guessing
 
 **Color usage:**
 - Use semantic colors via CSS variables (`--primary`, `--secondary`, `--muted`, `--destructive`, etc.)

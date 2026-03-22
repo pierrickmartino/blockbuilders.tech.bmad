@@ -2285,6 +2285,7 @@ Plain-Language Error Messages
 | **Volatility Metrics (Market Overview)** | ✅ Complete | Show current + historical volatility with percentile rank per pair |
 | **Market Sentiment Indicators (Market Overview)** | ✅ Complete | Fear & Greed Index (Alternative.me), Long/Short Ratio (Binance), Funding Rates (Binance); 15min cache, partial failure support, market overview only (no backtest results sentiment context) |
 | **Frontend UI** | ✅ Complete | Multi-strategy dashboard, strategy list/editor, backtest runner/results, profile |
+| **Storybook Framework for Component UX/UI** | 📝 Spec Ready | Planned Storybook workspace for reusable component development/testing/documentation, required to stay fully aligned with `docs/design-system.json` and `docs/design_concept.json`, plus a markdown onboarding guide for frontend contributors |
 | **Recently Viewed Shortcuts (Dashboard)** | ✅ Complete | Quick links to recently viewed strategies and backtests from session history |
 | **Progress Dashboard** | ✅ Complete | Journey metrics, achievements, lessons learned, and next-step suggestions from usage data |
 | **Dark Mode** | ✅ Complete | User-selectable theme (system/light/dark) applied across canvas, charts, and forms |
@@ -2571,6 +2572,8 @@ npm run type-check    # TypeScript validation
 - `docs/prd-remove-sentiment-backtest-results.md` - Remove sentiment analysis from backtest results PRD
 - `docs/tst-remove-sentiment-backtest-results.md` - Remove sentiment analysis from backtest results test checklist
 - `docs/product.md` - This document (current product truth)
+- `docs/prd-storybook-framework-component-ux-ui.md` - Storybook framework for component UX/UI PRD
+- `docs/tst-storybook-framework-component-ux-ui.md` - Storybook framework for component UX/UI test checklist
 - `docs/prd-strategy-tags-groups.md` - Strategy groups & tags PRD
 - `docs/prd-simple-tiered-subscription-plans.md` - Simple tiered subscription plans PRD
 - `docs/prd-annual-subscription-discounts.md` - Annual subscription discounts PRD
@@ -2649,6 +2652,7 @@ npm run type-check    # TypeScript validation
 
 ## 17. Changelog
 
+- **2026-03-22:** Added PRD/TST planning for a Storybook framework dedicated to component UX/UI work, requiring full alignment with `docs/design-system.json` and `docs/design_concept.json`, Storybook as the official reusable component documentation surface, and a markdown onboarding guide for new frontend contributors.
 - **2026-03-21:** Added PRD/TST planning to remove sentiment analysis from backtest results, keeping sentiment limited to Market Overview and simplifying results payloads/UI by removing sentiment summaries, widgets, and empty placeholders.
 - **2026-03-19:** Added PRD/TST planning for mobile bottom sheet parameter editing: on viewports below 768px, block parameter editing switches from popover to a half-screen shadcn/ui Sheet, keeps the selected block label visible and updating in real time above the sheet, uses `visualViewport` to keep the active field visible when the software keyboard opens, and commits changes on swipe-down close with undo/redo + autosave.
 - **2026-03-15:** Added PRD/TST planning for inline parameter popovers on block tap: feature-flagged block-anchored parameter editing with Floating UI/Radix collision-aware positioning, real-time compact label updates (<100ms target), commit-on-close behavior wired to undo/redo + autosave debounce, and Inspector panel fallback when the feature flag is disabled.
