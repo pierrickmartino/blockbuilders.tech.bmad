@@ -57,3 +57,6 @@ env/
 
 # Docker
 docker-compose.override.yml
+
+# Storybook
+storybook-static/
