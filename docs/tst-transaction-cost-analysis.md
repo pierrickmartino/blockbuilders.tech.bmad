@@ -4,24 +4,24 @@
 
 ## 1. Cost Breakdown Panel
 
-- [ ] Transaction Cost Analysis panel appears in Backtest Results view after the trades list
-- [ ] Panel title is "Transaction Cost Analysis"
-- [ ] Panel displays Fees (USD) row
-- [ ] Panel displays Slippage (USD) row
-- [ ] Panel displays Spread (USD) row
-- [ ] Panel displays Total costs (USD) row
-- [ ] Panel displays Average cost per trade (USD) row
-- [ ] Panel displays Cost % of gross return row
+- [x] Transaction Cost Analysis panel appears in Backtest Results view after the trades list
+- [x] Panel title is "Transaction Cost Analysis"
+- [x] Panel displays Fees (USD) row
+- [x] Panel displays Slippage (USD) row
+- [x] Panel displays Spread (USD) row
+- [x] Panel displays Total costs (USD) row
+- [x] Panel displays Average cost per trade (USD) row
+- [x] Panel displays Cost % of gross return row
 - [ ] Callout line shows "Gross return: $X -> Net return: $Y (after costs)"
-- [ ] All USD values are formatted consistently (2 decimal places)
+- [x] All USD values are formatted consistently (2 decimal places)
 
 ## 2. Cost % of Gross Return Calculation
 
-- [ ] `gross_return_usd` is computed as `net_return_usd + total_costs_usd`
-- [ ] When `gross_return_usd > 0`, cost % is computed as `total_costs_usd / gross_return_usd * 100`
-- [ ] When `gross_return_usd <= 0`, cost % shows "N/A"
-- [ ] When `gross_return_usd` is exactly 0, cost % shows "N/A"
-- [ ] When `gross_return_usd` is negative, cost % shows "N/A"
+- [x] `gross_return_usd` is computed as `net_return_usd + total_costs_usd`
+- [x] When `gross_return_usd > 0`, cost % is computed as `total_costs_usd / gross_return_usd * 100`
+- [x] When `gross_return_usd <= 0`, cost % shows "N/A"
+- [x] When `gross_return_usd` is exactly 0, cost % shows "N/A"
+- [x] When `gross_return_usd` is negative, cost % shows "N/A"
 
 ## 3. Per-Trade Cost Display
 
@@ -40,22 +40,22 @@
 
 ## 5. Run-Level Summary Fields
 
-- [ ] Backtest run includes `gross_return_usd` in results
-- [ ] Backtest run includes `gross_return_pct` in results
-- [ ] Backtest run includes `total_fees_usd` in results
-- [ ] Backtest run includes `total_slippage_usd` in results
-- [ ] Backtest run includes `total_spread_usd` in results
-- [ ] Backtest run includes `total_costs_usd` in results
-- [ ] Backtest run includes `cost_pct_gross_return` in results
-- [ ] Backtest run includes `avg_cost_per_trade_usd` in results
+- [x] Backtest run includes `gross_return_usd` in results
+- [x] Backtest run includes `gross_return_pct` in results
+- [x] Backtest run includes `total_fees_usd` in results
+- [x] Backtest run includes `total_slippage_usd` in results
+- [x] Backtest run includes `total_spread_usd` in results
+- [x] Backtest run includes `total_costs_usd` in results
+- [x] Backtest run includes `cost_pct_gross_return` in results
+- [x] Backtest run includes `avg_cost_per_trade_usd` in results
 
 ## 6. Backend Cost Computation
 
-- [ ] Costs are computed in the backtest engine and persisted in results
-- [ ] Fee/slippage/spread are applied on both entry and exit legs
+- [x] Costs are computed in the backtest engine and persisted in results
+- [x] Fee/slippage/spread are applied on both entry and exit legs
 - [ ] Cost calculation uses per-trade notional (entry_price * qty)
-- [ ] Default rates are applied: fee 0.1%, slippage 0.05%, spread 0.02%
-- [ ] Custom rates from backtest settings override defaults when provided
+- [x] Default rates are applied: fee 0.1%, slippage 0.05%, spread 0.02%
+- [x] Custom rates from backtest settings override defaults when provided
 
 ## 7. What-If Sliders (Optional)
 
@@ -67,9 +67,9 @@
 
 ## 8. Edge Cases & QA
 
-- [ ] Run with 0 trades: costs show as $0 and cost % shows "N/A"
-- [ ] Run with all losses (gross return <= 0): cost % shows "N/A"
-- [ ] Large runs (1000+ trades): totals match the sum of per-trade costs
+- [x] Run with 0 trades: costs show as $0 and cost % shows "N/A"
+- [x] Run with all losses (gross return <= 0): cost % shows "N/A"
+- [x] Large runs (1000+ trades): totals match the sum of per-trade costs
 - [ ] Existing backtest runs without cost fields show "Not available" (backward compatibility)
 - [ ] Very small costs (fractions of a cent) display without rounding to $0.00
 
