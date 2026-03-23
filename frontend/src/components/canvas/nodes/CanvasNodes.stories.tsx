@@ -58,7 +58,7 @@ function mkProps(data: Record<string, unknown> = {}) {
     xPos: 0,
     yPos: 0,
     dragging: false,
-  } as Parameters<typeof PriceNode>[0];
+  } as unknown as Parameters<typeof PriceNode>[0];
 }
 
 const meta = {
