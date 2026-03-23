@@ -1,0 +1,132 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Pages/Backtest Results" />
+
+# Backtest Results
+
+**Route:** `/strategies/[id]/backtest`
+**Auth required:** Yes
+**Layout group:** `(app)`
+
+Displays the complete results of the most recent (or selected) backtest run for a strategy. The page is data-heavy and composed of many specialised sections.
+
+---
+
+## Page structure
+
+```
+┌─ Header ───────────────────────────────────────────────────────────┐
+│  ← Back   Strategy Name   [Build | Backtest]   [Share] [Compare]  │
+└────────────────────────────────────────────────────────────────────┘
+│  Date range badge  |  Asset / Timeframe  |  Status badge          │
+│                                                                    │
+│  ┌─ Summary metrics row ──────────────────────────────────────┐   │
+│  │  Total Return | Win Rate | Max Drawdown | Sharpe | Trades   │   │
+│  └────────────────────────────────────────────────────────────┘   │
+│                                                                    │
+│  ┌─ Equity curve chart ───────────────────────────────────────┐   │
+│  └────────────────────────────────────────────────────────────┘   │
+│                                                                    │
+│  ┌─ Narrative Card ───────────────────────────────────────────┐   │
+│  └────────────────────────────────────────────────────────────┘   │
+│                                                                    │
+│  ┌─ What You Learned Card ────────────────────────────────────┐   │
+│  └────────────────────────────────────────────────────────────┘   │
+│                                                                    │
+│  ┌─ Low Trade Count Warning ──────────────────────────────────┐   │
+│  └────────────────────────────────────────────────────────────┘   │
+│                                                                    │
+│  ┌─ Transaction Cost Analysis ────────────────────────────────┐   │
+│  └────────────────────────────────────────────────────────────┘   │
+│                                                                    │
+│  ┌─ Data Availability Section ────────────────────────────────┐   │
+│  └────────────────────────────────────────────────────────────┘   │
+│                                                                    │
+│  ┌─ Trade List (table) ───────────────────────────────────────┐   │
+│  │  Entry date | Exit date | Return | Reason | [Detail →]     │   │
+│  └────────────────────────────────────────────────────────────┘   │
+```
+
+---
+
+## States
+
+| State | Trigger | UI |
+|---|---|---|
+| **Loading** | Data not yet fetched | Full-page skeleton placeholders |
+| **Running** | `status === "running"` | Polling banner: "Backtest in progress…" |
+| **No results** | No runs for this strategy | Empty state with "Run Backtest" CTA |
+| **Zero trades** | `total_trades === 0` | Special `NarrativeCard` copy + `WhatYouLearnedCard` |
+| **Low trade count** | `total_trades < 30` | `LowTradeCountWarning` badge |
+| **Error** | API error | Destructive error banner |
+| **Completed** | `status === "completed"` | Full results layout |
+
+---
+
+## Summary metrics
+
+Displayed as a responsive grid of metric cards (2 cols mobile → 4 cols desktop):
+
+- Total Return %
+- Win Rate %
+- Max Drawdown %
+- Sharpe Ratio
+- Total Trades
+- Profit Factor
+- Average Trade Return %
+- Calmar Ratio
+
+---
+
+## Key subcomponents
+
+| Component | Purpose |
+|---|---|
+| `ZoomableChart` | Equity curve with pan/zoom |
+| `NarrativeCard` | AI-generated plain-English strategy summary |
+| `WhatYouLearnedCard` | First-run education: key insights from results |
+| `LowTradeCountWarning` | Warns when trade count is too low for statistical significance |
+| `TransactionCostAnalysis` | Fee/slippage/spread breakdown |
+| `DataAvailabilitySection` | OHLCV data coverage timeline |
+| `TradeDrawer` | Side drawer with full detail for a single trade |
+| `ShareBacktestModal` | Generates a read-only share link |
+| `StrategyTabs` | Build / Backtest tab nav |
+
+---
+
+## Trade list
+
+Table rows are clickable — clicking opens the `TradeDrawer` for that trade with:
+- Entry and exit timestamps and prices
+- Return % and USD amount
+- Exit reason (stop loss, take profit, signal, time, end-of-data)
+- `TradeExplanation` (entry conditions + exit summary)
+
+---
+
+## Data fetching
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /strategies/:id` | Strategy metadata |
+| `GET /backtests/?strategy_id=:id` | All runs for the strategy |
+| `GET /backtests/:runId` | Selected run details + summary |
+| `GET /backtests/:runId/trades` | Trade list |
+| `GET /backtests/:runId/narrative` | AI narrative text |
+| `GET /data/completeness?asset=…&timeframe=…` | Data quality info |
+
+---
+
+## Share flow
+
+"Share" button opens `ShareBacktestModal`. The modal calls `POST /backtests/:runId/share-links` to generate a token. The token is embedded in a `/share/backtests/:token` URL.
+
+---
+
+## Responsive behaviour
+
+| Breakpoint | Layout |
+|---|---|
+| Mobile | Single-column; summary grid 2-col; trade table horizontally scrollable |
+| `md` | Summary grid 3–4 col |
+| `lg` | Full width within `max-w-6xl` container |

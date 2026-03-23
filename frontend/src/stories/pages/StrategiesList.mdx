@@ -1,0 +1,95 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Pages/Strategies List" />
+
+# Strategies List
+
+**Route:** `/strategies`
+**Auth required:** Yes
+**Layout group:** `(app)`
+
+The primary workspace management screen. Shows all of the user's strategies with search, sort, filter, import/export, and bulk management. Also the entry point for the **Strategy Wizard** (new-user onboarding flow).
+
+---
+
+## Entry modes
+
+| Mode | Trigger | Behaviour |
+|---|---|---|
+| **Normal** | Direct navigation | Full strategies list |
+| **Wizard** | `?wizard=true` query param | `StrategyWizard` modal is rendered on top of the list; marks onboarding complete on close |
+
+---
+
+## Toolbar
+
+```
+[New Strategy ▼] [Import] [Templates]   [Search…]  [Asset ▼] [Sort ▼] [Performance ▼] [Last Run ▼]
+```
+
+- **New Strategy** — opens `NewStrategyModal`
+- **Import** — triggers JSON file picker; validates, then `POST /strategies/import`
+- **Templates** — navigates to `/strategies/templates`
+- **Search** — client-side text filter on strategy `name`
+- **Asset filter** — filters by `ALLOWED_ASSETS` (BTC/USDT, ETH/USDT, …)
+- **Sort** — name, updated_at, total_return, last_run, asset; toggles asc/desc
+- **Performance filter** — all / positive / negative (based on last backtest return)
+- **Last Run filter** — all / within 7 days / within 30 days / never run
+
+---
+
+## Strategy table
+
+Columns: **Name**, **Asset**, **Timeframe**, **Last Run**, **Return**, **Actions (…)**
+
+Actions dropdown per row:
+- Edit (open canvas)
+- Duplicate (`POST /strategies/:id/duplicate`)
+- Export (downloads JSON)
+- Delete (`DELETE /strategies/:id` with confirmation dialog)
+
+---
+
+## Strategy states
+
+| State | UI |
+|---|---|
+| Loading | Skeleton rows in the table |
+| Empty (no strategies) | Centred empty state with wizard CTA |
+| Empty (filtered) | "No strategies match your filters" message |
+| Error | Destructive banner with error message |
+| Limit reached | Warning badge; "New Strategy" button shows usage tooltip |
+
+---
+
+## Usage limits
+
+Reads `user.usage` from `useAuth`. When `usage.strategies_used >= usage.strategies_limit`, the New Strategy button shows a "Limit reached" tooltip and the modal is blocked.
+
+---
+
+## New Strategy Modal
+
+Fields: **Name** (required), **Asset** (select), **Timeframe** (select).
+
+On submit: `POST /strategies/` → navigates to `/strategies/:id`.
+
+---
+
+## Key components used
+
+- `Table`, `Skeleton`, `Badge`, `Button`, `Input`, `Select`, `Dialog`, `DropdownMenu` (shadcn/ui)
+- `NewStrategyModal`, `StrategyWizard` (local)
+- `useAuth`, `useDisplay`, `useRouter`, `useSearchParams`
+- `apiFetch`, `ApiError`
+- `trackEvent` (analytics)
+
+---
+
+## Responsive behaviour
+
+| Breakpoint | Layout |
+|---|---|
+| Mobile | Table collapses; asset/timeframe/return truncated |
+| `sm` | Full table visible |
+| `lg` | Toolbar filters in one row |

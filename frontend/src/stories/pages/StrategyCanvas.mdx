@@ -1,0 +1,120 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Pages/Strategy Canvas (Editor)" />
+
+# Strategy Canvas (Editor)
+
+**Route:** `/strategies/[id]`
+**Auth required:** Yes
+**Layout group:** `(app)`
+
+The core visual block editor. Users build trading strategies by connecting typed blocks on a canvas powered by `@xyflow/react` (React Flow).
+
+---
+
+## Page structure
+
+```
+┌─ Site Header ──────────────────────────────────────────────────────┐
+│ ← Back  Strategy Name  [Build | Backtest]   [Run Backtest]  […]  │
+└────────────────────────────────────────────────────────────────────┘
+┌─ HealthBar ─────────────────────────────────────────────────────────┐
+│  [Entry ready ✓]  [Exit needed ✗]  [Risk managed ✓]              │
+└────────────────────────────────────────────────────────────────────┘
+┌─ Canvas ──────────────────────────────────┬─ Inspector Panel ──────┐
+│                                           │  (desktop only)        │
+│  [Node] ──── [Node] ──── [Entry Signal]  │  Parameter form for    │
+│                                           │  selected node         │
+│  [Minimap]  [Block Palette / +]           │                        │
+└───────────────────────────────────────────┴────────────────────────┘
+┌─ Mobile Bottom Bar ────────────────────────────────────────────────┐
+│  [+Block]  [Undo]  [Redo]  [Fit]  [?Shortcuts]                   │
+└────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Key subcomponents
+
+### SmartCanvas
+The top-level canvas controller. Manages node/edge state, keyboard shortcuts, mobile detection, and the `HealthBar`. Renders `StrategyCanvas` inside.
+
+### StrategyCanvas
+Wraps `<ReactFlow>` with the registered node types, custom edges, controls, and minimap. Handles node selection, parameter updates, and autosave.
+
+### HealthBar
+Evaluates the strategy graph in real-time and shows three pill indicators (Entry / Exit / Risk) in states: `complete`, `incomplete`, or `warning`. See `Canvas/HealthBar` stories.
+
+### BlockPalette (desktop)
+A searchable list of available block types grouped by category. Opens as a panel on desktop.
+
+### BlockLibrarySheet (mobile)
+Same block list, rendered in a bottom sheet (`shadcn/ui Sheet`) on mobile.
+
+### InspectorPanel (desktop)
+Shows parameter inputs for the currently selected node. Disappears when nothing is selected.
+
+### InlinePopover (tap)
+Appears on node tap (mobile) or right-click (desktop). Quick parameter editing without leaving the canvas.
+
+### MobileBottomBar
+Fixed action bar at the bottom on mobile (< 768px): Add Block, Undo, Redo, Fit View, and Shortcuts.
+
+### Canvas Nodes
+35+ typed blocks grouped by category. Each extends `BaseNode`. See `Canvas/Nodes` stories.
+
+---
+
+## Canvas block categories
+
+| Category | Color | Examples |
+|---|---|---|
+| Input | Purple | Price, Volume, Constant, Yesterday Close |
+| Indicator | Blue | SMA, EMA, RSI, MACD, Bollinger, ATR, ADX |
+| Logic | Amber | Compare, Crossover, AND, OR, NOT |
+| Signal | Green | Entry Signal, Exit Signal |
+| Risk | Red | Stop Loss, Take Profit, Trailing Stop, Position Size, Time Exit, Max Drawdown |
+
+---
+
+## Node display modes
+
+| Mode | Prop | Behaviour |
+|---|---|---|
+| Default | — | Full node with header + parameters |
+| Compact | `isCompact=true` | Collapses to header only; shows `summary` text |
+| Expanded (compact override) | `isExpanded=true` | Forces full view even in compact mode |
+| Mobile | `isMobileMode=true` | Larger handles (18 px) for touch |
+
+---
+
+## Autosave
+
+Strategy blocks and edges are persisted via `PATCH /strategies/:id` after every change. Debounced at 500 ms.
+
+---
+
+## Keyboard shortcuts
+
+| Shortcut | Action |
+|---|---|
+| `Cmd/Ctrl + Z` | Undo |
+| `Cmd/Ctrl + Shift + Z` | Redo |
+| `Backspace / Delete` | Delete selected node |
+| `?` | Open Keyboard Shortcuts modal |
+| `Cmd/Ctrl + F` | Fit view |
+
+---
+
+## Run Backtest flow
+
+Clicking "Run Backtest" opens a form (inside the page or modal) to pick date range, then calls `POST /backtests/`. On completion, navigates to `/strategies/[id]/backtest`.
+
+---
+
+## Responsive behaviour
+
+| Breakpoint | Layout |
+|---|---|
+| Mobile `< 768px` | No inspector; block library as bottom sheet; bottom bar |
+| Desktop `≥ 768px` | Inspector panel on the right; block palette in floating panel; no bottom bar |

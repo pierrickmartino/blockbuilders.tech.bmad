@@ -1,0 +1,102 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Pages/Alerts" />
+
+# Alerts
+
+**Route:** `/alerts`
+**Auth required:** Yes
+**Layout group:** `(app)`
+
+Full-page notification centre. Shows all past notifications with the ability to mark individual or all notifications as read.
+
+---
+
+## Layout
+
+```
+┌─ Header ──────────────────────────────────────────────────────────┐
+│  Notifications                              [Mark all read]       │
+└────────────────────────────────────────────────────────────────────┘
+│  ┌─ Notification item ────────────────────────────────────────┐   │
+│  │  ● (unread dot)  Title                      <timestamp>    │   │
+│  │                  Body text                                  │   │
+│  └────────────────────────────────────────────────────────────┘   │
+│  ┌─ Notification item (read) ─────────────────────────────────┐   │
+│  │     Title                                   <timestamp>    │   │
+│  │     Body text                                              │   │
+│  └────────────────────────────────────────────────────────────┘   │
+│  …                                                                 │
+```
+
+---
+
+## Notification types
+
+| Type | Example |
+|---|---|
+| **Strategy monitor** | "Your RSI strategy was re-run. Return: +3.2%" |
+| **Backtest complete** | "Backtest finished for EMA Crossover" |
+| **Limit warning** | "You've reached 80% of your daily backtest limit" |
+| **Achievement** | "You earned the 'First Backtest' badge!" |
+
+---
+
+## Notification item
+
+Each item shows:
+- **Unread dot** (primary colour) if `is_read === false`
+- **Title** (semibold)
+- **Body** (muted foreground)
+- **Timestamp** (formatted via `formatDateTime`)
+- Clicking an unread notification marks it as read via `PATCH /notifications/:id/read`
+- If `link_url` is a valid internal path, wraps the item in a `<Link>` (validated server-side for safety)
+
+---
+
+## States
+
+| State | UI |
+|---|---|
+| Loading | Skeleton rows |
+| Empty | "No notifications yet" centred message |
+| All read | No unread dots; "Mark all read" button hidden |
+| Error | Destructive error banner |
+
+---
+
+## Actions
+
+- **Mark individual as read** — click notification
+- **Mark all as read** — top-right button; calls `POST /notifications/mark-all-read`
+
+---
+
+## Relationship to `NotificationBell`
+
+`NotificationBell` (in the site header) shows a dropdown preview of the same data. `/alerts` is the full-page version. Both use the `useNotifications` hook to share state and avoid double fetching.
+
+---
+
+## Data fetching
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /notifications/` | All notifications |
+| `PATCH /notifications/:id/read` | Mark one as read |
+| `POST /notifications/mark-all-read` | Mark all as read |
+
+---
+
+## Key components used
+
+- `useNotifications` hook
+- `useDisplay` context
+- `Badge`, `Button`, `Skeleton` (shadcn/ui)
+- `formatDateTime`
+
+---
+
+## Responsive behaviour
+
+Single-column notification list. Full width on mobile; `max-w-2xl` container on desktop.

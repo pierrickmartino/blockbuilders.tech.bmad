@@ -1,0 +1,78 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Pages/Shared Backtest (Public)" />
+
+# Shared Backtest (Public)
+
+**Route:** `/share/backtests/[token]`
+**Auth required:** No (public)
+
+A read-only, publicly accessible view of a single backtest result. Shared via a generated token link from the `ShareBacktestModal`. Designed for sharing results with people who don't have a Blockbuilders account.
+
+---
+
+## What is visible
+
+| Visible | Hidden |
+|---|---|
+| Summary metrics (return, win rate, drawdown, Sharpe…) | Strategy block graph / logic |
+| Equity curve chart | Parameter values |
+| Trade list (entry/exit dates, returns, reasons) | User email or account details |
+| Asset and timeframe | Strategy name (configurable) |
+| Backtest date range | |
+| `LowTradeCountWarning` if applicable | |
+| `TransactionCostAnalysis` | |
+
+---
+
+## Layout
+
+Identical to the authenticated backtest results page but:
+- **No sidebar or app navigation** (standalone layout)
+- **"Sign up to try this" CTA** in the header area
+- **No "Share" or "Compare" actions** in the header
+- **Strategy name replaced** with "Shared Backtest" if user opted to keep it private
+
+---
+
+## Token expiry
+
+| Token state | UI |
+|---|---|
+| **Valid** | Full results page |
+| **Expired** | "This link has expired. Ask the owner for a new one." |
+| **Invalid / not found** | "Backtest not found or the link is invalid." |
+
+---
+
+## Header CTA
+
+A sticky top banner for unauthenticated visitors:
+```
+"Want to build your own strategies? → Get started free"
+```
+Links to `/?mode=signup`.
+
+---
+
+## Data fetching
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /share/backtests/:token` | Fetch shared backtest data (public endpoint, no auth) |
+
+The backend validates the token, checks expiry, and returns the same summary + trades payload as the authenticated endpoint but strips private fields.
+
+---
+
+## Key components used
+
+- Same result components as the authenticated backtest page
+- No `ShareBacktestModal`, `StrategyTabs`, or other editor-specific components
+- `TransactionCostAnalysis`, `LowTradeCountWarning`, `ZoomableChart`
+
+---
+
+## Responsive behaviour
+
+Identical to authenticated Backtest Results page. No sidebar so full-width layout applies at all breakpoints.

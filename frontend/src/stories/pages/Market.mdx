@@ -1,0 +1,102 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Pages/Market Overview" />
+
+# Market Overview
+
+**Route:** `/market`
+**Auth required:** Yes
+**Layout group:** `(app)`
+
+A dashboard showing live market data and sentiment indicators for the supported crypto pairs (BTC/USDT, ETH/USDT). Helps users understand current market conditions before building or running strategies.
+
+---
+
+## Layout
+
+```
+┌─ Header ──────────────────────────────────────────────────────────┐
+│  Market Overview                                                  │
+└────────────────────────────────────────────────────────────────────┘
+│  Asset selector tabs: [BTC/USDT] [ETH/USDT]                      │
+│                                                                    │
+│  ┌─ Price ticker ──────────────────────────────────────────────┐  │
+│  │  Current price   24h Change   24h High   24h Low   Volume   │  │
+│  └────────────────────────────────────────────────────────────┘  │
+│                                                                    │
+│  ┌─ MarketSentimentPanel ─────────────────────────────────────┐  │
+│  │  Fear & Greed Index gauge                                  │  │
+│  │  Long/Short Ratio sparkline (7d)                           │  │
+│  │  Funding Rate sparkline (7d)                               │  │
+│  └────────────────────────────────────────────────────────────┘  │
+│                                                                    │
+│  ┌─ Price chart ──────────────────────────────────────────────┐  │
+│  │  OHLCV candlestick / line chart (zoomable)                 │  │
+│  └────────────────────────────────────────────────────────────┘  │
+```
+
+---
+
+## Sections
+
+### Price ticker
+Live price data fetched from the backend. Shows:
+- **Current price** (large, tabular nums)
+- **24h change** in % (green if positive, red if negative)
+- **24h High / Low**
+- **24h Volume**
+
+Polled every 30 seconds.
+
+### MarketSentimentPanel
+See `Components/MarketSentimentPanel` story. Three sentiment sub-panels:
+1. **Fear & Greed Index** — rendered via `SentimentGauge`
+2. **Long/Short Ratio 7d** — rendered via `SentimentSparkline`
+3. **Funding Rate 7d** — rendered via `SentimentSparkline`
+
+Desktop: 3-column grid. Mobile: stacked.
+
+Each sub-panel has a `status` field (`ok` | `partial` | `unavailable`). Unavailable sources show a badge instead of data, and an amber warning banner is shown if any source is down.
+
+### Price chart
+Zoomable OHLCV chart. Supports candlestick and line views. Uses `ZoomableChart`.
+
+---
+
+## States
+
+| State | UI |
+|---|---|
+| Loading | Skeleton placeholders for ticker and chart |
+| Error (price) | Destructive banner |
+| Error (sentiment) | Amber warning: "Sentiment data temporarily unavailable" |
+| Source unavailable | Individual `Unavailable` badge in SentimentGauge / SentimentSparkline |
+
+---
+
+## Data fetching
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /market/price?asset=BTC/USDT` | Current price ticker |
+| `GET /market/sentiment?asset=BTC/USDT` | Sentiment data |
+| `GET /market/ohlcv?asset=BTC/USDT&timeframe=1d` | Chart data |
+
+---
+
+## Key components used
+
+- `MarketSentimentPanel`, `SentimentGauge`, `SentimentSparkline`
+- `ZoomableChart`
+- `Tabs`, `Badge`, `Skeleton` (shadcn/ui)
+- `useMarketSentiment` hook
+
+---
+
+## Responsive behaviour
+
+| Breakpoint | Layout |
+|---|---|
+| Mobile | All sections stacked; sentiment in 1 col |
+| `md` | Sentiment in 3 columns |
+| `lg` | Full-width within `max-w-6xl` |

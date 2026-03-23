@@ -1,0 +1,85 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Pages/Education & Reference" />
+
+# Education & Reference Pages
+
+Three static informational pages to help users understand the platform.
+
+---
+
+## Strategy Guide
+
+**Route:** `/strategy-guide`
+**Auth required:** Yes
+
+A long-form markdown-rendered guide explaining how to build effective trading strategies in Blockbuilders:
+
+- **What is a strategy?** — blocks, connections, signals
+- **Block categories explained** — Input, Indicator, Logic, Signal, Risk
+- **Common patterns** — RSI reversal, EMA crossover, momentum breakout
+- **Tips** — parameter tuning, testing date ranges, interpreting results
+- **Glossary links** — links to `/metrics-glossary` for metric definitions
+
+Rendered as a scrollable document with an anchored table of contents sidebar on desktop.
+
+---
+
+## How Backtests Work
+
+**Route:** `/how-backtests-work`
+**Auth required:** Yes
+
+Explains the mechanics and assumptions behind Blockbuilders backtests:
+
+| Topic | Detail |
+|---|---|
+| **Execution model** | Market orders at next-candle open after signal |
+| **Fee model** | Fixed fee per trade (0.1% default); configurable |
+| **Slippage model** | Fixed slippage assumption (0.05% per trade) |
+| **Spread** | Estimated spread (0.02% per trade) |
+| **Position sizing** | Percent of portfolio per trade |
+| **Data source** | OHLCV candles from Binance; refreshed daily |
+| **Lookahead bias** | Not possible: signals only use completed candles |
+| **Survivorship bias** | Warning: only active pairs supported |
+| **Low trade count** | Statistical significance requires ≥ 30 trades |
+| **Transaction costs** | Full breakdown in backtest results |
+
+Also links to `TransactionCostAnalysis` docs and `LowTradeCountWarning` context.
+
+---
+
+## Metrics Glossary
+
+**Route:** `/metrics-glossary`
+**Auth required:** Yes
+
+Reference table of every metric shown in backtest results:
+
+| Metric | Description |
+|---|---|
+| Total Return % | Net portfolio gain/loss as a percentage of initial balance |
+| Sharpe Ratio | Risk-adjusted return (higher is better; > 1 is good) |
+| Max Drawdown % | Largest peak-to-trough decline during the backtest |
+| Win Rate % | Percentage of trades that were profitable |
+| Profit Factor | Gross profit ÷ gross loss (> 1 means profitable overall) |
+| Sortino Ratio | Like Sharpe but only penalises downside volatility |
+| Calmar Ratio | Annualised return ÷ max drawdown |
+| Avg Trade Return % | Mean return per closed trade |
+| Avg Trade Duration | Mean bars held per trade |
+| Total Costs | Fees + slippage + spread in USD |
+| Cost % of Gross Return | How much costs erode your gross profit |
+| … | More metrics defined in `tooltip-content.ts` |
+
+Metric IDs in `tooltip-content.ts` are used to link from `InfoIcon` tooltips throughout the app directly to the relevant glossary entry via `#anchor-id`.
+
+---
+
+## Shared design
+
+All three pages share:
+- `max-w-3xl` container
+- Tailwind `prose` typography for body text
+- `InfoIcon` inline tooltips where metrics are referenced
+- Links to related pages (strategy-guide ↔ how-backtests-work ↔ metrics-glossary)
+- No client-side data fetching; rendered as static server components
