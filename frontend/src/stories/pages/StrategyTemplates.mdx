@@ -1,0 +1,81 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Pages/Strategy Templates" />
+
+# Strategy Templates
+
+**Route:** `/strategies/templates`
+**Auth required:** Yes
+**Layout group:** `(app)`
+
+A curated gallery of pre-built strategy templates that users can duplicate into their own workspace with one click.
+
+---
+
+## Layout
+
+```
+┌─ Header ───────────────────────────────────────────────────────────┐
+│  Strategy Templates                                                │
+│  Subtitle: "Start from a proven pattern, then customise."         │
+└────────────────────────────────────────────────────────────────────┘
+│  [Filter: All | Beginner | Intermediate | Advanced]               │
+│                                                                    │
+│  ┌────────────┐  ┌────────────┐  ┌────────────┐                  │
+│  │ Template   │  │ Template   │  │ Template   │                  │
+│  │ card       │  │ card       │  │ card       │                  │
+│  └────────────┘  └────────────┘  └────────────┘                  │
+```
+
+---
+
+## Template card
+
+Each card shows:
+- **Name** — strategy name (e.g. "RSI Reversal", "EMA Crossover")
+- **Difficulty badge** — `Beginner` / `Intermediate` / `Advanced` (coloured `Badge`)
+- **Description** — 1–2 sentence description of the strategy logic
+- **Asset + Timeframe** — e.g. `BTC/USDT · 1h`
+- **"Use Template" button** — calls `POST /strategies/templates/:id/duplicate`; on success navigates to the new strategy's canvas
+
+---
+
+## States
+
+| State | UI |
+|---|---|
+| Loading | Grid of skeleton cards |
+| Empty | "No templates available" message |
+| Error | Destructive error banner |
+| Success (use template) | Button shows spinner, then redirects |
+
+---
+
+## Filter
+
+Client-side filter by difficulty level. "All" shows every template. Persists only for the session (no URL param).
+
+---
+
+## Data fetching
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /strategies/templates` | List all available templates |
+| `POST /strategies/templates/:id/duplicate` | Create a copy in user's workspace |
+
+---
+
+## Key components used
+
+- `Card`, `CardContent`, `Badge`, `Button`, `Skeleton` (shadcn/ui)
+
+---
+
+## Responsive behaviour
+
+| Breakpoint | Grid columns |
+|---|---|
+| Mobile | 1 column |
+| `sm` | 2 columns |
+| `lg` | 3 columns |

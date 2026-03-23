@@ -1,0 +1,73 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Pages/Settings" />
+
+# Settings
+
+**Route:** `/settings`
+**Auth required:** Yes
+**Layout group:** `(app)`
+
+Account-level preferences and configuration.
+
+---
+
+## Sections
+
+### Account
+
+| Field | Type | Notes |
+|---|---|---|
+| Email | Display only | Current authenticated email |
+| Password change | Form | Old password + new password (min 8 chars) + confirm |
+| Danger zone | Button | "Delete account" — requires confirmation dialog |
+
+### Display preferences
+
+| Setting | Options | Persistence |
+|---|---|---|
+| Timezone | IANA timezone list (searchable) | `localStorage` via `useDisplay` |
+| Theme | System / Light / Dark | `localStorage` via `next-themes` |
+
+### Notification preferences
+
+| Setting | Type | Notes |
+|---|---|---|
+| Email digests | Toggle | Daily/weekly digest of strategy performance |
+| Performance alerts | Toggle | Email when a monitored strategy crosses a threshold |
+| Strategy monitor | Toggle | In-app notification for scheduled re-backtests |
+
+---
+
+## States
+
+| State | UI |
+|---|---|
+| Loading | Skeleton for user data |
+| Save success | Green inline "Saved" confirmation |
+| Save error | Destructive inline error message |
+| Delete confirm | `Dialog` with "Type your email to confirm" field |
+
+---
+
+## Data fetching
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /users/me` | Load current user preferences |
+| `PATCH /users/me` | Save display/notification preferences |
+| `POST /users/me/change-password` | Password change |
+| `DELETE /users/me` | Account deletion |
+
+---
+
+## Key components used
+
+- `Input`, `Button`, `Select`, `Dialog`, `Tabs` (shadcn/ui)
+- `useAuth`, `useDisplay` contexts
+
+---
+
+## Responsive behaviour
+
+Single-column layout with `max-w-2xl` container. Works identically across all breakpoints.

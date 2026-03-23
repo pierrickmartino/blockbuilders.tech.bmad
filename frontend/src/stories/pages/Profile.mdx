@@ -1,0 +1,92 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Pages/Profile" />
+
+# Profile
+
+**Routes:**
+- `/profile` — own profile (authenticated)
+- `/u/[handle]` — public profile by handle
+
+**Auth required:** `/profile` yes; `/u/[handle]` no (public)
+**Layout group:** `(app)`
+
+---
+
+## Own profile (`/profile`)
+
+Shows the current user's public-facing profile card plus edit controls.
+
+### Layout
+
+```
+┌─ Avatar ──────────────────────────────────────────────────────────┐
+│  [Avatar image or initials]                                       │
+│  Display name (editable)                                          │
+│  @handle                                                          │
+│  Member since: <date>                                             │
+└────────────────────────────────────────────────────────────────────┘
+│                                                                    │
+│  ┌─ Bio (editable textarea) ─────────────────────────────────┐   │
+│  └────────────────────────────────────────────────────────────┘   │
+│                                                                    │
+│  ┌─ Badges ──────────────────────────────────────────────────┐   │
+│  │  [First Backtest] [10 Strategies] [Consistent Trader] …   │   │
+│  └────────────────────────────────────────────────────────────┘   │
+│                                                                    │
+│  [Save changes]                                                   │
+```
+
+---
+
+## Public profile (`/u/[handle]`)
+
+Read-only view of another user's profile. Shows:
+- Display name, handle, member since
+- Bio
+- Earned badges
+- Public strategy count (if opted in)
+
+Does **not** show private strategies or backtest results.
+
+---
+
+## Badges
+
+Achievement badges are awarded server-side based on usage milestones:
+
+| Badge | Trigger |
+|---|---|
+| First Backtest | Completed first backtest run |
+| 10 Strategies | Created 10 strategies |
+| Consistent Trader | Backtested for 7 consecutive days |
+| *(more)* | Defined in backend achievement system |
+
+---
+
+## States
+
+| State | UI |
+|---|---|
+| Loading | Avatar and name skeleton |
+| Edit mode (own profile) | Inputs and Save button |
+| Save success | Inline "Saved" confirmation |
+| Error | Destructive error banner |
+| User not found (`/u/[handle]`) | 404-style "User not found" message |
+
+---
+
+## Data fetching
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /users/me/profile` | Own profile |
+| `PATCH /users/me/profile` | Save changes |
+| `GET /users/:handle` | Public profile |
+
+---
+
+## Key components used
+
+- `Input`, `Button`, `Badge`, `Skeleton` (shadcn/ui)
+- `useAuth` context

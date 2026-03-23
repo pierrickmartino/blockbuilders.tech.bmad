@@ -4,7 +4,7 @@ import { Meta } from "@storybook/addon-docs/blocks";
 
 # Blockbuilders Component Library
 
-This Storybook documents the reusable UI components for the Blockbuilders frontend.
+This Storybook documents every reusable UI component, canvas block, and application screen for the Blockbuilders frontend.
 
 ## Design alignment
 
@@ -20,12 +20,62 @@ These are the single source of truth for design decisions. When a component's ap
 1. **Semantic colors via CSS variables** — Components use `--primary`, `--secondary`, `--muted`, `--destructive`, and other tokens defined in `globals.css`. Never create color values outside the token system.
 2. **Dark mode** — Every component must support dark mode. Use the theme toggle in the toolbar above to preview both themes.
 3. **Mobile-first** — Layouts degrade gracefully. Use Tailwind responsive utilities (`sm:`, `md:`, `lg:`).
-4. **shadcn/ui base** — Most UI primitives come from shadcn/ui (Radix + CVA + Tailwind). Canvas nodes are custom and not documented here.
+4. **shadcn/ui base** — Most UI primitives come from shadcn/ui (Radix + CVA + Tailwind).
+5. **Canvas nodes** — Custom styled with the 5-category color system (Input/Indicator/Logic/Signal/Risk).
 
 ## Component categories
 
-- **UI** — shadcn/ui primitives (Button, Card, Badge, Input, Tabs, Dialog, Select, etc.)
-- **Components** — Custom shared components (InfoIcon, LowTradeCountWarning, WhatYouLearnedCard, NarrativeCard)
+### UI — shadcn/ui primitives
+`Button`, `Card`, `Badge`, `Input`, `Select`, `Tabs`, `Dialog`, `DropdownMenu`, `Sheet`, `Skeleton`, `Table`, `Tooltip`, `Popover`, `Separator`, `Breadcrumb`, `Sidebar`
+
+### Components — Shared app components
+Reusable components composed from UI primitives:
+
+| Component | Purpose |
+|---|---|
+| `ConsentBanner` | Analytics consent prompt (fixed bottom) |
+| `DataAvailabilitySection` | Collapsible OHLCV data quality accordion |
+| `DataCompletenessTimeline` | Visual timeline of data gaps |
+| `InfoIcon` | Inline help icon with tooltip |
+| `KeyboardShortcutsModal` | Canvas keyboard shortcuts reference |
+| `LowTradeCountWarning` | Statistical significance warning badge |
+| `NarrativeCard` | AI-generated strategy summary card |
+| `SentimentGauge` | Market sentiment progress-bar gauge |
+| `ShareBacktestModal` | Generate + copy share link dialog |
+| `StrategyTabs` | Build / Backtest tab navigation |
+| `TradeExplanation` | Entry/exit logic breakdown in trade drawer |
+| `TransactionCostAnalysis` | Fee/slippage/spread cost breakdown |
+| `WhatYouLearnedCard` | Post-backtest educational card |
+
+### Canvas — Strategy builder components
+The visual block editor built on `@xyflow/react`:
+
+| Component | Purpose |
+|---|---|
+| `BaseNode` | Base card for all canvas block types; 5 category styles |
+| `HealthBar` | Strategy completeness indicators (Entry / Exit / Risk) |
+| `Nodes` (35+ types) | All block types: Input, Indicator, Logic, Signal, Risk |
+
+### Pages — Screen-level documentation
+MDX reference pages describing every application screen, its layout, states, data fetching, and component composition:
+
+| Page | Route |
+|---|---|
+| Auth – Login & Sign Up | `/` |
+| Auth – Forgot & Reset Password | `/forgot-password`, `/reset-password` |
+| Dashboard | `/dashboard` |
+| Strategies List | `/strategies` |
+| Strategy Canvas (Editor) | `/strategies/[id]` |
+| Backtest Results | `/strategies/[id]/backtest` |
+| Backtest Compare | `/strategies/[id]/backtest/compare` |
+| Strategy Templates | `/strategies/templates` |
+| Market Overview | `/market` |
+| Progress Dashboard | `/progress` |
+| Alerts | `/alerts` |
+| Profile | `/profile`, `/u/[handle]` |
+| Settings | `/settings` |
+| Education & Reference | `/strategy-guide`, `/how-backtests-work`, `/metrics-glossary` |
+| Shared Backtest (Public) | `/share/backtests/[token]` |
 
 ## Contributing a new story
 

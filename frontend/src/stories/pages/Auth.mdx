@@ -1,0 +1,70 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Pages/Auth – Login & Sign Up" />
+
+# Auth – Login & Sign Up
+
+**Route:** `/` (home page)
+
+This is the public-facing entry point for the application. Unauthenticated visitors land here. Authenticated users are immediately redirected to `/dashboard` (or `/strategies?wizard=true` if they haven't completed onboarding).
+
+---
+
+## Layout
+
+The page uses a **split-panel layout** on desktop (≥ lg breakpoint):
+
+| Panel | Content |
+|---|---|
+| **Left (brand)** | Purple gradient background with the Blockbuilders logo, tagline, and three feature callouts (Visual Strategy Builder, Instant Backtesting, Risk Management). Hidden on mobile. |
+| **Right (form)** | Email/password form plus Google and GitHub OAuth buttons. Full-width on mobile. |
+
+---
+
+## Auth modes
+
+The form supports two modes toggled via a `?mode=signup` query param and an in-page switch:
+
+| Mode | Heading | CTA |
+|---|---|---|
+| **Login** | "Welcome back" | "Sign in" |
+| **Sign up** | "Create your account" | "Create account" |
+
+---
+
+## States
+
+### Loading / redirect
+After successful auth the component relies on `useAuth().user` state to trigger a redirect. While the redirect is in-flight a simple "Redirecting…" message is shown.
+
+### Skeleton (Suspense fallback)
+The `AuthSkeleton` component is rendered by `<Suspense>` while `useSearchParams` resolves on first load. It shows placeholder boxes for the two OAuth buttons and three input fields.
+
+### Field validation (sign-up)
+- **Email** — validated on blur: required, valid RFC format.
+- **Password** — validated on blur: required, min 8 chars in sign-up mode.
+- Errors appear as `text-destructive` labels directly beneath the field.
+
+### OAuth flow
+Google and GitHub OAuth buttons call `startOAuth(provider)` which redirects the browser to the backend `/auth/{provider}` endpoint. The callback is handled at `/auth/callback`.
+
+### API error
+Network/API errors (wrong password, email taken, etc.) surface as a banner above the submit button using `text-destructive` on a `bg-destructive/5` background.
+
+---
+
+## Key components used
+
+- `Button` (shadcn/ui) — submit, OAuth, link variants
+- `Input` (shadcn/ui) — email, password
+- `useAuth` context — `login`, `signup`, `startOAuth`, `user`, `isLoading`
+- `useSearchParams` — reads `?mode=`
+
+---
+
+## Responsive behaviour
+
+| Breakpoint | Layout |
+|---|---|
+| Mobile (`< lg`) | Single-column form with mobile logo |
+| Desktop (`≥ lg`) | 50/50 split; brand panel on the left |

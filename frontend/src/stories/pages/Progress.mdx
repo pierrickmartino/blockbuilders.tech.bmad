@@ -1,0 +1,90 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Pages/Progress Dashboard" />
+
+# Progress Dashboard
+
+**Route:** `/progress`
+**Auth required:** Yes
+**Layout group:** `(app)`
+
+Shows the user's learning and activity progress — milestones reached, badges earned, and usage statistics over time.
+
+---
+
+## Layout
+
+```
+┌─ Header ──────────────────────────────────────────────────────────┐
+│  Your Progress                                                    │
+└────────────────────────────────────────────────────────────────────┘
+│                                                                    │
+│  ┌─ Usage stats ──────────────────────────────────────────────┐  │
+│  │  Strategies created: N / max   Backtests this month: N     │  │
+│  └────────────────────────────────────────────────────────────┘  │
+│                                                                    │
+│  ┌─ Achievement badges ────────────────────────────────────────┐  │
+│  │  [Earned badge]  [Earned badge]  [Locked badge] …          │  │
+│  └────────────────────────────────────────────────────────────┘  │
+│                                                                    │
+│  ┌─ Activity timeline ─────────────────────────────────────────┐  │
+│  │  List of recent events (strategy created, backtest run, …) │  │
+│  └────────────────────────────────────────────────────────────┘  │
+```
+
+---
+
+## Sections
+
+### Usage stats
+
+Reads `user.usage` from `useAuth`. Displays:
+- `strategies_used` / `strategies_limit` with a progress bar
+- `backtests_today` / `backtests_limit_daily`
+
+When limits are reached, the progress bar turns destructive red.
+
+### Achievement badges
+
+Grid of badge cards. Each badge shows:
+- Icon and name
+- Short description
+- Earned date (or "Locked" with grayed-out appearance)
+
+Badge data sourced from `GET /users/me/achievements`.
+
+### Activity timeline
+
+Chronological list of key events from `GET /users/me/activity`:
+- Strategy created
+- Backtest completed
+- Template used
+- Badge earned
+
+---
+
+## States
+
+| State | UI |
+|---|---|
+| Loading | Skeleton placeholders |
+| No activity | Empty state: "Start building to track your progress" |
+| All badges locked | Only locked badge cards shown |
+
+---
+
+## Data fetching
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /users/me` | Usage limits (via `useAuth`) |
+| `GET /users/me/achievements` | Badge list |
+| `GET /users/me/activity` | Activity timeline |
+
+---
+
+## Key components used
+
+- `Card`, `Badge`, `Skeleton`, `Button` (shadcn/ui)
+- `useAuth` context
+- `formatDateTime` (format lib)

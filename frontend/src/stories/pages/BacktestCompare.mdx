@@ -1,0 +1,87 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Pages/Backtest Compare" />
+
+# Backtest Compare
+
+**Route:** `/strategies/[id]/backtest/compare`
+**Auth required:** Yes
+**Layout group:** `(app)`
+
+Side-by-side comparison of two or more backtest runs for the same strategy. Lets users evaluate the impact of parameter changes or different date ranges.
+
+---
+
+## Layout
+
+```
+┌─ Header ───────────────────────────────────────────────────────────┐
+│  ← Back to Backtest Results   Strategy Name                       │
+└────────────────────────────────────────────────────────────────────┘
+│                                                                    │
+│  Run A selector ▼         Run B selector ▼                        │
+│                                                                    │
+│  ┌─ Comparison metrics ──────────────────────────────────────┐    │
+│  │  Metric           Run A        Run B     Δ Delta           │    │
+│  │  ─────────────────────────────────────────────────────    │    │
+│  │  Total Return     +8.4%        +12.1%    +3.7%  ↑         │    │
+│  │  Win Rate         62.5%        68.0%     +5.5%  ↑         │    │
+│  │  Max Drawdown     -4.2%        -6.1%     -1.9%  ↓         │    │
+│  │  …                                                          │    │
+│  └────────────────────────────────────────────────────────────┘   │
+│                                                                    │
+│  ┌─ Overlaid equity curves ──────────────────────────────────┐    │
+│  └────────────────────────────────────────────────────────────┘   │
+```
+
+---
+
+## States
+
+| State | UI |
+|---|---|
+| **Loading** | Skeleton rows in the comparison table |
+| **No runs** | Message: "No previous runs to compare. Run the backtest again with different settings." |
+| **One run selected** | Delta column is blank; equity chart shows single line |
+| **Two runs selected** | Full delta column with up/down indicators; dual equity curves |
+
+---
+
+## Run selectors
+
+Dropdown lists all runs for the strategy, labelled by `date_from → date_to`. The current run is pre-selected as Run A.
+
+---
+
+## Metrics compared
+
+All `BacktestSummary` fields are shown in the comparison table. Delta is highlighted:
+- Positive delta in green (for return/win-rate) or red (for drawdown)
+- Negative delta in red (for return/win-rate) or green (for drawdown)
+
+---
+
+## Key components used
+
+- `ZoomableChart` — overlaid equity curves with two series
+- `Select` (shadcn/ui) — run selectors
+- `Table` (shadcn/ui) — metrics comparison
+- `Skeleton` (shadcn/ui) — loading state
+
+---
+
+## Data fetching
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /backtests/?strategy_id=:id` | List of all runs |
+| `GET /backtests/:runId` | Details for each selected run |
+
+---
+
+## Responsive behaviour
+
+| Breakpoint | Layout |
+|---|---|
+| Mobile | Table horizontally scrollable; chart full width |
+| `md` | Run selectors in one row |

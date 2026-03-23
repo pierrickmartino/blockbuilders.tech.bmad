@@ -1,0 +1,90 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Pages/Auth – Forgot & Reset Password" />
+
+# Forgot Password & Reset Password
+
+Two simple auth-flow screens for recovering account access.
+
+---
+
+## Forgot Password
+
+**Route:** `/forgot-password`
+**Auth required:** No
+**Layout group:** `(auth)`
+
+### Layout
+
+```
+┌─────────────────────────────────────────────┐
+│  ← Back to login                            │
+│                                             │
+│  Forgot your password?                      │
+│  Enter your email and we'll send you a      │
+│  reset link.                                │
+│                                             │
+│  Email [____________________________]       │
+│                                             │
+│  [Send reset link]                          │
+└─────────────────────────────────────────────┘
+```
+
+### States
+
+| State | UI |
+|---|---|
+| **Default** | Empty form |
+| **Submitting** | Button spinner + "Sending…" |
+| **Success** | Green confirmation: "Check your email for a reset link." Form hidden. |
+| **Error** | Destructive inline message (e.g. email not found) |
+
+### Behaviour
+
+- Validates email on blur (required, RFC format)
+- On submit: `POST /auth/forgot-password` with `{ email }`
+- Always shows success message (to prevent email enumeration)
+
+---
+
+## Reset Password
+
+**Route:** `/reset-password?token=<jwt>`
+**Auth required:** No
+**Layout group:** `(auth)`
+
+### Layout
+
+```
+┌─────────────────────────────────────────────┐
+│  Set a new password                         │
+│                                             │
+│  New password   [____________________]      │
+│  Confirm password [__________________]      │
+│                                             │
+│  [Set new password]                         │
+└─────────────────────────────────────────────┘
+```
+
+### States
+
+| State | UI |
+|---|---|
+| **Default** | Empty form |
+| **Submitting** | Button spinner + "Saving…" |
+| **Success** | Green confirmation + "Sign in →" link |
+| **Token invalid / expired** | Destructive banner: "This reset link has expired. Request a new one." |
+| **Passwords don't match** | Inline field error on confirm field |
+| **Password too short** | Inline field error (< 8 chars) |
+
+### Behaviour
+
+- Reads `?token=` from the URL
+- On submit: `POST /auth/reset-password` with `{ token, new_password }`
+- On success redirects to `/` (login) after 3 s or via "Sign in" link
+
+---
+
+## Shared design
+
+Both pages use the `(auth)` layout group (minimal header, no sidebar). Centred card on all screen sizes with `max-w-sm` container.
