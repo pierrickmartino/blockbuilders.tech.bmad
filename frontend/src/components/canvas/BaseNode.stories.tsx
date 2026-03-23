@@ -111,6 +111,7 @@ export const MobileMode: Story = {
 };
 
 export const AllCategories: Story = {
+  args: { label: "Price", selected: false, category: "input" },
   render: () => (
     <ReactFlowProvider>
       <div className="flex flex-wrap gap-4 p-8 bg-slate-50 dark:bg-slate-900">
