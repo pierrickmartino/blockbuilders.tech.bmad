@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Blocks, TrendingUp, Shield, BarChart2, Zap, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -57,7 +58,28 @@ const steps = [
   },
 ];
 
-export default function LandingPage() {
+interface LandingPageSearchParams {
+  mode?: string | string[];
+}
+
+interface LandingPageProps {
+  searchParams?: Promise<LandingPageSearchParams> | LandingPageSearchParams;
+}
+
+export default async function LandingPage({ searchParams }: LandingPageProps) {
+  const resolvedSearchParams = (await searchParams) ?? {};
+  const mode = Array.isArray(resolvedSearchParams.mode)
+    ? resolvedSearchParams.mode[0]
+    : resolvedSearchParams.mode;
+
+  if (mode === "login") {
+    redirect("/login");
+  }
+
+  if (mode === "signup") {
+    redirect("/login?mode=signup");
+  }
+
   return (
     <div className="relative min-h-screen overflow-hidden bg-background">
       {/* Background gradient blobs */}
