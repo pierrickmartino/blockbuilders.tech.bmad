@@ -180,6 +180,8 @@ export default function BaseNode({
   const showCompact = isCompact && !isExpanded;
   const { handles, content } = separateHandlesAndContent(children);
   const displayLabel = showCompact && summary ? summary : label;
+  const glossaryTooltip = tooltip?.long || tooltip?.short;
+  const headerTitle = glossaryTooltip || (showCompact ? label : undefined);
 
   return (
     <div
@@ -229,6 +231,7 @@ export default function BaseNode({
             "flex-1 font-semibold leading-tight text-gray-900",
             isMobileMode ? "text-[13px]" : "text-[12px]"
           )}
+          title={headerTitle}
         >
           {displayLabel}
         </span>
