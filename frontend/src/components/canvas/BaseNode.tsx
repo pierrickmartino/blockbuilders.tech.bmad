@@ -27,10 +27,7 @@ function separateHandlesAndContent(children: ReactNode) {
   const content: ReactNode[] = [];
 
   childArray.forEach(child => {
-    if (
-      isValidElement(child) &&
-      child.type === Handle
-    ) {
+    if (isValidElement(child) && child.type === Handle) {
       handles.push(child);
     } else {
       content.push(child);
@@ -40,51 +37,127 @@ function separateHandlesAndContent(children: ReactNode) {
   return { handles, content };
 }
 
+function CategoryIcon({ category }: { category: string }) {
+  if (category === "input") {
+    return (
+      <svg viewBox="0 0 16 16" fill="none" className="h-4 w-4">
+        <rect x="2" y="10" width="2.5" height="4" rx="0.5" fill="currentColor" />
+        <rect x="6.75" y="6" width="2.5" height="8" rx="0.5" fill="currentColor" />
+        <rect x="11.5" y="2" width="2.5" height="12" rx="0.5" fill="currentColor" />
+      </svg>
+    );
+  }
+  if (category === "indicator") {
+    return (
+      <svg viewBox="0 0 16 16" fill="none" className="h-4 w-4">
+        <polyline
+          points="2,12 5,7 8,9 11,4 14,6"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    );
+  }
+  if (category === "logic") {
+    return (
+      <svg viewBox="0 0 16 16" fill="none" className="h-4 w-4">
+        <path
+          d="M2 8h3M9 4l4 4-4 4M5 8c0-2 1.5-4 4-4M5 8c0 2 1.5 4 4 4"
+          stroke="currentColor"
+          strokeWidth="1.7"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    );
+  }
+  if (category === "signal") {
+    return (
+      <svg viewBox="0 0 16 16" fill="none" className="h-4 w-4">
+        <path
+          d="M8 13V5M5 8l3-3 3 3"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path d="M3 13h10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      </svg>
+    );
+  }
+  if (category === "risk") {
+    return (
+      <svg viewBox="0 0 16 16" fill="none" className="h-4 w-4">
+        <path
+          d="M8 2L2.5 4.5V9c0 2.5 2.2 4.5 5.5 5 3.3-.5 5.5-2.5 5.5-5V4.5L8 2z"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    );
+  }
+  return null;
+}
+
 const categoryStyles = {
   input: {
-    border: "border-slate-200/90",
-    borderSelected: "border-violet-300",
-    bg: "bg-gradient-to-br from-white via-slate-50/95 to-violet-50/55",
-    header:
-      "bg-gradient-to-r from-violet-500/12 via-violet-400/7 to-transparent text-slate-700",
-    glow: "shadow-[0_18px_40px_-28px_rgba(15,23,42,0.55)]",
-    selectedGlow: "shadow-[0_24px_48px_-30px_rgba(109,40,217,0.6)]",
+    iconBg: "bg-violet-100",
+    iconColor: "text-violet-600",
+    border: "border-gray-200",
+    borderSelected: "border-violet-400",
+    ringSelected: "ring-1 ring-violet-200",
+    badgeText: "text-violet-700",
+    badgeBg: "bg-violet-50",
+    label: "Input",
+    selectedShadow: "shadow-[0_4px_16px_rgba(109,40,217,0.12)]",
   },
   indicator: {
-    border: "border-slate-200/90",
-    borderSelected: "border-sky-300",
-    bg: "bg-gradient-to-br from-white via-slate-50/95 to-sky-50/55",
-    header:
-      "bg-gradient-to-r from-sky-500/12 via-sky-400/7 to-transparent text-slate-700",
-    glow: "shadow-[0_18px_40px_-28px_rgba(15,23,42,0.55)]",
-    selectedGlow: "shadow-[0_24px_48px_-30px_rgba(3,105,161,0.55)]",
+    iconBg: "bg-sky-100",
+    iconColor: "text-sky-600",
+    border: "border-gray-200",
+    borderSelected: "border-sky-400",
+    ringSelected: "ring-1 ring-sky-200",
+    badgeText: "text-sky-700",
+    badgeBg: "bg-sky-50",
+    label: "Indicator",
+    selectedShadow: "shadow-[0_4px_16px_rgba(2,132,199,0.12)]",
   },
   logic: {
-    border: "border-slate-200/90",
-    borderSelected: "border-amber-300",
-    bg: "bg-gradient-to-br from-white via-slate-50/95 to-amber-50/55",
-    header:
-      "bg-gradient-to-r from-amber-500/12 via-amber-400/7 to-transparent text-slate-700",
-    glow: "shadow-[0_18px_40px_-28px_rgba(15,23,42,0.55)]",
-    selectedGlow: "shadow-[0_24px_48px_-30px_rgba(180,83,9,0.52)]",
+    iconBg: "bg-amber-100",
+    iconColor: "text-amber-600",
+    border: "border-gray-200",
+    borderSelected: "border-amber-400",
+    ringSelected: "ring-1 ring-amber-200",
+    badgeText: "text-amber-700",
+    badgeBg: "bg-amber-50",
+    label: "Logic",
+    selectedShadow: "shadow-[0_4px_16px_rgba(217,119,6,0.12)]",
   },
   signal: {
-    border: "border-slate-200/90",
-    borderSelected: "border-emerald-300",
-    bg: "bg-gradient-to-br from-white via-slate-50/95 to-emerald-50/55",
-    header:
-      "bg-gradient-to-r from-emerald-500/12 via-emerald-400/7 to-transparent text-slate-700",
-    glow: "shadow-[0_18px_40px_-28px_rgba(15,23,42,0.55)]",
-    selectedGlow: "shadow-[0_24px_48px_-30px_rgba(4,120,87,0.52)]",
+    iconBg: "bg-emerald-100",
+    iconColor: "text-emerald-600",
+    border: "border-gray-200",
+    borderSelected: "border-emerald-400",
+    ringSelected: "ring-1 ring-emerald-200",
+    badgeText: "text-emerald-700",
+    badgeBg: "bg-emerald-50",
+    label: "Signal",
+    selectedShadow: "shadow-[0_4px_16px_rgba(5,150,105,0.12)]",
   },
   risk: {
-    border: "border-slate-200/90",
-    borderSelected: "border-rose-300",
-    bg: "bg-gradient-to-br from-white via-slate-50/95 to-rose-50/55",
-    header:
-      "bg-gradient-to-r from-rose-500/12 via-rose-400/7 to-transparent text-slate-700",
-    glow: "shadow-[0_18px_40px_-28px_rgba(15,23,42,0.55)]",
-    selectedGlow: "shadow-[0_24px_48px_-30px_rgba(190,24,93,0.52)]",
+    iconBg: "bg-rose-100",
+    iconColor: "text-rose-600",
+    border: "border-gray-200",
+    borderSelected: "border-rose-400",
+    ringSelected: "ring-1 ring-rose-200",
+    badgeText: "text-rose-700",
+    badgeBg: "bg-rose-50",
+    label: "Risk",
+    selectedShadow: "shadow-[0_4px_16px_rgba(225,29,72,0.12)]",
   },
 };
 
@@ -103,80 +176,99 @@ export default function BaseNode({
   summary,
 }: BaseNodeProps) {
   const styles = categoryStyles[category];
-  const borderClass = selected ? styles.borderSelected : styles.border;
-  const errorBorder = hasError ? "border-rose-400 ring-2 ring-rose-200/80" : "";
   const tooltip = blockType ? getTooltip(blockToGlossaryId(blockType)) : null;
   const showCompact = isCompact && !isExpanded;
-
-  // Separate handles from content to ensure handles are always rendered
   const { handles, content } = separateHandlesAndContent(children);
+  const displayLabel = showCompact && summary ? summary : label;
 
   return (
     <div
       className={cn(
-        "group relative overflow-visible rounded-2xl border-2 bg-white/85 backdrop-blur-sm transition-all duration-200",
-        isMobileMode ? "min-w-[150px]" : "min-w-[120px]",
-        showCompact && "pb-1.5",
-        borderClass,
-        styles.bg,
-        styles.glow,
-        selected && styles.selectedGlow,
-        selected && "-translate-y-0.5 ring-1 ring-slate-300/60",
-        errorBorder
+        "group relative overflow-visible rounded-xl border bg-white transition-all duration-150",
+        isMobileMode ? "min-w-[170px]" : "min-w-[150px]",
+        hasError
+          ? "border-rose-400 ring-1 ring-rose-200"
+          : selected
+            ? cn(styles.borderSelected, styles.ringSelected)
+            : styles.border,
+        selected ? styles.selectedShadow : "shadow-[0_1px_4px_rgba(0,0,0,0.08)]"
       )}
     >
-      <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 bg-[radial-gradient(circle_at_12%_6%,rgba(255,255,255,0.55),transparent_42%)]" />
+      {/* Header row: icon + label + category badge */}
       <div
         className={cn(
-          "relative z-10 mx-1.5 mt-1.5 flex items-center justify-between gap-1 rounded-full border border-slate-200/70 bg-white/95 text-[11px] font-medium tracking-[0.01em] shadow-[0_8px_22px_-18px_rgba(15,23,42,0.7)]",
-          isMobileMode ? "px-3.5 py-1.5" : "px-3 py-1.5",
-          styles.header
+          "flex items-center gap-2",
+          isMobileMode ? "px-3.5 pt-3 pb-2.5" : "px-3 pt-2.5 pb-2",
+          showCompact && "pb-2.5"
         )}
-        title={tooltip?.short}
       >
-        <div className="flex items-center gap-1.5">
-          {hasError && (
-            <svg
-              className="h-4 w-4 flex-shrink-0 text-red-500"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-            >
+        {/* Category icon */}
+        <div
+          className={cn(
+            "flex flex-shrink-0 items-center justify-center rounded-lg",
+            isMobileMode ? "h-8 w-8" : "h-7 w-7",
+            hasError ? "bg-rose-100 text-rose-600" : cn(styles.iconBg, styles.iconColor)
+          )}
+        >
+          {hasError ? (
+            <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
               <path
                 fillRule="evenodd"
                 d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z"
                 clipRule="evenodd"
               />
             </svg>
+          ) : (
+            <CategoryIcon category={category} />
           )}
-          {/* Show summary in title when collapsed, otherwise show label */}
-          <span className="text-[12px] font-semibold tracking-tight text-slate-800">
-            {showCompact && summary ? summary : label}
-          </span>
         </div>
-        {blockType && (
+
+        {/* Title */}
+        <span
+          className={cn(
+            "flex-1 font-semibold leading-tight text-gray-900",
+            isMobileMode ? "text-[13px]" : "text-[12px]"
+          )}
+        >
+          {displayLabel}
+        </span>
+
+        {/* Info icon */}
+        {blockType && !showCompact && (
           <InfoIcon
             tooltip={tooltip || undefined}
-            className="flex-shrink-0 opacity-70 transition-opacity group-hover:opacity-100"
+            className="flex-shrink-0 opacity-40 transition-opacity group-hover:opacity-70"
           />
         )}
+
+        {/* Category badge */}
+        <span
+          className={cn(
+            "flex-shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium",
+            styles.badgeBg,
+            styles.badgeText
+          )}
+        >
+          {styles.label}
+        </span>
       </div>
 
-      {/* Content area - only show when expanded */}
+      {/* Content / params */}
       {!showCompact && (content.length > 0 || validationMessage) && (
         <div
           className={cn(
-            "relative z-10 text-[12px] font-medium leading-[1.45] tracking-[0.004em] text-slate-600 [&_.font-bold]:font-semibold [&_.font-mono]:font-semibold [&_.font-mono]:tracking-normal [&_.text-gray-600]:text-slate-600 [&_.text-gray-700]:text-slate-700 [&_.text-sm]:text-[12.5px] [&_.text-xs]:text-[11.5px]",
-            isMobileMode ? "px-4 pb-2.5 pt-2" : "px-3 pb-2.5 pt-2"
+            "border-t border-gray-100 text-[11.5px] leading-[1.5] text-gray-500 [&_.font-bold]:font-semibold [&_.font-mono]:font-mono [&_.font-mono]:tracking-tight [&_.text-gray-600]:text-gray-500 [&_.text-gray-700]:text-gray-600 [&_.text-sm]:text-[12px] [&_.text-xs]:text-[11.5px]",
+            isMobileMode ? "px-3.5 py-2" : "px-3 py-1.5"
           )}
         >
           {content}
           {validationMessage && (
-            <div className="mt-1">
-              <div className="text-[11.5px] font-medium text-rose-600">{validationMessage}</div>
+            <div className="mt-1 text-[11px] font-medium text-rose-600">
+              {validationMessage}
               {helpLink && (
                 <a
                   href={helpLink}
-                  className="mt-1 inline-block text-[11.5px] font-medium text-rose-700 underline decoration-rose-300 underline-offset-2 hover:text-rose-900"
+                  className="ml-1 underline decoration-rose-300 underline-offset-2 hover:text-rose-800"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
