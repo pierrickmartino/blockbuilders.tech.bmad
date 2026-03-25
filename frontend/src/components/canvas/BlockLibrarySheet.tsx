@@ -44,13 +44,128 @@ const categories: { key: BlockCategory; label: string }[] = [
   { key: "risk", label: "Risk" },
 ];
 
-const categoryColors: Record<BlockCategory, string> = {
-  input: "bg-purple-100 text-purple-700 border-purple-200",
-  indicator: "bg-blue-100 text-blue-700 border-blue-200",
-  logic: "bg-amber-100 text-amber-700 border-amber-200",
-  signal: "bg-green-100 text-green-700 border-green-200",
-  risk: "bg-red-100 text-red-700 border-red-200",
+// Mirror BlockPalette's categoryStyles for consistent visual identity
+const categoryStyles: Record<BlockCategory, {
+  iconBg: string;
+  iconColor: string;
+  borderHover: string;
+  badgeText: string;
+  badgeBg: string;
+  label: string;
+  chipBg: string;
+}> = {
+  input: {
+    iconBg: "bg-violet-100",
+    iconColor: "text-violet-600",
+    borderHover: "hover:border-violet-300",
+    badgeText: "text-violet-700",
+    badgeBg: "bg-violet-50",
+    label: "Input",
+    chipBg: "bg-violet-50 border-violet-200 text-violet-700",
+  },
+  indicator: {
+    iconBg: "bg-sky-100",
+    iconColor: "text-sky-600",
+    borderHover: "hover:border-sky-300",
+    badgeText: "text-sky-700",
+    badgeBg: "bg-sky-50",
+    label: "Indicator",
+    chipBg: "bg-sky-50 border-sky-200 text-sky-700",
+  },
+  logic: {
+    iconBg: "bg-amber-100",
+    iconColor: "text-amber-600",
+    borderHover: "hover:border-amber-300",
+    badgeText: "text-amber-700",
+    badgeBg: "bg-amber-50",
+    label: "Logic",
+    chipBg: "bg-amber-50 border-amber-200 text-amber-700",
+  },
+  signal: {
+    iconBg: "bg-emerald-100",
+    iconColor: "text-emerald-600",
+    borderHover: "hover:border-emerald-300",
+    badgeText: "text-emerald-700",
+    badgeBg: "bg-emerald-50",
+    label: "Signal",
+    chipBg: "bg-emerald-50 border-emerald-200 text-emerald-700",
+  },
+  risk: {
+    iconBg: "bg-rose-100",
+    iconColor: "text-rose-600",
+    borderHover: "hover:border-rose-300",
+    badgeText: "text-rose-700",
+    badgeBg: "bg-rose-50",
+    label: "Risk",
+    chipBg: "bg-rose-50 border-rose-200 text-rose-700",
+  },
 };
+
+function CategoryIcon({ category }: { category: BlockCategory }) {
+  if (category === "input") {
+    return (
+      <svg viewBox="0 0 16 16" fill="none" className="h-3.5 w-3.5">
+        <rect x="2" y="10" width="2.5" height="4" rx="0.5" fill="currentColor" />
+        <rect x="6.75" y="6" width="2.5" height="8" rx="0.5" fill="currentColor" />
+        <rect x="11.5" y="2" width="2.5" height="12" rx="0.5" fill="currentColor" />
+      </svg>
+    );
+  }
+  if (category === "indicator") {
+    return (
+      <svg viewBox="0 0 16 16" fill="none" className="h-3.5 w-3.5">
+        <polyline
+          points="2,12 5,7 8,9 11,4 14,6"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    );
+  }
+  if (category === "logic") {
+    return (
+      <svg viewBox="0 0 16 16" fill="none" className="h-3.5 w-3.5">
+        <path
+          d="M2 8h3M9 4l4 4-4 4M5 8c0-2 1.5-4 4-4M5 8c0 2 1.5 4 4 4"
+          stroke="currentColor"
+          strokeWidth="1.7"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    );
+  }
+  if (category === "signal") {
+    return (
+      <svg viewBox="0 0 16 16" fill="none" className="h-3.5 w-3.5">
+        <path
+          d="M8 13V5M5 8l3-3 3 3"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path d="M3 13h10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      </svg>
+    );
+  }
+  if (category === "risk") {
+    return (
+      <svg viewBox="0 0 16 16" fill="none" className="h-3.5 w-3.5">
+        <path
+          d="M8 2L2.5 4.5V9c0 2.5 2.2 4.5 5.5 5 3.3-.5 5.5-2.5 5.5-5V4.5L8 2z"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    );
+  }
+  return null;
+}
 
 export default function BlockLibrarySheet({
   onDragStart,
@@ -161,13 +276,16 @@ export default function BlockLibrarySheet({
     []
   );
 
-  // Render a block card
+  // Render a block card — mirrors BlockPalette's card design
   const renderBlockCard = (block: BlockMeta, showFavoriteToggle = true) => {
     const tooltip = getTooltip(blockToGlossaryId(block.type));
     const isFavorite = isFavoriteBlock(block.type);
     const plainLabel = indicatorMode === "essentials"
       ? PLAIN_LABEL_MAP[block.type as IndicatorBlockType]
       : undefined;
+    const styles = categoryStyles[block.category];
+    const displayLabel = plainLabel ?? block.label;
+    const subLabel = plainLabel ? block.label : block.description;
 
     return (
       <div
@@ -177,33 +295,54 @@ export default function BlockLibrarySheet({
         onClick={() => handleBlockTap(block)}
         title={tooltip?.short || block.description}
         className={cn(
-          "cursor-pointer rounded border text-xs font-medium transition-colors hover:opacity-80",
-          isMobileMode ? "px-4 py-3" : "px-3 py-2",
-          categoryColors[block.category]
+          "group cursor-pointer rounded-xl border border-gray-200 bg-white shadow-[0_1px_4px_rgba(0,0,0,0.06)] transition-all duration-150",
+          styles.borderHover,
+          "hover:shadow-[0_2px_8px_rgba(0,0,0,0.10)]"
         )}
       >
-        <div className="flex items-center justify-between">
-          <div className="flex-1">{plainLabel ?? block.label}</div>
-          <div className="flex items-center gap-1">
-            {showFavoriteToggle && (
-              <button
-                onClick={(e) => handleFavoriteToggle(block.type, e)}
-                className={cn(
-                  "flex-shrink-0 p-0.5 rounded hover:bg-black/10 transition-colors",
-                  isFavorite ? "text-amber-600" : "text-gray-400"
-                )}
-                aria-label="Toggle favorite"
-                aria-pressed={isFavorite}
-              >
-                <Star className={cn("h-3.5 w-3.5", isFavorite && "fill-current")} />
-              </button>
-            )}
-            <InfoIcon tooltip={tooltip} className="flex-shrink-0" />
+        {/* Header: icon + label + favorite + badge */}
+        <div className="flex items-center gap-2 px-3 pt-3 pb-2">
+          <div className={cn(
+            "flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md",
+            styles.iconBg,
+            styles.iconColor
+          )}>
+            <CategoryIcon category={block.category} />
           </div>
+          <span className="flex-1 text-[12px] font-semibold leading-tight text-gray-900">
+            {displayLabel}
+          </span>
+          {showFavoriteToggle && (
+            <button
+              onClick={(e) => handleFavoriteToggle(block.type, e)}
+              className={cn(
+                "flex-shrink-0 p-0.5 rounded hover:bg-black/10 transition-colors",
+                isFavorite ? "text-amber-500" : "text-gray-300 group-hover:text-gray-400"
+              )}
+              aria-label="Toggle favorite"
+              aria-pressed={isFavorite}
+            >
+              <Star className={cn("h-3.5 w-3.5", isFavorite && "fill-current")} />
+            </button>
+          )}
+          <InfoIcon
+            tooltip={tooltip || undefined}
+            className="flex-shrink-0 opacity-40 transition-opacity group-hover:opacity-70"
+          />
+          <span className={cn(
+            "flex-shrink-0 rounded px-1.5 py-0.5 text-[9.5px] font-medium",
+            styles.badgeBg,
+            styles.badgeText
+          )}>
+            {styles.label}
+          </span>
         </div>
-        <div className="mt-0.5 text-[10px] opacity-70">
-          {plainLabel ? block.label : block.description}
-        </div>
+        {/* Sub-label / description */}
+        {subLabel && (
+          <div className="border-t border-gray-100 px-3 py-1.5 text-[10.5px] leading-[1.4] text-gray-500">
+            {subLabel}
+          </div>
+        )}
       </div>
     );
   };
@@ -282,8 +421,8 @@ export default function BlockLibrarySheet({
                       onDragStart={(e) => onDragStart(e, blockMeta)}
                       onClick={() => handleBlockTap(blockMeta)}
                       className={cn(
-                        "flex-shrink-0 cursor-pointer rounded border px-3 py-2 text-xs font-medium transition-colors hover:opacity-80",
-                        categoryColors[blockMeta.category]
+                        "flex-shrink-0 cursor-pointer rounded-lg border px-3 py-2 text-[11.5px] font-semibold transition-colors hover:opacity-80",
+                        categoryStyles[blockMeta.category].chipBg
                       )}
                     >
                       <div className="flex items-center gap-1.5">
