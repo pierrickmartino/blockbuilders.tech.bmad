@@ -173,39 +173,32 @@ function generateRSIReversionTemplate(
 
   const blocks: Block[] = [
     {
-      id: "price-1",
-      type: "price",
-      label: "Close Price",
-      position: { x: 100, y: 200 },
-      params: { source: "close" },
-    },
-    {
       id: "rsi-1",
       type: "rsi",
       label: `RSI (${rsiPeriod})`,
-      position: { x: 300, y: 200 },
-      params: { period: rsiPeriod },
+      position: { x: 100, y: 200 },
+      params: { period: rsiPeriod, source: "close" },
     },
     // Entry: RSI < 30
     {
       id: "constant-entry",
       type: "constant",
       label: "30",
-      position: { x: 300, y: 100 },
+      position: { x: 100, y: 100 },
       params: { value: 30 },
     },
     {
       id: "compare-entry",
       type: "compare",
       label: "RSI < 30",
-      position: { x: 500, y: 100 },
+      position: { x: 300, y: 100 },
       params: { operator: "<" },
     },
     {
       id: "entry-1",
       type: "entry_signal",
       label: "Entry Signal",
-      position: { x: 700, y: 100 },
+      position: { x: 500, y: 100 },
       params: {},
     },
     // Exit: RSI > threshold
@@ -213,31 +206,26 @@ function generateRSIReversionTemplate(
       id: "constant-exit",
       type: "constant",
       label: `${exitThreshold}`,
-      position: { x: 300, y: 300 },
+      position: { x: 100, y: 300 },
       params: { value: exitThreshold },
     },
     {
       id: "compare-exit",
       type: "compare",
       label: `RSI > ${exitThreshold}`,
-      position: { x: 500, y: 300 },
+      position: { x: 300, y: 300 },
       params: { operator: ">" },
     },
     {
       id: "exit-1",
       type: "exit_signal",
       label: "Exit Signal",
-      position: { x: 700, y: 300 },
+      position: { x: 500, y: 300 },
       params: {},
     },
   ];
 
   const connections: Connection[] = [
-    // Price to RSI
-    {
-      from_port: { block_id: "price-1", port: "output" },
-      to_port: { block_id: "rsi-1", port: "input" },
-    },
     // Entry: RSI < 30
     {
       from_port: { block_id: "rsi-1", port: "output" },
