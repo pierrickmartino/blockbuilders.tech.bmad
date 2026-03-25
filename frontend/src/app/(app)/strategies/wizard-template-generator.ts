@@ -82,66 +82,50 @@ function generateMACrossoverTemplate(
 
   const blocks: Block[] = [
     {
-      id: "price-1",
-      type: "price",
-      label: "Close Price",
-      position: { x: 100, y: 200 },
-      params: { source: "close" },
-    },
-    {
       id: `${maType}-fast`,
       type: maType,
       label: `Fast ${maType.toUpperCase()} (${fastPeriod})`,
-      position: { x: 300, y: 100 },
-      params: { period: fastPeriod },
+      position: { x: 100, y: 100 },
+      params: { period: fastPeriod, source: "close" },
     },
     {
       id: `${maType}-slow`,
       type: maType,
       label: `Slow ${maType.toUpperCase()} (${slowPeriod})`,
-      position: { x: 300, y: 300 },
-      params: { period: slowPeriod },
+      position: { x: 100, y: 300 },
+      params: { period: slowPeriod, source: "close" },
     },
     {
       id: "crossover-entry",
       type: "crossover",
       label: "Entry Crossover",
-      position: { x: 500, y: 100 },
+      position: { x: 300, y: 100 },
       params: { direction: "crosses_above" },
     },
     {
       id: "entry-1",
       type: "entry_signal",
       label: "Entry Signal",
-      position: { x: 700, y: 100 },
+      position: { x: 500, y: 100 },
       params: {},
     },
     {
       id: "crossover-exit",
       type: "crossover",
       label: "Exit Crossover",
-      position: { x: 500, y: 300 },
+      position: { x: 300, y: 300 },
       params: { direction: "crosses_below" },
     },
     {
       id: "exit-1",
       type: "exit_signal",
       label: "Exit Signal",
-      position: { x: 700, y: 300 },
+      position: { x: 500, y: 300 },
       params: {},
     },
   ];
 
   const connections: Connection[] = [
-    // Price to both MAs
-    {
-      from_port: { block_id: "price-1", port: "output" },
-      to_port: { block_id: `${maType}-fast`, port: "input" },
-    },
-    {
-      from_port: { block_id: "price-1", port: "output" },
-      to_port: { block_id: `${maType}-slow`, port: "input" },
-    },
     // MAs to entry crossover
     {
       from_port: { block_id: `${maType}-fast`, port: "output" },
@@ -189,39 +173,32 @@ function generateRSIReversionTemplate(
 
   const blocks: Block[] = [
     {
-      id: "price-1",
-      type: "price",
-      label: "Close Price",
-      position: { x: 100, y: 200 },
-      params: { source: "close" },
-    },
-    {
       id: "rsi-1",
       type: "rsi",
       label: `RSI (${rsiPeriod})`,
-      position: { x: 300, y: 200 },
-      params: { period: rsiPeriod },
+      position: { x: 100, y: 200 },
+      params: { period: rsiPeriod, source: "close" },
     },
     // Entry: RSI < 30
     {
       id: "constant-entry",
       type: "constant",
       label: "30",
-      position: { x: 300, y: 100 },
+      position: { x: 100, y: 100 },
       params: { value: 30 },
     },
     {
       id: "compare-entry",
       type: "compare",
       label: "RSI < 30",
-      position: { x: 500, y: 100 },
+      position: { x: 300, y: 100 },
       params: { operator: "<" },
     },
     {
       id: "entry-1",
       type: "entry_signal",
       label: "Entry Signal",
-      position: { x: 700, y: 100 },
+      position: { x: 500, y: 100 },
       params: {},
     },
     // Exit: RSI > threshold
@@ -229,31 +206,26 @@ function generateRSIReversionTemplate(
       id: "constant-exit",
       type: "constant",
       label: `${exitThreshold}`,
-      position: { x: 300, y: 300 },
+      position: { x: 100, y: 300 },
       params: { value: exitThreshold },
     },
     {
       id: "compare-exit",
       type: "compare",
       label: `RSI > ${exitThreshold}`,
-      position: { x: 500, y: 300 },
+      position: { x: 300, y: 300 },
       params: { operator: ">" },
     },
     {
       id: "exit-1",
       type: "exit_signal",
       label: "Exit Signal",
-      position: { x: 700, y: 300 },
+      position: { x: 500, y: 300 },
       params: {},
     },
   ];
 
   const connections: Connection[] = [
-    // Price to RSI
-    {
-      from_port: { block_id: "price-1", port: "output" },
-      to_port: { block_id: "rsi-1", port: "input" },
-    },
     // Entry: RSI < 30
     {
       from_port: { block_id: "rsi-1", port: "output" },
@@ -387,17 +359,10 @@ function generateBollingerTemplate(
 function generateMACDTemplate(answers: WizardAnswers): StrategyDefinition {
   const blocks: Block[] = [
     {
-      id: "price-1",
-      type: "price",
-      label: "Close Price",
-      position: { x: 100, y: 200 },
-      params: { source: "close" },
-    },
-    {
       id: "macd-1",
       type: "macd",
       label: "MACD (12, 26, 9)",
-      position: { x: 300, y: 200 },
+      position: { x: 100, y: 200 },
       params: {
         source: "close",
         fast_period: 12,
@@ -410,14 +375,14 @@ function generateMACDTemplate(answers: WizardAnswers): StrategyDefinition {
       id: "crossover-entry",
       type: "crossover",
       label: "MACD Crosses Above Signal",
-      position: { x: 500, y: 100 },
+      position: { x: 300, y: 100 },
       params: { direction: "crosses_above" },
     },
     {
       id: "entry-1",
       type: "entry_signal",
       label: "Entry Signal",
-      position: { x: 700, y: 100 },
+      position: { x: 500, y: 100 },
       params: {},
     },
     // Exit: MACD crosses below signal
@@ -425,24 +390,19 @@ function generateMACDTemplate(answers: WizardAnswers): StrategyDefinition {
       id: "crossover-exit",
       type: "crossover",
       label: "MACD Crosses Below Signal",
-      position: { x: 500, y: 300 },
+      position: { x: 300, y: 300 },
       params: { direction: "crosses_below" },
     },
     {
       id: "exit-1",
       type: "exit_signal",
       label: "Exit Signal",
-      position: { x: 700, y: 300 },
+      position: { x: 500, y: 300 },
       params: {},
     },
   ];
 
   const connections: Connection[] = [
-    // Price to MACD
-    {
-      from_port: { block_id: "price-1", port: "output" },
-      to_port: { block_id: "macd-1", port: "input" },
-    },
     // Entry: MACD line crosses above signal line
     {
       from_port: { block_id: "macd-1", port: "macd" },
