@@ -173,79 +173,92 @@
         }
       },
       "canvas": {
-        "description": "Canvas and palette nodes share the same white-card design. All nodes use a white background with a colored icon container and category badge. Category colors use the violet/sky/amber/emerald/rose palette.",
+        "description": "Canvas and palette nodes share the same card design with full dark mode support. Light: white card background. Dark: slate-800 node background, slate-900 canvas background. Category colors use the violet/sky/amber/emerald/rose palette with muted 900/40 dark variants.",
+        "background": {
+          "light": "bg-gray-50",
+          "dark": "dark:bg-slate-900",
+          "border": { "light": "border-gray-200", "dark": "dark:border-slate-700" }
+        },
+        "nodeCard": {
+          "light": "bg-white",
+          "dark": "dark:bg-slate-800"
+        },
+        "palette": {
+          "light": "bg-white",
+          "dark": "dark:bg-slate-900"
+        },
         "categories": {
           "input": {
             "border": {
-              "default": "border-gray-200",
-              "selected": "border-violet-400",
-              "ring": "ring-1 ring-violet-200"
+              "default": "border-gray-200 dark:border-slate-700",
+              "selected": "border-violet-400 dark:border-violet-500",
+              "ring": "ring-1 ring-violet-200 dark:ring-violet-800"
             },
-            "iconBg": "bg-violet-100",
-            "iconColor": "text-violet-600",
-            "badgeBg": "bg-violet-50",
-            "badgeText": "text-violet-700",
+            "iconBg": "bg-violet-100 dark:bg-violet-900/40",
+            "iconColor": "text-violet-600 dark:text-violet-400",
+            "badgeBg": "bg-violet-50 dark:bg-violet-900/30",
+            "badgeText": "text-violet-700 dark:text-violet-300",
             "selectedShadow": "shadow-[0_4px_16px_rgba(109,40,217,0.12)]",
             "handle": "!bg-violet-500"
           },
           "indicator": {
             "border": {
-              "default": "border-gray-200",
-              "selected": "border-sky-400",
-              "ring": "ring-1 ring-sky-200"
+              "default": "border-gray-200 dark:border-slate-700",
+              "selected": "border-sky-400 dark:border-sky-500",
+              "ring": "ring-1 ring-sky-200 dark:ring-sky-800"
             },
-            "iconBg": "bg-sky-100",
-            "iconColor": "text-sky-600",
-            "badgeBg": "bg-sky-50",
-            "badgeText": "text-sky-700",
+            "iconBg": "bg-sky-100 dark:bg-sky-900/40",
+            "iconColor": "text-sky-600 dark:text-sky-400",
+            "badgeBg": "bg-sky-50 dark:bg-sky-900/30",
+            "badgeText": "text-sky-700 dark:text-sky-300",
             "selectedShadow": "shadow-[0_4px_16px_rgba(2,132,199,0.12)]",
             "handle": "!bg-sky-500"
           },
           "logic": {
             "border": {
-              "default": "border-gray-200",
-              "selected": "border-amber-400",
-              "ring": "ring-1 ring-amber-200"
+              "default": "border-gray-200 dark:border-slate-700",
+              "selected": "border-amber-400 dark:border-amber-500",
+              "ring": "ring-1 ring-amber-200 dark:ring-amber-800"
             },
-            "iconBg": "bg-amber-100",
-            "iconColor": "text-amber-600",
-            "badgeBg": "bg-amber-50",
-            "badgeText": "text-amber-700",
+            "iconBg": "bg-amber-100 dark:bg-amber-900/40",
+            "iconColor": "text-amber-600 dark:text-amber-400",
+            "badgeBg": "bg-amber-50 dark:bg-amber-900/30",
+            "badgeText": "text-amber-700 dark:text-amber-300",
             "selectedShadow": "shadow-[0_4px_16px_rgba(217,119,6,0.12)]",
             "handle": "!bg-amber-500"
           },
           "signal": {
             "border": {
-              "default": "border-gray-200",
-              "selected": "border-emerald-400",
-              "ring": "ring-1 ring-emerald-200"
+              "default": "border-gray-200 dark:border-slate-700",
+              "selected": "border-emerald-400 dark:border-emerald-500",
+              "ring": "ring-1 ring-emerald-200 dark:ring-emerald-800"
             },
-            "iconBg": "bg-emerald-100",
-            "iconColor": "text-emerald-600",
-            "badgeBg": "bg-emerald-50",
-            "badgeText": "text-emerald-700",
+            "iconBg": "bg-emerald-100 dark:bg-emerald-900/40",
+            "iconColor": "text-emerald-600 dark:text-emerald-400",
+            "badgeBg": "bg-emerald-50 dark:bg-emerald-900/30",
+            "badgeText": "text-emerald-700 dark:text-emerald-300",
             "selectedShadow": "shadow-[0_4px_16px_rgba(5,150,105,0.12)]",
             "handle": "!bg-emerald-500"
           },
           "risk": {
             "border": {
-              "default": "border-gray-200",
-              "selected": "border-rose-400",
-              "ring": "ring-1 ring-rose-200"
+              "default": "border-gray-200 dark:border-slate-700",
+              "selected": "border-rose-400 dark:border-rose-500",
+              "ring": "ring-1 ring-rose-200 dark:ring-rose-800"
             },
-            "iconBg": "bg-rose-100",
-            "iconColor": "text-rose-600",
-            "badgeBg": "bg-rose-50",
-            "badgeText": "text-rose-700",
+            "iconBg": "bg-rose-100 dark:bg-rose-900/40",
+            "iconColor": "text-rose-600 dark:text-rose-400",
+            "badgeBg": "bg-rose-50 dark:bg-rose-900/30",
+            "badgeText": "text-rose-700 dark:text-rose-300",
             "selectedShadow": "shadow-[0_4px_16px_rgba(225,29,72,0.12)]",
             "handle": "!bg-rose-500"
           }
         },
         "error": {
           "border": "border-rose-400",
-          "ring": "ring-1 ring-rose-200",
-          "iconBg": "bg-rose-100",
-          "iconColor": "text-rose-600"
+          "ring": "ring-1 ring-rose-200 dark:ring-rose-900",
+          "iconBg": "bg-rose-100 dark:bg-rose-900/40",
+          "iconColor": "text-rose-600 dark:text-rose-400"
         }
       },
       "feedback": {

@@ -35,43 +35,43 @@ const categoryStyles: Record<BlockCategory, {
   label: string;
 }> = {
   input: {
-    iconBg: "bg-violet-100",
-    iconColor: "text-violet-600",
-    borderHover: "hover:border-violet-300",
-    badgeText: "text-violet-700",
-    badgeBg: "bg-violet-50",
+    iconBg: "bg-violet-100 dark:bg-violet-900/40",
+    iconColor: "text-violet-600 dark:text-violet-400",
+    borderHover: "hover:border-violet-300 dark:hover:border-violet-600",
+    badgeText: "text-violet-700 dark:text-violet-300",
+    badgeBg: "bg-violet-50 dark:bg-violet-900/30",
     label: "Input",
   },
   indicator: {
-    iconBg: "bg-sky-100",
-    iconColor: "text-sky-600",
-    borderHover: "hover:border-sky-300",
-    badgeText: "text-sky-700",
-    badgeBg: "bg-sky-50",
+    iconBg: "bg-sky-100 dark:bg-sky-900/40",
+    iconColor: "text-sky-600 dark:text-sky-400",
+    borderHover: "hover:border-sky-300 dark:hover:border-sky-600",
+    badgeText: "text-sky-700 dark:text-sky-300",
+    badgeBg: "bg-sky-50 dark:bg-sky-900/30",
     label: "Indicator",
   },
   logic: {
-    iconBg: "bg-amber-100",
-    iconColor: "text-amber-600",
-    borderHover: "hover:border-amber-300",
-    badgeText: "text-amber-700",
-    badgeBg: "bg-amber-50",
+    iconBg: "bg-amber-100 dark:bg-amber-900/40",
+    iconColor: "text-amber-600 dark:text-amber-400",
+    borderHover: "hover:border-amber-300 dark:hover:border-amber-600",
+    badgeText: "text-amber-700 dark:text-amber-300",
+    badgeBg: "bg-amber-50 dark:bg-amber-900/30",
     label: "Logic",
   },
   signal: {
-    iconBg: "bg-emerald-100",
-    iconColor: "text-emerald-600",
-    borderHover: "hover:border-emerald-300",
-    badgeText: "text-emerald-700",
-    badgeBg: "bg-emerald-50",
+    iconBg: "bg-emerald-100 dark:bg-emerald-900/40",
+    iconColor: "text-emerald-600 dark:text-emerald-400",
+    borderHover: "hover:border-emerald-300 dark:hover:border-emerald-600",
+    badgeText: "text-emerald-700 dark:text-emerald-300",
+    badgeBg: "bg-emerald-50 dark:bg-emerald-900/30",
     label: "Signal",
   },
   risk: {
-    iconBg: "bg-rose-100",
-    iconColor: "text-rose-600",
-    borderHover: "hover:border-rose-300",
-    badgeText: "text-rose-700",
-    badgeBg: "bg-rose-50",
+    iconBg: "bg-rose-100 dark:bg-rose-900/40",
+    iconColor: "text-rose-600 dark:text-rose-400",
+    borderHover: "hover:border-rose-300 dark:hover:border-rose-600",
+    badgeText: "text-rose-700 dark:text-rose-300",
+    badgeBg: "bg-rose-50 dark:bg-rose-900/30",
     label: "Risk",
   },
 };
@@ -172,17 +172,17 @@ export default function BlockPalette({ onDragStart, isMobileMode = false, indica
   }));
 
   return (
-    <div className="h-full overflow-y-auto bg-white p-4">
-      <h3 className="mb-4 text-sm font-semibold text-gray-900">Block Palette</h3>
+    <div className="h-full overflow-y-auto bg-white dark:bg-slate-900 p-4">
+      <h3 className="mb-4 text-sm font-semibold text-gray-900 dark:text-slate-100">Block Palette</h3>
       <div className="space-y-3">
         {blocksByCategory.map(({ key, label, blocks }) => (
           <div key={key}>
             <button
               onClick={() => toggleCategory(key)}
-              className="flex w-full items-center justify-between rounded px-2 py-1.5 text-left text-sm font-medium text-gray-700 hover:bg-gray-100"
+              className="flex w-full items-center justify-between rounded px-2 py-1.5 text-left text-sm font-medium text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800"
             >
               <span>{label}</span>
-              <span className="text-gray-400">
+              <span className="text-gray-400 dark:text-slate-500">
                 {expandedCategories.has(key) ? "−" : "+"}
               </span>
             </button>
@@ -204,7 +204,7 @@ export default function BlockPalette({ onDragStart, isMobileMode = false, indica
                       onDragStart={(e) => onDragStart(e, block)}
                       title={tooltip?.short || block.description}
                       className={cn(
-                        "group cursor-grab rounded-xl border border-gray-200 bg-white shadow-[0_1px_4px_rgba(0,0,0,0.06)] transition-all duration-150",
+                        "group cursor-grab rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-[0_1px_4px_rgba(0,0,0,0.06)] transition-all duration-150",
                         styles.borderHover,
                         "hover:shadow-[0_2px_8px_rgba(0,0,0,0.10)]"
                       )}
@@ -221,7 +221,7 @@ export default function BlockPalette({ onDragStart, isMobileMode = false, indica
                         )}>
                           <CategoryIcon category={block.category} />
                         </div>
-                        <span className="flex-1 text-[11.5px] font-semibold leading-tight text-gray-900">
+                        <span className="flex-1 text-[11.5px] font-semibold leading-tight text-gray-900 dark:text-slate-100">
                           {displayLabel}
                         </span>
                         <InfoIcon
@@ -239,7 +239,7 @@ export default function BlockPalette({ onDragStart, isMobileMode = false, indica
                       {/* Sub-label / description */}
                       {subLabel && (
                         <div className={cn(
-                          "border-t border-gray-100 text-[10.5px] leading-[1.4] text-gray-500",
+                          "border-t border-gray-100 dark:border-slate-700 text-[10.5px] leading-[1.4] text-gray-500 dark:text-slate-400",
                           isMobileMode ? "px-3 py-1.5" : "px-2.5 py-1"
                         )}>
                           {subLabel}

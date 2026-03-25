@@ -105,57 +105,57 @@ function CategoryIcon({ category }: { category: string }) {
 
 const categoryStyles = {
   input: {
-    iconBg: "bg-violet-100",
-    iconColor: "text-violet-600",
-    border: "border-gray-200",
-    borderSelected: "border-violet-400",
-    ringSelected: "ring-1 ring-violet-200",
-    badgeText: "text-violet-700",
-    badgeBg: "bg-violet-50",
+    iconBg: "bg-violet-100 dark:bg-violet-900/40",
+    iconColor: "text-violet-600 dark:text-violet-400",
+    border: "border-gray-200 dark:border-slate-700",
+    borderSelected: "border-violet-400 dark:border-violet-500",
+    ringSelected: "ring-1 ring-violet-200 dark:ring-violet-800",
+    badgeText: "text-violet-700 dark:text-violet-300",
+    badgeBg: "bg-violet-50 dark:bg-violet-900/30",
     label: "Input",
     selectedShadow: "shadow-[0_4px_16px_rgba(109,40,217,0.12)]",
   },
   indicator: {
-    iconBg: "bg-sky-100",
-    iconColor: "text-sky-600",
-    border: "border-gray-200",
-    borderSelected: "border-sky-400",
-    ringSelected: "ring-1 ring-sky-200",
-    badgeText: "text-sky-700",
-    badgeBg: "bg-sky-50",
+    iconBg: "bg-sky-100 dark:bg-sky-900/40",
+    iconColor: "text-sky-600 dark:text-sky-400",
+    border: "border-gray-200 dark:border-slate-700",
+    borderSelected: "border-sky-400 dark:border-sky-500",
+    ringSelected: "ring-1 ring-sky-200 dark:ring-sky-800",
+    badgeText: "text-sky-700 dark:text-sky-300",
+    badgeBg: "bg-sky-50 dark:bg-sky-900/30",
     label: "Indicator",
     selectedShadow: "shadow-[0_4px_16px_rgba(2,132,199,0.12)]",
   },
   logic: {
-    iconBg: "bg-amber-100",
-    iconColor: "text-amber-600",
-    border: "border-gray-200",
-    borderSelected: "border-amber-400",
-    ringSelected: "ring-1 ring-amber-200",
-    badgeText: "text-amber-700",
-    badgeBg: "bg-amber-50",
+    iconBg: "bg-amber-100 dark:bg-amber-900/40",
+    iconColor: "text-amber-600 dark:text-amber-400",
+    border: "border-gray-200 dark:border-slate-700",
+    borderSelected: "border-amber-400 dark:border-amber-500",
+    ringSelected: "ring-1 ring-amber-200 dark:ring-amber-800",
+    badgeText: "text-amber-700 dark:text-amber-300",
+    badgeBg: "bg-amber-50 dark:bg-amber-900/30",
     label: "Logic",
     selectedShadow: "shadow-[0_4px_16px_rgba(217,119,6,0.12)]",
   },
   signal: {
-    iconBg: "bg-emerald-100",
-    iconColor: "text-emerald-600",
-    border: "border-gray-200",
-    borderSelected: "border-emerald-400",
-    ringSelected: "ring-1 ring-emerald-200",
-    badgeText: "text-emerald-700",
-    badgeBg: "bg-emerald-50",
+    iconBg: "bg-emerald-100 dark:bg-emerald-900/40",
+    iconColor: "text-emerald-600 dark:text-emerald-400",
+    border: "border-gray-200 dark:border-slate-700",
+    borderSelected: "border-emerald-400 dark:border-emerald-500",
+    ringSelected: "ring-1 ring-emerald-200 dark:ring-emerald-800",
+    badgeText: "text-emerald-700 dark:text-emerald-300",
+    badgeBg: "bg-emerald-50 dark:bg-emerald-900/30",
     label: "Signal",
     selectedShadow: "shadow-[0_4px_16px_rgba(5,150,105,0.12)]",
   },
   risk: {
-    iconBg: "bg-rose-100",
-    iconColor: "text-rose-600",
-    border: "border-gray-200",
-    borderSelected: "border-rose-400",
-    ringSelected: "ring-1 ring-rose-200",
-    badgeText: "text-rose-700",
-    badgeBg: "bg-rose-50",
+    iconBg: "bg-rose-100 dark:bg-rose-900/40",
+    iconColor: "text-rose-600 dark:text-rose-400",
+    border: "border-gray-200 dark:border-slate-700",
+    borderSelected: "border-rose-400 dark:border-rose-500",
+    ringSelected: "ring-1 ring-rose-200 dark:ring-rose-800",
+    badgeText: "text-rose-700 dark:text-rose-300",
+    badgeBg: "bg-rose-50 dark:bg-rose-900/30",
     label: "Risk",
     selectedShadow: "shadow-[0_4px_16px_rgba(225,29,72,0.12)]",
   },
@@ -186,10 +186,10 @@ export default function BaseNode({
   return (
     <div
       className={cn(
-        "group relative overflow-visible rounded-xl border bg-white transition-all duration-150",
+        "group relative overflow-visible rounded-xl border bg-white dark:bg-slate-800 transition-all duration-150",
         isMobileMode ? "min-w-[170px]" : "min-w-[150px]",
         hasError
-          ? "border-rose-400 ring-1 ring-rose-200"
+          ? "border-rose-400 ring-1 ring-rose-200 dark:ring-rose-900"
           : selected
             ? cn(styles.borderSelected, styles.ringSelected)
             : styles.border,
@@ -209,7 +209,7 @@ export default function BaseNode({
           className={cn(
             "flex flex-shrink-0 items-center justify-center rounded-lg",
             isMobileMode ? "h-8 w-8" : "h-7 w-7",
-            hasError ? "bg-rose-100 text-rose-600" : cn(styles.iconBg, styles.iconColor)
+            hasError ? "bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400" : cn(styles.iconBg, styles.iconColor)
           )}
         >
           {hasError ? (
@@ -228,7 +228,7 @@ export default function BaseNode({
         {/* Title */}
         <span
           className={cn(
-            "flex-1 font-semibold leading-tight text-gray-900",
+            "flex-1 font-semibold leading-tight text-gray-900 dark:text-slate-100",
             isMobileMode ? "text-[13px]" : "text-[12px]"
           )}
           title={headerTitle}
@@ -260,18 +260,18 @@ export default function BaseNode({
       {!showCompact && (content.length > 0 || validationMessage) && (
         <div
           className={cn(
-            "border-t border-gray-100 text-[11.5px] leading-[1.5] text-gray-500 [&_.font-bold]:font-semibold [&_.font-mono]:font-mono [&_.font-mono]:tracking-tight [&_.text-gray-600]:text-gray-500 [&_.text-gray-700]:text-gray-600 [&_.text-sm]:text-[12px] [&_.text-xs]:text-[11.5px]",
+            "border-t border-gray-100 dark:border-slate-700 text-[11.5px] leading-[1.5] text-gray-500 dark:text-slate-400 [&_.font-bold]:font-semibold [&_.font-mono]:font-mono [&_.font-mono]:tracking-tight [&_.text-gray-600]:text-gray-500 [&_.text-gray-700]:text-gray-600 [&_.text-sm]:text-[12px] [&_.text-xs]:text-[11.5px]",
             isMobileMode ? "px-3.5 py-2" : "px-3 py-1.5"
           )}
         >
           {content}
           {validationMessage && (
-            <div className="mt-1 text-[11px] font-medium text-rose-600">
+            <div className="mt-1 text-[11px] font-medium text-rose-600 dark:text-rose-400">
               {validationMessage}
               {helpLink && (
                 <a
                   href={helpLink}
-                  className="ml-1 underline decoration-rose-300 underline-offset-2 hover:text-rose-800"
+                  className="ml-1 underline decoration-rose-300 underline-offset-2 hover:text-rose-800 dark:decoration-rose-700 dark:hover:text-rose-300"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
