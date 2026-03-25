@@ -55,49 +55,49 @@ const categoryStyles: Record<BlockCategory, {
   chipBg: string;
 }> = {
   input: {
-    iconBg: "bg-violet-100",
-    iconColor: "text-violet-600",
-    borderHover: "hover:border-violet-300",
-    badgeText: "text-violet-700",
-    badgeBg: "bg-violet-50",
+    iconBg: "bg-violet-100 dark:bg-violet-900/40",
+    iconColor: "text-violet-600 dark:text-violet-400",
+    borderHover: "hover:border-violet-300 dark:hover:border-violet-600",
+    badgeText: "text-violet-700 dark:text-violet-300",
+    badgeBg: "bg-violet-50 dark:bg-violet-900/30",
     label: "Input",
-    chipBg: "bg-violet-50 border-violet-200 text-violet-700",
+    chipBg: "bg-violet-50 border-violet-200 text-violet-700 dark:bg-violet-900/30 dark:border-violet-700 dark:text-violet-300",
   },
   indicator: {
-    iconBg: "bg-sky-100",
-    iconColor: "text-sky-600",
-    borderHover: "hover:border-sky-300",
-    badgeText: "text-sky-700",
-    badgeBg: "bg-sky-50",
+    iconBg: "bg-sky-100 dark:bg-sky-900/40",
+    iconColor: "text-sky-600 dark:text-sky-400",
+    borderHover: "hover:border-sky-300 dark:hover:border-sky-600",
+    badgeText: "text-sky-700 dark:text-sky-300",
+    badgeBg: "bg-sky-50 dark:bg-sky-900/30",
     label: "Indicator",
-    chipBg: "bg-sky-50 border-sky-200 text-sky-700",
+    chipBg: "bg-sky-50 border-sky-200 text-sky-700 dark:bg-sky-900/30 dark:border-sky-700 dark:text-sky-300",
   },
   logic: {
-    iconBg: "bg-amber-100",
-    iconColor: "text-amber-600",
-    borderHover: "hover:border-amber-300",
-    badgeText: "text-amber-700",
-    badgeBg: "bg-amber-50",
+    iconBg: "bg-amber-100 dark:bg-amber-900/40",
+    iconColor: "text-amber-600 dark:text-amber-400",
+    borderHover: "hover:border-amber-300 dark:hover:border-amber-600",
+    badgeText: "text-amber-700 dark:text-amber-300",
+    badgeBg: "bg-amber-50 dark:bg-amber-900/30",
     label: "Logic",
-    chipBg: "bg-amber-50 border-amber-200 text-amber-700",
+    chipBg: "bg-amber-50 border-amber-200 text-amber-700 dark:bg-amber-900/30 dark:border-amber-700 dark:text-amber-300",
   },
   signal: {
-    iconBg: "bg-emerald-100",
-    iconColor: "text-emerald-600",
-    borderHover: "hover:border-emerald-300",
-    badgeText: "text-emerald-700",
-    badgeBg: "bg-emerald-50",
+    iconBg: "bg-emerald-100 dark:bg-emerald-900/40",
+    iconColor: "text-emerald-600 dark:text-emerald-400",
+    borderHover: "hover:border-emerald-300 dark:hover:border-emerald-600",
+    badgeText: "text-emerald-700 dark:text-emerald-300",
+    badgeBg: "bg-emerald-50 dark:bg-emerald-900/30",
     label: "Signal",
-    chipBg: "bg-emerald-50 border-emerald-200 text-emerald-700",
+    chipBg: "bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-900/30 dark:border-emerald-700 dark:text-emerald-300",
   },
   risk: {
-    iconBg: "bg-rose-100",
-    iconColor: "text-rose-600",
-    borderHover: "hover:border-rose-300",
-    badgeText: "text-rose-700",
-    badgeBg: "bg-rose-50",
+    iconBg: "bg-rose-100 dark:bg-rose-900/40",
+    iconColor: "text-rose-600 dark:text-rose-400",
+    borderHover: "hover:border-rose-300 dark:hover:border-rose-600",
+    badgeText: "text-rose-700 dark:text-rose-300",
+    badgeBg: "bg-rose-50 dark:bg-rose-900/30",
     label: "Risk",
-    chipBg: "bg-rose-50 border-rose-200 text-rose-700",
+    chipBg: "bg-rose-50 border-rose-200 text-rose-700 dark:bg-rose-900/30 dark:border-rose-700 dark:text-rose-300",
   },
 };
 
@@ -309,15 +309,15 @@ export default function BlockLibrarySheet({
           )}>
             <CategoryIcon category={block.category} />
           </div>
-          <span className="flex-1 text-[12px] font-semibold leading-tight text-gray-900">
+          <span className="flex-1 text-[12px] font-semibold leading-tight text-gray-900 dark:text-slate-100">
             {displayLabel}
           </span>
           {showFavoriteToggle && (
             <button
               onClick={(e) => handleFavoriteToggle(block.type, e)}
               className={cn(
-                "flex-shrink-0 p-0.5 rounded hover:bg-black/10 transition-colors",
-                isFavorite ? "text-amber-500" : "text-gray-300 group-hover:text-gray-400"
+                "flex-shrink-0 p-0.5 rounded hover:bg-black/10 dark:hover:bg-white/10 transition-colors",
+                isFavorite ? "text-amber-500" : "text-gray-300 group-hover:text-gray-400 dark:text-slate-600 dark:group-hover:text-slate-400"
               )}
               aria-label="Toggle favorite"
               aria-pressed={isFavorite}
@@ -339,7 +339,7 @@ export default function BlockLibrarySheet({
         </div>
         {/* Sub-label / description */}
         {subLabel && (
-          <div className="border-t border-gray-100 px-3 py-1.5 text-[10.5px] leading-[1.4] text-gray-500">
+          <div className="border-t border-gray-100 dark:border-slate-700 px-3 py-1.5 text-[10.5px] leading-[1.4] text-gray-500 dark:text-slate-400">
             {subLabel}
           </div>
         )}
@@ -392,7 +392,7 @@ export default function BlockLibrarySheet({
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:text-slate-500 dark:hover:text-slate-300"
                 aria-label="Clear search"
               >
                 <X className="h-4 w-4" />
@@ -405,8 +405,8 @@ export default function BlockLibrarySheet({
         <div className="overflow-y-auto" style={{ maxHeight: "calc(80vh - 80px)" }}>
           {/* Recents/Favorites Strip */}
           {quickAccessBlocks.length > 0 && !searchQuery && (
-            <div className="border-b bg-gray-50 px-4 py-3">
-              <div className="mb-2 text-xs font-semibold text-gray-600">
+            <div className="border-b border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/60 px-4 py-3">
+              <div className="mb-2 text-xs font-semibold text-gray-600 dark:text-slate-400">
                 Quick Access
               </div>
               <div className="flex gap-2 overflow-x-auto pb-1">
@@ -428,7 +428,7 @@ export default function BlockLibrarySheet({
                       <div className="flex items-center gap-1.5">
                         <Badge
                           variant="secondary"
-                          className="h-4 w-4 p-0 flex items-center justify-center bg-white/50"
+                          className="h-4 w-4 p-0 flex items-center justify-center bg-white/50 dark:bg-black/30"
                         >
                           {isFavorite ? (
                             <Star className="h-2.5 w-2.5 fill-current text-amber-600" />
@@ -453,9 +453,9 @@ export default function BlockLibrarySheet({
 
               return (
                 <div key={key}>
-                  <div className="mb-2 text-sm font-semibold text-gray-700">
+                  <div className="mb-2 text-sm font-semibold text-gray-700 dark:text-slate-200">
                     {label}
-                    <span className="ml-1.5 text-xs font-normal text-gray-500">
+                    <span className="ml-1.5 text-xs font-normal text-gray-500 dark:text-slate-400">
                       ({blocks.length})
                     </span>
                   </div>
@@ -476,7 +476,7 @@ export default function BlockLibrarySheet({
 
             {/* Empty state */}
             {filteredBlocks.length === 0 && (
-              <div className="py-12 text-center text-sm text-gray-500">
+              <div className="py-12 text-center text-sm text-gray-500 dark:text-slate-400">
                 No blocks found matching &quot;{searchQuery}&quot;
               </div>
             )}
