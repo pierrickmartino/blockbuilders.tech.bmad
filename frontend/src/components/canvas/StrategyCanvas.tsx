@@ -436,13 +436,14 @@ function CanvasInner({
           )}
         </ReactFlow>
 
-        {/* Canvas minimap with section shortcuts */}
-        <CanvasMinimap
-          nodes={nodes}
-          reactFlow={reactFlow}
-          containerRef={canvasContainerRef}
-          isMobileMode={isMobileMode}
-        />
+        {/* Canvas minimap with section shortcuts – hidden on mobile */}
+        {!isMobileMode && (
+          <CanvasMinimap
+            nodes={nodes}
+            reactFlow={reactFlow}
+            containerRef={canvasContainerRef}
+          />
+        )}
 
         {/* Tap-to-connect feedback overlay */}
         {isMobileMode && connectionState.mode === "connecting" && (
