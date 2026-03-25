@@ -24,97 +24,79 @@ TEMPLATES = [
         "definition_json": {
             "blocks": [
                 {
-                    "id": "price-1",
-                    "type": "price",
-                    "label": "Close Price",
-                    "position": {"x": 100, "y": 200},
-                    "params": {"source": "close"}
-                },
-                {
                     "id": "rsi-1",
                     "type": "rsi",
                     "label": "RSI (14)",
-                    "position": {"x": 300, "y": 200},
-                    "params": {"period": 14}
+                    "position": {"x": 100, "y": 200},
+                    "params": {"period": 14, "source": "close"}
                 },
                 {
                     "id": "const-oversold",
                     "type": "constant",
                     "label": "Oversold (30)",
-                    "position": {"x": 300, "y": 100},
+                    "position": {"x": 100, "y": 100},
                     "params": {"value": 30}
                 },
                 {
                     "id": "const-overbought",
                     "type": "constant",
                     "label": "Overbought (70)",
-                    "position": {"x": 300, "y": 300},
+                    "position": {"x": 100, "y": 300},
                     "params": {"value": 70}
                 },
                 {
                     "id": "compare-entry",
                     "type": "compare",
                     "label": "RSI < 30",
-                    "position": {"x": 500, "y": 150},
+                    "position": {"x": 300, "y": 150},
                     "params": {"operator": "<"}
                 },
                 {
                     "id": "entry-1",
                     "type": "entry_signal",
                     "label": "Entry Signal",
-                    "position": {"x": 700, "y": 150},
+                    "position": {"x": 500, "y": 150},
                     "params": {}
                 },
                 {
                     "id": "compare-exit",
                     "type": "compare",
                     "label": "RSI > 70",
-                    "position": {"x": 500, "y": 250},
+                    "position": {"x": 300, "y": 300},
                     "params": {"operator": ">"}
                 },
                 {
                     "id": "exit-1",
                     "type": "exit_signal",
                     "label": "Exit Signal",
-                    "position": {"x": 700, "y": 250},
+                    "position": {"x": 500, "y": 300},
                     "params": {}
-                },
-                {
-                    "id": "stop-loss-1",
-                    "type": "stop_loss",
-                    "label": "Stop Loss (5%)",
-                    "position": {"x": 700, "y": 350},
-                    "params": {"stop_loss_pct": 5.0}
                 }
             ],
             "connections": [
                 {
-                    "from": {"block_id": "price-1", "port": "output"},
-                    "to": {"block_id": "rsi-1", "port": "input"}
+                    "from_port": {"block_id": "rsi-1", "port": "output"},
+                    "to_port": {"block_id": "compare-entry", "port": "left"}
                 },
                 {
-                    "from": {"block_id": "rsi-1", "port": "output"},
-                    "to": {"block_id": "compare-entry", "port": "a"}
+                    "from_port": {"block_id": "const-oversold", "port": "output"},
+                    "to_port": {"block_id": "compare-entry", "port": "right"}
                 },
                 {
-                    "from": {"block_id": "const-oversold", "port": "output"},
-                    "to": {"block_id": "compare-entry", "port": "b"}
+                    "from_port": {"block_id": "compare-entry", "port": "output"},
+                    "to_port": {"block_id": "entry-1", "port": "signal"}
                 },
                 {
-                    "from": {"block_id": "compare-entry", "port": "output"},
-                    "to": {"block_id": "entry-1", "port": "signal"}
+                    "from_port": {"block_id": "rsi-1", "port": "output"},
+                    "to_port": {"block_id": "compare-exit", "port": "left"}
                 },
                 {
-                    "from": {"block_id": "rsi-1", "port": "output"},
-                    "to": {"block_id": "compare-exit", "port": "a"}
+                    "from_port": {"block_id": "const-overbought", "port": "output"},
+                    "to_port": {"block_id": "compare-exit", "port": "right"}
                 },
                 {
-                    "from": {"block_id": "const-overbought", "port": "output"},
-                    "to": {"block_id": "compare-exit", "port": "b"}
-                },
-                {
-                    "from": {"block_id": "compare-exit", "port": "output"},
-                    "to": {"block_id": "exit-1", "port": "signal"}
+                    "from_port": {"block_id": "compare-exit", "port": "output"},
+                    "to_port": {"block_id": "exit-1", "port": "signal"}
                 }
             ],
             "meta": {}
@@ -142,94 +124,72 @@ TEMPLATES = [
         "definition_json": {
             "blocks": [
                 {
-                    "id": "price-1",
-                    "type": "price",
-                    "label": "Close Price",
-                    "position": {"x": 100, "y": 200},
-                    "params": {"source": "close"}
-                },
-                {
                     "id": "sma-fast",
                     "type": "sma",
                     "label": "Fast SMA (10)",
-                    "position": {"x": 300, "y": 100},
-                    "params": {"period": 10}
+                    "position": {"x": 100, "y": 100},
+                    "params": {"period": 10, "source": "close"}
                 },
                 {
                     "id": "sma-slow",
                     "type": "sma",
                     "label": "Slow SMA (30)",
-                    "position": {"x": 300, "y": 300},
-                    "params": {"period": 30}
+                    "position": {"x": 100, "y": 300},
+                    "params": {"period": 30, "source": "close"}
                 },
                 {
                     "id": "crossover-entry",
                     "type": "crossover",
                     "label": "Entry Crossover",
-                    "position": {"x": 500, "y": 150},
+                    "position": {"x": 300, "y": 100},
                     "params": {"direction": "crosses_above"}
                 },
                 {
                     "id": "entry-1",
                     "type": "entry_signal",
                     "label": "Entry Signal",
-                    "position": {"x": 700, "y": 150},
+                    "position": {"x": 500, "y": 100},
                     "params": {}
                 },
                 {
                     "id": "crossover-exit",
                     "type": "crossover",
                     "label": "Exit Crossover",
-                    "position": {"x": 500, "y": 250},
+                    "position": {"x": 300, "y": 300},
                     "params": {"direction": "crosses_below"}
                 },
                 {
                     "id": "exit-1",
                     "type": "exit_signal",
                     "label": "Exit Signal",
-                    "position": {"x": 700, "y": 250},
+                    "position": {"x": 500, "y": 300},
                     "params": {}
-                },
-                {
-                    "id": "stop-loss-1",
-                    "type": "stop_loss",
-                    "label": "Stop Loss (3%)",
-                    "position": {"x": 700, "y": 350},
-                    "params": {"stop_loss_pct": 3.0}
                 }
             ],
             "connections": [
                 {
-                    "from": {"block_id": "price-1", "port": "output"},
-                    "to": {"block_id": "sma-fast", "port": "input"}
+                    "from_port": {"block_id": "sma-fast", "port": "output"},
+                    "to_port": {"block_id": "crossover-entry", "port": "fast"}
                 },
                 {
-                    "from": {"block_id": "price-1", "port": "output"},
-                    "to": {"block_id": "sma-slow", "port": "input"}
+                    "from_port": {"block_id": "sma-slow", "port": "output"},
+                    "to_port": {"block_id": "crossover-entry", "port": "slow"}
                 },
                 {
-                    "from": {"block_id": "sma-fast", "port": "output"},
-                    "to": {"block_id": "crossover-entry", "port": "fast"}
+                    "from_port": {"block_id": "crossover-entry", "port": "output"},
+                    "to_port": {"block_id": "entry-1", "port": "signal"}
                 },
                 {
-                    "from": {"block_id": "sma-slow", "port": "output"},
-                    "to": {"block_id": "crossover-entry", "port": "slow"}
+                    "from_port": {"block_id": "sma-fast", "port": "output"},
+                    "to_port": {"block_id": "crossover-exit", "port": "fast"}
                 },
                 {
-                    "from": {"block_id": "crossover-entry", "port": "output"},
-                    "to": {"block_id": "entry-1", "port": "signal"}
+                    "from_port": {"block_id": "sma-slow", "port": "output"},
+                    "to_port": {"block_id": "crossover-exit", "port": "slow"}
                 },
                 {
-                    "from": {"block_id": "sma-fast", "port": "output"},
-                    "to": {"block_id": "crossover-exit", "port": "fast"}
-                },
-                {
-                    "from": {"block_id": "sma-slow", "port": "output"},
-                    "to": {"block_id": "crossover-exit", "port": "slow"}
-                },
-                {
-                    "from": {"block_id": "crossover-exit", "port": "output"},
-                    "to": {"block_id": "exit-1", "port": "signal"}
+                    "from_port": {"block_id": "crossover-exit", "port": "output"},
+                    "to_port": {"block_id": "exit-1", "port": "signal"}
                 }
             ],
             "meta": {}
@@ -268,73 +228,62 @@ TEMPLATES = [
                     "id": "bollinger-1",
                     "type": "bollinger",
                     "label": "Bollinger Bands (20, 2.0)",
-                    "position": {"x": 300, "y": 200},
-                    "params": {"period": 20, "std_dev": 2.0}
+                    "position": {"x": 100, "y": 350},
+                    "params": {"period": 20, "std_dev": 2.0, "source": "close"}
                 },
                 {
                     "id": "compare-entry",
                     "type": "compare",
                     "label": "Price > Upper",
-                    "position": {"x": 500, "y": 150},
+                    "position": {"x": 300, "y": 150},
                     "params": {"operator": ">"}
                 },
                 {
                     "id": "entry-1",
                     "type": "entry_signal",
                     "label": "Entry Signal",
-                    "position": {"x": 700, "y": 150},
+                    "position": {"x": 500, "y": 150},
                     "params": {}
                 },
                 {
                     "id": "compare-exit",
                     "type": "compare",
                     "label": "Price < Middle",
-                    "position": {"x": 500, "y": 250},
+                    "position": {"x": 300, "y": 350},
                     "params": {"operator": "<"}
                 },
                 {
                     "id": "exit-1",
                     "type": "exit_signal",
                     "label": "Exit Signal",
-                    "position": {"x": 700, "y": 250},
+                    "position": {"x": 500, "y": 350},
                     "params": {}
-                },
-                {
-                    "id": "stop-loss-1",
-                    "type": "stop_loss",
-                    "label": "Stop Loss (4%)",
-                    "position": {"x": 700, "y": 350},
-                    "params": {"stop_loss_pct": 4.0}
                 }
             ],
             "connections": [
                 {
-                    "from": {"block_id": "price-1", "port": "output"},
-                    "to": {"block_id": "bollinger-1", "port": "input"}
+                    "from_port": {"block_id": "price-1", "port": "output"},
+                    "to_port": {"block_id": "compare-entry", "port": "left"}
                 },
                 {
-                    "from": {"block_id": "price-1", "port": "output"},
-                    "to": {"block_id": "compare-entry", "port": "a"}
+                    "from_port": {"block_id": "bollinger-1", "port": "upper"},
+                    "to_port": {"block_id": "compare-entry", "port": "right"}
                 },
                 {
-                    "from": {"block_id": "bollinger-1", "port": "upper"},
-                    "to": {"block_id": "compare-entry", "port": "b"}
+                    "from_port": {"block_id": "compare-entry", "port": "output"},
+                    "to_port": {"block_id": "entry-1", "port": "signal"}
                 },
                 {
-                    "from": {"block_id": "compare-entry", "port": "output"},
-                    "to": {"block_id": "entry-1", "port": "signal"}
+                    "from_port": {"block_id": "price-1", "port": "output"},
+                    "to_port": {"block_id": "compare-exit", "port": "left"}
                 },
                 {
-                    "from": {"block_id": "price-1", "port": "output"},
-                    "to": {"block_id": "compare-exit", "port": "a"}
+                    "from_port": {"block_id": "bollinger-1", "port": "middle"},
+                    "to_port": {"block_id": "compare-exit", "port": "right"}
                 },
                 {
-                    "from": {"block_id": "bollinger-1", "port": "middle"},
-                    "to": {"block_id": "compare-exit", "port": "b"}
-                },
-                {
-                    "from": {"block_id": "compare-exit", "port": "output"},
-                    "to": {"block_id": "exit-1", "port": "signal"}
+                    "from_port": {"block_id": "compare-exit", "port": "output"},
+                    "to_port": {"block_id": "exit-1", "port": "signal"}
                 }
             ],
             "meta": {}

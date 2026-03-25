@@ -314,11 +314,6 @@ function generateBollingerTemplate(
   ];
 
   const connections: Connection[] = [
-    // Price to Bollinger
-    {
-      from_port: { block_id: "price-1", port: "output" },
-      to_port: { block_id: "bollinger-1", port: "input" },
-    },
     // Entry: price < lower band
     {
       from_port: { block_id: "price-1", port: "output" },
