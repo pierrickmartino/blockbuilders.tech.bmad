@@ -123,7 +123,7 @@ export function generateNodeSummary(
     case "trailing_stop":
       return `Trailing Stop: ${trailPct !== undefined ? trailPct + "%" : percent !== undefined ? percent + "%" : ""}`;
     case "position_size":
-      return `Position: ${percent || 100}%`;
+      return `Position: ${value ?? 100}%`;
     case "max_drawdown":
       return `Max Drawdown: ${maxDrawdownPct ?? percent ?? 20}%`;
 
