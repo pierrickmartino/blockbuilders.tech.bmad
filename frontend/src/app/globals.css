@@ -91,6 +91,12 @@
   }
 }
 
+/* React Flow dark mode overrides */
+.dark .react-flow__background circle {
+  /* Override inline SVG fill for dot pattern in dark mode */
+  fill: #1e293b !important;
+}
+
 @layer utilities {
   .text-gradient-primary {
     @apply bg-clip-text text-transparent;
