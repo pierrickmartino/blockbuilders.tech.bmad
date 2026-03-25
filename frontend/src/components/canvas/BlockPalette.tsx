@@ -215,13 +215,17 @@ export default function BlockPalette({ onDragStart, isMobileMode = false, indica
                         isMobileMode ? "px-3 pt-2.5 pb-2" : "px-2.5 pt-2 pb-1.5"
                       )}>
                         <div className={cn(
-                          "flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md",
+                          "flex flex-shrink-0 items-center justify-center rounded-md",
+                          isMobileMode ? "h-7 w-7" : "h-6 w-6",
                           styles.iconBg,
                           styles.iconColor
                         )}>
                           <CategoryIcon category={block.category} />
                         </div>
-                        <span className="flex-1 text-[11.5px] font-semibold leading-tight text-gray-900">
+                        <span className={cn(
+                          "flex-1 font-semibold leading-tight text-gray-900",
+                          isMobileMode ? "text-[12.5px]" : "text-[11.5px]"
+                        )}>
                           {displayLabel}
                         </span>
                         <InfoIcon
@@ -239,8 +243,8 @@ export default function BlockPalette({ onDragStart, isMobileMode = false, indica
                       {/* Sub-label / description */}
                       {subLabel && (
                         <div className={cn(
-                          "border-t border-gray-100 text-[10.5px] leading-[1.4] text-gray-500",
-                          isMobileMode ? "px-3 py-1.5" : "px-2.5 py-1"
+                          "border-t border-gray-100 leading-[1.4] text-gray-500",
+                          isMobileMode ? "px-3 py-1.5 text-[11px]" : "px-2.5 py-1 text-[10.5px]"
                         )}>
                           {subLabel}
                         </div>
