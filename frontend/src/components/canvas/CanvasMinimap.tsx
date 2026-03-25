@@ -9,7 +9,6 @@ interface CanvasMinimapProps {
   nodes: Node[];
   reactFlow: ReactFlowInstance<Node, CanvasEdge>;
   containerRef?: RefObject<HTMLDivElement | null>;
-  isMobileMode?: boolean;
 }
 
 interface Bounds {
@@ -122,7 +121,6 @@ export function CanvasMinimap({
   nodes,
   reactFlow,
   containerRef,
-  isMobileMode = false,
 }: CanvasMinimapProps) {
   // Calculate all derived values first (hooks must come before early returns)
   const canvasBounds = useMemo(() => getCanvasBounds(nodes), [nodes]);
@@ -179,8 +177,7 @@ export function CanvasMinimap({
     containerRef
   );
 
-  // Suppress unused variable warnings - these are used for triggering re-renders
-  void isMobileMode;
+  // Suppress unused variable warning - transform subscription triggers re-renders
   void transform;
 
   // Navigation handler

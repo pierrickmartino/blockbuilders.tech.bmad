@@ -741,6 +741,7 @@ Plain-Language Error Messages
 - Each button pans and zooms to the centroid of matching section blocks with smooth animation (400ms, zoom 1.0)
 - Buttons automatically disable when no matching section exists
 - Hidden when canvas has no nodes
+- **Hidden on mobile** (`isMobileMode === true`) — minimap takes too much space on small viewports; the mobile bottom action bar's Fit-to-Screen button serves as the primary orientation aid
 - Mobile-friendly positioning avoids bottom action bar, adequate tap targets (32px height)
 
 **Implementation Notes:**
