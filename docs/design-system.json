@@ -173,56 +173,79 @@
         }
       },
       "canvas": {
+        "description": "Canvas and palette nodes share the same white-card design. All nodes use a white background with a colored icon container and category badge. Category colors use the violet/sky/amber/emerald/rose palette.",
         "categories": {
           "input": {
             "border": {
-              "default": "border-purple-300 dark:border-purple-600",
-              "selected": "border-purple-500 dark:border-purple-400"
+              "default": "border-gray-200",
+              "selected": "border-violet-400",
+              "ring": "ring-1 ring-violet-200"
             },
-            "background": "bg-purple-50 dark:bg-purple-950/30",
-            "header": "bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300",
-            "handle": "!bg-purple-500"
+            "iconBg": "bg-violet-100",
+            "iconColor": "text-violet-600",
+            "badgeBg": "bg-violet-50",
+            "badgeText": "text-violet-700",
+            "selectedShadow": "shadow-[0_4px_16px_rgba(109,40,217,0.12)]",
+            "handle": "!bg-violet-500"
           },
           "indicator": {
             "border": {
-              "default": "border-blue-300 dark:border-blue-600",
-              "selected": "border-blue-500 dark:border-blue-400"
+              "default": "border-gray-200",
+              "selected": "border-sky-400",
+              "ring": "ring-1 ring-sky-200"
             },
-            "background": "bg-blue-50 dark:bg-blue-950/30",
-            "header": "bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300",
-            "handle": "!bg-blue-500"
+            "iconBg": "bg-sky-100",
+            "iconColor": "text-sky-600",
+            "badgeBg": "bg-sky-50",
+            "badgeText": "text-sky-700",
+            "selectedShadow": "shadow-[0_4px_16px_rgba(2,132,199,0.12)]",
+            "handle": "!bg-sky-500"
           },
           "logic": {
             "border": {
-              "default": "border-amber-300 dark:border-amber-600",
-              "selected": "border-amber-500 dark:border-amber-400"
+              "default": "border-gray-200",
+              "selected": "border-amber-400",
+              "ring": "ring-1 ring-amber-200"
             },
-            "background": "bg-amber-50 dark:bg-amber-950/30",
-            "header": "bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300",
+            "iconBg": "bg-amber-100",
+            "iconColor": "text-amber-600",
+            "badgeBg": "bg-amber-50",
+            "badgeText": "text-amber-700",
+            "selectedShadow": "shadow-[0_4px_16px_rgba(217,119,6,0.12)]",
             "handle": "!bg-amber-500"
           },
           "signal": {
             "border": {
-              "default": "border-green-300 dark:border-green-600",
-              "selected": "border-green-500 dark:border-green-400"
+              "default": "border-gray-200",
+              "selected": "border-emerald-400",
+              "ring": "ring-1 ring-emerald-200"
             },
-            "background": "bg-green-50 dark:bg-green-950/30",
-            "header": "bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300",
-            "handle": "!bg-green-500"
+            "iconBg": "bg-emerald-100",
+            "iconColor": "text-emerald-600",
+            "badgeBg": "bg-emerald-50",
+            "badgeText": "text-emerald-700",
+            "selectedShadow": "shadow-[0_4px_16px_rgba(5,150,105,0.12)]",
+            "handle": "!bg-emerald-500"
           },
           "risk": {
             "border": {
-              "default": "border-red-300 dark:border-red-600",
-              "selected": "border-red-500 dark:border-red-400"
+              "default": "border-gray-200",
+              "selected": "border-rose-400",
+              "ring": "ring-1 ring-rose-200"
             },
-            "background": "bg-red-50 dark:bg-red-950/30",
-            "header": "bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300",
-            "handle": "!bg-red-500"
+            "iconBg": "bg-rose-100",
+            "iconColor": "text-rose-600",
+            "badgeBg": "bg-rose-50",
+            "badgeText": "text-rose-700",
+            "selectedShadow": "shadow-[0_4px_16px_rgba(225,29,72,0.12)]",
+            "handle": "!bg-rose-500"
           }
         },
         "error": {
-          "border": "border-red-500",
-          "ring": "ring-2 ring-red-200 dark:ring-red-900/50"
+          "border": "border-rose-400",
+          "ring": "ring-1 ring-rose-200",
+          "iconBg": "bg-rose-100",
+          "iconColor": "text-rose-600"
         }
       },
       "feedback": {
@@ -487,37 +510,66 @@
       }
     },
     "canvasNode": {
+      "description": "White-card node design shared by both canvas nodes and palette items. Icon container + label + badge in header; params/description in a bordered section below.",
       "container": {
-        "base": "relative rounded-lg border-2 shadow-sm",
+        "base": "rounded-xl border border-gray-200 bg-white shadow-[0_1px_4px_rgba(0,0,0,0.08)] transition-all duration-150",
         "minWidth": {
-          "default": "min-w-[120px]",
-          "mobile": "min-w-[150px]"
+          "default": "min-w-[150px]",
+          "mobile": "min-w-[170px]"
         },
-        "description": "Base node container"
+        "description": "Base node container — white background, rounded-xl"
       },
       "header": {
-        "base": "flex items-center justify-between gap-1 rounded-t-md text-xs font-semibold",
+        "base": "flex items-center gap-2",
         "padding": {
-          "default": "px-3 py-1.5",
-          "mobile": "px-4 py-2"
+          "default": "px-3 pt-2.5 pb-2",
+          "mobile": "px-3.5 pt-3 pb-2.5"
         },
-        "description": "Node header with label"
+        "description": "Icon + label + info icon + category badge row"
+      },
+      "iconContainer": {
+        "base": "flex flex-shrink-0 items-center justify-center rounded-lg",
+        "size": {
+          "default": "h-7 w-7",
+          "mobile": "h-8 w-8"
+        },
+        "description": "Colored icon wrapper — uses category iconBg + iconColor tokens"
+      },
+      "label": {
+        "classes": "flex-1 font-semibold leading-tight text-gray-900",
+        "fontSize": {
+          "default": "text-[12px]",
+          "mobile": "text-[13px]"
+        }
+      },
+      "badge": {
+        "classes": "flex-shrink-0 rounded px-1.5 py-0.5 font-medium",
+        "fontSize": {
+          "canvas": "text-[10px]",
+          "palette": "text-[9.5px]"
+        },
+        "description": "Category label badge — uses category badgeBg + badgeText tokens"
       },
       "content": {
-        "classes": "px-3 py-2",
-        "description": "Node content area"
+        "base": "border-t border-gray-100 text-[11.5px] leading-[1.5] text-gray-500",
+        "padding": {
+          "default": "px-3 py-1.5",
+          "mobile": "px-3.5 py-2"
+        },
+        "description": "Parameters / description area below header"
       },
       "handle": {
         "size": {
-          "default": "h-3 w-3",
-          "mobile": "h-5 w-5"
+          "default": "11px",
+          "mobile": "18px"
         },
-        "description": "Connection handle circle"
+        "description": "Connection handle circle — uses category handle token"
       },
       "error": {
-        "icon": "h-4 w-4 flex-shrink-0 text-red-500",
-        "message": "text-xs text-red-600 dark:text-red-400",
-        "helpLink": "text-xs text-red-700 underline hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+        "border": "border-rose-400 ring-1 ring-rose-200",
+        "iconBg": "bg-rose-100 text-rose-600",
+        "message": "text-[11px] font-medium text-rose-600",
+        "helpLink": "ml-1 underline decoration-rose-300 underline-offset-2 hover:text-rose-800"
       }
     },
     "sidebar": {
