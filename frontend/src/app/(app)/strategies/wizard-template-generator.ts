@@ -359,17 +359,10 @@ function generateBollingerTemplate(
 function generateMACDTemplate(answers: WizardAnswers): StrategyDefinition {
   const blocks: Block[] = [
     {
-      id: "price-1",
-      type: "price",
-      label: "Close Price",
-      position: { x: 100, y: 200 },
-      params: { source: "close" },
-    },
-    {
       id: "macd-1",
       type: "macd",
       label: "MACD (12, 26, 9)",
-      position: { x: 300, y: 200 },
+      position: { x: 100, y: 200 },
       params: {
         source: "close",
         fast_period: 12,
@@ -382,14 +375,14 @@ function generateMACDTemplate(answers: WizardAnswers): StrategyDefinition {
       id: "crossover-entry",
       type: "crossover",
       label: "MACD Crosses Above Signal",
-      position: { x: 500, y: 100 },
+      position: { x: 300, y: 100 },
       params: { direction: "crosses_above" },
     },
     {
       id: "entry-1",
       type: "entry_signal",
       label: "Entry Signal",
-      position: { x: 700, y: 100 },
+      position: { x: 500, y: 100 },
       params: {},
     },
     // Exit: MACD crosses below signal
@@ -397,24 +390,19 @@ function generateMACDTemplate(answers: WizardAnswers): StrategyDefinition {
       id: "crossover-exit",
       type: "crossover",
       label: "MACD Crosses Below Signal",
-      position: { x: 500, y: 300 },
+      position: { x: 300, y: 300 },
       params: { direction: "crosses_below" },
     },
     {
       id: "exit-1",
       type: "exit_signal",
       label: "Exit Signal",
-      position: { x: 700, y: 300 },
+      position: { x: 500, y: 300 },
       params: {},
     },
   ];
 
   const connections: Connection[] = [
-    // Price to MACD
-    {
-      from_port: { block_id: "price-1", port: "output" },
-      to_port: { block_id: "macd-1", port: "input" },
-    },
     // Entry: MACD line crosses above signal line
     {
       from_port: { block_id: "macd-1", port: "macd" },
