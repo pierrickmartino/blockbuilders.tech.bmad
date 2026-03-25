@@ -12,7 +12,7 @@ export default function PositionSizeNode({ data, selected }: NodeProps) {
     typeof data?.helpLink === "string"
       ? data.helpLink
       : undefined;
-  const params = (data?.params || {}) as { percent?: number };
+  const params = (data?.params || {}) as { value?: number };
   const isMobileMode = typeof data?.isMobileMode === "boolean" ? data.isMobileMode : false;
   const isCompact = typeof data?.isCompact === "boolean" ? data.isCompact : false;
   const isExpanded = typeof data?.isExpanded === "boolean" ? data.isExpanded : false;
@@ -32,7 +32,7 @@ export default function PositionSizeNode({ data, selected }: NodeProps) {
       summary={summary}
     >
       <div className="text-xs text-gray-600">
-        Size: {params.percent || 100}%
+        Size: {params.value ?? 100}%
       </div>
     </BaseNode>
   );
