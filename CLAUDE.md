@@ -111,6 +111,7 @@ When adding or changing features, update `docs/product.md` and create/update rel
 | Canvas toolbar / control layout | 4 (mobile subsection), 13 | Feature summary |
 | Editor header / autosave / history panel | 4.11, 13 | Feature summary |
 | Market overview / price ticker / volatility | 9.9, 13 | UI notes + feature summary |
+| Supported token universe expansion (e.g., top 50) | 3.4, 6.2, 13, 14.1, 16.1, 17 | Keep rollout minimal: extend existing allowed-assets list + ingestion schedule; avoid new schema/services |
 | Data quality / completeness timeline | 6.4, 13 | Feature summary |
 | Backtest data range / start-date warnings | 5.1, 6.4, 13, 17.1 | Docs links |
 | Backtest summary personalization (favorites/pinned) | 9.4, 13 | UI notes + feature summary |
@@ -215,6 +216,7 @@ Post-MVP features are allowed **only if** they are explicitly defined in the act
 
 **Asset coverage note:**
 - Expanding supported crypto pairs beyond BTC/USDT and ETH/USDT is allowed only when it is explicitly listed in `docs/product.md` and the associated PRD.
+- For large expansions (e.g., toward top 50 assets), prefer phased rollout with the existing ingestion pipeline and a single allowed-assets config list (KISS/YAGNI).
 - The single-asset, single-timeframe-per-strategy rule still applies.
 - Multiple entry/exit conditions (entry OR exit rules) are allowed only when explicitly defined in the active spec/PRD.
 

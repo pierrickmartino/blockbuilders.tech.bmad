@@ -1,7 +1,7 @@
 # Blockbuilders – Product Documentation
 
 **Status:** Current Product Truth
-**Last Updated:** 2026-03-21
+**Last Updated:** 2026-03-25
 **Purpose:** Comprehensive documentation of all implemented features
 
 ---
@@ -298,10 +298,14 @@ Plain-Language Error Messages
 - SUI/USDT
 - SEI/USDT
 - TIA/USDT
+- BNB/USDT
+- CRV/USDT
+- GRT/USDT
 
 **Notes:**
-- This is a curated list targeting the top 20–30 assets.
-- Additional pairs are added based on user requests and data vendor availability/cost.
+- Current implemented list is a curated set of 27 assets.
+- Product direction is phased expansion toward roughly the top 50 assets, prioritized by user demand and vendor availability/cost.
+- Additional pairs are added without changing the single-asset strategy model.
 
 **Timeframes:**
 - 4h (4-hour)
@@ -2285,6 +2289,7 @@ Plain-Language Error Messages
 | **Real-Time Price Tickers** | ✅ Complete | Market overview with live price, 24h change, volume, trend; 4s polling, 3s Redis cache |
 | **Volatility Metrics (Market Overview)** | ✅ Complete | Show current + historical volatility with percentile rank per pair |
 | **Market Sentiment Indicators (Market Overview)** | ✅ Complete | Fear & Greed Index (Alternative.me), Long/Short Ratio (Binance), Funding Rates (Binance); 15min cache, partial failure support, market overview only (no backtest results sentiment context) |
+| **Top-50 Token Coverage Expansion** | 📝 Spec Ready | Plan a phased increase of supported assets toward ~50 tokens using the existing ingestion/validation architecture, beginning with requested tokens such as BNB, CRV, and GRT while keeping single-asset/single-timeframe constraints |
 | **Frontend UI** | ✅ Complete | Multi-strategy dashboard, strategy list/editor, backtest runner/results, profile |
 | **Storybook Framework for Component UX/UI** | 📝 Spec Ready | Planned Storybook workspace for reusable component development/testing/documentation, required to stay fully aligned with `docs/design-system.json` and `docs/design_concept.json`, plus a markdown onboarding guide for frontend contributors |
 | **Recently Viewed Shortcuts (Dashboard)** | ✅ Complete | Quick links to recently viewed strategies and backtests from session history |
@@ -2330,9 +2335,9 @@ Plain-Language Error Messages
 - One position per strategy at a time
 
 **Limited Asset Coverage (Curated List):**
-- Supported pairs focus on the top 20–30 crypto assets (see Section 3.4)
+- Supported pairs are a curated list with a target expansion toward roughly the top 50 crypto assets (see Section 3.4)
 - Timeframes: 4h and 1d only
-- Additional pairs added based on user requests and data vendor availability/cost
+- Additional pairs are added in phases based on user requests and data vendor availability/cost
 
 **OHLCV-Based Execution:**
 - No tick or order book data
@@ -2570,6 +2575,8 @@ npm run type-check    # TypeScript validation
 - `docs/prd-real-time-price-tickers.md` - Real-time price tickers PRD
 - `docs/prd-volatility-metrics-market-overview.md` - Volatility metrics (market overview) PRD
 - `docs/prd-market-sentiment-indicators.md` - Market sentiment indicators PRD
+- `docs/prd-top-50-token-coverage-expansion.md` - Top-50 token coverage expansion PRD
+- `docs/tst-top-50-token-coverage-expansion.md` - Top-50 token coverage expansion test checklist
 - `docs/prd-remove-sentiment-backtest-results.md` - Remove sentiment analysis from backtest results PRD
 - `docs/tst-remove-sentiment-backtest-results.md` - Remove sentiment analysis from backtest results test checklist
 - `docs/product.md` - This document (current product truth)
@@ -2653,6 +2660,7 @@ npm run type-check    # TypeScript validation
 
 ## 17. Changelog
 
+- **2026-03-25:** Added PRD/TST planning for phased token support expansion toward the top 50 assets, including immediate inclusion of BNB/USDT, CRV/USDT, and GRT/USDT using the existing ingestion + validation architecture.
 - **2026-03-22:** Added PRD/TST planning for a Storybook framework dedicated to component UX/UI work, requiring full alignment with `docs/design-system.json` and `docs/design_concept.json`, Storybook as the official reusable component documentation surface, and a markdown onboarding guide for new frontend contributors.
 - **2026-03-21:** Added PRD/TST planning to remove sentiment analysis from backtest results, keeping sentiment limited to Market Overview and simplifying results payloads/UI by removing sentiment summaries, widgets, and empty placeholders.
 - **2026-03-19:** Added PRD/TST planning for mobile bottom sheet parameter editing: on viewports below 768px, block parameter editing switches from popover to a half-screen shadcn/ui Sheet, keeps the selected block label visible and updating in real time above the sheet, uses `visualViewport` to keep the active field visible when the software keyboard opens, and commits changes on swipe-down close with undo/redo + autosave.
