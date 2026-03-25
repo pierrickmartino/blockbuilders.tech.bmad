@@ -295,7 +295,7 @@ export default function BlockLibrarySheet({
         onClick={() => handleBlockTap(block)}
         title={tooltip?.short || block.description}
         className={cn(
-          "group cursor-pointer rounded-xl border border-gray-200 bg-white shadow-[0_1px_4px_rgba(0,0,0,0.06)] transition-all duration-150",
+          "group cursor-pointer rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-[0_1px_4px_rgba(0,0,0,0.06)] transition-all duration-150",
           styles.borderHover,
           "hover:shadow-[0_2px_8px_rgba(0,0,0,0.10)]"
         )}
@@ -360,7 +360,7 @@ export default function BlockLibrarySheet({
       <SheetTrigger asChild>
         <button
           className={cn(
-            "rounded-full bg-white p-2 shadow-md hover:bg-gray-50 transition-colors",
+            "rounded-full bg-white dark:bg-slate-800 p-2 shadow-md hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors text-slate-900 dark:text-slate-100",
             "lg:hidden" // Only show on mobile
           )}
           aria-label="Open block library"
@@ -377,7 +377,7 @@ export default function BlockLibrarySheet({
         aria-label="Block Library"
       >
         {/* Search Header */}
-        <SheetHeader className="sticky top-0 z-10 bg-white border-b px-4 pt-4 pb-3">
+        <SheetHeader className="sticky top-0 z-10 bg-white dark:bg-slate-900 border-b px-4 pt-4 pb-3">
           <SheetTitle className="sr-only">Block Library</SheetTitle>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
