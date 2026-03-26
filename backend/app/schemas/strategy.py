@@ -5,9 +5,9 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field, field_validator
 
-# MVP allowed values
+# Supported trading pairs (~50 tokens)
 ALLOWED_ASSETS = [
-    # Major pairs (existing)
+    # Major pairs
     "BTC/USDT",
     "ETH/USDT",
     # Large cap altcoins
@@ -24,6 +24,17 @@ ALLOWED_ASSETS = [
     "ATOM/USDT",
     "NEAR/USDT",
     "FIL/USDT",
+    "BNB/USDT",
+    "TRX/USDT",
+    "TON/USDT",
+    "HBAR/USDT",
+    "VET/USDT",
+    "ALGO/USDT",
+    "XLM/USDT",
+    "EOS/USDT",
+    "ICP/USDT",
+    "SHIB/USDT",
+    "PEPE/USDT",
     # Mid-cap altcoins
     "APT/USDT",
     "OP/USDT",
@@ -31,10 +42,25 @@ ALLOWED_ASSETS = [
     "INJ/USDT",
     "UNI/USDT",
     "AAVE/USDT",
-    # Newer entrants
     "SUI/USDT",
     "SEI/USDT",
     "TIA/USDT",
+    "FTM/USDT",
+    "CRV/USDT",
+    "GRT/USDT",
+    "MKR/USDT",
+    "SNX/USDT",
+    "RENDER/USDT",
+    "FET/USDT",
+    "STX/USDT",
+    "IMX/USDT",
+    "PENDLE/USDT",
+    "THETA/USDT",
+    "TAO/USDT",
+    "WLD/USDT",
+    "JUP/USDT",
+    "SAND/USDT",
+    "MANA/USDT",
 ]
 ALLOWED_TIMEFRAMES = ["1d", "4h"]
 

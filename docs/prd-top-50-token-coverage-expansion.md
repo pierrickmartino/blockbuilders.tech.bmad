@@ -90,9 +90,9 @@ User opens strategy create/edit or wizard asset selection, chooses CRV/GRT/BNB f
 - Reuse existing candle storage, data quality checks, and validation code paths.
 
 ## 11. Rollout Plan
-- Phase 1: Add BNB/USDT, CRV/USDT, GRT/USDT.
-- Phase 2: Add next 10–15 highest-demand tokens.
-- Phase 3: Reach ~50 total supported assets, reviewed periodically for vendor viability.
+- Single rollout: expand from 24 to 50 supported pairs in one release.
+- Market page includes text-based filtering (search by pair name).
+- Market sentiment panel fixed to BTC/USDT.
 
 ## 12. Acceptance Criteria
 - [ ] Users can create/update strategies with BNB/USDT, CRV/USDT, and GRT/USDT.
@@ -117,5 +117,5 @@ User opens strategy create/edit or wizard asset selection, chooses CRV/GRT/BNB f
   Mitigation: Phased rollout and monitoring before each expansion step.
 
 ## 16. Open Questions
-- What is the exact priority ordering for tokens 28–50 after BNB/CRV/GRT?
-- Should market page show all supported assets by default or keep an initial subset with simple filtering?
+- (Resolved) All 50 tokens shipped in a single rollout.
+- (Resolved) Market page shows all supported assets by default with text-based filtering.

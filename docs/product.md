@@ -273,38 +273,13 @@ Plain-Language Error Messages
 
 ### 3.4. Supported Assets & Timeframes
 
-**Assets:**
-- BTC/USDT
-- ETH/USDT
-- ADA/USDT
-- SOL/USDT
-- MATIC/USDT
-- LINK/USDT
-- DOT/USDT
-- XRP/USDT
-- DOGE/USDT
-- AVAX/USDT
-- LTC/USDT
-- BCH/USDT
-- ATOM/USDT
-- NEAR/USDT
-- FIL/USDT
-- APT/USDT
-- OP/USDT
-- ARB/USDT
-- INJ/USDT
-- UNI/USDT
-- AAVE/USDT
-- SUI/USDT
-- SEI/USDT
-- TIA/USDT
-- BNB/USDT
-- CRV/USDT
-- GRT/USDT
+**Assets (50 pairs):**
+- BTC/USDT, ETH/USDT
+- ADA/USDT, SOL/USDT, MATIC/USDT, LINK/USDT, DOT/USDT, XRP/USDT, DOGE/USDT, AVAX/USDT, LTC/USDT, BCH/USDT, ATOM/USDT, NEAR/USDT, FIL/USDT, BNB/USDT, TRX/USDT, TON/USDT, HBAR/USDT, VET/USDT, ALGO/USDT, XLM/USDT, EOS/USDT, ICP/USDT, SHIB/USDT, PEPE/USDT
+- APT/USDT, OP/USDT, ARB/USDT, INJ/USDT, UNI/USDT, AAVE/USDT, SUI/USDT, SEI/USDT, TIA/USDT, FTM/USDT, CRV/USDT, GRT/USDT, MKR/USDT, SNX/USDT, RENDER/USDT, FET/USDT, STX/USDT, IMX/USDT, PENDLE/USDT, THETA/USDT, TAO/USDT, WLD/USDT, JUP/USDT, SAND/USDT, MANA/USDT
 
 **Notes:**
-- Current implemented list is a curated set of 27 assets.
-- Product direction is phased expansion toward roughly the top 50 assets, prioritized by user demand and vendor availability/cost.
+- Current implemented list is a curated set of 50 assets.
 - Additional pairs are added without changing the single-asset strategy model.
 
 **Timeframes:**
@@ -1623,7 +1598,7 @@ Plain-Language Error Messages
 - Page: `frontend/src/app/(app)/market/page.tsx`
 
 **Notes:**
-- Uses the same supported asset list as strategies (Section 3.4: 23 pairs)
+- Uses the same supported asset list as strategies (Section 3.4: 50 pairs)
 - Read-only UI; no trading actions
 - WebSocket updates are optional for future enhancement
 
@@ -2289,7 +2264,7 @@ Plain-Language Error Messages
 | **Real-Time Price Tickers** | ✅ Complete | Market overview with live price, 24h change, volume, trend; 4s polling, 3s Redis cache |
 | **Volatility Metrics (Market Overview)** | ✅ Complete | Show current + historical volatility with percentile rank per pair |
 | **Market Sentiment Indicators (Market Overview)** | ✅ Complete | Fear & Greed Index (Alternative.me), Long/Short Ratio (Binance), Funding Rates (Binance); 15min cache, partial failure support, market overview only (no backtest results sentiment context) |
-| **Top-50 Token Coverage Expansion** | 📝 Spec Ready | Plan a phased increase of supported assets toward ~50 tokens using the existing ingestion/validation architecture, beginning with requested tokens such as BNB, CRV, and GRT while keeping single-asset/single-timeframe constraints |
+| **Top-50 Token Coverage Expansion** | ✅ Done | Expanded supported assets to 50 tokens using the existing ingestion/validation architecture, with market page text filtering; single-asset/single-timeframe constraints preserved |
 | **Frontend UI** | ✅ Complete | Multi-strategy dashboard, strategy list/editor, backtest runner/results, profile |
 | **Storybook Framework for Component UX/UI** | 📝 Spec Ready | Planned Storybook workspace for reusable component development/testing/documentation, required to stay fully aligned with `docs/design-system.json` and `docs/design_concept.json`, plus a markdown onboarding guide for frontend contributors |
 | **Recently Viewed Shortcuts (Dashboard)** | ✅ Complete | Quick links to recently viewed strategies and backtests from session history |
@@ -2335,7 +2310,7 @@ Plain-Language Error Messages
 - One position per strategy at a time
 
 **Limited Asset Coverage (Curated List):**
-- Supported pairs are a curated list with a target expansion toward roughly the top 50 crypto assets (see Section 3.4)
+- Supported pairs are a curated list of 50 crypto assets (see Section 3.4)
 - Timeframes: 4h and 1d only
 - Additional pairs are added in phases based on user requests and data vendor availability/cost
 
