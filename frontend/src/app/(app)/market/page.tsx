@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useMarketTickers } from "@/hooks/useMarketTickers";
 import { formatPrice, formatPercent, formatNumber, formatDateTime, formatVolatility } from "@/lib/format";
 import { useDisplay } from "@/context/display";
@@ -13,26 +13,26 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { TrendingUp, TrendingDown, Info } from "lucide-react";
+import { TrendingUp, TrendingDown, Info, Search } from "lucide-react";
 import { MarketSentimentPanel } from "@/components/MarketSentimentPanel";
 
 export default function MarketPage() {
-  const [selectedAsset, setSelectedAsset] = useState<string>("BTC/USDT");
+  const [filter, setFilter] = useState("");
   const { tickers, asOf, isLoading, error } = useMarketTickers();
   const { timezone } = useDisplay();
+
+  const filteredTickers = useMemo(() => {
+    if (!filter) return tickers;
+    const q = filter.toUpperCase();
+    return tickers.filter((t) => t.pair.toUpperCase().includes(q));
+  }, [tickers, filter]);
 
   if (isLoading) {
     return (
@@ -70,19 +70,19 @@ export default function MarketPage() {
               </p>
             )}
           </div>
-          <Select value={selectedAsset} onValueChange={setSelectedAsset}>
-            <SelectTrigger className="w-40">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="BTC/USDT">BTC/USDT</SelectItem>
-              <SelectItem value="ETH/USDT">ETH/USDT</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="relative w-full sm:w-56">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Filter pairs..."
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              className="pl-8"
+            />
+          </div>
         </div>
 
       {/* Market Sentiment Panel */}
-      <MarketSentimentPanel asset={selectedAsset} />
+      <MarketSentimentPanel asset="BTC/USDT" />
 
       {/* Desktop: Table */}
       <div className="hidden md:block">
@@ -110,7 +110,7 @@ export default function MarketPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {tickers.map((ticker) => (
+            {filteredTickers.map((ticker) => (
               <TableRow key={ticker.pair}>
                 <TableCell className="font-medium">{ticker.pair}</TableCell>
                 <TableCell className="text-right">
@@ -152,7 +152,7 @@ export default function MarketPage() {
 
       {/* Mobile: Cards */}
       <div className="space-y-3 md:hidden">
-        {tickers.map((ticker) => (
+        {filteredTickers.map((ticker) => (
           <Card key={ticker.pair}>
             <CardContent className="p-4">
               <div className="flex items-center justify-between mb-2">
