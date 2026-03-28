@@ -498,7 +498,7 @@ def create_batch_backtest(
         user, data.fee_rate, data.slippage_rate, data.spread_rate,
     )
 
-    batch_id = uuid4()
+    batch_id: UUID | None = None
     now = datetime.now(timezone.utc)
     results: list[BatchRunResult] = []
     queued = 0
@@ -534,6 +534,8 @@ def create_batch_backtest(
 
         date_to = now
         date_from = now - timedelta(days=days)
+        if batch_id is None:
+            batch_id = uuid4()
 
         run = _create_single_run(
             user, strategy, latest_version, session,
@@ -550,8 +552,9 @@ def create_batch_backtest(
         results.append(BatchRunResult(period_key=period, run_id=run.id, status="pending"))
 
     if queued == 0 and results:
-        # All periods were skipped — still return the batch with skip reasons
-        pass
+        # All periods were skipped, so there is no persisted batch to poll.
+        # Return skip reasons with a null batch_id instead of a dangling UUID.
+        return BatchBacktestCreateResponse(batch_id=None, runs=results)
 
     return BatchBacktestCreateResponse(batch_id=batch_id, runs=results)
 

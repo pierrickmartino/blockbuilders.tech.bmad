@@ -358,7 +358,7 @@ class BatchRunResult(BaseModel):
 class BatchBacktestCreateResponse(BaseModel):
     """Response after creating a batch of backtests."""
 
-    batch_id: UUID
+    batch_id: Optional[UUID] = None
     runs: list[BatchRunResult]
 
 
