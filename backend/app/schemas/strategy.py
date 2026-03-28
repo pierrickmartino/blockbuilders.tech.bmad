@@ -159,6 +159,13 @@ class StrategyWithMetricsResponse(StrategyResponse):
     latest_win_rate_pct: Optional[float] = None
     latest_num_trades: Optional[int] = None
     last_run_at: Optional[datetime] = None
+    # Period returns (from latest completed backtest matching each period duration)
+    return_30d: Optional[float] = None
+    return_60d: Optional[float] = None
+    return_90d: Optional[float] = None
+    return_1y: Optional[float] = None
+    return_2y: Optional[float] = None
+    return_3y: Optional[float] = None
 
 
 class StrategyVersionResponse(BaseModel):
