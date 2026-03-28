@@ -87,6 +87,7 @@ When adding or changing features, update `docs/product.md` and create/update rel
 | Recently viewed shortcuts | 9.3, 13 | UI notes + feature summary |
 | Strategy list quick actions | 9.3, 13 | Prefer visible one-click buttons; avoid new modals |
 | Strategy performance by period grid | 9.3, 13, 17.1 | Keep table compact; reuse cached backtest outputs; premium adds 2y/3y columns |
+| Multi-period batch backtesting | 5.1, 9.4, 13, 16.1, 17.1 | Use preset period checkboxes (30d/60d/90d/120d/1y; Premium adds 2y/3y), queue runs via one-click "Run All", and count every queued period toward daily limits |
 | Canvas feature-flags / SmartCanvas | 13, 16.1, 17 | Feature coverage, docs index, changelog |
 | Canvas Health Bar (strategy completeness) | 4, 9.3, 13, 16.1, 17 | Include Entry/Exit/Risk states, feature flag, localStorage persistence, docs links |
 | Bulk actions on lists | 9.3, 13 | Use checkbox + action dropdown; avoid extra confirmations |
