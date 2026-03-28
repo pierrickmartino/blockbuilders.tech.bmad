@@ -32,6 +32,7 @@ import {
 import { useDisplay } from "@/context/display";
 import { useAuth } from "@/context/auth";
 import { useBacktestResults } from "@/hooks/useBacktestResults";
+import { useBatchBacktestResults } from "@/hooks/useBatchBacktestResults";
 import { Strategy } from "@/types/strategy";
 import {
   BacktestCreateResponse,
@@ -39,6 +40,8 @@ import {
   BacktestStatus,
   BacktestStatusResponse,
   BacktestSummary,
+  BatchBacktestCreateResponse,
+  BatchRunResult,
   DataAvailabilityResponse,
   DataQualityMetrics,
   DataCompletenessResponse,
@@ -106,6 +109,7 @@ import {
 } from "@/lib/backtest-export";
 import { KeyboardShortcutsModal } from "@/components/KeyboardShortcutsModal";
 import { isInputElement } from "@/lib/keyboard-shortcuts";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -122,7 +126,7 @@ const defaultRange = (() => {
   return { from: formatDateInput(past), to: formatDateInput(today) };
 })();
 
-type PeriodPreset = "30d" | "60d" | "90d" | "1y" | "2y" | "3y" | "custom";
+type PeriodPreset = "30d" | "60d" | "90d" | "120d" | "1y" | "2y" | "3y" | "custom";
 
 interface PeriodOption {
   value: PeriodPreset;
@@ -135,11 +139,25 @@ const PERIOD_PRESETS: PeriodOption[] = [
   { value: "30d", label: "Last 30 days", days: 30, premiumOnly: false },
   { value: "60d", label: "Last 60 days", days: 60, premiumOnly: false },
   { value: "90d", label: "Last 90 days", days: 90, premiumOnly: false },
+  { value: "120d", label: "Last 120 days", days: 120, premiumOnly: false },
   { value: "1y", label: "Last year", days: 365, premiumOnly: false },
   { value: "2y", label: "Last 2 years", days: 730, premiumOnly: true },
   { value: "3y", label: "Last 3 years", days: 1095, premiumOnly: true },
   { value: "custom", label: "Custom", days: null, premiumOnly: false },
 ];
+
+/** Period presets available for batch selection (excludes "custom"). */
+const BATCH_PERIOD_PRESETS = PERIOD_PRESETS.filter((p) => p.value !== "custom");
+
+const PERIOD_LABEL: Record<string, string> = {
+  "30d": "30 days",
+  "60d": "60 days",
+  "90d": "90 days",
+  "120d": "120 days",
+  "1y": "1 year",
+  "2y": "2 years",
+  "3y": "3 years",
+};
 
 function getDatesFromPreset(preset: PeriodPreset): { from: string; to: string } | null {
   const option = PERIOD_PRESETS.find((p) => p.value === preset);
@@ -155,6 +173,7 @@ const statusStyles: Record<BacktestStatus, string> = {
   running: "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-400",
   completed: "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400",
   failed: "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400",
+  skipped: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
 };
 
 const FIRST_RUN_KEY = "bb.first_run_metric_explanations_seen";
@@ -671,6 +690,15 @@ export default function StrategyBacktestPage({ params }: Props) {
   const [showDetailedAnalysis, setShowDetailedAnalysis] = useState(false);
   const hasFavoriteMetrics = (user?.favorite_metrics?.length ?? 0) > 0;
 
+  // Batch backtesting state
+  const [selectedPeriods, setSelectedPeriods] = useState<Set<string>>(new Set());
+  const [activeBatchId, setActiveBatchId] = useState<string | null>(null);
+  const [batchSkippedRuns, setBatchSkippedRuns] = useState<BatchRunResult[]>([]);
+  const [showCustomDates, setShowCustomDates] = useState(false);
+  const batchInitialized = useRef(false);
+
+  const { runs: batchRuns, isAllDone: isBatchDone } = useBatchBacktestResults(activeBatchId);
+
   useEffect(() => {
     const isFirstRun = Boolean(user?.has_completed_onboarding && !getFirstRunSeen());
     setShowFirstRunExplanations(isFirstRun);
@@ -970,6 +998,16 @@ export default function StrategyBacktestPage({ params }: Props) {
   // Check if user can use premium periods
   const isPremiumUser = userPlan?.tier === "premium" || userPlan?.tier === "pro";
 
+  // Initialize batch period selection once plan info is loaded
+  useEffect(() => {
+    if (batchInitialized.current || userPlan === null) return;
+    batchInitialized.current = true;
+    const defaults = BATCH_PERIOD_PRESETS
+      .filter((p) => !p.premiumOnly || isPremiumUser)
+      .map((p) => p.value);
+    setSelectedPeriods(new Set(defaults));
+  }, [userPlan, isPremiumUser]);
+
   // Fetch data quality metrics when dates or strategy change
   useEffect(() => {
     if (!strategy || !dateFrom || !dateTo) {
@@ -1105,6 +1143,53 @@ export default function StrategyBacktestPage({ params }: Props) {
     }
 
     await submitBacktest();
+  };
+
+  const handleTogglePeriod = useCallback((period: string, checked: boolean) => {
+    setSelectedPeriods((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(period);
+      else next.delete(period);
+      return next;
+    });
+  }, []);
+
+  const submitBatchBacktest = async () => {
+    if (selectedPeriods.size === 0) return;
+    setIsSubmitting(true);
+    setError(null);
+    setStatusMessage(null);
+    setActiveBatchId(null);
+    setBatchSkippedRuns([]);
+
+    const payload: Record<string, unknown> = {
+      strategy_id: id,
+      periods: Array.from(selectedPeriods),
+    };
+    if (feeRate) payload.fee_rate = Number(feeRate);
+    if (slippageRate) payload.slippage_rate = Number(slippageRate);
+
+    try {
+      const res = await apiFetch<BatchBacktestCreateResponse>("/backtests/batch", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+      trackEvent("batch_backtest_started", {
+        strategy_id: id,
+        batch_id: res.batch_id,
+        periods: Array.from(selectedPeriods),
+        period_count: selectedPeriods.size,
+      }, user?.id);
+      setActiveBatchId(res.batch_id);
+      setBatchSkippedRuns(res.runs.filter((r) => r.status === "skipped"));
+      const queuedCount = res.runs.filter((r) => r.status === "pending").length;
+      setStatusMessage(`Batch started: ${queuedCount} backtest${queuedCount !== 1 ? "s" : ""} queued. Results will appear below as they complete.`);
+      await loadBacktests();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to start batch backtest");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Handle keyboard shortcuts
@@ -1336,134 +1421,179 @@ export default function StrategyBacktestPage({ params }: Props) {
                 Uses the latest saved version. Fee and slippage default to your settings.
               </p>
             </div>
-            <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium">Period</label>
-                <Select value={periodPreset} onValueChange={(v) => handlePeriodChange(v as PeriodPreset)}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Select period" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PERIOD_PRESETS.map((option) => {
-                      const isDisabled = option.premiumOnly && !isPremiumUser;
-                      return (
-                        <SelectItem
-                          key={option.value}
-                          value={option.value}
+
+            {/* Period checkboxes for batch selection */}
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Periods</label>
+                <div className="flex flex-wrap gap-x-4 gap-y-2">
+                  {BATCH_PERIOD_PRESETS.map((option) => {
+                    const isDisabled = option.premiumOnly && !isPremiumUser;
+                    return (
+                      <label
+                        key={option.value}
+                        className={`flex items-center gap-2 text-sm ${isDisabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
+                      >
+                        <Checkbox
+                          checked={selectedPeriods.has(option.value)}
+                          onCheckedChange={(checked) => handleTogglePeriod(option.value, !!checked)}
                           disabled={isDisabled}
-                        >
-                          {option.label}
-                          {option.premiumOnly && (
-                            <span className={`ml-2 text-xs ${isDisabled ? "text-muted-foreground/70" : "text-amber-600"}`}>
-                              (Pro/Premium)
-                            </span>
-                          )}
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
+                        />
+                        <span>{option.label}</span>
+                        {option.premiumOnly && (
+                          <span className="text-xs text-muted-foreground/70">(Pro/Premium)</span>
+                        )}
+                      </label>
+                    );
+                  })}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowCustomDates(!showCustomDates)}
+                  className="mt-2 text-xs text-muted-foreground underline hover:text-foreground"
+                >
+                  {showCustomDates ? "Hide custom dates" : "Use custom dates instead"}
+                </button>
               </div>
+
+              {/* Custom date inputs (collapsed by default) */}
+              {showCustomDates && (
+                <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 rounded-lg border bg-secondary/30 p-3 md:grid-cols-2">
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium">Period</label>
+                    <Select value={periodPreset} onValueChange={(v) => handlePeriodChange(v as PeriodPreset)}>
+                      <SelectTrigger className="mt-1">
+                        <SelectValue placeholder="Select period" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PERIOD_PRESETS.map((option) => {
+                          const isDisabled = option.premiumOnly && !isPremiumUser;
+                          return (
+                            <SelectItem key={option.value} value={option.value} disabled={isDisabled}>
+                              {option.label}
+                              {option.premiumOnly && (
+                                <span className={`ml-2 text-xs ${isDisabled ? "text-muted-foreground/70" : "text-amber-600"}`}>(Pro/Premium)</span>
+                              )}
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {availabilityWarning && (
+                    <div className="md:col-span-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-300">
+                      {availabilityWarning}
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <label className="block text-sm font-medium">Date from</label>
+                    <Input
+                      type="date"
+                      value={dateFrom}
+                      max={dateTo}
+                      onChange={(e) => {
+                        setAvailabilityWarning(null);
+                        setDateFrom(e.target.value);
+                        setPeriodPreset("custom");
+                      }}
+                      className="mt-1 w-full min-w-0"
+                      required
+                    />
+                  </div>
+                  <div className="min-w-0">
+                    <label className="block text-sm font-medium">Date to</label>
+                    <Input
+                      type="date"
+                      value={dateTo}
+                      min={dateFrom}
+                      onChange={(e) => {
+                        setDateTo(e.target.value);
+                        setPeriodPreset("custom");
+                      }}
+                      className="mt-1 w-full min-w-0"
+                      required
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <Button type="submit" disabled={isSubmitting} className="w-full md:w-auto">
+                      {isSubmitting ? "Starting..." : "Run backtest"}
+                    </Button>
+                  </div>
+                </form>
+              )}
+
               {/* Data availability line */}
-              <div className="md:col-span-2 text-sm text-muted-foreground">
+              <div className="text-sm text-muted-foreground">
                 {dataAvailability?.earliest_date ? (
-                  <span>
-                    Data available: {dataAvailability.earliest_date} &ndash; Present
-                  </span>
+                  <span>Data available: {dataAvailability.earliest_date} &ndash; Present</span>
                 ) : dataAvailability === null && strategy ? (
                   <span>Loading data availability&hellip;</span>
                 ) : (
                   <span>Data availability not found</span>
                 )}
               </div>
-              {/* Auto-adjust warning */}
-              {availabilityWarning && (
-                <div className="md:col-span-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-300">
-                  {availabilityWarning}
+
+              {/* Fee / slippage rates */}
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                  <label className="block text-sm font-medium">Fee rate (optional)</label>
+                  <Input
+                    type="number"
+                    step="0.0001"
+                    min="0"
+                    max="0.1"
+                    value={feeRate}
+                    onChange={(e) => setFeeRate(e.target.value)}
+                    placeholder="0.001 for 0.1%"
+                    className="mt-1"
+                  />
                 </div>
-              )}
-              <div className="min-w-0">
-                <label className="block text-sm font-medium">Date from</label>
-                <Input
-                  type="date"
-                  value={dateFrom}
-                  max={dateTo}
-                  onChange={(e) => {
-                    setAvailabilityWarning(null);
-                    setDateFrom(e.target.value);
-                    setPeriodPreset("custom");
-                  }}
-                  className="mt-1 w-full min-w-0"
-                  required
-                />
+                <div>
+                  <label className="block text-sm font-medium">Slippage rate (optional)</label>
+                  <Input
+                    type="number"
+                    step="0.0001"
+                    min="0"
+                    max="0.1"
+                    value={slippageRate}
+                    onChange={(e) => setSlippageRate(e.target.value)}
+                    placeholder="0.0005 for 0.05%"
+                    className="mt-1"
+                  />
+                </div>
               </div>
-              <div className="min-w-0">
-                <label className="block text-sm font-medium">Date to</label>
-                <Input
-                  type="date"
-                  value={dateTo}
-                  min={dateFrom}
-                  onChange={(e) => {
-                    setDateTo(e.target.value);
-                    setPeriodPreset("custom");
-                  }}
-                  className="mt-1 w-full min-w-0"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium">Fee rate (optional)</label>
-                <Input
-                  type="number"
-                  step="0.0001"
-                  min="0"
-                  max="0.1"
-                  value={feeRate}
-                  onChange={(e) => setFeeRate(e.target.value)}
-                  placeholder="0.001 for 0.1%"
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium">Slippage rate (optional)</label>
-                <Input
-                  type="number"
-                  step="0.0001"
-                  min="0"
-                  max="0.1"
-                  value={slippageRate}
-                  onChange={(e) => setSlippageRate(e.target.value)}
-                  placeholder="0.0005 for 0.05%"
-                  className="mt-1"
-                />
-              </div>
+
               {isBetaGrandfatheredUser && (
-                <div className="md:col-span-2">
-                  <label className="mt-1 flex items-start gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={forceRefreshPrices}
-                      onChange={(e) => setForceRefreshPrices(e.target.checked)}
-                      className="mt-0.5 h-4 w-4 rounded border-border"
-                    />
-                    <span>
-                      Force refresh candle prices before running (Beta User — Grandfathered Perks Applied).
-                      <span className="block text-xs text-muted-foreground">
-                        Re-fetches OHLCV for this exact period and overwrites cached values.
-                      </span>
+                <label className="flex items-start gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={forceRefreshPrices}
+                    onChange={(e) => setForceRefreshPrices(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded border-border"
+                  />
+                  <span>
+                    Force refresh candle prices before running (Beta User — Grandfathered Perks Applied).
+                    <span className="block text-xs text-muted-foreground">
+                      Re-fetches OHLCV for this exact period and overwrites cached values.
                     </span>
-                  </label>
-                </div>
+                  </span>
+                </label>
               )}
-              <div className="md:col-span-2 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+
+              {/* Run All button */}
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <p className="text-sm text-muted-foreground">
                   Backtests run in the background. You can leave this page and results will still be saved.
                 </p>
-                <Button type="submit" disabled={isSubmitting} className="w-full md:w-auto">
-                  {isSubmitting ? "Starting..." : "Run backtest"}
+                <Button
+                  onClick={submitBatchBacktest}
+                  disabled={isSubmitting || selectedPeriods.size === 0}
+                  className="w-full md:w-auto"
+                >
+                  {isSubmitting ? "Starting..." : `Run All (${selectedPeriods.size})`}
                 </Button>
               </div>
-            </form>
+            </div>
           </section>
 
           <section className="rounded-xl border bg-card p-3 shadow-sm sm:p-4">
@@ -1650,6 +1780,85 @@ export default function StrategyBacktestPage({ params }: Props) {
             )}
           </section>
         </div>
+
+        {/* Batch results section */}
+        {(activeBatchId && (batchRuns.length > 0 || batchSkippedRuns.length > 0)) && (
+          <section className="rounded-xl border bg-card p-3 shadow-sm sm:p-4">
+            <div className="mb-3">
+              <h2 className="text-base font-semibold tracking-tight">Batch results</h2>
+              <p className="text-sm text-muted-foreground">
+                {isBatchDone ? "All periods finished." : "Results appear as each period completes."}
+              </p>
+            </div>
+            <div className="space-y-2">
+              {/* Show skipped runs from the initial response */}
+              {batchSkippedRuns.map((skipped) => (
+                <div
+                  key={skipped.period_key}
+                  className="flex items-center justify-between rounded-lg border bg-secondary/30 px-3 py-2.5"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-medium">{PERIOD_LABEL[skipped.period_key] ?? skipped.period_key}</span>
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium capitalize ${statusStyles.skipped}`}>
+                      skipped
+                    </span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">{skipped.skip_reason}</span>
+                </div>
+              ))}
+              {/* Show queued/running/completed runs from polling */}
+              {batchRuns.map((run) => {
+                const isPositive = (run.summary?.total_return_pct ?? 0) >= 0;
+                const isActive = selectedRunId === run.run_id;
+                return (
+                  <button
+                    key={run.run_id}
+                    onClick={() => run.status === "completed" && setSelectedRunId(run.run_id)}
+                    disabled={run.status !== "completed"}
+                    className={`flex w-full items-center justify-between rounded-lg border px-3 py-2.5 text-left transition-all ${
+                      isActive
+                        ? "border-primary/40 bg-primary/10 ring-1 ring-primary/20"
+                        : run.status === "completed"
+                          ? "bg-card hover:border-border hover:shadow-sm"
+                          : "bg-secondary/30"
+                    } ${run.status !== "completed" ? "cursor-default" : ""}`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-medium">{PERIOD_LABEL[run.period_key ?? ""] ?? run.period_key}</span>
+                      <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium capitalize ${statusStyles[run.status as BacktestStatus] ?? statusStyles.pending}`}>
+                        {run.status === "running" && (
+                          <span className="relative flex h-2 w-2">
+                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-400 opacity-75" />
+                            <span className="relative inline-flex h-2 w-2 rounded-full bg-blue-500" />
+                          </span>
+                        )}
+                        {run.status}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-4 text-sm tabular-nums">
+                      {run.status === "completed" && run.summary && (
+                        <>
+                          <span className={isPositive ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}>
+                            {isPositive ? "+" : ""}{formatPercent(run.summary.total_return_pct)}
+                          </span>
+                          <span className="hidden text-muted-foreground sm:inline">
+                            DD {formatPercent(run.summary.max_drawdown_pct)}
+                          </span>
+                          <span className="hidden text-muted-foreground md:inline">
+                            Sharpe {run.summary.sharpe_ratio.toFixed(2)}
+                          </span>
+                        </>
+                      )}
+                      {run.status === "failed" && (
+                        <span className="text-xs text-destructive">{run.error_message ?? "Failed"}</span>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        )}
 
         <section className="rounded-xl border bg-card p-3 shadow-sm sm:p-4">
           <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">

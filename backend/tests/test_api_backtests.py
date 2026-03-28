@@ -194,3 +194,81 @@ def test_backtest_enqueue_forwards_request_correlation_id(
     assert args[0] == "app.worker.jobs.run_backtest_job"
     assert args[3] == "api-trace-123"
     assert kwargs["job_timeout"] == 300
+
+
+def test_batch_backtest_all_skipped_returns_null_batch_id(
+    client: TestClient, session: Session, monkeypatch
+):
+    user = _create_user(session, "batch-skipped@example.com", UserTier.STANDARD)
+    strategy = _create_strategy_with_version(session, user.id)
+    token = _login_and_get_token(client, user.email)
+
+    monkeypatch.setattr(
+        "app.api.backtests.get_effective_limits",
+        lambda *args, **kwargs: {
+            "max_backtests_per_day": 0,
+            "max_history_days": 3650,
+        },
+    )
+
+    response = client.post(
+        "/backtests/batch",
+        headers={"Authorization": f"Bearer {token}"},
+        json={
+            "strategy_id": str(strategy.id),
+            "periods": ["30d", "60d"],
+        },
+    )
+
+    assert response.status_code == 201
+    body = response.json()
+    assert body["batch_id"] is None
+    assert len(body["runs"]) == 2
+    assert all(run["status"] == "skipped" for run in body["runs"])
+    assert all(run.get("run_id") is None for run in body["runs"])
+
+
+def test_batch_backtest_with_queued_runs_returns_retrievable_batch_id(
+    client: TestClient, session: Session, monkeypatch
+):
+    user = _create_user(session, "batch-queued@example.com", UserTier.STANDARD)
+    strategy = _create_strategy_with_version(session, user.id)
+    token = _login_and_get_token(client, user.email)
+
+    monkeypatch.setattr(
+        "app.api.backtests.get_effective_limits",
+        lambda *args, **kwargs: {
+            "max_backtests_per_day": 50,
+            "max_history_days": 3650,
+        },
+    )
+
+    class FakeQueue:
+        def enqueue(self, *args, **kwargs):
+            return None
+
+    monkeypatch.setattr("app.api.backtests.get_redis_queue", lambda: FakeQueue())
+
+    create_response = client.post(
+        "/backtests/batch",
+        headers={"Authorization": f"Bearer {token}"},
+        json={
+            "strategy_id": str(strategy.id),
+            "periods": ["30d"],
+        },
+    )
+
+    assert create_response.status_code == 201
+    body = create_response.json()
+    assert body["batch_id"] is not None
+    assert len(body["runs"]) == 1
+    assert body["runs"][0]["status"] == "pending"
+
+    status_response = client.get(
+        f"/backtests/batch/{body['batch_id']}",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert status_response.status_code == 200
+    status_body = status_response.json()
+    assert status_body["batch_id"] == body["batch_id"]
+    assert len(status_body["runs"]) == 1

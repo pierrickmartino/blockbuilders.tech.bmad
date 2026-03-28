@@ -106,6 +106,8 @@ class BacktestStatusResponse(BaseModel):
     date_from: datetime
     date_to: datetime
     triggered_by: str = "manual"
+    batch_id: Optional[UUID] = None
+    period_key: Optional[str] = None
     summary: Optional[BacktestSummary] = None
     narrative: Optional[str] = None
     error_message: Optional[str] = None
@@ -296,3 +298,72 @@ class BacktestCompareResponse(BaseModel):
     """Response for comparison endpoint."""
 
     runs: list[BacktestCompareRun]
+
+
+# --- Batch backtesting schemas ---
+
+VALID_PERIODS = {"30d", "60d", "90d", "120d", "1y", "2y", "3y"}
+
+
+class BatchBacktestCreateRequest(BaseModel):
+    """Request body for creating a batch of backtests across multiple periods."""
+
+    strategy_id: UUID
+    periods: list[str]
+    fee_rate: Optional[float] = None
+    slippage_rate: Optional[float] = None
+    spread_rate: Optional[float] = None
+
+    @field_validator("periods")
+    @classmethod
+    def validate_periods(cls, v: list[str]) -> list[str]:
+        if not v:
+            raise ValueError("At least one period must be selected.")
+        invalid = set(v) - VALID_PERIODS
+        if invalid:
+            raise ValueError(f"Invalid periods: {', '.join(sorted(invalid))}. Valid: {', '.join(sorted(VALID_PERIODS))}")
+        return v
+
+    @field_validator("fee_rate")
+    @classmethod
+    def validate_batch_fee_rate(cls, v: Optional[float]) -> Optional[float]:
+        if v is not None and (v < 0 or v > 0.1):
+            raise ValueError("fee_rate must be between 0 and 0.1 (10%)")
+        return v
+
+    @field_validator("slippage_rate")
+    @classmethod
+    def validate_batch_slippage_rate(cls, v: Optional[float]) -> Optional[float]:
+        if v is not None and (v < 0 or v > 0.1):
+            raise ValueError("slippage_rate must be between 0 and 0.1 (10%)")
+        return v
+
+    @field_validator("spread_rate")
+    @classmethod
+    def validate_batch_spread_rate(cls, v: Optional[float]) -> Optional[float]:
+        if v is not None and (v < 0 or v > 0.1):
+            raise ValueError("spread_rate must be between 0 and 0.1 (10%)")
+        return v
+
+
+class BatchRunResult(BaseModel):
+    """Per-period outcome in a batch backtest response."""
+
+    period_key: str
+    run_id: Optional[UUID] = None
+    status: str  # "pending" or "skipped"
+    skip_reason: Optional[str] = None
+
+
+class BatchBacktestCreateResponse(BaseModel):
+    """Response after creating a batch of backtests."""
+
+    batch_id: Optional[UUID] = None
+    runs: list[BatchRunResult]
+
+
+class BatchStatusResponse(BaseModel):
+    """Response for batch status polling endpoint."""
+
+    batch_id: UUID
+    runs: list[BacktestStatusResponse]
