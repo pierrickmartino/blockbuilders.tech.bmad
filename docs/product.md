@@ -1,7 +1,7 @@
 # Blockbuilders – Product Documentation
 
 **Status:** Current Product Truth
-**Last Updated:** 2026-03-25
+**Last Updated:** 2026-03-28
 **Purpose:** Comprehensive documentation of all implemented features
 
 ---
@@ -1396,6 +1396,8 @@ Plain-Language Error Messages
   - Name, asset, timeframe
   - Tags (chip list)
   - Latest backtest metrics preview
+  - Period performance grid: 30d, 60d, 90d, and 1y returns with green/red color cues for fast cross-strategy horizon comparison
+  - Premium-only long-horizon columns: 2y and 3y returns
   - Last run timestamp
   - Actions: Open, Clone (one-click duplicate), Archive
 - Empty state + create menu offer “Strategy Building Wizard” for guided creation
@@ -2212,6 +2214,7 @@ Plain-Language Error Messages
 | **User Profiles & Reputation** | ✅ Complete | Opt-in public profiles (/u/{handle}), follower counts, contributions, auto-awarded badges, privacy toggles |
 | **Strategy Management** | ✅ Complete | CRUD, versioning, validation, duplication (one-click list clone), archiving |
 | **Bulk Strategy Actions** | ✅ Complete | Multi-select strategies with checkbox selection + action dropdown for archive, tag, delete |
+| **Strategy Performance by Period Grid** | 📝 Spec Ready | Plan to extend strategy list rows with sortable period columns (30d, 60d, 90d, 1y; Premium: 2y/3y), return % color-coding, and cached-batch/latest-run data sourcing for at-a-glance cross-strategy comparison |
 | **Strategy Groups/Tags** | ✅ Complete | Custom tags, tag filtering, many-to-many strategy organization |
 | **Visual Builder** | ✅ Complete | 20 block types, drag-drop, enhanced Inspector panel with period presets and source quick-swaps, mobile-responsive |
 | **Inline Parameter Popover on Block Tap** | 📝 Spec Ready | Feature-flagged block-anchored parameter popover that reuses Inspector controls inline, auto-positions to remain fully visible (Floating UI/Radix), updates compact node labels in real time (<100ms target), commits on outside click with undo/redo + autosave debounce, and falls back to Inspector panel when flag is off |
@@ -2565,6 +2568,8 @@ npm run type-check    # TypeScript validation
 - `docs/prd-one-time-credit-packs.md` - One-time credit packs PRD
 - `docs/prd-grandfathered-beta-user-benefits.md` - Grandfathered beta user benefits PRD
 - `docs/prd-quick-strategy-clone.md` - Quick strategy clone (list action) PRD
+- `docs/prd-strategy-performance-by-period-grid.md` - Strategy performance by period grid PRD
+- `docs/tst-strategy-performance-by-period-grid.md` - Strategy performance by period grid test checklist
 - `docs/prd-progress-dashboard.md` - Progress dashboard PRD
 - `docs/prd-posthog-analytics-privacy-consent.md` - PostHog analytics with privacy consent PRD
 - `docs/prd-first-run-guided-metric-explanations.md` - First-run guided metric explanations PRD
@@ -2635,6 +2640,7 @@ npm run type-check    # TypeScript validation
 
 ## 17. Changelog
 
+- **2026-03-28:** Added PRD/TST planning for a strategy performance-by-period grid in strategy lists with sortable 30d/60d/90d/1y columns, premium-only 2y/3y columns, and cached backtest period sourcing for fast cross-strategy comparisons.
 - **2026-03-25:** Added PRD/TST planning for phased token support expansion toward the top 50 assets, including immediate inclusion of BNB/USDT, CRV/USDT, and GRT/USDT using the existing ingestion + validation architecture.
 - **2026-03-22:** Added PRD/TST planning for a Storybook framework dedicated to component UX/UI work, requiring full alignment with `docs/design-system.json` and `docs/design_concept.json`, Storybook as the official reusable component documentation surface, and a markdown onboarding guide for new frontend contributors.
 - **2026-03-21:** Added PRD/TST planning to remove sentiment analysis from backtest results, keeping sentiment limited to Market Overview and simplifying results payloads/UI by removing sentiment summaries, widgets, and empty placeholders.
