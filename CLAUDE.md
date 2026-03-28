@@ -86,6 +86,7 @@ When adding or changing features, update `docs/product.md` and create/update rel
 | Dashboard / strategy list behavior | 9.3, 13 | UI notes + feature summary |
 | Recently viewed shortcuts | 9.3, 13 | UI notes + feature summary |
 | Strategy list quick actions | 9.3, 13 | Prefer visible one-click buttons; avoid new modals |
+| Strategy performance by period grid | 9.3, 13, 17.1 | Keep table compact; reuse cached backtest outputs; premium adds 2y/3y columns |
 | Canvas feature-flags / SmartCanvas | 13, 16.1, 17 | Feature coverage, docs index, changelog |
 | Canvas Health Bar (strategy completeness) | 4, 9.3, 13, 16.1, 17 | Include Entry/Exit/Risk states, feature flag, localStorage persistence, docs links |
 | Bulk actions on lists | 9.3, 13 | Use checkbox + action dropdown; avoid extra confirmations |
