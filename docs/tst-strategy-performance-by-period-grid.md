@@ -22,7 +22,7 @@
 - [ ] Clicking each period header sorts ascending on first click
 - [ ] Clicking same header again sorts descending
 - [ ] Sorting works for all visible period columns (`30d`, `60d`, `90d`, `1y`, and premium `2y`/`3y`)
-- [ ] Rows with `—` sort to the end in both sort directions (or per chosen global rule)
+- [ ] Rows with `—` are excluded from numeric sort comparisons and always sort to the end in both ascending and descending order
 - [ ] Tie values use deterministic tie-breaker (strategy name ascending)
 
 ## 4. Data Source Priority

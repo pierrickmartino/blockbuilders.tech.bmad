@@ -1396,8 +1396,8 @@ Plain-Language Error Messages
   - Name, asset, timeframe
   - Tags (chip list)
   - Latest backtest metrics preview
-  - Period performance grid: 30d, 60d, 90d, and 1y returns with green/red color cues for fast cross-strategy horizon comparison
-  - Premium-only long-horizon columns: 2y and 3y returns
+  - Planned (📝 Spec Ready, not yet implemented): period performance grid with 30d, 60d, 90d, and 1y returns plus green/red color cues for fast cross-strategy horizon comparison
+  - Planned (📝 Spec Ready, not yet implemented): Premium-only long-horizon columns for 2y and 3y returns
   - Last run timestamp
   - Actions: Open, Clone (one-click duplicate), Archive
 - Empty state + create menu offer “Strategy Building Wizard” for guided creation

@@ -3,7 +3,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import ValidationError as PydanticValidationError
-from sqlalchemy import case, literal
+from sqlalchemy import case, extract, literal
 from sqlmodel import Session, select, func, and_
 
 from app.api.deps import get_current_user
@@ -242,9 +242,16 @@ def list_strategies(
     # Batch load period returns: classify completed runs by duration bucket
     period_returns_by_strategy: dict[UUID, dict[str, float]] = {}
     if strategy_ids:
-        duration_days = func.date_part(
-            literal("day"), BacktestRun.date_to - BacktestRun.date_from
-        )
+        bind = session.get_bind()
+        dialect_name = bind.dialect.name if bind is not None else ""
+        if dialect_name == "sqlite":
+            duration_days = func.julianday(BacktestRun.date_to) - func.julianday(
+                BacktestRun.date_from
+            )
+        else:
+            duration_days = extract(
+                "epoch", BacktestRun.date_to - BacktestRun.date_from
+            ) / literal(86400.0)
         period_label = case(
             *[
                 (
