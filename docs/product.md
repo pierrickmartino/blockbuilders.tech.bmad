@@ -881,6 +881,12 @@ Plain-Language Error Messages
 - Backtest configuration shows selected asset data availability: `Data available: [earliest date] – Present` (or latest ingested date when not current).
 - If the user selects a start date before available history: regular users see a warning and the date auto-adjusts to the earliest available; beta users see a warning but keep their date, and a confirmation dialog on submit lets them trigger a data download.
 
+**Planned: Multi-Period Batch Backtesting (Spec Ready)**
+- Backtest runner offers preset period checkboxes (`30d`, `60d`, `90d`, `120d`, `1y`) instead of manual date picking for quick robustness sweeps.
+- Premium users also get `2y` and `3y` period options (bounded by historical depth).
+- Clicking **Run All** enqueues one backtest per selected period; each queued run counts toward daily backtest limits.
+- Results fill in progressively and remain grouped by period for side-by-side comparison.
+
 **Get Backtest** (`GET /backtests/{run_id}`)
 - Returns status and summary metrics
 - Statuses: pending, running, completed, failed
@@ -2215,6 +2221,7 @@ Plain-Language Error Messages
 | **Strategy Management** | ✅ Complete | CRUD, versioning, validation, duplication (one-click list clone), archiving |
 | **Bulk Strategy Actions** | ✅ Complete | Multi-select strategies with checkbox selection + action dropdown for archive, tag, delete |
 | **Strategy Performance by Period Grid** | 📝 Spec Ready | Plan to extend strategy list rows with sortable period columns (30d, 60d, 90d, 1y; Premium: 2y/3y), return % color-coding, and cached-batch/latest-run data sourcing for at-a-glance cross-strategy comparison |
+| **Multi-Period Batch Backtesting** | 📝 Spec Ready | Add preset period checkboxes (30d/60d/90d/120d/1y; Premium: 2y/3y) and a one-click `Run All` action in the backtest runner that queues one run per selected period, streams grouped results as jobs complete, and applies daily-limit counting per queued run |
 | **Strategy Groups/Tags** | ✅ Complete | Custom tags, tag filtering, many-to-many strategy organization |
 | **Visual Builder** | ✅ Complete | 20 block types, drag-drop, enhanced Inspector panel with period presets and source quick-swaps, mobile-responsive |
 | **Inline Parameter Popover on Block Tap** | 📝 Spec Ready | Feature-flagged block-anchored parameter popover that reuses Inspector controls inline, auto-positions to remain fully visible (Floating UI/Radix), updates compact node labels in real time (<100ms target), commits on outside click with undo/redo + autosave debounce, and falls back to Inspector panel when flag is off |
@@ -2570,6 +2577,8 @@ npm run type-check    # TypeScript validation
 - `docs/prd-quick-strategy-clone.md` - Quick strategy clone (list action) PRD
 - `docs/prd-strategy-performance-by-period-grid.md` - Strategy performance by period grid PRD
 - `docs/tst-strategy-performance-by-period-grid.md` - Strategy performance by period grid test checklist
+- `docs/prd-multi-period-batch-backtesting.md` - Multi-period batch backtesting PRD
+- `docs/tst-multi-period-batch-backtesting.md` - Multi-period batch backtesting test checklist
 - `docs/prd-progress-dashboard.md` - Progress dashboard PRD
 - `docs/prd-posthog-analytics-privacy-consent.md` - PostHog analytics with privacy consent PRD
 - `docs/prd-first-run-guided-metric-explanations.md` - First-run guided metric explanations PRD
@@ -2640,6 +2649,7 @@ npm run type-check    # TypeScript validation
 
 ## 17. Changelog
 
+- **2026-03-28:** Added PRD/TST planning for multi-period batch backtesting in the backtest runner with preset period checkboxes (30d/60d/90d/120d/1y; Premium 2y/3y), one-click `Run All` queueing, grouped progressive results, and per-run daily-limit accounting.
 - **2026-03-28:** Added PRD/TST planning for a strategy performance-by-period grid in strategy lists with sortable 30d/60d/90d/1y columns, premium-only 2y/3y columns, and cached backtest period sourcing for fast cross-strategy comparisons.
 - **2026-03-25:** Added PRD/TST planning for phased token support expansion toward the top 50 assets, including immediate inclusion of BNB/USDT, CRV/USDT, and GRT/USDT using the existing ingestion + validation architecture.
 - **2026-03-22:** Added PRD/TST planning for a Storybook framework dedicated to component UX/UI work, requiring full alignment with `docs/design-system.json` and `docs/design_concept.json`, Storybook as the official reusable component documentation surface, and a markdown onboarding guide for new frontend contributors.
