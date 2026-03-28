@@ -2,7 +2,7 @@
 import logging
 import secrets
 from datetime import datetime, timezone, timedelta
-from uuid import UUID
+from uuid import UUID, uuid4
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +15,7 @@ from app.api.deps import get_current_user
 from app.core.config import settings
 from app.core.database import get_session
 from app.core.logging import correlation_id_var
-from app.core.plans import get_plan_limits
+from app.core.plans import get_effective_limits, get_plan_limits
 from app.models.backtest_run import BacktestRun
 from app.models.candle import Candle
 from app.models.notification import Notification
@@ -36,6 +36,10 @@ from app.schemas.backtest import (
     BacktestListItem,
     BacktestStatusResponse,
     BacktestSummary,
+    BatchBacktestCreateRequest,
+    BatchBacktestCreateResponse,
+    BatchRunResult,
+    BatchStatusResponse,
     CandleResponse,
     DataCompletenessResponse,
     DataQualityMetrics,
@@ -55,6 +59,184 @@ def get_redis_queue() -> Queue:
     """Get Redis queue for job enqueueing."""
     redis_conn = Redis.from_url(settings.redis_url)
     return Queue("default", connection=redis_conn)
+
+
+# Period-to-days mapping for batch backtesting
+PERIOD_DAYS: dict[str, int] = {
+    "30d": 30, "60d": 60, "90d": 90, "120d": 120,
+    "1y": 365, "2y": 730, "3y": 1095,
+}
+PREMIUM_ONLY_PERIODS = {"2y", "3y"}
+
+
+def _resolve_rates(
+    user: User,
+    fee_rate: float | None,
+    slippage_rate: float | None,
+    spread_rate: float | None,
+) -> tuple[float, float, float]:
+    """Resolve fee/slippage/spread rates from request, user defaults, or global defaults."""
+    resolved_fee = fee_rate if fee_rate is not None else (
+        user.default_fee_percent if user.default_fee_percent is not None else settings.default_fee_rate
+    )
+    resolved_slippage = slippage_rate if slippage_rate is not None else (
+        user.default_slippage_percent if user.default_slippage_percent is not None else settings.default_slippage_rate
+    )
+    resolved_spread = spread_rate if spread_rate is not None else (
+        user.default_spread_percent if user.default_spread_percent is not None else settings.default_spread_rate
+    )
+    return resolved_fee, resolved_slippage, resolved_spread
+
+
+def _create_single_run(
+    user: User,
+    strategy: Strategy,
+    latest_version: StrategyVersion,
+    session: Session,
+    date_from: datetime,
+    date_to: datetime,
+    fee_rate: float,
+    slippage_rate: float,
+    spread_rate: float,
+    force_refresh_prices: bool = False,
+    batch_id: UUID | None = None,
+    period_key: str | None = None,
+) -> BacktestRun:
+    """Create a BacktestRun record and enqueue the worker job."""
+    run = BacktestRun(
+        user_id=user.id,
+        strategy_id=strategy.id,
+        strategy_version_id=latest_version.id,
+        status="pending",
+        asset=strategy.asset,
+        timeframe=strategy.timeframe,
+        date_from=date_from,
+        date_to=date_to,
+        initial_balance=settings.default_initial_balance,
+        fee_rate=fee_rate,
+        slippage_rate=slippage_rate,
+        spread_rate=spread_rate,
+        batch_id=batch_id,
+        period_key=period_key,
+    )
+    session.add(run)
+    session.commit()
+    session.refresh(run)
+
+    try:
+        queue = get_redis_queue()
+        request_correlation_id = correlation_id_var.get("") or None
+        queue.enqueue(
+            "app.worker.jobs.run_backtest_job",
+            str(run.id),
+            force_refresh_prices,
+            request_correlation_id,
+            job_timeout=300,
+        )
+        logger.info(
+            "backtest_enqueued",
+            extra={
+                "run_id": str(run.id),
+                "strategy_id": str(strategy.id),
+                "user_id": str(user.id),
+                "asset": strategy.asset,
+                "timeframe": strategy.timeframe,
+                "batch_id": str(batch_id) if batch_id else None,
+                "period_key": period_key,
+            },
+        )
+    except Exception:
+        run.status = "failed"
+        run.error_message = "Failed to queue backtest job"
+        session.add(run)
+        session.commit()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to queue backtest job",
+        )
+    return run
+
+
+def _build_status_response(
+    run: BacktestRun, session: Session
+) -> BacktestStatusResponse:
+    """Map a BacktestRun to its API response, including summary and data quality."""
+    summary = None
+    if run.status == "completed" and run.total_return is not None:
+        summary = BacktestSummary(
+            initial_balance=run.initial_balance,
+            final_balance=run.initial_balance * (1 + run.total_return / 100),
+            total_return_pct=run.total_return,
+            cagr_pct=run.cagr or 0.0,
+            max_drawdown_pct=run.max_drawdown or 0.0,
+            num_trades=run.num_trades or 0,
+            win_rate_pct=run.win_rate or 0.0,
+            benchmark_return_pct=run.benchmark_return or 0.0,
+            alpha=run.alpha or 0.0,
+            beta=run.beta or 0.0,
+            sharpe_ratio=run.sharpe_ratio or 0.0,
+            sortino_ratio=run.sortino_ratio or 0.0,
+            calmar_ratio=run.calmar_ratio or 0.0,
+            max_consecutive_losses=run.max_consecutive_losses or 0,
+            gross_return_usd=run.gross_return_usd,
+            gross_return_pct=run.gross_return_pct,
+            total_fees_usd=run.total_fees_usd,
+            total_slippage_usd=run.total_slippage_usd,
+            total_spread_usd=run.total_spread_usd,
+            total_costs_usd=run.total_costs_usd,
+            cost_pct_gross_return=run.cost_pct_gross_return,
+            avg_cost_per_trade_usd=run.avg_cost_per_trade_usd,
+        )
+
+    narrative = generate_narrative(summary) if summary is not None else None
+
+    data_quality = None
+    try:
+        metrics_list = query_metrics_for_range(
+            run.asset, run.timeframe, run.date_from, run.date_to, session,
+        )
+        if metrics_list:
+            gap_percent_avg = sum(m.gap_percent for m in metrics_list) / len(metrics_list)
+            outlier_count_total = sum(m.outlier_count for m in metrics_list)
+            volume_consistency_avg = sum(m.volume_consistency for m in metrics_list) / len(metrics_list)
+            has_issues = any(m.has_issues for m in metrics_list)
+            issues_parts = []
+            if gap_percent_avg > settings.data_quality_gap_threshold:
+                issues_parts.append(f"{gap_percent_avg:.1f}% missing candles")
+            if outlier_count_total > 0:
+                issues_parts.append(f"{outlier_count_total} price outliers")
+            if volume_consistency_avg < settings.data_quality_volume_threshold:
+                issues_parts.append(f"{volume_consistency_avg:.1f}% volume consistency")
+            data_quality = DataQualityMetrics(
+                asset=run.asset,
+                timeframe=run.timeframe,
+                date_from=run.date_from,
+                date_to=run.date_to,
+                gap_percent=gap_percent_avg,
+                outlier_count=outlier_count_total,
+                volume_consistency=volume_consistency_avg,
+                has_issues=has_issues,
+                issues_description=", ".join(issues_parts) if issues_parts else "Data quality OK",
+            )
+    except Exception as e:
+        logger.debug("Failed to fetch data quality metrics: %s", e)
+
+    return BacktestStatusResponse(
+        run_id=run.id,
+        strategy_id=run.strategy_id,
+        status=run.status,
+        asset=run.asset,
+        timeframe=run.timeframe,
+        date_from=run.date_from,
+        date_to=run.date_to,
+        triggered_by=run.triggered_by,
+        batch_id=run.batch_id,
+        period_key=run.period_key,
+        summary=summary,
+        narrative=narrative,
+        error_message=run.error_message,
+        data_quality=data_quality,
+    )
 
 
 @router.post("/", response_model=BacktestCreateResponse, status_code=status.HTTP_201_CREATED)
@@ -85,8 +267,6 @@ def create_backtest(
         )
 
     # Check daily backtest limit based on plan tier
-    from app.core.plans import get_effective_limits
-
     effective_limits = get_effective_limits(user.plan_tier, user.user_tier)
     today_start = datetime.now(timezone.utc).replace(
         hour=0, minute=0, second=0, microsecond=0
@@ -99,11 +279,9 @@ def create_backtest(
     ).one()
     use_credit = False
     if today_count >= effective_limits["max_backtests_per_day"]:
-        # Daily cap reached - require credits to proceed
         if user.backtest_credit_balance > 0:
             use_credit = True
         else:
-            # No credits - create notification and reject
             existing_notification = session.exec(
                 select(Notification).where(
                     Notification.user_id == user.id,
@@ -112,7 +290,6 @@ def create_backtest(
                     Notification.created_at >= today_start,
                 )
             ).first()
-
             if not existing_notification:
                 notification = Notification(
                     user_id=user.id,
@@ -129,7 +306,7 @@ def create_backtest(
                 detail=f"Daily backtest limit reached ({effective_limits['max_backtests_per_day']}). Purchase credits or resets at {tomorrow.isoformat()}.",
             )
 
-    # Check historical data depth limit based on plan tier
+    # Check historical data depth limit
     date_range_days = (data.date_to - data.date_from).days
     if date_range_days > effective_limits["max_history_days"]:
         raise HTTPException(
@@ -149,89 +326,24 @@ def create_backtest(
             detail="Strategy has no saved versions",
         )
 
-    # Determine fee, slippage, and spread rates
-    fee_rate = data.fee_rate
-    if fee_rate is None:
-        fee_rate = (
-            user.default_fee_percent
-            if user.default_fee_percent is not None
-            else settings.default_fee_rate
-        )
-
-    slippage_rate = data.slippage_rate
-    if slippage_rate is None:
-        slippage_rate = (
-            user.default_slippage_percent
-            if user.default_slippage_percent is not None
-            else settings.default_slippage_rate
-        )
-
-    spread_rate = data.spread_rate
-    if spread_rate is None:
-        spread_rate = (
-            user.default_spread_percent
-            if user.default_spread_percent is not None
-            else settings.default_spread_rate
-        )
-
-    # Create backtest run record
-    run = BacktestRun(
-        user_id=user.id,
-        strategy_id=strategy.id,
-        strategy_version_id=latest_version.id,
-        status="pending",
-        asset=strategy.asset,
-        timeframe=strategy.timeframe,
-        date_from=data.date_from,
-        date_to=data.date_to,
-        initial_balance=settings.default_initial_balance,
-        fee_rate=fee_rate,
-        slippage_rate=slippage_rate,
-        spread_rate=spread_rate,
+    fee_rate, slippage_rate, spread_rate = _resolve_rates(
+        user, data.fee_rate, data.slippage_rate, data.spread_rate,
     )
-    session.add(run)
-    session.commit()
-    session.refresh(run)
 
-    # Enqueue job
-    try:
-        queue = get_redis_queue()
-        request_correlation_id = correlation_id_var.get("") or None
-        queue.enqueue(
-            "app.worker.jobs.run_backtest_job",
-            str(run.id),
-            data.force_refresh_prices,
-            request_correlation_id,
-            job_timeout=300,  # 5 minute timeout
-        )
-        if use_credit:
-            user.backtest_credit_balance -= 1
-            session.add(user)
-            session.commit()
-            logger.info(
-                "User %s used backtest credit (balance: %s)",
-                user.id,
-                user.backtest_credit_balance,
-            )
-        logger.info(
-            "backtest_enqueued",
-            extra={
-                "run_id": str(run.id),
-                "strategy_id": str(strategy.id),
-                "user_id": str(user.id),
-                "asset": strategy.asset,
-                "timeframe": strategy.timeframe,
-            },
-        )
-    except Exception as e:
-        # Mark run as failed if enqueue fails
-        run.status = "failed"
-        run.error_message = "Failed to queue backtest job"
-        session.add(run)
+    run = _create_single_run(
+        user, strategy, latest_version, session,
+        data.date_from, data.date_to,
+        fee_rate, slippage_rate, spread_rate,
+        force_refresh_prices=data.force_refresh_prices,
+    )
+
+    if use_credit:
+        user.backtest_credit_balance -= 1
+        session.add(user)
         session.commit()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to queue backtest job",
+        logger.info(
+            "User %s used backtest credit (balance: %s)",
+            user.id, user.backtest_credit_balance,
         )
 
     return BacktestCreateResponse(run_id=run.id, status=run.status)
@@ -347,6 +459,128 @@ def get_data_completeness(
     )
 
 
+@router.post("/batch", response_model=BatchBacktestCreateResponse, status_code=status.HTTP_201_CREATED)
+def create_batch_backtest(
+    data: BatchBacktestCreateRequest,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> BatchBacktestCreateResponse:
+    """Create a batch of backtests across multiple periods and enqueue them."""
+    strategy = session.exec(
+        select(Strategy).where(
+            Strategy.id == data.strategy_id,
+            Strategy.user_id == user.id,
+        )
+    ).first()
+    if not strategy:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Strategy not found")
+
+    latest_version = session.exec(
+        select(StrategyVersion)
+        .where(StrategyVersion.strategy_id == strategy.id)
+        .order_by(StrategyVersion.version_number.desc())
+    ).first()
+    if not latest_version:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Strategy has no saved versions")
+
+    # Plan tier checks
+    is_premium = user.plan_tier in ("premium", "pro")
+    effective_limits = get_effective_limits(user.plan_tier, user.user_tier)
+    today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    today_count = session.exec(
+        select(func.count(BacktestRun.id)).where(
+            BacktestRun.user_id == user.id,
+            BacktestRun.created_at >= today_start,
+        )
+    ).one()
+
+    fee_rate, slippage_rate, spread_rate = _resolve_rates(
+        user, data.fee_rate, data.slippage_rate, data.spread_rate,
+    )
+
+    batch_id = uuid4()
+    now = datetime.now(timezone.utc)
+    results: list[BatchRunResult] = []
+    queued = 0
+
+    # Sort periods shortest to longest
+    sorted_periods = sorted(data.periods, key=lambda p: PERIOD_DAYS.get(p, 0))
+
+    for period in sorted_periods:
+        days = PERIOD_DAYS.get(period)
+        if days is None:
+            results.append(BatchRunResult(period_key=period, status="skipped", skip_reason=f"Unknown period: {period}"))
+            continue
+
+        # Premium-only gate
+        if period in PREMIUM_ONLY_PERIODS and not is_premium:
+            results.append(BatchRunResult(period_key=period, status="skipped", skip_reason="Upgrade to Pro or Premium to access this period."))
+            continue
+
+        # Historical depth check
+        if days > effective_limits["max_history_days"]:
+            results.append(BatchRunResult(period_key=period, status="skipped", skip_reason=f"Period exceeds your plan's {effective_limits['max_history_days']}-day history limit. Upgrade for longer history."))
+            continue
+
+        # Daily limit check
+        current_total = today_count + queued
+        use_credit = False
+        if current_total >= effective_limits["max_backtests_per_day"]:
+            if user.backtest_credit_balance > 0:
+                use_credit = True
+            else:
+                results.append(BatchRunResult(period_key=period, status="skipped", skip_reason="Daily backtest limit reached. Purchase credits or try again tomorrow."))
+                continue
+
+        date_to = now
+        date_from = now - timedelta(days=days)
+
+        run = _create_single_run(
+            user, strategy, latest_version, session,
+            date_from, date_to, fee_rate, slippage_rate, spread_rate,
+            batch_id=batch_id, period_key=period,
+        )
+
+        if use_credit:
+            user.backtest_credit_balance -= 1
+            session.add(user)
+            session.commit()
+
+        queued += 1
+        results.append(BatchRunResult(period_key=period, run_id=run.id, status="pending"))
+
+    if queued == 0 and results:
+        # All periods were skipped — still return the batch with skip reasons
+        pass
+
+    return BatchBacktestCreateResponse(batch_id=batch_id, runs=results)
+
+
+@router.get("/batch/{batch_id}", response_model=BatchStatusResponse)
+def get_batch_status(
+    batch_id: UUID,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> BatchStatusResponse:
+    """Get grouped status and results for all runs in a batch."""
+    runs = session.exec(
+        select(BacktestRun).where(
+            BacktestRun.batch_id == batch_id,
+            BacktestRun.user_id == user.id,
+        )
+    ).all()
+    if not runs:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Batch not found")
+
+    # Sort by period length (shortest first)
+    runs_sorted = sorted(runs, key=lambda r: PERIOD_DAYS.get(r.period_key or "", 0))
+
+    return BatchStatusResponse(
+        batch_id=batch_id,
+        runs=[_build_status_response(r, session) for r in runs_sorted],
+    )
+
+
 @router.get("/{run_id}", response_model=BacktestStatusResponse)
 def get_backtest_status(
     run_id: UUID,
@@ -366,96 +600,7 @@ def get_backtest_status(
             detail="Backtest run not found",
         )
 
-    # Build summary if completed
-    summary = None
-    if run.status == "completed" and run.total_return is not None:
-        summary = BacktestSummary(
-            initial_balance=run.initial_balance,
-            final_balance=run.initial_balance * (1 + run.total_return / 100),
-            total_return_pct=run.total_return,
-            cagr_pct=run.cagr or 0.0,
-            max_drawdown_pct=run.max_drawdown or 0.0,
-            num_trades=run.num_trades or 0,
-            win_rate_pct=run.win_rate or 0.0,
-            benchmark_return_pct=run.benchmark_return or 0.0,
-            alpha=run.alpha or 0.0,
-            beta=run.beta or 0.0,
-            sharpe_ratio=run.sharpe_ratio or 0.0,
-            sortino_ratio=run.sortino_ratio or 0.0,
-            calmar_ratio=run.calmar_ratio or 0.0,
-            max_consecutive_losses=run.max_consecutive_losses or 0,
-            gross_return_usd=run.gross_return_usd,
-            gross_return_pct=run.gross_return_pct,
-            total_fees_usd=run.total_fees_usd,
-            total_slippage_usd=run.total_slippage_usd,
-            total_spread_usd=run.total_spread_usd,
-            total_costs_usd=run.total_costs_usd,
-            cost_pct_gross_return=run.cost_pct_gross_return,
-            avg_cost_per_trade_usd=run.avg_cost_per_trade_usd,
-        )
-
-    # Generate narrative summary for completed runs
-    narrative = None
-    if summary is not None:
-        narrative = generate_narrative(summary)
-
-    # Query data quality metrics for the run's period
-    data_quality = None
-    try:
-        metrics_list = query_metrics_for_range(
-            run.asset,
-            run.timeframe,
-            run.date_from,
-            run.date_to,
-            session,
-        )
-        if metrics_list:
-            # Aggregate metrics across days
-            gap_percent_avg = sum(m.gap_percent for m in metrics_list) / len(metrics_list)
-            outlier_count_total = sum(m.outlier_count for m in metrics_list)
-            volume_consistency_avg = sum(m.volume_consistency for m in metrics_list) / len(metrics_list)
-            has_issues = any(m.has_issues for m in metrics_list)
-
-            # Generate issues description
-            issues_parts = []
-            if gap_percent_avg > settings.data_quality_gap_threshold:
-                issues_parts.append(f"{gap_percent_avg:.1f}% missing candles")
-            if outlier_count_total > 0:
-                issues_parts.append(f"{outlier_count_total} price outliers")
-            if volume_consistency_avg < settings.data_quality_volume_threshold:
-                issues_parts.append(f"{volume_consistency_avg:.1f}% volume consistency")
-
-            issues_description = ", ".join(issues_parts) if issues_parts else "Data quality OK"
-
-            data_quality = DataQualityMetrics(
-                asset=run.asset,
-                timeframe=run.timeframe,
-                date_from=run.date_from,
-                date_to=run.date_to,
-                gap_percent=gap_percent_avg,
-                outlier_count=outlier_count_total,
-                volume_consistency=volume_consistency_avg,
-                has_issues=has_issues,
-                issues_description=issues_description,
-            )
-    except Exception as e:
-        # Data quality is optional, don't fail if unavailable
-        logger.debug("Failed to fetch data quality metrics: %s", e)
-
-    return BacktestStatusResponse(
-        run_id=run.id,
-        strategy_id=run.strategy_id,
-        status=run.status,
-        asset=run.asset,
-        timeframe=run.timeframe,
-        date_from=run.date_from,
-        date_to=run.date_to,
-        triggered_by=run.triggered_by,
-        summary=summary,
-        narrative=narrative,
-        error_message=run.error_message,
-        data_quality=data_quality,
-    )
+    return _build_status_response(run, session)
 
 
 @router.get("/{run_id}/trades", response_model=list[TradeDetail])

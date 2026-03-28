@@ -1,4 +1,4 @@
-export type BacktestStatus = "pending" | "running" | "completed" | "failed";
+export type BacktestStatus = "pending" | "running" | "completed" | "failed" | "skipped";
 
 export interface BacktestCreateResponse {
   run_id: string;
@@ -51,6 +51,8 @@ export interface BacktestStatusResponse {
   date_from: string;
   date_to: string;
   triggered_by: string;
+  batch_id?: string | null;
+  period_key?: string | null;
   summary?: BacktestSummary | null;
   error_message?: string | null;
   narrative?: string | null;
@@ -215,4 +217,23 @@ export interface BacktestCompareRun {
 
 export interface BacktestCompareResponse {
   runs: BacktestCompareRun[];
+}
+
+// --- Batch backtesting types ---
+
+export interface BatchRunResult {
+  period_key: string;
+  run_id?: string | null;
+  status: string;
+  skip_reason?: string | null;
+}
+
+export interface BatchBacktestCreateResponse {
+  batch_id: string;
+  runs: BatchRunResult[];
+}
+
+export interface BatchStatusResponse {
+  batch_id: string;
+  runs: BacktestStatusResponse[];
 }
