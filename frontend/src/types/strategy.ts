@@ -23,6 +23,12 @@ export interface Strategy {
   latest_win_rate_pct?: number | null;
   latest_num_trades?: number | null;
   last_run_at?: string | null;
+  return_30d?: number | null;
+  return_60d?: number | null;
+  return_90d?: number | null;
+  return_1y?: number | null;
+  return_2y?: number | null;
+  return_3y?: number | null;
 }
 
 export interface StrategyVersion {

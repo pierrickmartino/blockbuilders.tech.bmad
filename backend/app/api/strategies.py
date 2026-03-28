@@ -3,6 +3,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import ValidationError as PydanticValidationError
+from sqlalchemy import case, extract, literal
 from sqlmodel import Session, select, func, and_
 
 from app.api.deps import get_current_user
@@ -35,6 +36,16 @@ from app.schemas.strategy import (
 from app.validation.error_messages import get_error_message
 
 router = APIRouter(prefix="/strategies", tags=["strategies"])
+
+# Period buckets: (label, min_days, max_days) — non-overlapping ranges
+PERIOD_BUCKETS = [
+    ("30d", 20, 40),
+    ("60d", 45, 75),
+    ("90d", 75, 105),
+    ("1y", 330, 400),
+    ("2y", 660, 800),
+    ("3y", 990, 1200),
+]
 
 
 def get_user_strategy(
@@ -228,6 +239,55 @@ def list_strategies(
     strategy_ids = [s.id for s, _ in results]
     tags_by_strategy = batch_load_strategy_tags(strategy_ids, session)
 
+    # Batch load period returns: classify completed runs by duration bucket
+    period_returns_by_strategy: dict[UUID, dict[str, float]] = {}
+    if strategy_ids:
+        bind = session.get_bind()
+        dialect_name = bind.dialect.name if bind is not None else ""
+        if dialect_name == "sqlite":
+            duration_days = func.julianday(BacktestRun.date_to) - func.julianday(
+                BacktestRun.date_from
+            )
+        else:
+            duration_days = extract(
+                "epoch", BacktestRun.date_to - BacktestRun.date_from
+            ) / literal(86400.0)
+        period_label = case(
+            *[
+                (
+                    and_(duration_days >= min_d, duration_days <= max_d),
+                    literal(label),
+                )
+                for label, min_d, max_d in PERIOD_BUCKETS
+            ],
+        ).label("period_label")
+
+        ranked = (
+            select(
+                BacktestRun.strategy_id,
+                period_label,
+                BacktestRun.total_return,
+                func.row_number()
+                .over(
+                    partition_by=[BacktestRun.strategy_id, period_label],
+                    order_by=(BacktestRun.created_at.desc(), BacktestRun.id.desc()),
+                )
+                .label("rn"),
+            )
+            .where(BacktestRun.status == "completed")
+            .where(BacktestRun.strategy_id.in_(strategy_ids))
+            .where(period_label.isnot(None))
+            .subquery()
+        )
+
+        period_rows = session.exec(
+            select(ranked.c.strategy_id, ranked.c.period_label, ranked.c.total_return)
+            .where(ranked.c.rn == 1)
+        ).all()
+
+        for sid, plabel, treturn in period_rows:
+            period_returns_by_strategy.setdefault(sid, {})[plabel] = treturn
+
     return [
         StrategyWithMetricsResponse(
             id=s.id,
@@ -247,6 +307,12 @@ def list_strategies(
             latest_num_trades=backtest.num_trades if backtest else None,
             last_run_at=backtest.created_at if backtest else None,
             tags=tags_by_strategy.get(s.id, []),
+            **(
+                {
+                    f"return_{k}": v
+                    for k, v in period_returns_by_strategy.get(s.id, {}).items()
+                }
+            ),
         )
         for s, backtest in results
     ]

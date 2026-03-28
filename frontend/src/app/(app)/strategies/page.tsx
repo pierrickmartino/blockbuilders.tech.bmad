@@ -8,6 +8,7 @@ import { useDisplay } from "@/context/display";
 import { useAuth } from "@/context/auth";
 import { trackEvent } from "@/lib/analytics";
 import { ALLOWED_ASSETS, Strategy, StrategyExportFile, StrategyTag, StrategyVersion, StrategyVersionDetail } from "@/types/strategy";
+import type { PlanResponse, ProfileResponse } from "@/types/auth";
 import type { ValidationResponse } from "@/types/canvas";
 import NewStrategyModal from "./new-strategy-modal";
 import { StrategyWizard } from "./strategy-wizard";
@@ -46,7 +47,8 @@ import {
 } from "@/components/ui/table";
 import { Plus, Upload, BookOpen, Layers, Search, MoreVertical } from "lucide-react";
 
-type SortField = "name" | "updated_at" | "total_return" | "last_run" | "asset";
+type SortField = "name" | "updated_at" | "total_return" | "last_run" | "asset"
+  | "return_30d" | "return_60d" | "return_90d" | "return_1y" | "return_2y" | "return_3y";
 type SortOrder = "asc" | "desc";
 type PerformanceFilter = "all" | "positive" | "negative";
 type LastRunFilter = "all" | "7days" | "30days" | "never";
@@ -72,6 +74,10 @@ export default function StrategiesPage() {
   const [importData, setImportData] = useState<StrategyExportFile | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const [isImporting, setIsImporting] = useState(false);
+
+  // Plan tier for premium column gating
+  const [userPlan, setUserPlan] = useState<PlanResponse | null>(null);
+  const isPremiumUser = userPlan?.tier === "premium" || userPlan?.tier === "pro";
 
   // New filter states
   const [assetFilter, setAssetFilter] = useState<string>("all");
@@ -118,6 +124,7 @@ export default function StrategiesPage() {
       }
     };
     loadTags();
+    apiFetch<ProfileResponse>("/users/me").then((data) => setUserPlan(data.plan)).catch(() => {});
   }, []);
 
   const refreshStrategies = async () => {
@@ -357,11 +364,36 @@ export default function StrategiesPage() {
           aVal = a.asset;
           bVal = b.asset;
           break;
+        case "return_30d":
+          aVal = a.return_30d ?? -Infinity;
+          bVal = b.return_30d ?? -Infinity;
+          break;
+        case "return_60d":
+          aVal = a.return_60d ?? -Infinity;
+          bVal = b.return_60d ?? -Infinity;
+          break;
+        case "return_90d":
+          aVal = a.return_90d ?? -Infinity;
+          bVal = b.return_90d ?? -Infinity;
+          break;
+        case "return_1y":
+          aVal = a.return_1y ?? -Infinity;
+          bVal = b.return_1y ?? -Infinity;
+          break;
+        case "return_2y":
+          aVal = a.return_2y ?? -Infinity;
+          bVal = b.return_2y ?? -Infinity;
+          break;
+        case "return_3y":
+          aVal = a.return_3y ?? -Infinity;
+          bVal = b.return_3y ?? -Infinity;
+          break;
       }
 
       if (aVal < bVal) return sortOrder === "asc" ? -1 : 1;
       if (aVal > bVal) return sortOrder === "asc" ? 1 : -1;
-      return 0;
+      // Tie-breaker: strategy name ascending
+      return a.name.localeCompare(b.name);
     });
 
     return sorted;
@@ -859,6 +891,24 @@ export default function StrategiesPage() {
                   >
                     Total Return <SortIcon field="total_return" />
                   </TableHead>
+                  {(["30d", "60d", "90d", "1y"] as const).map((p) => (
+                    <TableHead
+                      key={p}
+                      className="cursor-pointer hover:text-foreground text-center"
+                      onClick={() => handleSort(`return_${p}` as SortField)}
+                    >
+                      {p} <SortIcon field={`return_${p}` as SortField} />
+                    </TableHead>
+                  ))}
+                  {isPremiumUser && (["2y", "3y"] as const).map((p) => (
+                    <TableHead
+                      key={p}
+                      className="cursor-pointer hover:text-foreground text-center"
+                      onClick={() => handleSort(`return_${p}` as SortField)}
+                    >
+                      {p} <SortIcon field={`return_${p}` as SortField} />
+                    </TableHead>
+                  ))}
                   <TableHead>Max DD</TableHead>
                   <TableHead>Win Rate</TableHead>
                   <TableHead>Trades</TableHead>
@@ -922,6 +972,22 @@ export default function StrategiesPage() {
                     <TableCell className={`font-medium tabular-nums ${getReturnColorClass(strategy.latest_total_return_pct)}`}>
                       {formatMetric(strategy.latest_total_return_pct, "%")}
                     </TableCell>
+                    {(["30d", "60d", "90d", "1y"] as const).map((p) => {
+                      const val = strategy[`return_${p}`];
+                      return (
+                        <TableCell key={p} className={`tabular-nums text-center ${getReturnColorClass(val)}`}>
+                          {formatMetric(val, "%")}
+                        </TableCell>
+                      );
+                    })}
+                    {isPremiumUser && (["2y", "3y"] as const).map((p) => {
+                      const val = strategy[`return_${p}`];
+                      return (
+                        <TableCell key={p} className={`tabular-nums text-center ${getReturnColorClass(val)}`}>
+                          {formatMetric(val, "%")}
+                        </TableCell>
+                      );
+                    })}
                     <TableCell className="tabular-nums">
                       {formatMetric(strategy.latest_max_drawdown_pct, "%")}
                     </TableCell>
@@ -1073,6 +1139,31 @@ export default function StrategiesPage() {
                         {formatMetric(strategy.latest_num_trades, "", 0)}
                       </div>
                     </div>
+                  </div>
+
+                  <div className="mb-3 grid grid-cols-4 gap-2 text-xs">
+                    {(["30d", "60d", "90d", "1y"] as const).map((p) => {
+                      const val = strategy[`return_${p}`];
+                      return (
+                        <div key={p}>
+                          <span className="text-muted-foreground">{p}</span>{" "}
+                          <span className={`tabular-nums ${getReturnColorClass(val)}`}>
+                            {formatMetric(val, "%")}
+                          </span>
+                        </div>
+                      );
+                    })}
+                    {isPremiumUser && (["2y", "3y"] as const).map((p) => {
+                      const val = strategy[`return_${p}`];
+                      return (
+                        <div key={p}>
+                          <span className="text-muted-foreground">{p}</span>{" "}
+                          <span className={`tabular-nums ${getReturnColorClass(val)}`}>
+                            {formatMetric(val, "%")}
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
 
                   <div className="text-sm text-muted-foreground">
