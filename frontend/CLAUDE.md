@@ -18,18 +18,18 @@ npm run storybook    # Storybook → localhost:6006
 
 ## Design system — read before writing any UI
 
-Two source-of-truth files live in `docs/`:
+Two source-of-truth files (relative to this directory):
 
 | File | What it governs |
 |---|---|
-| `docs/design_concept.json` | Brand identity, design philosophy (clarity, functional minimalism, progressive disclosure), color strategy, typography strategy |
-| `docs/design-system.json` | Design tokens (colors, spacing, radii, shadows), component specs (buttons, inputs, cards, badges, dialogs, tables), layout patterns, interaction states |
+| `../docs/design_concept.json` | Brand identity, design philosophy (clarity, functional minimalism, progressive disclosure), color strategy, typography strategy |
+| `../docs/design-system.json` | Design tokens (colors, spacing, radii, shadows), component specs (buttons, inputs, cards, badges, dialogs, tables), layout patterns, interaction states |
 
 **Before implementing any UI:**
-1. Read `docs/design_concept.json` for the guiding philosophy of the feature area
-2. Pull exact token values from `docs/design-system.json` — never invent new values
-3. Cross-check component specs in `docs/design-system.json` before writing a new button, card, dialog, etc.
-4. Keep `frontend/src/app/globals.css` and `tailwind.config.ts` as the runtime expression of those tokens — never diverge from them
+1. Read `../docs/design_concept.json` for the guiding philosophy of the feature area
+2. Pull exact token values from `../docs/design-system.json` — never invent new values
+3. Cross-check component specs in `../docs/design-system.json` before writing a new button, card, dialog, etc.
+4. Keep `src/app/globals.css` and `tailwind.config.ts` as the runtime expression of those tokens — never diverge from them
 
 ## Colors
 - Use CSS variables defined in `globals.css`: `--primary`, `--secondary`, `--muted`, `--destructive`, etc.
@@ -39,7 +39,7 @@ Two source-of-truth files live in `docs/`:
 - `!important` allowed only for react-flow handle overrides
 
 ## Typography
-- Hierarchy (from `docs/design-system.json`): page title (2xl/bold) → section (lg/semibold) → subsection (base/medium) → body (sm) → small (xs)
+- Hierarchy (from `../docs/design-system.json`): page title (2xl/bold) → section (lg/semibold) → subsection (base/medium) → body (sm) → small (xs)
 - System UI font stack; max 2–3 weights per view
 
 ## Spacing & layout
@@ -61,5 +61,5 @@ Two source-of-truth files live in `docs/`:
 
 ## Storybook
 - Official component reference once a feature is implemented
-- Reuse exact tokens from `docs/design-system.json`, `docs/design_concept.json`, `globals.css`, and Tailwind config — no parallel theme
+- Reuse exact tokens from `../docs/design-system.json`, `../docs/design_concept.json`, `src/app/globals.css`, and `tailwind.config.ts` — no parallel theme
 - Document variants, states, responsive behavior, and dark-mode per story
