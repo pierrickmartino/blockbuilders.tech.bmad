@@ -633,7 +633,7 @@ export default function StrategyBacktestPage({ params }: Props) {
 
   // Pagination state for backtest runs list
   const [runsCurrentPage, setRunsCurrentPage] = useState(1);
-  const runsPageSize = 5;
+  const runsPageSize = 8;
 
   // Pagination state for trades table
   const [tradesCurrentPage, setTradesCurrentPage] = useState(1);
@@ -938,6 +938,17 @@ export default function StrategyBacktestPage({ params }: Props) {
       loadBacktests();
     }
   }, [isBatchDone, activeBatchId, loadBacktests]);
+
+  // Auto-poll when any visible run is pending/running
+  const hasActiveRuns = backtests.some(
+    (r) => r.status === "pending" || r.status === "running"
+  );
+
+  useEffect(() => {
+    if (!hasActiveRuns) return;
+    const timer = setInterval(loadBacktests, 5000);
+    return () => clearInterval(timer);
+  }, [hasActiveRuns, loadBacktests]);
 
   useEffect(() => {
     loadStrategy();
@@ -1591,6 +1602,7 @@ export default function StrategyBacktestPage({ params }: Props) {
 
           <BacktestRunsList
             backtests={backtests}
+            batchSkippedRuns={batchSkippedRuns}
             isLoadingBacktests={isLoadingBacktests}
             onRefresh={loadBacktests}
             currentPage={runsCurrentPage}
@@ -1601,10 +1613,6 @@ export default function StrategyBacktestPage({ params }: Props) {
             selectedRunIds={selectedRunIds}
             onToggleRunSelection={handleSelectRun}
             onCompare={handleCompareClick}
-            activeBatchId={activeBatchId}
-            batchRuns={batchRuns}
-            batchSkippedRuns={batchSkippedRuns}
-            isBatchDone={isBatchDone}
             timezone={timezone}
           />
         </div>

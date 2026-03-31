@@ -807,6 +807,10 @@ def list_backtests(
             triggered_by=r.triggered_by,
             total_return=r.total_return,
             created_at=r.created_at,
+            period_key=r.period_key,
+            batch_id=r.batch_id,
+            max_drawdown=r.max_drawdown,
+            sharpe_ratio=r.sharpe_ratio,
         )
         for r in runs
     ]

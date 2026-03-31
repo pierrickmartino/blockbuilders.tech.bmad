@@ -127,6 +127,10 @@ class BacktestListItem(BaseModel):
     triggered_by: str = "manual"
     total_return: Optional[float] = None
     created_at: datetime
+    period_key: Optional[str] = None
+    batch_id: Optional[UUID] = None
+    max_drawdown: Optional[float] = None
+    sharpe_ratio: Optional[float] = None
 
 
 class Trade(BaseModel):

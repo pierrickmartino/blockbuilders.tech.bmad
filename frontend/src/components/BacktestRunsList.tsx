@@ -1,18 +1,13 @@
 "use client";
 
-import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { formatDateTime, formatPercent, formatRelativeTime, type TimezoneMode } from "@/lib/format";
 import { PERIOD_LABEL, statusStyles } from "@/lib/backtest-constants";
-import type {
-  BacktestListItem,
-  BacktestStatus,
-  BacktestStatusResponse,
-  BatchRunResult,
-} from "@/types/backtest";
+import type { BacktestListItem, BacktestStatus, BatchRunResult } from "@/types/backtest";
 
 interface BacktestRunsListProps {
   backtests: BacktestListItem[];
+  batchSkippedRuns: BatchRunResult[];
   isLoadingBacktests: boolean;
   onRefresh: () => void;
   currentPage: number;
@@ -23,15 +18,172 @@ interface BacktestRunsListProps {
   selectedRunIds: Set<string>;
   onToggleRunSelection: (runId: string, checked: boolean) => void;
   onCompare: () => void;
-  activeBatchId: string | null;
-  batchRuns: BacktestStatusResponse[];
-  batchSkippedRuns: BatchRunResult[];
-  isBatchDone: boolean;
   timezone: TimezoneMode;
+}
+
+function RunCard({
+  run,
+  isSelected,
+  selectedRunIds,
+  onSelectRun,
+  onToggleRunSelection,
+  timezone,
+}: {
+  run: BacktestListItem;
+  isSelected: boolean;
+  selectedRunIds: Set<string>;
+  onSelectRun: (runId: string) => void;
+  onToggleRunSelection: (runId: string, checked: boolean) => void;
+  timezone: TimezoneMode;
+}) {
+  const isPositive = (run.total_return ?? 0) >= 0;
+  const returnValue = run.total_return ?? 0;
+  const canSelectForCompare = run.status === "completed";
+  const isChecked = selectedRunIds.has(run.run_id);
+  const disableForSelectionLimit = !isChecked && selectedRunIds.size >= 4;
+  // Non-completed runs cannot be newly selected for compare, but keep checkbox enabled
+  // when already checked so stale selections can be cleared.
+  const isCheckboxDisabled = canSelectForCompare ? disableForSelectionLimit : !isChecked;
+
+  const perfColor = run.status !== "completed"
+    ? "bg-muted"
+    : isPositive
+      ? returnValue > 10 ? "bg-emerald-500" : "bg-emerald-400"
+      : returnValue < -10 ? "bg-red-500" : "bg-red-400";
+
+  return (
+    <div className="flex items-stretch gap-2">
+      <div className="flex items-center">
+        <input
+          type="checkbox"
+          checked={isChecked}
+          onChange={(e) => {
+            if (!canSelectForCompare && e.target.checked) return;
+            onToggleRunSelection(run.run_id, e.target.checked);
+          }}
+          disabled={isCheckboxDisabled}
+          title={!canSelectForCompare ? "Only completed runs can be compared" : undefined}
+          className="h-4 w-4 rounded border-border text-blue-600 focus:ring-blue-500 focus:ring-offset-0"
+        />
+      </div>
+      <button
+        onClick={() => onSelectRun(run.run_id)}
+        className={`group relative flex flex-1 overflow-hidden rounded-lg border transition-all ${
+          isSelected
+            ? "border-primary/40 bg-primary/10 shadow-sm ring-1 ring-primary/20"
+            : "border-border bg-card hover:border-border hover:shadow-sm"
+        }`}
+      >
+        <div className={`w-1 shrink-0 ${perfColor}`} />
+        <div className="flex flex-1 flex-col px-3 py-2.5">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              {run.period_key && (
+                <span className="flex h-4 items-center rounded bg-muted px-1.5 text-[10px] font-medium text-muted-foreground">
+                  {PERIOD_LABEL[run.period_key] ?? run.period_key}
+                </span>
+              )}
+              <span className="text-sm font-medium" title={formatDateTime(run.created_at, timezone)}>
+                {formatRelativeTime(run.created_at)}
+              </span>
+              {run.triggered_by === "schedule" && (
+                <span className="flex h-4 items-center rounded bg-purple-100 px-1.5 text-[10px] font-medium text-purple-700 dark:bg-purple-950 dark:text-purple-300">
+                  auto
+                </span>
+              )}
+              {run.batch_id && run.triggered_by !== "schedule" && (
+                <span className="flex h-4 items-center rounded bg-indigo-100 px-1.5 text-[10px] font-medium text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
+                  batch
+                </span>
+              )}
+            </div>
+            <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${statusStyles[run.status as BacktestStatus] ?? statusStyles.pending}`}>
+              {run.status === "running" && (
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-400 opacity-75" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-blue-500" />
+                </span>
+              )}
+              {run.status === "pending" && (
+                <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12 6 12 12 16 14" />
+                </svg>
+              )}
+              {run.status}
+            </span>
+          </div>
+          <div className="mt-1.5 flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">
+              {formatDateTime(run.date_from, timezone).split(" ")[0]} → {formatDateTime(run.date_to, timezone).split(" ")[0]}
+            </span>
+            <div className="flex items-center gap-3 text-xs tabular-nums">
+              {run.status === "completed" && (
+                <>
+                  <span className={`text-sm font-semibold ${isPositive ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                    {isPositive ? "+" : ""}{formatPercent(run.total_return)}
+                  </span>
+                  {run.max_drawdown != null && (
+                    <span className="hidden text-muted-foreground sm:inline">
+                      DD {formatPercent(run.max_drawdown)}
+                    </span>
+                  )}
+                  {run.sharpe_ratio != null && (
+                    <span className="hidden text-muted-foreground md:inline">
+                      Sharpe {run.sharpe_ratio.toFixed(2)}
+                    </span>
+                  )}
+                </>
+              )}
+              {run.status === "failed" && (
+                <span className="text-xs text-destructive">Error</span>
+              )}
+            </div>
+          </div>
+        </div>
+      </button>
+    </div>
+  );
+}
+
+function SkippedBatchRunCard({
+  run,
+}: {
+  run: BatchRunResult;
+}) {
+  return (
+    <div className="flex items-stretch gap-2">
+      <div className="flex items-center">
+        <span className="h-4 w-4" aria-hidden />
+      </div>
+      <div className="group relative flex flex-1 overflow-hidden rounded-lg border border-border bg-card">
+        <div className="w-1 shrink-0 bg-muted" />
+        <div className="flex flex-1 flex-col px-3 py-2.5">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="flex h-4 items-center rounded bg-muted px-1.5 text-[10px] font-medium text-muted-foreground">
+                {PERIOD_LABEL[run.period_key] ?? run.period_key}
+              </span>
+              <span className="flex h-4 items-center rounded bg-indigo-100 px-1.5 text-[10px] font-medium text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
+                batch
+              </span>
+            </div>
+            <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${statusStyles.skipped}`}>
+              skipped
+            </span>
+          </div>
+          <p className="mt-1.5 text-xs text-muted-foreground">
+            {run.skip_reason ?? "This period was skipped."}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export function BacktestRunsList({
   backtests,
+  batchSkippedRuns,
   isLoadingBacktests,
   onRefresh,
   currentPage,
@@ -42,20 +194,12 @@ export function BacktestRunsList({
   selectedRunIds,
   onToggleRunSelection,
   onCompare,
-  activeBatchId,
-  batchRuns,
-  batchSkippedRuns,
-  isBatchDone,
   timezone,
 }: BacktestRunsListProps) {
-  const hasBatch = !!(activeBatchId && (batchRuns.length > 0 || batchSkippedRuns.length > 0));
-
-  // De-duplicate: exclude batch run IDs from the historical list
-  const filteredBacktests = useMemo(() => {
-    if (!hasBatch || batchRuns.length === 0) return backtests;
-    const batchRunIds = new Set(batchRuns.map((r) => r.run_id));
-    return backtests.filter((b) => !batchRunIds.has(b.run_id));
-  }, [backtests, batchRuns, hasBatch]);
+  const flattenedRuns = [
+    ...batchSkippedRuns.map((run, idx) => ({ type: "skipped" as const, key: `skipped-${run.period_key}-${idx}`, run })),
+    ...backtests.map((run) => ({ type: "run" as const, key: run.run_id, run })),
+  ];
 
   return (
     <section className="rounded-xl border bg-card p-3 shadow-sm sm:p-4">
@@ -105,87 +249,8 @@ export function BacktestRunsList({
         </div>
       )}
 
-      {/* Current batch group */}
-      {hasBatch && (
-        <>
-          <div className="mb-2">
-            <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Current batch</h3>
-            <p className="text-xs text-muted-foreground">
-              {isBatchDone ? "All periods finished." : "Results appear as each period completes."}
-            </p>
-          </div>
-          <div className="space-y-2">
-            {batchSkippedRuns.map((skipped) => (
-              <div
-                key={skipped.period_key}
-                className="flex items-center justify-between rounded-lg border bg-secondary/30 px-3 py-2.5"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="text-sm font-medium">{PERIOD_LABEL[skipped.period_key] ?? skipped.period_key}</span>
-                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium capitalize ${statusStyles.skipped}`}>
-                    skipped
-                  </span>
-                </div>
-                <span className="text-xs text-muted-foreground">{skipped.skip_reason}</span>
-              </div>
-            ))}
-            {batchRuns.map((run) => {
-              const isPositive = (run.summary?.total_return_pct ?? 0) >= 0;
-              const isActive = selectedRunId === run.run_id;
-              return (
-                <button
-                  key={run.run_id}
-                  onClick={() => run.status === "completed" && onSelectRun(run.run_id)}
-                  disabled={run.status !== "completed"}
-                  className={`flex w-full items-center justify-between rounded-lg border px-3 py-2.5 text-left transition-all ${
-                    isActive
-                      ? "border-primary/40 bg-primary/10 shadow-sm ring-1 ring-primary/20"
-                      : run.status === "completed"
-                        ? "bg-card hover:border-border hover:shadow-sm"
-                        : "bg-secondary/30"
-                  } ${run.status !== "completed" ? "cursor-default" : ""}`}
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm font-medium">{PERIOD_LABEL[run.period_key ?? ""] ?? run.period_key}</span>
-                    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium capitalize ${statusStyles[run.status as BacktestStatus] ?? statusStyles.pending}`}>
-                      {run.status === "running" && (
-                        <span className="relative flex h-2 w-2">
-                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-400 opacity-75" />
-                          <span className="relative inline-flex h-2 w-2 rounded-full bg-blue-500" />
-                        </span>
-                      )}
-                      {run.status}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-4 text-sm tabular-nums">
-                    {run.status === "completed" && run.summary && (
-                      <>
-                        <span className={isPositive ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}>
-                          {isPositive ? "+" : ""}{formatPercent(run.summary.total_return_pct)}
-                        </span>
-                        <span className="hidden text-muted-foreground sm:inline">
-                          DD {formatPercent(run.summary.max_drawdown_pct)}
-                        </span>
-                        <span className="hidden text-muted-foreground md:inline">
-                          Sharpe {run.summary.sharpe_ratio.toFixed(2)}
-                        </span>
-                      </>
-                    )}
-                    {run.status === "failed" && (
-                      <span className="text-xs text-destructive">{run.error_message ?? "Failed"}</span>
-                    )}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-          <div className="my-3 border-t border-border/50" />
-          <h3 className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">History</h3>
-        </>
-      )}
-
-      {/* Historical runs list */}
-      {filteredBacktests.length === 0 ? (
+      {/* Runs list */}
+      {flattenedRuns.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-8 text-center">
           <div className="mb-3 rounded-full bg-secondary p-3">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground/70">
@@ -198,88 +263,28 @@ export function BacktestRunsList({
         </div>
       ) : (
         <div className="space-y-2">
-          {filteredBacktests.map((run) => {
-            const isSelected = selectedRunId === run.run_id;
-            const isPositive = (run.total_return ?? 0) >= 0;
-            const returnValue = run.total_return ?? 0;
-
-            const perfColor = run.status !== "completed"
-              ? "bg-muted"
-              : isPositive
-                ? returnValue > 10 ? "bg-emerald-500" : "bg-emerald-400"
-                : returnValue < -10 ? "bg-red-500" : "bg-red-400";
+          {flattenedRuns.map((item) => {
+            if (item.type === "skipped") {
+              return <SkippedBatchRunCard key={item.key} run={item.run} />;
+            }
 
             return (
-              <div key={run.run_id} className="flex items-stretch gap-2">
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={selectedRunIds.has(run.run_id)}
-                    onChange={(e) => onToggleRunSelection(run.run_id, e.target.checked)}
-                    disabled={!selectedRunIds.has(run.run_id) && selectedRunIds.size >= 4}
-                    className="h-4 w-4 rounded border-border text-blue-600 focus:ring-blue-500 focus:ring-offset-0"
-                  />
-                </div>
-                <button
-                  onClick={() => onSelectRun(run.run_id)}
-                  className={`group relative flex flex-1 overflow-hidden rounded-lg border transition-all ${
-                    isSelected
-                      ? "border-primary/40 bg-primary/10 shadow-sm ring-1 ring-primary/20"
-                      : "border-border bg-card hover:border-border hover:shadow-sm"
-                  }`}
-                >
-                  <div className={`w-1 shrink-0 ${perfColor}`} />
-                  <div className="flex flex-1 flex-col px-3 py-2.5">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium" title={formatDateTime(run.created_at, timezone)}>
-                          {formatRelativeTime(run.created_at)}
-                        </span>
-                        {run.triggered_by === "schedule" && (
-                          <span className="flex h-4 items-center rounded bg-purple-100 px-1.5 text-[10px] font-medium text-purple-700 dark:bg-purple-950 dark:text-purple-300">
-                            auto
-                          </span>
-                        )}
-                      </div>
-                      <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${statusStyles[run.status]}`}>
-                        {run.status === "running" && (
-                          <span className="relative flex h-2 w-2">
-                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-400 opacity-75" />
-                            <span className="relative inline-flex h-2 w-2 rounded-full bg-blue-500" />
-                          </span>
-                        )}
-                        {run.status === "pending" && (
-                          <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <circle cx="12" cy="12" r="10" />
-                            <polyline points="12 6 12 12 16 14" />
-                          </svg>
-                        )}
-                        {run.status}
-                      </span>
-                    </div>
-                    <div className="mt-1.5 flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">
-                        {formatDateTime(run.date_from, timezone).split(" ")[0]} → {formatDateTime(run.date_to, timezone).split(" ")[0]}
-                      </span>
-                      {run.status === "completed" && (
-                        <span className={`text-sm font-semibold tabular-nums ${isPositive ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
-                          {isPositive ? "+" : ""}{formatPercent(run.total_return)}
-                        </span>
-                      )}
-                      {run.status === "failed" && (
-                        <span className="text-xs text-destructive">Error</span>
-                      )}
-                    </div>
-                  </div>
-                </button>
-              </div>
+              <RunCard
+                key={item.key}
+                run={item.run}
+                isSelected={selectedRunId === item.run.run_id}
+                selectedRunIds={selectedRunIds}
+                onSelectRun={onSelectRun}
+                onToggleRunSelection={onToggleRunSelection}
+                timezone={timezone}
+              />
             );
           })}
         </div>
       )}
 
       {/* Pagination */}
-      {filteredBacktests.length === pageSize && (
+      {backtests.length === pageSize && (
         <div className="mt-2 flex items-center justify-center gap-1">
           <button
             onClick={() => onPageChange(Math.max(1, currentPage - 1))}
@@ -294,7 +299,7 @@ export function BacktestRunsList({
           <span className="px-2 text-xs text-muted-foreground">{currentPage}</span>
           <button
             onClick={() => onPageChange(currentPage + 1)}
-            disabled={filteredBacktests.length < pageSize}
+            disabled={backtests.length < pageSize}
             className="flex h-6 w-6 items-center justify-center rounded border border-border text-muted-foreground hover:bg-secondary/50 dark:bg-secondary/30 disabled:cursor-not-allowed disabled:opacity-30"
             title="Next page"
           >
