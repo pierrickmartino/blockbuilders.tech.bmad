@@ -70,6 +70,10 @@ export interface BacktestListItem {
   triggered_by: string;
   total_return?: number | null;
   created_at: string;
+  period_key?: string | null;
+  batch_id?: string | null;
+  max_drawdown?: number | null;
+  sharpe_ratio?: number | null;
 }
 
 export interface Trade {
