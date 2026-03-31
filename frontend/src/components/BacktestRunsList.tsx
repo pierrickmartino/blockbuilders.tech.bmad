@@ -57,6 +57,10 @@ export function BacktestRunsList({
     return backtests.filter((b) => !batchRunIds.has(b.run_id));
   }, [backtests, batchRuns, hasBatch]);
 
+  // Pagination should reflect the fetched page, not the history subset after de-duplication.
+  const hasNextPage = backtests.length === pageSize;
+  const showPagination = currentPage > 1 || hasNextPage;
+
   return (
     <section className="rounded-xl border bg-card p-3 shadow-sm sm:p-4">
       {/* Header */}
@@ -279,7 +283,7 @@ export function BacktestRunsList({
       )}
 
       {/* Pagination */}
-      {filteredBacktests.length === pageSize && (
+      {showPagination && (
         <div className="mt-2 flex items-center justify-center gap-1">
           <button
             onClick={() => onPageChange(Math.max(1, currentPage - 1))}
@@ -294,7 +298,7 @@ export function BacktestRunsList({
           <span className="px-2 text-xs text-muted-foreground">{currentPage}</span>
           <button
             onClick={() => onPageChange(currentPage + 1)}
-            disabled={filteredBacktests.length < pageSize}
+            disabled={!hasNextPage}
             className="flex h-6 w-6 items-center justify-center rounded border border-border text-muted-foreground hover:bg-secondary/50 dark:bg-secondary/30 disabled:cursor-not-allowed disabled:opacity-30"
             title="Next page"
           >
