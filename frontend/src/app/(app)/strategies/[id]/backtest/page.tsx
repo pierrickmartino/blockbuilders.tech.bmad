@@ -1602,6 +1602,7 @@ export default function StrategyBacktestPage({ params }: Props) {
 
           <BacktestRunsList
             backtests={backtests}
+            batchSkippedRuns={batchSkippedRuns}
             isLoadingBacktests={isLoadingBacktests}
             onRefresh={loadBacktests}
             currentPage={runsCurrentPage}

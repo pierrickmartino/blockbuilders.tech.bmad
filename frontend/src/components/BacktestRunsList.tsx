@@ -3,10 +3,11 @@
 import { Button } from "@/components/ui/button";
 import { formatDateTime, formatPercent, formatRelativeTime, type TimezoneMode } from "@/lib/format";
 import { PERIOD_LABEL, statusStyles } from "@/lib/backtest-constants";
-import type { BacktestListItem, BacktestStatus } from "@/types/backtest";
+import type { BacktestListItem, BacktestStatus, BatchRunResult } from "@/types/backtest";
 
 interface BacktestRunsListProps {
   backtests: BacktestListItem[];
+  batchSkippedRuns: BatchRunResult[];
   isLoadingBacktests: boolean;
   onRefresh: () => void;
   currentPage: number;
@@ -37,6 +38,12 @@ function RunCard({
 }) {
   const isPositive = (run.total_return ?? 0) >= 0;
   const returnValue = run.total_return ?? 0;
+  const canSelectForCompare = run.status === "completed";
+  const isChecked = selectedRunIds.has(run.run_id);
+  const disableForSelectionLimit = !isChecked && selectedRunIds.size >= 4;
+  // Non-completed runs cannot be newly selected for compare, but keep checkbox enabled
+  // when already checked so stale selections can be cleared.
+  const isCheckboxDisabled = canSelectForCompare ? disableForSelectionLimit : !isChecked;
 
   const perfColor = run.status !== "completed"
     ? "bg-muted"
@@ -49,9 +56,13 @@ function RunCard({
       <div className="flex items-center">
         <input
           type="checkbox"
-          checked={selectedRunIds.has(run.run_id)}
-          onChange={(e) => onToggleRunSelection(run.run_id, e.target.checked)}
-          disabled={!selectedRunIds.has(run.run_id) && selectedRunIds.size >= 4}
+          checked={isChecked}
+          onChange={(e) => {
+            if (!canSelectForCompare && e.target.checked) return;
+            onToggleRunSelection(run.run_id, e.target.checked);
+          }}
+          disabled={isCheckboxDisabled}
+          title={!canSelectForCompare ? "Only completed runs can be compared" : undefined}
           className="h-4 w-4 rounded border-border text-blue-600 focus:ring-blue-500 focus:ring-offset-0"
         />
       </div>
@@ -135,8 +146,44 @@ function RunCard({
   );
 }
 
+function SkippedBatchRunCard({
+  run,
+}: {
+  run: BatchRunResult;
+}) {
+  return (
+    <div className="flex items-stretch gap-2">
+      <div className="flex items-center">
+        <span className="h-4 w-4" aria-hidden />
+      </div>
+      <div className="group relative flex flex-1 overflow-hidden rounded-lg border border-border bg-card">
+        <div className="w-1 shrink-0 bg-muted" />
+        <div className="flex flex-1 flex-col px-3 py-2.5">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="flex h-4 items-center rounded bg-muted px-1.5 text-[10px] font-medium text-muted-foreground">
+                {PERIOD_LABEL[run.period_key] ?? run.period_key}
+              </span>
+              <span className="flex h-4 items-center rounded bg-indigo-100 px-1.5 text-[10px] font-medium text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
+                batch
+              </span>
+            </div>
+            <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${statusStyles.skipped}`}>
+              skipped
+            </span>
+          </div>
+          <p className="mt-1.5 text-xs text-muted-foreground">
+            {run.skip_reason ?? "This period was skipped."}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function BacktestRunsList({
   backtests,
+  batchSkippedRuns,
   isLoadingBacktests,
   onRefresh,
   currentPage,
@@ -149,6 +196,11 @@ export function BacktestRunsList({
   onCompare,
   timezone,
 }: BacktestRunsListProps) {
+  const flattenedRuns = [
+    ...batchSkippedRuns.map((run, idx) => ({ type: "skipped" as const, key: `skipped-${run.period_key}-${idx}`, run })),
+    ...backtests.map((run) => ({ type: "run" as const, key: run.run_id, run })),
+  ];
+
   return (
     <section className="rounded-xl border bg-card p-3 shadow-sm sm:p-4">
       {/* Header */}
@@ -198,7 +250,7 @@ export function BacktestRunsList({
       )}
 
       {/* Runs list */}
-      {backtests.length === 0 ? (
+      {flattenedRuns.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-8 text-center">
           <div className="mb-3 rounded-full bg-secondary p-3">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground/70">
@@ -211,17 +263,23 @@ export function BacktestRunsList({
         </div>
       ) : (
         <div className="space-y-2">
-          {backtests.map((run) => (
-            <RunCard
-              key={run.run_id}
-              run={run}
-              isSelected={selectedRunId === run.run_id}
-              selectedRunIds={selectedRunIds}
-              onSelectRun={onSelectRun}
-              onToggleRunSelection={onToggleRunSelection}
-              timezone={timezone}
-            />
-          ))}
+          {flattenedRuns.map((item) => {
+            if (item.type === "skipped") {
+              return <SkippedBatchRunCard key={item.key} run={item.run} />;
+            }
+
+            return (
+              <RunCard
+                key={item.key}
+                run={item.run}
+                isSelected={selectedRunId === item.run.run_id}
+                selectedRunIds={selectedRunIds}
+                onSelectRun={onSelectRun}
+                onToggleRunSelection={onToggleRunSelection}
+                timezone={timezone}
+              />
+            );
+          })}
         </div>
       )}
 

@@ -233,7 +233,7 @@ export interface BatchRunResult {
 }
 
 export interface BatchBacktestCreateResponse {
-  batch_id: string;
+  batch_id: string | null;
   runs: BatchRunResult[];
 }
 
