@@ -931,6 +931,11 @@ export default function StrategyBacktestPage({ params }: Props) {
     }
   }, [id, runsCurrentPage, selectedRunId]);
 
+  const loadBacktestsRef = useRef(loadBacktests);
+  useEffect(() => {
+    loadBacktestsRef.current = loadBacktests;
+  }, [loadBacktests]);
+
   const completedBatchRefreshHandledRef = useRef<string | null>(null);
 
   // Auto-refresh history when batch completes so batch runs appear in the list
@@ -940,8 +945,8 @@ export default function StrategyBacktestPage({ params }: Props) {
 
     completedBatchRefreshHandledRef.current = activeBatchId;
     setRunsCurrentPage(1);
-    loadBacktests();
-  }, [isBatchDone, activeBatchId, loadBacktests]);
+    loadBacktestsRef.current();
+  }, [isBatchDone, activeBatchId]);
 
   useEffect(() => {
     loadStrategy();
