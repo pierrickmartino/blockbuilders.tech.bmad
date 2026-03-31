@@ -27,7 +27,6 @@ import {
   formatMoney,
   formatChartDate,
   formatDuration,
-  formatRelativeTime,
 } from "@/lib/format";
 import { useDisplay } from "@/context/display";
 import { useAuth } from "@/context/auth";
@@ -110,6 +109,8 @@ import {
 import { KeyboardShortcutsModal } from "@/components/KeyboardShortcutsModal";
 import { isInputElement } from "@/lib/keyboard-shortcuts";
 import { Checkbox } from "@/components/ui/checkbox";
+import { BacktestRunsList } from "@/components/BacktestRunsList";
+import { statusStyles } from "@/lib/backtest-constants";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -149,15 +150,6 @@ const PERIOD_PRESETS: PeriodOption[] = [
 /** Period presets available for batch selection (excludes "custom"). */
 const BATCH_PERIOD_PRESETS = PERIOD_PRESETS.filter((p) => p.value !== "custom");
 
-const PERIOD_LABEL: Record<string, string> = {
-  "30d": "30 days",
-  "60d": "60 days",
-  "90d": "90 days",
-  "120d": "120 days",
-  "1y": "1 year",
-  "2y": "2 years",
-  "3y": "3 years",
-};
 
 function getDatesFromPreset(preset: PeriodPreset): { from: string; to: string } | null {
   const option = PERIOD_PRESETS.find((p) => p.value === preset);
@@ -168,13 +160,6 @@ function getDatesFromPreset(preset: PeriodPreset): { from: string; to: string } 
   return { from: formatDateInput(past), to: formatDateInput(today) };
 }
 
-const statusStyles: Record<BacktestStatus, string> = {
-  pending: "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400",
-  running: "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-400",
-  completed: "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400",
-  failed: "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400",
-  skipped: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
-};
 
 const FIRST_RUN_KEY = "bb.first_run_metric_explanations_seen";
 const SUMMARY_CARD_KEY = "bb.first_run_summary_card_seen";
@@ -946,6 +931,14 @@ export default function StrategyBacktestPage({ params }: Props) {
     }
   }, [id, runsCurrentPage, selectedRunId]);
 
+  // Auto-refresh history when batch completes so batch runs appear in the list
+  useEffect(() => {
+    if (isBatchDone && activeBatchId) {
+      setRunsCurrentPage(1);
+      loadBacktests();
+    }
+  }, [isBatchDone, activeBatchId, loadBacktests]);
+
   useEffect(() => {
     loadStrategy();
     loadBacktests();
@@ -1596,269 +1589,25 @@ export default function StrategyBacktestPage({ params }: Props) {
             </div>
           </section>
 
-          <section className="rounded-xl border bg-card p-3 shadow-sm sm:p-4">
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-base font-semibold tracking-tight">Recent runs</h2>
-              <div className="flex items-center gap-2">
-                {selectedRunIds.size >= 2 && selectedRunIds.size <= 4 && (
-                  <Button
-                    variant="default"
-                    size="sm"
-                    onClick={handleCompareClick}
-                  >
-                    Compare ({selectedRunIds.size})
-                  </Button>
-                )}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={loadBacktests}
-                  disabled={isLoadingBacktests}
-                  className="h-8 px-2 text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={isLoadingBacktests ? "animate-spin" : ""}>
-                    <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
-                    <path d="M21 3v5h-5" />
-                  </svg>
-                </Button>
-              </div>
-            </div>
-
-            {selectedRunIds.size > 0 && selectedRunIds.size < 2 && (
-              <div className="mb-3 flex items-center gap-2 rounded-md bg-blue-50 px-3 py-2 text-sm text-blue-900 dark:bg-blue-950 dark:text-blue-400">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10" />
-                  <path d="M12 16v-4" />
-                  <path d="M12 8h.01" />
-                </svg>
-                Select 2-4 runs to compare
-              </div>
-            )}
-
-            {selectedRunIds.size > 4 && (
-              <div className="mb-3 flex items-center gap-2 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:bg-amber-950 dark:text-amber-400">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
-                  <path d="M12 9v4" />
-                  <path d="M12 17h.01" />
-                </svg>
-                Max 4 runs can be compared
-              </div>
-            )}
-
-            {backtests.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-8 text-center">
-                <div className="mb-3 rounded-full bg-secondary p-3">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground/70">
-                    <path d="M3 3v18h18" />
-                    <path d="m19 9-5 5-4-4-3 3" />
-                  </svg>
-                </div>
-                <p className="text-sm font-medium">No backtests yet</p>
-                <p className="mt-1 text-xs text-muted-foreground">Run your first backtest to see results here</p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {backtests.map((run) => {
-                  const isSelected = selectedRunId === run.run_id;
-                  const isPositive = (run.total_return ?? 0) >= 0;
-                  const returnValue = run.total_return ?? 0;
-
-                  // Performance color based on return
-                  const perfColor = run.status !== "completed"
-                    ? "bg-muted"
-                    : isPositive
-                      ? returnValue > 10 ? "bg-emerald-500" : "bg-emerald-400"
-                      : returnValue < -10 ? "bg-red-500" : "bg-red-400";
-
-                  return (
-                    <div
-                      key={run.run_id}
-                      className="flex items-stretch gap-2"
-                    >
-                      <div className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={selectedRunIds.has(run.run_id)}
-                          onChange={(e) => handleSelectRun(run.run_id, e.target.checked)}
-                          disabled={!selectedRunIds.has(run.run_id) && selectedRunIds.size >= 4}
-                          className="h-4 w-4 rounded border-border text-blue-600 focus:ring-blue-500 focus:ring-offset-0"
-                        />
-                      </div>
-                      <button
-                        onClick={() => setSelectedRunId(run.run_id)}
-                        className={`group relative flex flex-1 overflow-hidden rounded-lg border transition-all ${
-                          isSelected
-                            ? "border-primary/40 bg-primary/10 shadow-sm ring-1 ring-primary/20"
-                            : "border-border bg-card hover:border-border hover:shadow-sm"
-                        }`}
-                      >
-                        {/* Performance indicator bar */}
-                        <div className={`w-1 shrink-0 ${perfColor}`} />
-
-                        <div className="flex flex-1 flex-col px-3 py-2.5">
-                          {/* Top row: Time and status */}
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-2">
-                              <span
-                                className="text-sm font-medium"
-                                title={formatDateTime(run.created_at, timezone)}
-                              >
-                                {formatRelativeTime(run.created_at)}
-                              </span>
-                              {run.triggered_by === "schedule" && (
-                                <span className="flex h-4 items-center rounded bg-purple-100 px-1.5 text-[10px] font-medium text-purple-700 dark:bg-purple-950 dark:text-purple-300">
-                                  auto
-                                </span>
-                              )}
-                            </div>
-                            {/* Status badge */}
-                            <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${statusStyles[run.status]}`}>
-                              {run.status === "running" && (
-                                <span className="relative flex h-2 w-2">
-                                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-400 opacity-75" />
-                                  <span className="relative inline-flex h-2 w-2 rounded-full bg-blue-500" />
-                                </span>
-                              )}
-                              {run.status === "pending" && (
-                                <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                  <circle cx="12" cy="12" r="10" />
-                                  <polyline points="12 6 12 12 16 14" />
-                                </svg>
-                              )}
-                              {run.status}
-                            </span>
-                          </div>
-
-                          {/* Bottom row: Date range and return */}
-                          <div className="mt-1.5 flex items-center justify-between">
-                            <span className="text-xs text-muted-foreground">
-                              {formatDateTime(run.date_from, timezone).split(" ")[0]} → {formatDateTime(run.date_to, timezone).split(" ")[0]}
-                            </span>
-                            {run.status === "completed" && (
-                              <span className={`text-sm font-semibold tabular-nums ${isPositive ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
-                                {isPositive ? "+" : ""}{formatPercent(run.total_return)}
-                              </span>
-                            )}
-                            {run.status === "failed" && (
-                              <span className="text-xs text-destructive">Error</span>
-                            )}
-                          </div>
-                        </div>
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Pagination controls */}
-            {backtests.length === runsPageSize && (
-              <div className="mt-2 flex items-center justify-center gap-1">
-                <button
-                  onClick={() => setRunsCurrentPage((p) => Math.max(1, p - 1))}
-                  disabled={runsCurrentPage === 1}
-                  className="flex h-6 w-6 items-center justify-center rounded border border-border text-muted-foreground hover:bg-secondary/50 dark:bg-secondary/30 disabled:cursor-not-allowed disabled:opacity-30"
-                  title="Previous page"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="m15 18-6-6 6-6" />
-                  </svg>
-                </button>
-                <span className="px-2 text-xs text-muted-foreground">{runsCurrentPage}</span>
-                <button
-                  onClick={() => setRunsCurrentPage((p) => p + 1)}
-                  disabled={backtests.length < runsPageSize}
-                  className="flex h-6 w-6 items-center justify-center rounded border border-border text-muted-foreground hover:bg-secondary/50 dark:bg-secondary/30 disabled:cursor-not-allowed disabled:opacity-30"
-                  title="Next page"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="m9 18 6-6-6-6" />
-                  </svg>
-                </button>
-              </div>
-            )}
-          </section>
+          <BacktestRunsList
+            backtests={backtests}
+            isLoadingBacktests={isLoadingBacktests}
+            onRefresh={loadBacktests}
+            currentPage={runsCurrentPage}
+            pageSize={runsPageSize}
+            onPageChange={setRunsCurrentPage}
+            selectedRunId={selectedRunId}
+            onSelectRun={setSelectedRunId}
+            selectedRunIds={selectedRunIds}
+            onToggleRunSelection={handleSelectRun}
+            onCompare={handleCompareClick}
+            activeBatchId={activeBatchId}
+            batchRuns={batchRuns}
+            batchSkippedRuns={batchSkippedRuns}
+            isBatchDone={isBatchDone}
+            timezone={timezone}
+          />
         </div>
-
-        {/* Batch results section */}
-        {(activeBatchId && (batchRuns.length > 0 || batchSkippedRuns.length > 0)) && (
-          <section className="rounded-xl border bg-card p-3 shadow-sm sm:p-4">
-            <div className="mb-3">
-              <h2 className="text-base font-semibold tracking-tight">Batch results</h2>
-              <p className="text-sm text-muted-foreground">
-                {isBatchDone ? "All periods finished." : "Results appear as each period completes."}
-              </p>
-            </div>
-            <div className="space-y-2">
-              {/* Show skipped runs from the initial response */}
-              {batchSkippedRuns.map((skipped) => (
-                <div
-                  key={skipped.period_key}
-                  className="flex items-center justify-between rounded-lg border bg-secondary/30 px-3 py-2.5"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm font-medium">{PERIOD_LABEL[skipped.period_key] ?? skipped.period_key}</span>
-                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium capitalize ${statusStyles.skipped}`}>
-                      skipped
-                    </span>
-                  </div>
-                  <span className="text-xs text-muted-foreground">{skipped.skip_reason}</span>
-                </div>
-              ))}
-              {/* Show queued/running/completed runs from polling */}
-              {batchRuns.map((run) => {
-                const isPositive = (run.summary?.total_return_pct ?? 0) >= 0;
-                const isActive = selectedRunId === run.run_id;
-                return (
-                  <button
-                    key={run.run_id}
-                    onClick={() => run.status === "completed" && setSelectedRunId(run.run_id)}
-                    disabled={run.status !== "completed"}
-                    className={`flex w-full items-center justify-between rounded-lg border px-3 py-2.5 text-left transition-all ${
-                      isActive
-                        ? "border-primary/40 bg-primary/10 ring-1 ring-primary/20"
-                        : run.status === "completed"
-                          ? "bg-card hover:border-border hover:shadow-sm"
-                          : "bg-secondary/30"
-                    } ${run.status !== "completed" ? "cursor-default" : ""}`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm font-medium">{PERIOD_LABEL[run.period_key ?? ""] ?? run.period_key}</span>
-                      <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium capitalize ${statusStyles[run.status as BacktestStatus] ?? statusStyles.pending}`}>
-                        {run.status === "running" && (
-                          <span className="relative flex h-2 w-2">
-                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-400 opacity-75" />
-                            <span className="relative inline-flex h-2 w-2 rounded-full bg-blue-500" />
-                          </span>
-                        )}
-                        {run.status}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-4 text-sm tabular-nums">
-                      {run.status === "completed" && run.summary && (
-                        <>
-                          <span className={isPositive ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}>
-                            {isPositive ? "+" : ""}{formatPercent(run.summary.total_return_pct)}
-                          </span>
-                          <span className="hidden text-muted-foreground sm:inline">
-                            DD {formatPercent(run.summary.max_drawdown_pct)}
-                          </span>
-                          <span className="hidden text-muted-foreground md:inline">
-                            Sharpe {run.summary.sharpe_ratio.toFixed(2)}
-                          </span>
-                        </>
-                      )}
-                      {run.status === "failed" && (
-                        <span className="text-xs text-destructive">{run.error_message ?? "Failed"}</span>
-                      )}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </section>
-        )}
 
         <section className="rounded-xl border bg-card p-3 shadow-sm sm:p-4">
           <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
