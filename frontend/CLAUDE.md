@@ -11,7 +11,7 @@ npm run storybook    # Storybook → localhost:6006
 ```
 
 ## shadcn/ui
-- **Installed:** Button, Input, Select, Dialog, Card, Tabs, Badge, DropdownMenu
+- **Installed:** Button, Input, Select, Dialog, Card, Tabs, Badge, DropdownMenu, Checkbox
 - Components in `src/components/ui/`; import from `@/components/ui/[component]`
 - Use `cn()` from `@/lib/utils` for conditional class names
 - Canvas nodes (`components/canvas/`) use **custom Tailwind only — no shadcn/ui**
