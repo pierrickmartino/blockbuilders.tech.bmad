@@ -1145,8 +1145,8 @@ export default function StrategiesPage() {
                     {(["30d", "60d", "90d", "1y"] as const).map((p) => {
                       const val = strategy[`return_${p}`];
                       return (
-                        <div key={p}>
-                          <span className="text-muted-foreground">{p}</span>{" "}
+                        <div key={p} className="flex flex-col gap-0.5">
+                          <span className="text-muted-foreground">{p}</span>
                           <span className={`tabular-nums ${getReturnColorClass(val)}`}>
                             {formatMetric(val, "%")}
                           </span>
@@ -1156,8 +1156,8 @@ export default function StrategiesPage() {
                     {isPremiumUser && (["2y", "3y"] as const).map((p) => {
                       const val = strategy[`return_${p}`];
                       return (
-                        <div key={p}>
-                          <span className="text-muted-foreground">{p}</span>{" "}
+                        <div key={p} className="flex flex-col gap-0.5">
+                          <span className="text-muted-foreground">{p}</span>
                           <span className={`tabular-nums ${getReturnColorClass(val)}`}>
                             {formatMetric(val, "%")}
                           </span>
