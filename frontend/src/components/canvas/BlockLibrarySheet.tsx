@@ -360,7 +360,7 @@ export default function BlockLibrarySheet({
       <SheetTrigger asChild>
         <button
           className={cn(
-            "rounded-full bg-white dark:bg-slate-800 p-2 shadow-md hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors text-slate-900 dark:text-slate-100",
+            "rounded-full bg-card dark:bg-card p-2 shadow-md hover:bg-accent dark:hover:bg-accent transition-colors text-foreground",
             "lg:hidden" // Only show on mobile
           )}
           aria-label="Open block library"
@@ -405,7 +405,7 @@ export default function BlockLibrarySheet({
         <div className="overflow-y-auto" style={{ maxHeight: "calc(80vh - 80px)" }}>
           {/* Recents/Favorites Strip */}
           {quickAccessBlocks.length > 0 && !searchQuery && (
-            <div className="border-b border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/60 px-4 py-3">
+            <div className="border-b border-border bg-muted px-4 py-3">
               <div className="mb-2 text-xs font-semibold text-gray-600 dark:text-slate-400">
                 Quick Access
               </div>

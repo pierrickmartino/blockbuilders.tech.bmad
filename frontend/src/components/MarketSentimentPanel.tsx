@@ -56,7 +56,7 @@ export function MarketSentimentPanel({ asset }: MarketSentimentPanelProps) {
           label="Long/Short Ratio (7d)"
           history={sentiment.long_short_ratio.history}
           status={sentiment.source_status.long_short_ratio}
-          color="#8b5cf6"
+          color="#4A9FD8"
           formatter={(v) => formatSentiment(v, "long_short_ratio")}
         />
 
@@ -84,7 +84,7 @@ export function MarketSentimentPanel({ asset }: MarketSentimentPanelProps) {
           label="Long/Short Ratio (7d)"
           history={sentiment.long_short_ratio.history}
           status={sentiment.source_status.long_short_ratio}
-          color="#8b5cf6"
+          color="#4A9FD8"
           formatter={(v) => formatSentiment(v, "long_short_ratio")}
         />
 
