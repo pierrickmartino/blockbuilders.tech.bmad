@@ -1406,9 +1406,9 @@ export default function StrategyBacktestPage({ params }: Props) {
 
       {/* Main Content */}
       <div className="flex-1 space-y-4 overflow-auto bg-secondary/30 p-3 dark:bg-secondary/10 sm:p-4">
-        <div className="grid gap-3 sm:gap-4 lg:grid-cols-3">
+        <div className="grid gap-3 sm:gap-4 lg:grid-cols-5">
           {/* Data Availability - Full Width */}
-          <div className="lg:col-span-3">
+          <div className="lg:col-span-5">
             <DataAvailabilitySection
               completeness={completeness}
               dataQuality={dataQuality}
@@ -1418,7 +1418,7 @@ export default function StrategyBacktestPage({ params }: Props) {
             />
           </div>
 
-          <section className="lg:col-span-2 rounded-xl border bg-card p-3 shadow-sm sm:p-4">
+          <section className="lg:col-span-3 rounded-xl border bg-card p-3 shadow-sm sm:p-4">
             <div className="mb-3 sm:mb-4">
               <h2 className="text-base font-semibold tracking-tight">Run a backtest</h2>
               <p className="text-sm text-muted-foreground">
@@ -1600,21 +1600,23 @@ export default function StrategyBacktestPage({ params }: Props) {
             </div>
           </section>
 
-          <BacktestRunsList
-            backtests={backtests}
-            batchSkippedRuns={batchSkippedRuns}
-            isLoadingBacktests={isLoadingBacktests}
-            onRefresh={loadBacktests}
-            currentPage={runsCurrentPage}
-            pageSize={runsPageSize}
-            onPageChange={setRunsCurrentPage}
-            selectedRunId={selectedRunId}
-            onSelectRun={setSelectedRunId}
-            selectedRunIds={selectedRunIds}
-            onToggleRunSelection={handleSelectRun}
-            onCompare={handleCompareClick}
-            timezone={timezone}
-          />
+          <div className="lg:col-span-2">
+            <BacktestRunsList
+              backtests={backtests}
+              batchSkippedRuns={batchSkippedRuns}
+              isLoadingBacktests={isLoadingBacktests}
+              onRefresh={loadBacktests}
+              currentPage={runsCurrentPage}
+              pageSize={runsPageSize}
+              onPageChange={setRunsCurrentPage}
+              selectedRunId={selectedRunId}
+              onSelectRun={setSelectedRunId}
+              selectedRunIds={selectedRunIds}
+              onToggleRunSelection={handleSelectRun}
+              onCompare={handleCompareClick}
+              timezone={timezone}
+            />
+          </div>
         </div>
 
         <section className="rounded-xl border bg-card p-3 shadow-sm sm:p-4">
