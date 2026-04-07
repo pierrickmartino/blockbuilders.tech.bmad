@@ -97,18 +97,14 @@ function RunCard({
                 </span>
               )}
             </div>
-            <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${statusStyles[run.status as BacktestStatus] ?? statusStyles.pending}`}>
-              {run.status === "running" && (
-                <span className="relative flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-400 opacity-75" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-blue-500" />
+            <span className={`inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-medium capitalize ${statusStyles[run.status as BacktestStatus] ?? statusStyles.pending}`}>
+              {run.status === "running" ? (
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-current opacity-75" />
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-current" />
                 </span>
-              )}
-              {run.status === "pending" && (
-                <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10" />
-                  <polyline points="12 6 12 12 16 14" />
-                </svg>
+              ) : (
+                <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden />
               )}
               {run.status}
             </span>
@@ -168,7 +164,8 @@ function SkippedBatchRunCard({
                 batch
               </span>
             </div>
-            <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${statusStyles.skipped}`}>
+            <span className={`inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-medium capitalize ${statusStyles.skipped}`}>
+              <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden />
               skipped
             </span>
           </div>
