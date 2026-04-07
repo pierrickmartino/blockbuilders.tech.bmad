@@ -84,6 +84,7 @@ import {
   Clock,
   Check as CheckIcon,
   AlertCircle,
+  CheckCircle2,
   Loader2,
   Pencil,
 } from "lucide-react";
@@ -1396,12 +1397,13 @@ export default function StrategyEditorPage({ params }: Props) {
           )}
         </div>
 
-        {/* Compact error/success messages */}
+        {/* Compact error/success messages — Signal design system `alert` spec */}
         {error && (
           <div
             role="alert"
-            className="mt-1 flex items-center gap-1 rounded-lg border border-destructive/30 bg-destructive/5 px-2 py-1.5 text-xs text-destructive"
+            className="mt-1 flex items-center gap-2.5 rounded border border-destructive/20 bg-destructive/[0.03] px-3.5 py-2.5 text-[13px] font-medium text-destructive dark:border-destructive/30 dark:bg-destructive/10"
           >
+            <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
             <span>{error}</span>
             {validationErrors.length > 0 && (
               <button
@@ -1431,9 +1433,10 @@ export default function StrategyEditorPage({ params }: Props) {
           <div
             role="status"
             aria-live="polite"
-            className="mt-1 rounded-lg border border-primary/30 bg-primary/5 px-2 py-1.5 text-xs text-primary"
+            className="mt-1 flex items-center gap-2.5 rounded border border-success/20 bg-success/[0.03] px-3.5 py-2.5 text-[13px] font-medium text-success dark:border-success/30 dark:bg-success/10"
           >
-            {saveMessage}
+            <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
+            <span>{saveMessage}</span>
           </div>
         )}
       </div>
