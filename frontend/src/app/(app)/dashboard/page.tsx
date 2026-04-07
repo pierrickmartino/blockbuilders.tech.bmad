@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/auth";
 import { useDisplay } from "@/context/display";
@@ -22,7 +22,22 @@ import {
   Copy,
   ArrowUpRight,
   ArrowDownRight,
+  AlertCircle,
+  CheckCircle2,
 } from "lucide-react";
+
+function formatDisplayName(email: string | undefined): string {
+  if (!email) return "there";
+  const local = email.split("@")[0];
+  // Replace separators with spaces and title-case
+  const cleaned = local.replace(/[._-]+/g, " ").replace(/\d+/g, "").trim();
+  if (!cleaned) return "there";
+  return cleaned
+    .split(" ")
+    .filter(Boolean)
+    .map((w) => w[0].toUpperCase() + w.slice(1))
+    .join(" ");
+}
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -31,6 +46,8 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [strategiesLoadFailed, setStrategiesLoadFailed] = useState(false);
 
   const [recentStrategyIds, setRecentStrategyIds] = useState<string[]>([]);
   const [recentBacktestRefs, setRecentBacktestRefs] = useState<
@@ -42,13 +59,31 @@ export default function DashboardPage() {
   const [recentBacktestsData, setRecentBacktestsData] = useState<
     BacktestStatusResponse[]
   >([]);
+  const [recentStrategiesLoaded, setRecentStrategiesLoaded] = useState(false);
+  const [recentBacktestsLoaded, setRecentBacktestsLoaded] = useState(false);
 
-  useEffect(() => {
+  const loadStrategies = useCallback(() => {
+    setIsLoading(true);
+    setStrategiesLoadFailed(false);
     apiFetch<Strategy[]>("/strategies/")
-      .then(setStrategies)
-      .catch(() => {})
+      .then((data) => {
+        setStrategies(data);
+        setStrategiesLoadFailed(false);
+      })
+      .catch((err) => {
+        setStrategiesLoadFailed(true);
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Could not load your strategies. Please try again."
+        );
+      })
       .finally(() => setIsLoading(false));
   }, []);
+
+  useEffect(() => {
+    loadStrategies();
+  }, [loadStrategies]);
 
   useEffect(() => {
     setRecentStrategyIds(getRecentStrategies());
@@ -56,7 +91,10 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
-    if (recentStrategyIds.length === 0) return;
+    if (recentStrategyIds.length === 0) {
+      setRecentStrategiesLoaded(true);
+      return;
+    }
 
     const fetchRecent = async () => {
       const results = await Promise.allSettled(
@@ -70,13 +108,17 @@ export default function DashboardPage() {
         .map((r) => (r as PromiseFulfilledResult<Strategy>).value);
 
       setRecentStrategiesData(validStrategies);
+      setRecentStrategiesLoaded(true);
     };
 
     fetchRecent();
   }, [recentStrategyIds]);
 
   useEffect(() => {
-    if (recentBacktestRefs.length === 0) return;
+    if (recentBacktestRefs.length === 0) {
+      setRecentBacktestsLoaded(true);
+      return;
+    }
 
     const fetchRecent = async () => {
       const results = await Promise.allSettled(
@@ -92,20 +134,30 @@ export default function DashboardPage() {
         .map((r) => (r as PromiseFulfilledResult<BacktestStatusResponse>).value);
 
       setRecentBacktestsData(validBacktests);
+      setRecentBacktestsLoaded(true);
     };
 
     fetchRecent();
   }, [recentBacktestRefs]);
 
+  // Auto-dismiss success message
+  useEffect(() => {
+    if (!successMessage) return;
+    const t = setTimeout(() => setSuccessMessage(null), 4000);
+    return () => clearTimeout(t);
+  }, [successMessage]);
+
   const handleClone = async (id: string) => {
     setActionLoading(id);
     setError(null);
+    setSuccessMessage(null);
     try {
-      await apiFetch<Strategy>(`/strategies/${id}/duplicate`, {
+      const cloned = await apiFetch<Strategy>(`/strategies/${id}/duplicate`, {
         method: "POST",
       });
       const updatedStrategies = await apiFetch<Strategy[]>("/strategies/");
       setStrategies(updatedStrategies);
+      setSuccessMessage(`"${cloned.name}" was created from your strategy.`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to clone strategy");
     } finally {
@@ -114,14 +166,19 @@ export default function DashboardPage() {
   };
 
   const recentStrategiesList = strategies.slice(0, 5);
-  const displayName = user?.email?.split("@")[0] || "there";
+  const recentListIds = new Set(recentStrategiesList.map((s) => s.id));
+  // Avoid duplicating items already shown in "Your Strategies" below
+  const recentStrategiesUnique = recentStrategiesData.filter(
+    (s) => !recentListIds.has(s.id)
+  );
+  const displayName = formatDisplayName(user?.email);
 
   return (
     <main className="container mx-auto max-w-6xl space-y-8 p-4 md:p-6">
       {/* Hero welcome section */}
       <div className="space-y-1">
         <h1 className="text-3xl font-bold tracking-tight">
-          Welcome back, <span className="text-gradient-primary">{displayName}</span>
+          Welcome back, <span className="text-foreground">{displayName}</span>
         </h1>
         <p className="text-muted-foreground">
           Your strategy workspace is ready.{" "}
@@ -136,9 +193,9 @@ export default function DashboardPage() {
 
       {/* Quick stats row */}
       <div className="grid gap-4 sm:grid-cols-3">
-        <Card className="group transition-shadow duration-200 hover:shadow-md">
+        <Card>
           <CardContent className="flex items-center gap-4 p-5">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary/15">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
               <Layers className="h-5 w-5" />
             </div>
             <div className="min-w-0">
@@ -150,16 +207,16 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="group transition-shadow duration-200 hover:shadow-md">
+        <Card>
           <CardContent className="flex items-center gap-4 p-5">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-500 transition-colors group-hover:bg-blue-500/15 dark:bg-blue-400/10 dark:text-blue-400">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-500 dark:bg-blue-400/10 dark:text-blue-400">
               <TrendingUp className="h-5 w-5" />
             </div>
             <div className="min-w-0">
               <p className="text-2xl font-bold tabular-nums tracking-tight">
                 {isLoading ? <Skeleton className="h-7 w-10" /> : recentBacktestsData.length}
               </p>
-              <p className="text-sm text-muted-foreground">Recent Backtests</p>
+              <p className="text-sm text-muted-foreground">Recently Viewed Backtests</p>
             </div>
           </CardContent>
         </Card>
@@ -181,61 +238,99 @@ export default function DashboardPage() {
       </div>
 
       {error && (
-        <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-          {error}
+        <div
+          role="alert"
+          aria-live="assertive"
+          className="flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive"
+        >
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+          <div className="flex-1">{error}</div>
+          {strategiesLoadFailed && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={loadStrategies}
+              className="h-7"
+            >
+              Retry
+            </Button>
+          )}
+        </div>
+      )}
+
+      {successMessage && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="flex items-start gap-3 rounded-lg border border-green-500/30 bg-green-500/5 px-4 py-3 text-sm text-green-700 dark:text-green-400"
+        >
+          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+          <div className="flex-1">{successMessage}</div>
         </div>
       )}
 
       {/* Recently Viewed Strategies */}
-      {recentStrategiesData.length > 0 && (
-        <section>
-          <div className="mb-4 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-muted-foreground" />
-              <h2 className="font-semibold tracking-tight">Recently Viewed</h2>
-            </div>
-            <Link
-              href="/strategies"
-              className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-            >
-              View all
-              <ArrowRight className="ml-1 inline h-3 w-3" />
-            </Link>
+      <section>
+        <div className="mb-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Clock className="h-4 w-4 text-muted-foreground" />
+            <h2 className="font-semibold tracking-tight">Recently Viewed</h2>
           </div>
+          <Link
+            href="/strategies"
+            className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+          >
+            View all
+            <ArrowRight className="ml-1 inline h-3 w-3" />
+          </Link>
+        </div>
+        {recentStrategiesUnique.length > 0 ? (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {recentStrategiesData.map((strategy) => (
-              <Link key={strategy.id} href={`/strategies/${strategy.id}`}>
-                <Card className="group h-full transition-all duration-200 hover:border-primary/20 hover:shadow-md">
-                  <CardContent className="p-4">
-                    <div className="mb-2 truncate font-medium tracking-tight group-hover:text-primary">
-                      {strategy.name}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="secondary" className="text-xs font-normal">
-                        {strategy.asset}
-                      </Badge>
-                      <span className="text-xs text-muted-foreground">
-                        {strategy.timeframe}
-                      </span>
-                    </div>
-                    <p className="mt-3 text-xs text-muted-foreground">
-                      {formatDateTime(strategy.updated_at, timezone)}
-                    </p>
-                  </CardContent>
-                </Card>
-              </Link>
+            {recentStrategiesUnique.map((strategy) => (
+              <Card
+                key={strategy.id}
+                className="group relative h-full transition-all duration-200 hover:border-primary/20 hover:shadow-md"
+              >
+                <CardContent className="p-4">
+                  <div className="mb-2 truncate font-medium tracking-tight group-hover:text-primary">
+                    <Link
+                      href={`/strategies/${strategy.id}`}
+                      aria-label={`Open strategy ${strategy.name}`}
+                      className="absolute inset-0 z-0 rounded-lg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    />
+                    <span className="relative z-10">{strategy.name}</span>
+                  </div>
+                  <div className="relative z-10 flex items-center gap-2">
+                    <Badge variant="secondary" className="text-xs font-normal">
+                      {strategy.asset}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground">
+                      {strategy.timeframe}
+                    </span>
+                  </div>
+                  <p className="relative z-10 mt-3 text-xs text-muted-foreground">
+                    {formatDateTime(strategy.updated_at, timezone)}
+                  </p>
+                </CardContent>
+              </Card>
             ))}
           </div>
-        </section>
-      )}
+        ) : recentStrategiesLoaded ? (
+          <p className="text-sm text-muted-foreground">
+            Strategies you open will appear here.
+          </p>
+        ) : (
+          <Skeleton className="h-24 w-full" />
+        )}
+      </section>
 
       {/* Recent Backtests */}
-      {recentBacktestsData.length > 0 && (
-        <section>
-          <div className="mb-4 flex items-center gap-2">
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            <h2 className="font-semibold tracking-tight">Recent Backtests</h2>
-          </div>
+      <section>
+        <div className="mb-4 flex items-center gap-2">
+          <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          <h2 className="font-semibold tracking-tight">Recent Backtests</h2>
+        </div>
+        {recentBacktestsData.length > 0 ? (
           <div className="space-y-2">
             {recentBacktestsData.map((run) => {
               const returnPct = run.summary?.total_return_pct;
@@ -243,57 +338,69 @@ export default function DashboardPage() {
               const isNegative = returnPct !== undefined && returnPct < 0;
 
               return (
-                <Link key={run.run_id} href={`/strategies/${run.strategy_id}/backtest`}>
-                  <Card className="group transition-all duration-200 hover:shadow-md">
-                    <CardContent className="flex items-center gap-4 p-4">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 text-sm">
-                          <span className="text-foreground">
-                            {formatDateTime(run.date_from, timezone).split(" ")[0]}
-                          </span>
-                          <ArrowRight className="h-3 w-3 text-muted-foreground" />
-                          <span className="text-foreground">
-                            {formatDateTime(run.date_to, timezone).split(" ")[0]}
-                          </span>
-                        </div>
-                        <div className="mt-1 flex items-center gap-2">
-                          <Badge variant="secondary" className="text-xs font-normal">
-                            {run.asset}
-                          </Badge>
-                          <span className="text-xs text-muted-foreground">
-                            {run.timeframe}
-                          </span>
-                        </div>
+                <Card
+                  key={run.run_id}
+                  className="group relative transition-all duration-200 hover:shadow-md"
+                >
+                  <CardContent className="flex items-center gap-4 p-4">
+                    <Link
+                      href={`/strategies/${run.strategy_id}/backtest`}
+                      aria-label={`Open backtest for ${run.asset} ${run.timeframe}`}
+                      className="absolute inset-0 z-0 rounded-lg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    />
+                    <div className="relative z-10 min-w-0 flex-1">
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="text-foreground">
+                          {formatDateTime(run.date_from, timezone).split(" ")[0]}
+                        </span>
+                        <span className="text-muted-foreground">–</span>
+                        <span className="text-foreground">
+                          {formatDateTime(run.date_to, timezone).split(" ")[0]}
+                        </span>
                       </div>
-                      {run.summary && (
-                        <div className="flex items-center gap-1.5">
-                          {isPositive && (
-                            <ArrowUpRight className="h-4 w-4 text-green-500 dark:text-green-400" />
-                          )}
-                          {isNegative && (
-                            <ArrowDownRight className="h-4 w-4 text-red-500 dark:text-red-400" />
-                          )}
-                          <span
-                            className={`text-sm font-semibold tabular-nums ${
-                              isPositive
-                                ? "text-green-600 dark:text-green-400"
-                                : isNegative
-                                  ? "text-red-600 dark:text-red-400"
-                                  : "text-foreground"
-                            }`}
-                          >
-                            {formatPercent(run.summary.total_return_pct)}
-                          </span>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </Link>
+                      <div className="mt-1 flex items-center gap-2">
+                        <Badge variant="secondary" className="text-xs font-normal">
+                          {run.asset}
+                        </Badge>
+                        <span className="text-xs text-muted-foreground">
+                          {run.timeframe}
+                        </span>
+                      </div>
+                    </div>
+                    {run.summary && (
+                      <div className="relative z-10 flex items-center gap-1.5">
+                        {isPositive && (
+                          <ArrowUpRight className="h-4 w-4 text-green-500 dark:text-green-400" />
+                        )}
+                        {isNegative && (
+                          <ArrowDownRight className="h-4 w-4 text-red-500 dark:text-red-400" />
+                        )}
+                        <span
+                          className={`text-sm font-semibold tabular-nums ${
+                            isPositive
+                              ? "text-green-600 dark:text-green-400"
+                              : isNegative
+                                ? "text-red-600 dark:text-red-400"
+                                : "text-foreground"
+                          }`}
+                        >
+                          {formatPercent(run.summary.total_return_pct)}
+                        </span>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
               );
             })}
           </div>
-        </section>
-      )}
+        ) : recentBacktestsLoaded ? (
+          <p className="text-sm text-muted-foreground">
+            Backtests you run will appear here.
+          </p>
+        ) : (
+          <Skeleton className="h-16 w-full" />
+        )}
+      </section>
 
       {/* Your Strategies */}
       <section>
@@ -318,9 +425,13 @@ export default function DashboardPage() {
                 <CardContent className="flex items-center gap-4 p-4">
                   <div className="flex-1 space-y-2">
                     <Skeleton className="h-5 w-40" />
-                    <Skeleton className="h-4 w-24" />
+                    <div className="flex items-center gap-2">
+                      <Skeleton className="h-4 w-14" />
+                      <Skeleton className="h-3 w-10" />
+                    </div>
                   </div>
-                  <Skeleton className="h-8 w-16" />
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-8 w-20" />
                 </CardContent>
               </Card>
             ))}
@@ -348,17 +459,19 @@ export default function DashboardPage() {
             {recentStrategiesList.map((strategy) => (
               <Card
                 key={strategy.id}
-                className="group transition-all duration-200 hover:shadow-md"
+                className="group relative transition-all duration-200 hover:shadow-md"
               >
                 <CardContent className="flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:gap-4">
-                  <Link
-                    href={`/strategies/${strategy.id}`}
-                    className="min-w-0 flex-1"
-                  >
-                    <div className="truncate font-medium tracking-tight group-hover:text-primary">
+                  <div className="min-w-0 flex-1">
+                    <Link
+                      href={`/strategies/${strategy.id}`}
+                      aria-label={`Open strategy ${strategy.name}`}
+                      className="absolute inset-0 z-0 rounded-lg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    />
+                    <div className="relative z-10 truncate font-medium tracking-tight group-hover:text-primary">
                       {strategy.name}
                     </div>
-                    <div className="mt-1 flex items-center gap-2">
+                    <div className="relative z-10 mt-1 flex items-center gap-2">
                       <Badge variant="secondary" className="text-xs font-normal">
                         {strategy.asset}
                       </Badge>
@@ -366,8 +479,8 @@ export default function DashboardPage() {
                         {strategy.timeframe}
                       </span>
                     </div>
-                  </Link>
-                  <div className="flex items-center gap-3">
+                  </div>
+                  <div className="relative z-10 flex items-center gap-3">
                     <span className="text-xs text-muted-foreground">
                       {formatDateTime(strategy.updated_at, timezone)}
                     </span>
@@ -389,10 +502,10 @@ export default function DashboardPage() {
               <div className="pt-2 text-center">
                 <Link
                   href="/strategies"
-                  className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                  className="inline-flex items-center gap-1 text-sm text-primary underline-offset-4 hover:underline"
                 >
                   +{strategies.length - 5} more strategies
-                  <ArrowRight className="ml-1 inline h-3 w-3" />
+                  <ArrowRight className="h-3 w-3" />
                 </Link>
               </div>
             )}
