@@ -288,23 +288,25 @@ function MetricCard({
         <button
           onClick={onTogglePin}
           disabled={disabled}
+          aria-label={isPinned ? `Unpin ${label}` : `Pin ${label}`}
+          aria-pressed={isPinned}
           className="flex-shrink-0 text-muted-foreground transition-colors hover:text-primary disabled:opacity-50"
           title={isPinned ? "Unpin metric" : "Pin metric"}
         >
-          <svg className="h-4 w-4" fill={isPinned ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="h-4 w-4" fill={isPinned ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path strokeWidth="2" d="M5 5l7-2 7 2v10l-7 2-7-2V5z" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
       </div>
 
-      <div className="text-base font-semibold tabular-nums sm:text-lg">{value}</div>
+      <div className="text-2xl font-bold tabular-nums sm:text-3xl">{value}</div>
 
       {firstRunExplanation && (
         <p className="mt-1 text-xs text-muted-foreground/70">{firstRunExplanation}</p>
       )}
 
       {isPinned && (
-        <div className="mt-2 hidden gap-1 sm:flex">
+        <div className="mt-2 flex gap-1">
           <Button
             size="sm"
             variant="ghost"
@@ -669,6 +671,8 @@ export default function StrategyBacktestPage({ params }: Props) {
   const [showFirstRunExplanations, setShowFirstRunExplanations] = useState(false);
   const firstRunEventFired = useRef(false);
   const firstRunResultsRef = useRef<HTMLDivElement | null>(null);
+  const customFormRef = useRef<HTMLFormElement | null>(null);
+  const runDetailsRef = useRef<HTMLElement | null>(null);
 
   // Summary card has its own key so scroll-based overlay dismissal doesn't hide it
   const [showSummaryCard, setShowSummaryCard] = useState(false);
@@ -791,7 +795,7 @@ export default function StrategyBacktestPage({ params }: Props) {
       });
       await refreshUser();
     } catch {
-      // Silent fail or show toast
+      setError("Couldn't save your pinned metrics. Please try again.");
     } finally {
       setSavingMetrics(false);
     }
@@ -818,7 +822,7 @@ export default function StrategyBacktestPage({ params }: Props) {
       });
       await refreshUser();
     } catch {
-      // Silent fail
+      setError("Couldn't reorder metrics. Please try again.");
     } finally {
       setSavingMetrics(false);
     }
@@ -985,6 +989,7 @@ export default function StrategyBacktestPage({ params }: Props) {
       .catch(() => {
         setUserPlan(null);
         setIsBetaGrandfatheredUser(false);
+        setError("Couldn't load your plan. Some period options may be unavailable — please refresh.");
       });
   }, []);
 
@@ -1115,6 +1120,7 @@ export default function StrategyBacktestPage({ params }: Props) {
       setStatusMessage("Backtest started. It will update automatically when finished.");
       setSelectedRunId(res.run_id);
       await loadBacktests();
+      runDetailsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to start backtest");
     } finally {
@@ -1189,6 +1195,7 @@ export default function StrategyBacktestPage({ params }: Props) {
       const queuedCount = res.runs.filter((r) => r.status === "pending").length;
       setStatusMessage(`Batch started: ${queuedCount} backtest${queuedCount !== 1 ? "s" : ""} queued. Results will appear below as they complete.`);
       await loadBacktests();
+      runDetailsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to start batch backtest");
     } finally {
@@ -1208,16 +1215,17 @@ export default function StrategyBacktestPage({ params }: Props) {
       const isMod = e.metaKey || e.ctrlKey;
       const key = e.key.toLowerCase();
 
-      // Run backtest: Cmd/Ctrl+R
-      if (isMod && key === "r" && !e.shiftKey) {
+      // Run backtest: Cmd/Ctrl+Enter (standard "submit" shortcut)
+      if (isMod && key === "enter") {
         if (isSubmitting) return;
         e.preventDefault();
-        // Trigger form submission programmatically
-        const form = document.querySelector("form");
+        const form = customFormRef.current;
         if (form) {
           form.dispatchEvent(
             new Event("submit", { cancelable: true, bubbles: true })
           );
+        } else {
+          setStatusMessage("Open custom dates to run a single backtest, or use Run All.");
         }
         return;
       }
@@ -1375,12 +1383,16 @@ export default function StrategyBacktestPage({ params }: Props) {
       <div className="border-b bg-background px-3 py-3 sm:px-4">
         <div className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center gap-3">
-            <Link href="/strategies" className="text-muted-foreground transition-colors hover:text-foreground">
-              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <Link
+              href="/strategies"
+              aria-label="Back to strategies"
+              className="text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
             </Link>
-            <h1 className="text-lg font-semibold tracking-tight">{strategy.name}</h1>
+            <h1 className="text-2xl font-bold tracking-tight">{strategy.name}</h1>
             <span className="hidden rounded-md bg-secondary px-2 py-0.5 text-xs text-muted-foreground sm:inline">
               {strategy.asset}
             </span>
@@ -1394,13 +1406,37 @@ export default function StrategyBacktestPage({ params }: Props) {
         <StrategyTabs strategyId={id} activeTab="backtest" />
 
         {error && (
-          <div className="mt-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
-            {error}
+          <div
+            role="alert"
+            aria-live="assertive"
+            className="mt-2 flex items-start justify-between gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive"
+          >
+            <span>{error}</span>
+            <button
+              type="button"
+              onClick={() => setError(null)}
+              aria-label="Dismiss error"
+              className="flex-shrink-0 text-destructive/70 hover:text-destructive"
+            >
+              ×
+            </button>
           </div>
         )}
         {statusMessage && (
-          <div className="mt-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-600 dark:border-green-800 dark:bg-green-950 dark:text-green-400">
-            {statusMessage}
+          <div
+            role="status"
+            aria-live="polite"
+            className="mt-2 flex items-start justify-between gap-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-600 dark:border-green-800 dark:bg-green-950 dark:text-green-400"
+          >
+            <span>{statusMessage}</span>
+            <button
+              type="button"
+              onClick={() => setStatusMessage(null)}
+              aria-label="Dismiss message"
+              className="flex-shrink-0 opacity-70 hover:opacity-100"
+            >
+              ×
+            </button>
           </div>
         )}
       </div>
@@ -1430,7 +1466,7 @@ export default function StrategyBacktestPage({ params }: Props) {
             {/* Period checkboxes for batch selection */}
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-2">Periods</label>
+                <div className="block text-sm font-medium mb-2" id="periods-label">Periods</div>
                 <div className="flex flex-wrap gap-x-4 gap-y-2">
                   {BATCH_PERIOD_PRESETS.map((option) => {
                     const isDisabled = option.premiumOnly && !isPremiumUser;
@@ -1463,11 +1499,11 @@ export default function StrategyBacktestPage({ params }: Props) {
 
               {/* Custom date inputs (collapsed by default) */}
               {showCustomDates && (
-                <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 rounded-lg border bg-secondary/30 p-3 md:grid-cols-2">
+                <form ref={customFormRef} onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 rounded-lg border bg-secondary/30 p-3 md:grid-cols-2">
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium">Period</label>
+                    <label className="block text-sm font-medium" htmlFor="period-preset">Period</label>
                     <Select value={periodPreset} onValueChange={(v) => handlePeriodChange(v as PeriodPreset)}>
-                      <SelectTrigger className="mt-1">
+                      <SelectTrigger id="period-preset" className="mt-1">
                         <SelectValue placeholder="Select period" />
                       </SelectTrigger>
                       <SelectContent>
@@ -1491,8 +1527,9 @@ export default function StrategyBacktestPage({ params }: Props) {
                     </div>
                   )}
                   <div className="min-w-0">
-                    <label className="block text-sm font-medium">Date from</label>
+                    <label className="block text-sm font-medium" htmlFor="date-from">Date from</label>
                     <Input
+                      id="date-from"
                       type="date"
                       value={dateFrom}
                       max={dateTo}
@@ -1506,8 +1543,9 @@ export default function StrategyBacktestPage({ params }: Props) {
                     />
                   </div>
                   <div className="min-w-0">
-                    <label className="block text-sm font-medium">Date to</label>
+                    <label className="block text-sm font-medium" htmlFor="date-to">Date to</label>
                     <Input
+                      id="date-to"
                       type="date"
                       value={dateTo}
                       min={dateFrom}
@@ -1520,8 +1558,8 @@ export default function StrategyBacktestPage({ params }: Props) {
                     />
                   </div>
                   <div className="md:col-span-2">
-                    <Button type="submit" disabled={isSubmitting} className="w-full md:w-auto">
-                      {isSubmitting ? "Starting..." : "Run backtest"}
+                    <Button type="submit" variant="outline" disabled={isSubmitting} className="w-full md:w-auto">
+                      {isSubmitting ? "Starting..." : "Run single backtest"}
                     </Button>
                   </div>
                 </form>
@@ -1541,8 +1579,9 @@ export default function StrategyBacktestPage({ params }: Props) {
               {/* Fee / slippage rates */}
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
-                  <label className="block text-sm font-medium">Fee rate (optional)</label>
+                  <label className="block text-sm font-medium" htmlFor="fee-rate">Fee rate (optional)</label>
                   <Input
+                    id="fee-rate"
                     type="number"
                     step="0.0001"
                     min="0"
@@ -1554,8 +1593,9 @@ export default function StrategyBacktestPage({ params }: Props) {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium">Slippage rate (optional)</label>
+                  <label className="block text-sm font-medium" htmlFor="slippage-rate">Slippage rate (optional)</label>
                   <Input
+                    id="slippage-rate"
                     type="number"
                     step="0.0001"
                     min="0"
@@ -1595,7 +1635,9 @@ export default function StrategyBacktestPage({ params }: Props) {
                   disabled={isSubmitting || selectedPeriods.size === 0}
                   className="w-full md:w-auto"
                 >
-                  {isSubmitting ? "Starting..." : `Run All (${selectedPeriods.size})`}
+                  {isSubmitting
+                    ? "Starting..."
+                    : `Run ${selectedPeriods.size} backtest${selectedPeriods.size === 1 ? "" : "s"}`}
                 </Button>
               </div>
             </div>
@@ -1620,7 +1662,7 @@ export default function StrategyBacktestPage({ params }: Props) {
           </div>
         </div>
 
-        <section className="rounded-xl border bg-card p-3 shadow-sm sm:p-4">
+        <section ref={runDetailsRef} className="rounded-xl border bg-card p-3 shadow-sm sm:p-4">
           <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-base font-semibold tracking-tight">Run details</h2>
             <div className="flex flex-wrap items-center gap-2 sm:gap-3">
@@ -1699,8 +1741,26 @@ export default function StrategyBacktestPage({ params }: Props) {
                 userId={user?.id}
               />
               {selectedRun.status === "failed" ? (
-                <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
-                  {selectedRun.error_message || "Backtest failed. Please try again."}
+                <div
+                  role="alert"
+                  className="flex flex-col gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <span>{selectedRun.error_message || "Backtest failed. Please try again."}</span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      if (selectedRun.date_from && selectedRun.date_to) {
+                        setDateFrom(selectedRun.date_from.split("T")[0]);
+                        setDateTo(selectedRun.date_to.split("T")[0]);
+                        setPeriodPreset("custom");
+                      }
+                      submitBacktest();
+                    }}
+                    disabled={isSubmitting}
+                  >
+                    Retry with same parameters
+                  </Button>
                 </div>
               ) : isZeroTradeNarrativeMode ? null : (
                 selectedRun.summary ? ((() => {
@@ -2028,7 +2088,7 @@ export default function StrategyBacktestPage({ params }: Props) {
                     <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
                       {/* Average Hold Time */}
                       {!positionStats.hasMissingTimestamps && (
-                        <div className="rounded border border-border bg-secondary/50 dark:bg-secondary/30 p-2 sm:p-3">
+                        <div className="rounded-lg border border-border bg-secondary/50 dark:bg-secondary/30 p-2 sm:p-3">
                           <div className="text-xs uppercase text-muted-foreground">
                             Avg Hold
                           </div>
@@ -2043,7 +2103,7 @@ export default function StrategyBacktestPage({ params }: Props) {
 
                       {/* Longest Position */}
                       {!positionStats.hasMissingTimestamps && (
-                        <div className="rounded border border-border bg-secondary/50 dark:bg-secondary/30 p-2 sm:p-3">
+                        <div className="rounded-lg border border-border bg-secondary/50 dark:bg-secondary/30 p-2 sm:p-3">
                           <div className="text-xs uppercase text-muted-foreground">
                             Longest
                           </div>
@@ -2058,7 +2118,7 @@ export default function StrategyBacktestPage({ params }: Props) {
 
                       {/* Shortest Position */}
                       {!positionStats.hasMissingTimestamps && (
-                        <div className="rounded border border-border bg-secondary/50 dark:bg-secondary/30 p-2 sm:p-3">
+                        <div className="rounded-lg border border-border bg-secondary/50 dark:bg-secondary/30 p-2 sm:p-3">
                           <div className="text-xs uppercase text-muted-foreground">
                             Shortest
                           </div>
@@ -2074,7 +2134,7 @@ export default function StrategyBacktestPage({ params }: Props) {
                       {/* Average Position Size */}
                       {!positionStats.hasMissingPositionData &&
                         positionStats.avgPositionSize > 0 && (
-                          <div className="rounded border border-border bg-secondary/50 dark:bg-secondary/30 p-2 sm:p-3">
+                          <div className="rounded-lg border border-border bg-secondary/50 dark:bg-secondary/30 p-2 sm:p-3">
                             <div className="text-xs uppercase text-muted-foreground">
                               Avg Size
                             </div>
@@ -2139,21 +2199,47 @@ export default function StrategyBacktestPage({ params }: Props) {
                           : "grid-cols-4 sm:grid-cols-7"
                       }`}
                     >
-                      {seasonalityData.map((bucket, idx) => (
-                        <div
-                          key={idx}
-                          className={`rounded border p-2 text-center sm:p-3 ${getColorClass(bucket.avgReturn)}`}
-                          title={`${bucket.label}: ${formatPercent(bucket.avgReturn)} avg return, ${bucket.count} trades`}
-                        >
-                          <div className="text-xs font-medium">{bucket.label}</div>
-                          <div className="mt-0.5 text-xs font-semibold sm:mt-1 sm:text-sm">
-                            {bucket.count > 0 ? formatPercent(bucket.avgReturn) : "—"}
+                      {seasonalityData.map((bucket, idx) => {
+                        const arrow =
+                          bucket.count === 0
+                            ? ""
+                            : bucket.avgReturn > 0.5
+                              ? "▲ "
+                              : bucket.avgReturn < -0.5
+                                ? "▼ "
+                                : "";
+                        return (
+                          <div
+                            key={idx}
+                            className={`rounded-lg border p-2 text-center sm:p-3 ${getColorClass(bucket.avgReturn)}`}
+                            title={`${bucket.label}: ${formatPercent(bucket.avgReturn)} avg return, ${bucket.count} trades`}
+                            aria-label={`${bucket.label}: ${bucket.count === 0 ? "no trades" : `${formatPercent(bucket.avgReturn)} average return across ${bucket.count} trades`}`}
+                          >
+                            <div className="text-xs font-medium">{bucket.label}</div>
+                            <div className="mt-0.5 text-xs font-semibold sm:mt-1 sm:text-sm">
+                              {bucket.count > 0 ? `${arrow}${formatPercent(bucket.avgReturn)}` : "—"}
+                            </div>
+                            <div className="mt-0.5 hidden text-xs opacity-75 sm:block">
+                              {bucket.count} {bucket.count === 1 ? "trade" : "trades"}
+                            </div>
                           </div>
-                          <div className="mt-0.5 hidden text-xs opacity-75 sm:block">
-                            {bucket.count} {bucket.count === 1 ? "trade" : "trades"}
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
+                    </div>
+                    <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                      <span>Legend:</span>
+                      <span className="inline-flex items-center gap-1">
+                        <span className="inline-block h-3 w-3 rounded border bg-red-100 dark:bg-red-950" aria-hidden="true" />
+                        ▼ Worse
+                      </span>
+                      <span className="inline-flex items-center gap-1">
+                        <span className="inline-block h-3 w-3 rounded border bg-secondary/50" aria-hidden="true" />
+                        Neutral
+                      </span>
+                      <span className="inline-flex items-center gap-1">
+                        <span className="inline-block h-3 w-3 rounded border bg-green-100 dark:bg-green-950" aria-hidden="true" />
+                        ▲ Better
+                      </span>
                     </div>
                   </TabsContent>
                 </Tabs>
@@ -2414,6 +2500,8 @@ export default function StrategyBacktestPage({ params }: Props) {
                         <TableRow
                           key={`${trade.entry_time}-${idx}`}
                           className="cursor-pointer"
+                          role="button"
+                          aria-label={`Open details for trade ${(tradesCurrentPage - 1) * tradesPageSize + idx + 1}`}
                           onClick={() => setSelectedTradeIdx((tradesCurrentPage - 1) * tradesPageSize + idx)}
                           tabIndex={0}
                           onKeyDown={(e) => {
