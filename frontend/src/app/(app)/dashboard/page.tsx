@@ -301,14 +301,14 @@ export default function DashboardPage() {
                     <span className="relative z-10">{strategy.name}</span>
                   </div>
                   <div className="relative z-10 flex items-center gap-2">
-                    <Badge variant="secondary" className="text-xs font-normal">
+                    <Badge variant="secondary" className="data-text text-xs font-normal">
                       {strategy.asset}
                     </Badge>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="data-text text-xs text-muted-foreground">
                       {strategy.timeframe}
                     </span>
                   </div>
-                  <p className="relative z-10 mt-3 text-xs text-muted-foreground">
+                  <p className="data-text relative z-10 mt-3 text-xs text-muted-foreground">
                     {formatDateTime(strategy.updated_at, timezone)}
                   </p>
                 </CardContent>
@@ -349,7 +349,7 @@ export default function DashboardPage() {
                       className="absolute inset-0 z-0 rounded-lg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                     />
                     <div className="relative z-10 min-w-0 flex-1">
-                      <div className="flex items-center gap-2 text-sm">
+                      <div className="data-text flex items-center gap-2 text-sm">
                         <span className="text-foreground">
                           {formatDateTime(run.date_from, timezone).split(" ")[0]}
                         </span>
@@ -359,10 +359,10 @@ export default function DashboardPage() {
                         </span>
                       </div>
                       <div className="mt-1 flex items-center gap-2">
-                        <Badge variant="secondary" className="text-xs font-normal">
+                        <Badge variant="secondary" className="data-text text-xs font-normal">
                           {run.asset}
                         </Badge>
-                        <span className="text-xs text-muted-foreground">
+                        <span className="data-text text-xs text-muted-foreground">
                           {run.timeframe}
                         </span>
                       </div>

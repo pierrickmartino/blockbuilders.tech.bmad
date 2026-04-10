@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { AlertTriangle } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
 
 interface LowTradeCountWarningProps {
@@ -29,10 +30,16 @@ export function LowTradeCountWarning({ numTrades, runId, userId }: LowTradeCount
   }
 
   return (
-    <div className="rounded-lg border border-yellow-200 bg-yellow-50 px-3 py-2 text-sm text-yellow-800 dark:border-yellow-800 dark:bg-yellow-950 dark:text-yellow-400">
-      Your strategy triggered {numTrades} trade{numTrades !== 1 ? "s" : ""} over this period. With
-      so few trades, results can vary a lot — try a longer date range or looser entry conditions to
-      get more data points.
+    <div
+      role="status"
+      className="flex items-start gap-2 rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-warning"
+    >
+      <AlertTriangle aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />
+      <span>
+        Your strategy triggered {numTrades} trade{numTrades !== 1 ? "s" : ""} over this period. With
+        so few trades, results can vary a lot — try a longer date range or looser entry conditions to
+        get more data points.
+      </span>
     </div>
   );
 }

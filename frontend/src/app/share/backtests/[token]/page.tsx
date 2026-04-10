@@ -143,11 +143,11 @@ export default function SharedBacktestPage({ params }: Props) {
                 </h1>
               </div>
               <div className="flex gap-2">
-                <Badge variant="secondary">{data.asset}</Badge>
-                <Badge variant="secondary">{data.timeframe}</Badge>
+                <Badge variant="secondary" className="data-text">{data.asset}</Badge>
+                <Badge variant="secondary" className="data-text">{data.timeframe}</Badge>
               </div>
             </div>
-            <p className="text-sm text-muted-foreground">
+            <p className="data-text text-sm text-muted-foreground">
               {formatDateTime(data.date_from, "utc").split(" ")[0]} →{" "}
               {formatDateTime(data.date_to, "utc").split(" ")[0]}
             </p>

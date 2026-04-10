@@ -565,14 +565,14 @@ export default function AlertsPage() {
                               aria-label={`Select alert for ${alert.asset}`}
                             />
                           </TableCell>
-                          <TableCell className="font-medium">{alert.asset}</TableCell>
+                          <TableCell className="data-text font-medium">{alert.asset}</TableCell>
                           <TableCell className="capitalize">{alert.direction}</TableCell>
-                          <TableCell>
+                          <TableCell className="data-text">
                             {formatAlertPrice(alert.threshold_price)} {quote}
                           </TableCell>
                           <TableCell>{getStatusBadge(alert)}</TableCell>
                           <TableCell>{getChannelIcons(alert)}</TableCell>
-                          <TableCell>{formatDateTime(alert.expires_at, timezone)}</TableCell>
+                          <TableCell className="data-text">{formatDateTime(alert.expires_at, timezone)}</TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-1">
                               <Button
@@ -632,8 +632,8 @@ export default function AlertsPage() {
                               className="mt-1"
                             />
                             <div>
-                              <p className="font-medium">{alert.asset}</p>
-                              <p className="text-sm text-muted-foreground capitalize">
+                              <p className="data-text font-medium">{alert.asset}</p>
+                              <p className="data-text text-sm text-muted-foreground capitalize">
                                 {alert.direction} {formatAlertPrice(alert.threshold_price)}{" "}
                                 {quote}
                               </p>
@@ -645,7 +645,7 @@ export default function AlertsPage() {
                           <div className="flex items-center gap-2">
                             {getChannelIcons(alert)}
                             {alert.expires_at && (
-                              <span className="text-xs text-muted-foreground">
+                              <span className="data-text text-xs text-muted-foreground">
                                 Expires {formatDateTime(alert.expires_at, timezone)}
                               </span>
                             )}
@@ -758,13 +758,13 @@ export default function AlertsPage() {
                               "Unknown Strategy"
                             )}
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="data-text">
                             {alert.threshold_pct ? `${alert.threshold_pct}%` : "—"}
                           </TableCell>
                           <TableCell>{alert.alert_on_entry ? "Yes" : "No"}</TableCell>
                           <TableCell>{alert.alert_on_exit ? "Yes" : "No"}</TableCell>
                           <TableCell>{getStatusBadge(alert)}</TableCell>
-                          <TableCell>{formatDateTime(alert.last_triggered_at, timezone)}</TableCell>
+                          <TableCell className="data-text">{formatDateTime(alert.last_triggered_at, timezone)}</TableCell>
                           <TableCell className="text-right">
                             <Button
                               variant="ghost"
@@ -797,7 +797,7 @@ export default function AlertsPage() {
                             <p className="font-medium truncate">{strategyLabel}</p>
                             <div className="mt-1 flex flex-wrap gap-1">
                               {alert.threshold_pct !== undefined && alert.threshold_pct !== null && (
-                                <Badge variant="secondary">DD {alert.threshold_pct}%</Badge>
+                                <Badge variant="secondary" className="data-text">DD {alert.threshold_pct}%</Badge>
                               )}
                               {alert.alert_on_entry && <Badge variant="secondary">Entry</Badge>}
                               {alert.alert_on_exit && <Badge variant="secondary">Exit</Badge>}
@@ -806,7 +806,7 @@ export default function AlertsPage() {
                           {getStatusBadge(alert)}
                         </div>
                         <div className="mt-3 flex items-center justify-between">
-                          <span className="text-xs text-muted-foreground">
+                          <span className="data-text text-xs text-muted-foreground">
                             {alert.last_triggered_at
                               ? `Triggered ${formatDateTime(alert.last_triggered_at, timezone)}`
                               : "Not triggered"}

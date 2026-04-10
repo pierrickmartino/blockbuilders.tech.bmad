@@ -1231,7 +1231,9 @@ export default function StrategyEditorPage({ params }: Props) {
               {autosaveState === 'saved' && lastSavedAt && (
                 <>
                   <CheckIcon className="h-3 w-3 text-primary" aria-hidden="true" />
-                  <span className="hidden sm:inline">Saved • {relativeTimestamp}</span>
+                  <span className="hidden sm:inline">
+                    Saved • <span className="data-text">{relativeTimestamp}</span>
+                  </span>
                   <span className="sm:hidden">Saved</span>
                 </>
               )}
@@ -1293,12 +1295,12 @@ export default function StrategyEditorPage({ params }: Props) {
                       >
                         <div className="flex-1 min-w-0">
                           <div className="text-sm font-medium">
-                            Version {v.version_number}
+                            Version <span className="data-text">{v.version_number}</span>
                             {v.version_number === selectedVersion?.version_number && (
                               <Badge variant="outline" className="ml-2 text-xs">Current</Badge>
                             )}
                           </div>
-                          <div className="text-xs text-muted-foreground">
+                          <div className="data-text text-xs text-muted-foreground">
                             {formatDateTime(v.created_at, timezone)}
                           </div>
                         </div>
@@ -1389,7 +1391,9 @@ export default function StrategyEditorPage({ params }: Props) {
               <SelectContent>
                 {versions.map((v) => (
                   <SelectItem key={v.id} value={String(v.version_number)}>
-                    v{v.version_number} - {formatDateTime(v.created_at, timezone).split(" ")[0]}
+                    <span className="data-text">
+                      v{v.version_number} - {formatDateTime(v.created_at, timezone).split(" ")[0]}
+                    </span>
                   </SelectItem>
                 ))}
               </SelectContent>

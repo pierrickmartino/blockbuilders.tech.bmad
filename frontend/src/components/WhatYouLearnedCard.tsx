@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface WhatYouLearnedCardProps {
@@ -15,19 +18,18 @@ export function WhatYouLearnedCard({
   dateRange,
   onDismiss,
 }: WhatYouLearnedCardProps) {
+  const [exiting, setExiting] = useState(false);
+
   const delta = strategyReturnPct - benchmarkReturnPct;
   const absDelta = Math.abs(delta).toFixed(1);
-  const isNeutral = Math.abs(delta) < 0.05;
+  const isSmall = Math.abs(delta) < 1;
 
   let comparison: React.ReactNode;
-  if (isNeutral) {
+  if (isSmall) {
     comparison = "Your strategy performed roughly the same as buy-and-hold.";
   } else {
     const verb = delta > 0 ? "beat" : "lagged";
-    const colorClass =
-      delta > 0
-        ? "text-green-600 dark:text-green-400"
-        : "text-red-600 dark:text-red-400";
+    const colorClass = delta > 0 ? "text-success" : "text-destructive";
     comparison = (
       <>
         Your strategy {verb} buy-and-hold by{" "}
@@ -39,8 +41,19 @@ export function WhatYouLearnedCard({
     );
   }
 
+  const handleDismiss = () => {
+    setExiting(true);
+  };
+
   return (
-    <Card className="border-primary/20 bg-primary/5">
+    <Card
+      className={`border-border bg-muted/50 transition-all duration-150 ease-out motion-reduce:transition-none ${
+        exiting ? "scale-95 opacity-0" : "scale-100 opacity-100"
+      }`}
+      onTransitionEnd={() => {
+        if (exiting) onDismiss?.();
+      }}
+    >
       <CardHeader className="pb-2 pt-4 px-4">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-semibold">
@@ -48,8 +61,8 @@ export function WhatYouLearnedCard({
           </CardTitle>
           {onDismiss && (
             <button
-              onClick={onDismiss}
-              className="text-muted-foreground hover:text-foreground text-xs transition-colors"
+              onClick={handleDismiss}
+              className="min-h-[44px] min-w-[44px] rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               aria-label="Dismiss"
             >
               Got it

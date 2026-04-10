@@ -1,9 +1,23 @@
 "use client";
 
 import { useState } from "react";
+import { AlertTriangle, CheckCircle2, ChevronDown } from "lucide-react";
 import { DataCompletenessResponse, DataQualityMetrics } from "@/types/backtest";
 import { DataCompletenessTimeline } from "./DataCompletenessTimeline";
 import InfoIcon from "./InfoIcon";
+
+const GAP_THRESHOLDS = { excellent: 2, good: 5 } as const;
+const VOLUME_CONSISTENCY_THRESHOLD = 95;
+
+const formatLocalDate = (value: string) => {
+  // Accept either "YYYY-MM-DD" or a full ISO timestamp; parse as local date to avoid TZ drift.
+  const ymd = value.slice(0, 10);
+  const [year, month, day] = ymd.split("-").map(Number);
+  if (!year || !month || !day) {
+    return value;
+  }
+  return new Date(year, month - 1, day).toLocaleDateString();
+};
 
 interface DataAvailabilitySectionProps {
   completeness: DataCompletenessResponse | null;
@@ -20,50 +34,46 @@ export function DataAvailabilitySection({
   dateFrom,
   dateTo,
 }: DataAvailabilitySectionProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const formatLocalDate = (ymd: string) => {
-    const [year, month, day] = ymd.split("-").map(Number);
-    if (!year || !month || !day) {
-      return ymd;
-    }
-    return new Date(year, month - 1, day).toLocaleDateString();
-  };
+  const hasIssues = Boolean(dataQuality?.has_issues || (gapOverlap && gapOverlap.length > 0));
+  // Auto-expand when issues exist so warnings aren't hidden behind a click.
+  const [isExpanded, setIsExpanded] = useState(hasIssues);
+  const [showAllGaps, setShowAllGaps] = useState(false);
 
   if (!completeness && !dataQuality) {
     return null;
   }
 
-  const hasIssues = dataQuality?.has_issues || (gapOverlap && gapOverlap.length > 0);
   const hasOverallData = completeness && completeness.coverage_start && completeness.coverage_end;
+  const panelId = "data-availability-panel";
 
   return (
     <div className="rounded-lg border border-border bg-card text-card-foreground">
       {/* Header - Always visible */}
       <button
+        type="button"
         onClick={() => setIsExpanded(!isExpanded)}
+        aria-expanded={isExpanded}
+        aria-controls={panelId}
         className="flex w-full items-center justify-between px-3 py-2 text-left transition hover:bg-muted/50 sm:px-4"
       >
         <div className="flex items-center gap-2">
           <h3 className="text-sm font-medium">Data Availability</h3>
           {hasIssues && !isExpanded && (
-            <span className="rounded bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-950 dark:text-amber-300">
-              ⚠️ Issues detected
+            <span className="inline-flex items-center gap-1 rounded bg-warning/15 px-2 py-0.5 text-xs font-medium text-warning">
+              <AlertTriangle aria-hidden="true" className="h-3 w-3" />
+              Issues detected
             </span>
           )}
         </div>
-        <svg
+        <ChevronDown
+          aria-hidden="true"
           className={`h-5 w-5 text-muted-foreground transition-transform ${isExpanded ? "rotate-180" : ""}`}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
+        />
       </button>
 
       {/* Expandable Content */}
       {isExpanded && (
-        <div className="space-y-4 border-t border-border px-3 py-3 sm:px-4">
+        <div id={panelId} className="space-y-4 border-t border-border px-3 py-3 sm:px-4">
           {/* Overall Coverage */}
           {hasOverallData && (
             <div>
@@ -79,14 +89,10 @@ export function DataAvailabilitySection({
                 />
               </div>
               <div className="mb-2 text-sm text-muted-foreground">
-                <span className="font-semibold">{completeness.completeness_percent.toFixed(1)}%</span> complete from{" "}
-                <span className="font-medium">
-                  {new Date(completeness.coverage_start!).toLocaleDateString()}
-                </span>{" "}
+                <span className="data-text font-semibold">{completeness.completeness_percent.toFixed(1)}%</span> complete from{" "}
+                <span className="data-text font-medium">{formatLocalDate(completeness.coverage_start!)}</span>{" "}
                 to{" "}
-                <span className="font-medium">
-                  {new Date(completeness.coverage_end!).toLocaleDateString()}
-                </span>
+                <span className="data-text font-medium">{formatLocalDate(completeness.coverage_end!)}</span>
               </div>
               {completeness && <DataCompletenessTimeline data={completeness} />}
             </div>
@@ -95,13 +101,11 @@ export function DataAvailabilitySection({
           {/* Selected Period Quality */}
           {dataQuality && (
             <div>
-              <div className="mb-2 flex items-center gap-2">
-                <h4 className="text-sm font-medium">
-                  Selected Period Quality
-                  <span className="ml-1 text-xs font-normal text-muted-foreground">
-                    ({formatLocalDate(dateFrom)} - {formatLocalDate(dateTo)})
-                  </span>
-                </h4>
+              <div className="mb-2">
+                <h4 className="text-sm font-medium">Selected Period Quality</h4>
+                <div className="data-text text-xs text-muted-foreground">
+                  {formatLocalDate(dateFrom)} – {formatLocalDate(dateTo)}
+                </div>
               </div>
 
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
@@ -119,16 +123,21 @@ export function DataAvailabilitySection({
                     />
                   </div>
                   <div
-                    className={`text-base font-semibold sm:text-lg ${
-                      dataQuality.gap_percent > 5
-                        ? "text-amber-700 dark:text-amber-300"
-                        : "text-foreground"
+                    className={`data-text flex items-center gap-1 text-base font-semibold sm:text-lg ${
+                      dataQuality.gap_percent > GAP_THRESHOLDS.good ? "text-warning" : "text-foreground"
                     }`}
                   >
+                    {dataQuality.gap_percent > GAP_THRESHOLDS.good && (
+                      <AlertTriangle aria-hidden="true" className="h-4 w-4" />
+                    )}
                     {dataQuality.gap_percent.toFixed(1)}%
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {dataQuality.gap_percent < 2 ? "Excellent" : dataQuality.gap_percent < 5 ? "Good" : "Poor"}
+                    {dataQuality.gap_percent < GAP_THRESHOLDS.excellent
+                      ? "Excellent"
+                      : dataQuality.gap_percent < GAP_THRESHOLDS.good
+                        ? "Good"
+                        : "Poor"}
                   </div>
                 </div>
 
@@ -146,16 +155,19 @@ export function DataAvailabilitySection({
                     />
                   </div>
                   <div
-                    className={`text-base font-semibold sm:text-lg ${
-                      dataQuality.volume_consistency < 95
-                        ? "text-amber-700 dark:text-amber-300"
+                    className={`data-text flex items-center gap-1 text-base font-semibold sm:text-lg ${
+                      dataQuality.volume_consistency < VOLUME_CONSISTENCY_THRESHOLD
+                        ? "text-warning"
                         : "text-foreground"
                     }`}
                   >
+                    {dataQuality.volume_consistency < VOLUME_CONSISTENCY_THRESHOLD && (
+                      <AlertTriangle aria-hidden="true" className="h-4 w-4" />
+                    )}
                     {dataQuality.volume_consistency.toFixed(1)}%
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {dataQuality.volume_consistency >= 95 ? "Excellent" : "Needs attention"}
+                    {dataQuality.volume_consistency >= VOLUME_CONSISTENCY_THRESHOLD ? "Excellent" : "Needs attention"}
                   </div>
                 </div>
 
@@ -172,7 +184,7 @@ export function DataAvailabilitySection({
                       className="text-muted-foreground"
                     />
                   </div>
-                  <div className="text-base font-semibold text-foreground sm:text-lg">
+                  <div className="data-text text-base font-semibold text-foreground sm:text-lg">
                     {dataQuality.outlier_count}
                   </div>
                   <div className="text-xs text-muted-foreground">
@@ -199,21 +211,29 @@ export function DataAvailabilitySection({
               </div>
               <div className="text-sm text-muted-foreground">
                 {gapOverlap.length === 0 ? (
-                  <span className="text-green-700 dark:text-green-400">✓ No large gaps in your selected period</span>
+                  <span className="inline-flex items-center gap-1 text-success">
+                    <CheckCircle2 aria-hidden="true" className="h-4 w-4" />
+                    No large gaps in your selected period
+                  </span>
                 ) : (
                   <div className="space-y-1">
-                    <span className="font-medium text-orange-700 dark:text-orange-300">
-                      ⚠️ {gapOverlap.length} large gap{gapOverlap.length > 1 ? "s" : ""} detected
+                    <span className="inline-flex items-center gap-1 font-medium text-warning">
+                      <AlertTriangle aria-hidden="true" className="h-4 w-4" />
+                      {gapOverlap.length} large gap{gapOverlap.length > 1 ? "s" : ""} detected
                     </span>
-                    {gapOverlap.slice(0, 3).map((gap, idx) => (
-                      <div key={idx} className="ml-4 text-xs text-muted-foreground">
-                        • {new Date(gap.start).toLocaleString()} - {new Date(gap.end).toLocaleString()}
+                    {(showAllGaps ? gapOverlap : gapOverlap.slice(0, 3)).map((gap, idx) => (
+                      <div key={idx} className="data-text ml-4 text-xs text-muted-foreground">
+                        • {new Date(gap.start).toLocaleString()} – {new Date(gap.end).toLocaleString()}
                       </div>
                     ))}
                     {gapOverlap.length > 3 && (
-                      <div className="ml-4 text-xs text-muted-foreground">
-                        ... and {gapOverlap.length - 3} more
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowAllGaps(!showAllGaps)}
+                        className="ml-4 text-xs font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      >
+                        {showAllGaps ? "Show fewer" : `Show all ${gapOverlap.length} gaps`}
+                      </button>
                     )}
                   </div>
                 )}
@@ -223,9 +243,12 @@ export function DataAvailabilitySection({
 
           {/* Overall Warning Summary */}
           {hasIssues && (
-            <div className="rounded border border-amber-300 bg-amber-50 px-3 py-2 dark:border-amber-700 dark:bg-amber-950/40">
-              <div className="mb-1 text-sm font-medium text-amber-900 dark:text-amber-300">⚠️ Data Quality Warning</div>
-              <div className="text-sm text-amber-800 dark:text-amber-200">
+            <div className="rounded border border-warning/40 bg-warning/10 px-3 py-2">
+              <div className="mb-1 flex items-center gap-1 text-sm font-medium text-warning">
+                <AlertTriangle aria-hidden="true" className="h-4 w-4" />
+                Data Quality Warning
+              </div>
+              <div className="text-sm text-foreground">
                 {dataQuality?.issues_description && (
                   <div className="mb-1">{dataQuality.issues_description}</div>
                 )}

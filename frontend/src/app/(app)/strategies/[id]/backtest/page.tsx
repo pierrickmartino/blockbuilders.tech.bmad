@@ -299,7 +299,7 @@ function MetricCard({
         </button>
       </div>
 
-      <div className="text-2xl font-bold tabular-nums sm:text-3xl">{value}</div>
+      <div className="data-text text-2xl font-bold sm:text-3xl">{value}</div>
 
       {firstRunExplanation && (
         <p className="mt-1 text-xs text-muted-foreground/70">{firstRunExplanation}</p>
@@ -1455,7 +1455,7 @@ export default function StrategyBacktestPage({ params }: Props) {
             />
           </div>
 
-          <section className="lg:col-span-3 rounded-xl border bg-card p-3 shadow-sm sm:p-4">
+          <section id="run-backtest-form" className="lg:col-span-3 rounded-xl border bg-card p-3 shadow-sm sm:p-4">
             <div className="mb-3 sm:mb-4">
               <h2 className="text-base font-semibold tracking-tight">Run a backtest</h2>
               <p className="text-sm text-muted-foreground">
@@ -1725,7 +1725,7 @@ export default function StrategyBacktestPage({ params }: Props) {
             <div ref={firstRunResultsRef} className="space-y-3" onClick={handleFirstRunInteraction}>
               <div className="text-sm text-muted-foreground">
                 <span className="font-medium">Range:</span>{" "}
-                {selectedRunRange}
+                <span className="data-text">{selectedRunRange}</span>
               </div>
               {selectedRun.narrative && (
                 <NarrativeCard
@@ -2092,10 +2092,10 @@ export default function StrategyBacktestPage({ params }: Props) {
                           <div className="text-xs uppercase text-muted-foreground">
                             Avg Hold
                           </div>
-                          <div className="text-base font-semibold tracking-tight sm:text-lg">
+                          <div className="data-text text-base font-semibold tracking-tight sm:text-lg">
                             {formatDuration(positionStats.avgHoldSeconds)}
                           </div>
-                          <div className="text-xs text-muted-foreground">
+                          <div className="data-text text-xs text-muted-foreground">
                             {positionStats.avgHoldBars.toFixed(1)} bars
                           </div>
                         </div>
@@ -2107,10 +2107,10 @@ export default function StrategyBacktestPage({ params }: Props) {
                           <div className="text-xs uppercase text-muted-foreground">
                             Longest
                           </div>
-                          <div className="text-base font-semibold tracking-tight sm:text-lg">
+                          <div className="data-text text-base font-semibold tracking-tight sm:text-lg">
                             {formatDuration(positionStats.longestHoldSeconds)}
                           </div>
-                          <div className="text-xs text-muted-foreground">
+                          <div className="data-text text-xs text-muted-foreground">
                             {positionStats.longestHoldBars.toFixed(1)} bars
                           </div>
                         </div>
@@ -2122,10 +2122,10 @@ export default function StrategyBacktestPage({ params }: Props) {
                           <div className="text-xs uppercase text-muted-foreground">
                             Shortest
                           </div>
-                          <div className="text-base font-semibold tracking-tight sm:text-lg">
+                          <div className="data-text text-base font-semibold tracking-tight sm:text-lg">
                             {formatDuration(positionStats.shortestHoldSeconds)}
                           </div>
-                          <div className="text-xs text-muted-foreground">
+                          <div className="data-text text-xs text-muted-foreground">
                             {positionStats.shortestHoldBars.toFixed(1)} bars
                           </div>
                         </div>
@@ -2138,7 +2138,7 @@ export default function StrategyBacktestPage({ params }: Props) {
                             <div className="text-xs uppercase text-muted-foreground">
                               Avg Size
                             </div>
-                            <div className="text-base font-semibold tracking-tight sm:text-lg">
+                            <div className="data-text text-base font-semibold tracking-tight sm:text-lg">
                               {formatMoney(positionStats.avgPositionSize)}
                             </div>
                           </div>
@@ -2216,10 +2216,10 @@ export default function StrategyBacktestPage({ params }: Props) {
                             aria-label={`${bucket.label}: ${bucket.count === 0 ? "no trades" : `${formatPercent(bucket.avgReturn)} average return across ${bucket.count} trades`}`}
                           >
                             <div className="text-xs font-medium">{bucket.label}</div>
-                            <div className="mt-0.5 text-xs font-semibold sm:mt-1 sm:text-sm">
+                            <div className="data-text mt-0.5 text-xs font-semibold sm:mt-1 sm:text-sm">
                               {bucket.count > 0 ? `${arrow}${formatPercent(bucket.avgReturn)}` : "—"}
                             </div>
-                            <div className="mt-0.5 hidden text-xs opacity-75 sm:block">
+                            <div className="data-text mt-0.5 hidden text-xs opacity-75 sm:block">
                               {bucket.count} {bucket.count === 1 ? "trade" : "trades"}
                             </div>
                           </div>
@@ -2397,7 +2397,7 @@ export default function StrategyBacktestPage({ params }: Props) {
                 )}
                 {trades.length > 0 && (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <span>{trades.length} total</span>
+                    <span className="data-text">{trades.length} total</span>
                     <Select
                       value={String(tradesPageSize)}
                       onValueChange={(value) => {
@@ -2442,31 +2442,31 @@ export default function StrategyBacktestPage({ params }: Props) {
                     >
                       <div className="mb-2 flex items-center justify-between">
                         <span className="text-xs font-medium uppercase text-muted-foreground">{trade.side}</span>
-                        <span className={`text-sm font-semibold ${trade.pnl >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                        <span className={`data-text text-sm font-semibold ${trade.pnl >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
                           {trade.pnl_pct >= 0 ? "+" : ""}{formatPercent(trade.pnl_pct).replace("%", "")}%
                         </span>
                       </div>
                       <div className="grid grid-cols-2 gap-2 text-sm">
                         <div>
                           <div className="text-xs text-muted-foreground">Entry</div>
-                          <div className="font-medium">{formatPrice(trade.entry_price)}</div>
-                          <div className="text-xs text-muted-foreground">{formatDateTime(trade.entry_time, timezone)}</div>
+                          <div className="data-text font-medium">{formatPrice(trade.entry_price)}</div>
+                          <div className="data-text text-xs text-muted-foreground">{formatDateTime(trade.entry_time, timezone)}</div>
                         </div>
                         <div>
                           <div className="text-xs text-muted-foreground">Exit</div>
-                          <div className="font-medium">{formatPrice(trade.exit_price)}</div>
-                          <div className="text-xs text-muted-foreground">{formatDateTime(trade.exit_time, timezone)}</div>
+                          <div className="data-text font-medium">{formatPrice(trade.exit_price)}</div>
+                          <div className="data-text text-xs text-muted-foreground">{formatDateTime(trade.exit_time, timezone)}</div>
                         </div>
                       </div>
                       <div className="mt-2 flex justify-between border-t border-border pt-2">
                         <span className="text-xs text-muted-foreground">P&L</span>
-                        <span className={`text-sm font-medium ${trade.pnl >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                        <span className={`data-text text-sm font-medium ${trade.pnl >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
                           {formatMoney(trade.pnl, "USDT", true)}
                         </span>
                       </div>
                       <div className="mt-2 flex justify-between border-t border-border pt-2">
                         <span className="text-xs text-muted-foreground">Costs</span>
-                        <span className="text-sm font-medium text-foreground">
+                        <span className="data-text text-sm font-medium text-foreground">
                           {trade.total_cost_usd !== undefined && trade.total_cost_usd !== null
                             ? formatMoney(trade.total_cost_usd, "USDT", false)
                             : "—"}
@@ -2511,36 +2511,36 @@ export default function StrategyBacktestPage({ params }: Props) {
                             }
                           }}
                         >
-                          <TableCell>
+                          <TableCell className="data-text">
                             {formatDateTime(trade.entry_time, timezone)}
                           </TableCell>
-                          <TableCell className="text-muted-foreground">
+                          <TableCell className="data-text text-muted-foreground">
                             {formatPrice(trade.entry_price)}
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="data-text">
                             {formatDateTime(trade.exit_time, timezone)}
                           </TableCell>
-                          <TableCell className="text-muted-foreground">
+                          <TableCell className="data-text text-muted-foreground">
                             {formatPrice(trade.exit_price)}
                           </TableCell>
                           <TableCell className="text-muted-foreground uppercase">
                             {trade.side}
                           </TableCell>
                           <TableCell
-                            className={`text-right font-medium ${
+                            className={`data-text text-right font-medium ${
                               trade.pnl >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
                             }`}
                           >
                             {formatMoney(trade.pnl, "USDT", true)}
                           </TableCell>
                           <TableCell
-                            className={`text-right ${
+                            className={`data-text text-right ${
                               trade.pnl_pct >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
                             }`}
                           >
                             {trade.pnl_pct >= 0 ? "+" : ""}{formatPercent(trade.pnl_pct).replace("%", "")}%
                           </TableCell>
-                          <TableCell className="text-right text-foreground">
+                          <TableCell className="data-text text-right text-foreground">
                             {trade.total_cost_usd !== undefined && trade.total_cost_usd !== null
                               ? formatMoney(trade.total_cost_usd, "USDT", false)
                               : "—"}
@@ -2554,7 +2554,7 @@ export default function StrategyBacktestPage({ params }: Props) {
                 {/* Pagination */}
                 {totalPages > 1 && (
                   <div className="mt-3 flex flex-col gap-2 border-t pt-3 sm:flex-row sm:items-center sm:justify-between">
-                    <p className="text-sm text-muted-foreground">
+                    <p className="data-text text-sm text-muted-foreground">
                       Page {tradesCurrentPage} of {totalPages}
                     </p>
                     <div className="flex gap-2">

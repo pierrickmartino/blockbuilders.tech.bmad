@@ -11,11 +11,15 @@ export const PERIOD_LABEL: Record<string, string> = {
 };
 
 // Status badge styling aligned with design-system.pen (Signal variant).
-// Uses a 5% tinted fill with matching colored text + dot indicator, cornerRadius 4.
+// Light mode uses a 5% tint; dark mode uses a stronger 12.5% tint.
 export const statusStyles: Record<BacktestStatus, string> = {
-  pending: "bg-amber-500/5 text-amber-600 dark:text-amber-400",
-  running: "bg-sky-500/5 text-sky-600 dark:text-sky-400",
-  completed: "bg-green-600/5 text-green-600 dark:text-green-500",
-  failed: "bg-red-600/5 text-red-600 dark:text-red-500",
+  pending:
+    "bg-[hsl(var(--warning)/0.05)] text-warning dark:bg-[hsl(var(--warning)/0.125)] dark:text-warning",
+  running:
+    "bg-[hsl(var(--info)/0.05)] text-info dark:bg-[hsl(var(--info)/0.125)] dark:text-info",
+  completed:
+    "bg-[hsl(var(--success)/0.05)] text-success dark:bg-[hsl(var(--success)/0.125)] dark:text-success",
+  failed:
+    "bg-[hsl(var(--destructive)/0.05)] text-destructive dark:bg-[hsl(var(--destructive)/0.125)] dark:text-destructive",
   skipped: "bg-muted text-muted-foreground",
 };

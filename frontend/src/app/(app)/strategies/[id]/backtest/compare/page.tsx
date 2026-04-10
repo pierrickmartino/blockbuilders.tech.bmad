@@ -373,10 +373,10 @@ export default function CompareBacktestsPage({ params }: Props) {
                                     {runLabel(idx)}
                                   </span>
                                 </div>
-                                <div className="text-xs text-muted-foreground">
+                                <div className="data-text text-xs text-muted-foreground">
                                   {runDateRange(run)}
                                 </div>
-                                <div className="text-[10px] text-muted-foreground">
+                                <div className="data-text text-[10px] text-muted-foreground">
                                   {formatDateTime(run.created_at, timezone)}
                                 </div>
                               </div>
@@ -402,7 +402,7 @@ export default function CompareBacktestsPage({ params }: Props) {
                                   <TableCell
                                     key={run.run_id}
                                     className={cn(
-                                      "text-center",
+                                      "data-text text-center",
                                       isBest && "font-semibold text-primary"
                                     )}
                                   >

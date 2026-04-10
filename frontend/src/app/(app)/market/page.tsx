@@ -112,7 +112,7 @@ export default function MarketPage() {
         <h1 className="text-2xl font-bold tracking-tight">Market Overview</h1>
         {asOf && (
           <p className="text-sm text-muted-foreground" aria-live="polite">
-            Last updated: {formatDateTime(asOf, timezone)}
+            Last updated: <span className="data-text">{formatDateTime(asOf, timezone)}</span>
           </p>
         )}
       </div>
@@ -269,25 +269,25 @@ export default function MarketPage() {
                     const positive = ticker.change_24h_pct >= 0;
                     return (
                       <TableRow key={ticker.pair}>
-                        <TableCell className="font-medium">{ticker.pair}</TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="data-text font-medium">{ticker.pair}</TableCell>
+                        <TableCell className="data-text text-right">
                           {formatPrice(ticker.price, "USDT")}
                         </TableCell>
                         <TableCell
-                          className={`text-right ${positive ? "text-success" : "text-destructive"}`}
+                          className={`data-text text-right ${positive ? "text-success" : "text-destructive"}`}
                         >
                           {positive ? "+" : ""}{formatPercent(ticker.change_24h_pct)}
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="data-text text-right">
                           {formatNumber(ticker.volume_24h, 0)}
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="data-text text-right">
                           {formatVolatility(ticker.volatility_stddev, 3)}
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="data-text text-right">
                           {formatVolatility(ticker.volatility_atr_pct, 1)}
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="data-text text-right">
                           {formatVolatility(ticker.volatility_percentile_1y, 0)}
                         </TableCell>
                         <TableCell className="text-center">
@@ -312,9 +312,9 @@ export default function MarketPage() {
                   <Card key={ticker.pair}>
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between mb-3">
-                        <span className="font-medium text-lg">{ticker.pair}</span>
+                        <span className="data-text text-lg font-medium">{ticker.pair}</span>
                         <span
-                          className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm font-medium ${
+                          className={`data-text inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm font-medium ${
                             positive
                               ? "bg-success/10 text-success"
                               : "bg-destructive/10 text-destructive"
@@ -331,19 +331,19 @@ export default function MarketPage() {
                       <div className="grid grid-cols-2 gap-3 text-sm">
                         <div className="col-span-2">
                           <p className="text-muted-foreground">Price</p>
-                          <p className="font-medium">
+                          <p className="data-text font-medium">
                             {formatPrice(ticker.price, "USDT")}
                           </p>
                         </div>
                         <div className="col-span-2">
                           <p className="text-muted-foreground">24h Volume</p>
-                          <p className="font-medium">{formatNumber(ticker.volume_24h, 0)}</p>
+                          <p className="data-text font-medium">{formatNumber(ticker.volume_24h, 0)}</p>
                         </div>
                         <div>
                           <p className="text-muted-foreground">
                             Vol (Std)<InfoTip text={VOL_STD_HELP} />
                           </p>
-                          <p className="font-medium">
+                          <p className="data-text font-medium">
                             {formatVolatility(ticker.volatility_stddev, 3)}
                           </p>
                         </div>
@@ -351,7 +351,7 @@ export default function MarketPage() {
                           <p className="text-muted-foreground">
                             Vol (ATR%)<InfoTip text={VOL_ATR_HELP} />
                           </p>
-                          <p className="font-medium">
+                          <p className="data-text font-medium">
                             {formatVolatility(ticker.volatility_atr_pct, 1)}
                           </p>
                         </div>
@@ -359,7 +359,7 @@ export default function MarketPage() {
                           <p className="text-muted-foreground">
                             Vol Percentile (1y)<InfoTip text={VOL_PCTILE_HELP} />
                           </p>
-                          <p className="font-medium">
+                          <p className="data-text font-medium">
                             {formatVolatility(ticker.volatility_percentile_1y, 0)}
                           </p>
                         </div>
