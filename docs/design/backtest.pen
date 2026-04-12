@@ -2,20 +2,6 @@
   "version": "2.10",
   "children": [
     {
-      "type": "rectangle",
-      "id": "GAXkl",
-      "x": -741,
-      "y": -6741,
-      "fill": {
-        "type": "image",
-        "enabled": true,
-        "url": "../../localhost_3000_strategies_1fc97a1f-6620-4da2-8b8c-74fdb668b5eb_backtest (2).png",
-        "mode": "fill"
-      },
-      "width": 3192,
-      "height": 11944
-    },
-    {
       "type": "frame",
       "id": "zXBak",
       "x": 2651,
@@ -7311,6 +7297,20 @@
       },
       "width": 874,
       "height": 120
+    },
+    {
+      "type": "rectangle",
+      "id": "IqTlY",
+      "x": -227,
+      "y": -6767,
+      "fill": {
+        "type": "image",
+        "enabled": true,
+        "url": "../img/backtest_fullsize.png",
+        "mode": "fill"
+      },
+      "width": 1069,
+      "height": 4000
     }
   ]
 }

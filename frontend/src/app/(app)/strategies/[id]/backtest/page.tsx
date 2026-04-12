@@ -6,17 +6,10 @@ import { useRouter } from "next/navigation";
 import {
   LineChart,
   Line,
-  AreaChart,
-  Area,
-  BarChart,
-  Bar,
   XAxis,
   YAxis,
   Tooltip,
-  Legend,
   ResponsiveContainer,
-  ReferenceArea,
-  ReferenceLine,
 } from "recharts";
 import { apiFetch, ApiError, fetchDataQuality, fetchDataCompleteness, fetchDataAvailability } from "@/lib/api";
 import { trackEvent } from "@/lib/analytics";
@@ -24,15 +17,13 @@ import {
   formatDateTime,
   formatPercent,
   formatPrice,
-  formatMoney,
   formatChartDate,
-  formatDuration,
 } from "@/lib/format";
 import { useDisplay } from "@/context/display";
 import { useAuth } from "@/context/auth";
 import { useBacktestResults } from "@/hooks/useBacktestResults";
 import { useBatchBacktestResults } from "@/hooks/useBatchBacktestResults";
-import { Strategy } from "@/types/strategy";
+import { Strategy, StrategyVersion } from "@/types/strategy";
 import {
   BacktestCreateResponse,
   BacktestListItem,
@@ -72,7 +63,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -81,36 +71,23 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { ZoomableChart } from "@/components/ZoomableChart";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  exportTradesToCSV,
-  exportTradesToJSON,
   exportEquityToCSV,
   exportEquityToJSON,
-  exportMetricsToCSV,
-  exportMetricsToJSON,
 } from "@/lib/backtest-export";
 import { KeyboardShortcutsModal } from "@/components/KeyboardShortcutsModal";
 import { isInputElement } from "@/lib/keyboard-shortcuts";
-import { Checkbox } from "@/components/ui/checkbox";
 import { BacktestRunsList } from "@/components/BacktestRunsList";
 import { statusStyles } from "@/lib/backtest-constants";
+import { BacktestPageHeader } from "@/components/backtest/PageHeader";
+import { RunConfig } from "@/components/backtest/RunConfig";
+import { KPIStrip } from "@/components/backtest/KPIStrip";
+import { DrawdownSection } from "@/components/backtest/DrawdownSection";
+import { PositionAnalysisCard } from "@/components/backtest/PositionAnalysisCard";
+import { TradesSection } from "@/components/backtest/TradesSection";
+import { DistributionRow } from "@/components/backtest/DistributionRow";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -150,15 +127,6 @@ const PERIOD_PRESETS: PeriodOption[] = [
 /** Period presets available for batch selection (excludes "custom"). */
 const BATCH_PERIOD_PRESETS = PERIOD_PRESETS.filter((p) => p.value !== "custom");
 
-
-function getDatesFromPreset(preset: PeriodPreset): { from: string; to: string } | null {
-  const option = PERIOD_PRESETS.find((p) => p.value === preset);
-  if (!option || option.days === null) return null;
-  const today = new Date();
-  const past = new Date();
-  past.setDate(today.getDate() - option.days);
-  return { from: formatDateInput(past), to: formatDateInput(today) };
-}
 
 
 const FIRST_RUN_KEY = "bb.first_run_metric_explanations_seen";
@@ -484,14 +452,6 @@ function computePositionStats(
   };
 }
 
-function getHoldTimeInterpretation(avgHoldSeconds: number): string {
-  const oneDaySeconds = 86400;
-  if (avgHoldSeconds <= oneDaySeconds) {
-    return 'Holding times suggest a day-trading style.';
-  }
-  return 'Holding times suggest a swing-trading style.';
-}
-
 function computeReturnDistribution(
   trades: Array<{ pnl_pct: number }>
 ): DistributionBucket[] {
@@ -614,13 +574,14 @@ export default function StrategyBacktestPage({ params }: Props) {
   const isMobile = useIsMobile();
 
   const [strategy, setStrategy] = useState<Strategy | null>(null);
+  const [strategyVersion, setStrategyVersion] = useState<StrategyVersion | null>(null);
   const [isLoadingStrategy, setIsLoadingStrategy] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   const [dateFrom, setDateFrom] = useState(defaultRange.from);
   const [dateTo, setDateTo] = useState(defaultRange.to);
-  const [periodPreset, setPeriodPreset] = useState<PeriodPreset>("custom");
+  const [, setPeriodPreset] = useState<PeriodPreset>("custom");
   const [feeRate, setFeeRate] = useState("");
   const [slippageRate, setSlippageRate] = useState("");
   const [forceRefreshPrices, setForceRefreshPrices] = useState(false);
@@ -683,10 +644,9 @@ export default function StrategyBacktestPage({ params }: Props) {
   const [selectedPeriods, setSelectedPeriods] = useState<Set<string>>(new Set());
   const [activeBatchId, setActiveBatchId] = useState<string | null>(null);
   const [batchSkippedRuns, setBatchSkippedRuns] = useState<BatchRunResult[]>([]);
-  const [showCustomDates, setShowCustomDates] = useState(false);
   const batchInitialized = useRef(false);
 
-  const { runs: batchRuns, isAllDone: isBatchDone } = useBatchBacktestResults(activeBatchId);
+  const { isAllDone: isBatchDone } = useBatchBacktestResults(activeBatchId);
 
   useEffect(() => {
     const isFirstRun = Boolean(user?.has_completed_onboarding && !getFirstRunSeen());
@@ -894,8 +854,12 @@ export default function StrategyBacktestPage({ params }: Props) {
   const loadStrategy = useCallback(async () => {
     setIsLoadingStrategy(true);
     try {
-      const data = await apiFetch<Strategy>(`/strategies/${id}`);
+      const [data, versions] = await Promise.all([
+        apiFetch<Strategy>(`/strategies/${id}`),
+        apiFetch<StrategyVersion[]>(`/strategies/${id}/versions`).catch(() => null),
+      ]);
       setStrategy(data);
+      setStrategyVersion(versions?.[0] ?? null);
       setError(null);
     } catch (err) {
       if (err instanceof ApiError && err.status === 404) {
@@ -991,17 +955,6 @@ export default function StrategyBacktestPage({ params }: Props) {
         setIsBetaGrandfatheredUser(false);
         setError("Couldn't load your plan. Some period options may be unavailable — please refresh.");
       });
-  }, []);
-
-  // Handle period preset changes
-  const handlePeriodChange = useCallback((preset: PeriodPreset) => {
-    setAvailabilityWarning(null);
-    setPeriodPreset(preset);
-    const dates = getDatesFromPreset(preset);
-    if (dates) {
-      setDateFrom(dates.from);
-      setDateTo(dates.to);
-    }
   }, []);
 
   // Check if user can use premium periods
@@ -1128,32 +1081,6 @@ export default function StrategyBacktestPage({ params }: Props) {
     }
   };
 
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    if (isSubmitting) return;
-    setStatusMessage(null);
-    setError(null);
-
-    if (!dateFrom || !dateTo) {
-      setError("Please select a start and end date.");
-      return;
-    }
-
-    const fromDate = new Date(`${dateFrom}T00:00:00Z`);
-    const toDate = new Date(`${dateTo}T23:59:59Z`);
-
-    if (fromDate >= toDate) {
-      setError("End date must be after start date.");
-      return;
-    }
-
-    if (availabilityWarning) {
-      setShowDownloadConfirm(true);
-      return;
-    }
-
-    await submitBacktest();
-  };
 
   const handleTogglePeriod = useCallback((period: string, checked: boolean) => {
     setSelectedPeriods((prev) => {
@@ -1349,12 +1276,12 @@ export default function StrategyBacktestPage({ params }: Props) {
     };
   }, [isMobile]);
 
-  // Trades pagination
-  const totalPages = Math.ceil(trades.length / tradesPageSize);
-  const paginatedTrades = trades.slice(
-    (tradesCurrentPage - 1) * tradesPageSize,
-    tradesCurrentPage * tradesPageSize
-  );
+  // Compute position stats for KPI strip
+  const positionStatsForKPI = useMemo(() => {
+    if (!selectedRun?.timeframe || trades.length < 2) return null;
+    const tfs = timeframeToSeconds(selectedRun.timeframe);
+    return computePositionStats(trades, tfs);
+  }, [trades, selectedRun?.timeframe]);
 
   if (isLoadingStrategy) {
     return (
@@ -1379,1213 +1306,457 @@ export default function StrategyBacktestPage({ params }: Props) {
 
   return (
     <div className="flex h-screen flex-col overflow-x-hidden">
-      {/* Top Bar */}
-      <div className="border-b bg-background px-3 py-3 sm:px-4">
-        <div className="flex flex-col gap-2">
-          <div className="flex flex-wrap items-center gap-3">
-            <Link
-              href="/strategies"
-              aria-label="Back to strategies"
-              className="text-muted-foreground transition-colors hover:text-foreground"
-            >
-              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </Link>
-            <h1 className="text-2xl font-bold tracking-tight">{strategy.name}</h1>
-            <span className="hidden rounded-md bg-secondary px-2 py-0.5 text-xs text-muted-foreground sm:inline">
-              {strategy.asset}
-            </span>
-            <span className="hidden rounded-md bg-secondary px-2 py-0.5 text-xs text-muted-foreground sm:inline">
-              {strategy.timeframe}
-            </span>
-          </div>
-          <p className="text-sm text-muted-foreground">Run a backtest on the latest saved version of this strategy.</p>
+      {/* Alerts */}
+      {error && (
+        <div
+          role="alert"
+          aria-live="assertive"
+          className="flex items-start justify-between gap-2 border-b border-destructive/30 bg-destructive/5 px-4 py-2 text-sm text-destructive sm:px-8"
+        >
+          <span>{error}</span>
+          <button type="button" onClick={() => setError(null)} aria-label="Dismiss error" className="flex-shrink-0 text-destructive/70 hover:text-destructive">×</button>
         </div>
+      )}
+      {statusMessage && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="flex items-start justify-between gap-2 border-b border-green-200 bg-green-50 px-4 py-2 text-sm text-green-600 dark:border-green-800 dark:bg-green-950 dark:text-green-400 sm:px-8"
+        >
+          <span>{statusMessage}</span>
+          <button type="button" onClick={() => setStatusMessage(null)} aria-label="Dismiss message" className="flex-shrink-0 opacity-70 hover:opacity-100">×</button>
+        </div>
+      )}
 
-        <StrategyTabs strategyId={id} activeTab="backtest" />
+      {/* Tab Bar */}
+      <StrategyTabs strategyId={id} activeTab="backtest" />
 
-        {error && (
-          <div
-            role="alert"
-            aria-live="assertive"
-            className="mt-2 flex items-start justify-between gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive"
-          >
-            <span>{error}</span>
-            <button
-              type="button"
-              onClick={() => setError(null)}
-              aria-label="Dismiss error"
-              className="flex-shrink-0 text-destructive/70 hover:text-destructive"
-            >
-              ×
-            </button>
-          </div>
-        )}
-        {statusMessage && (
-          <div
-            role="status"
-            aria-live="polite"
-            className="mt-2 flex items-start justify-between gap-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-600 dark:border-green-800 dark:bg-green-950 dark:text-green-400"
-          >
-            <span>{statusMessage}</span>
-            <button
-              type="button"
-              onClick={() => setStatusMessage(null)}
-              aria-label="Dismiss message"
-              className="flex-shrink-0 opacity-70 hover:opacity-100"
-            >
-              ×
-            </button>
-          </div>
-        )}
-      </div>
+      {/* Page Header */}
+      <BacktestPageHeader
+        strategy={strategy}
+        strategyVersion={strategyVersion}
+        selectedRun={selectedRun ?? null}
+        selectedRunId={selectedRunId}
+        dataQuality={dataQuality}
+        displayedDateFrom={dataAvailability?.earliest_date ?? dateFrom}
+        displayedDateTo={dataAvailability?.latest_date ?? dateTo}
+        timezone={timezone}
+        isZeroTradeNarrativeMode={isZeroTradeNarrativeMode}
+        onShare={() => setShowShareModal(true)}
+        onRunBacktest={submitBatchBacktest}
+        isSubmitting={isSubmitting}
+        selectedPeriodCount={selectedPeriods.size}
+      />
 
       {/* Main Content */}
-      <div className="flex-1 space-y-4 overflow-auto bg-secondary/30 p-3 dark:bg-secondary/10 sm:p-4">
-        <div className="grid gap-3 sm:gap-4 lg:grid-cols-5">
-          {/* Data Availability - Full Width */}
-          <div className="lg:col-span-5">
-            <DataAvailabilitySection
-              completeness={completeness}
-              dataQuality={dataQuality}
-              gapOverlap={gapOverlap}
-              dateFrom={dateFrom}
-              dateTo={dateTo}
-            />
-          </div>
+      <div className="flex-1 space-y-5 overflow-auto bg-secondary p-4 dark:bg-background sm:px-8 sm:py-7">
+        {/* Data Availability */}
+        <DataAvailabilitySection
+          completeness={completeness}
+          dataQuality={dataQuality}
+          gapOverlap={gapOverlap}
+          dateFrom={dateFrom}
+          dateTo={dateTo}
+        />
 
-          <section id="run-backtest-form" className="lg:col-span-3 rounded-xl border bg-card p-3 shadow-sm sm:p-4">
-            <div className="mb-3 sm:mb-4">
-              <h2 className="text-base font-semibold tracking-tight">Run a backtest</h2>
-              <p className="text-sm text-muted-foreground">
-                Uses the latest saved version. Fee and slippage default to your settings.
-              </p>
+        {/* Run Configuration */}
+        <RunConfig
+          periods={BATCH_PERIOD_PRESETS}
+          selectedPeriods={selectedPeriods}
+          onTogglePeriod={handleTogglePeriod}
+          dateFrom={dateFrom}
+          dateTo={dateTo}
+          onDateFromChange={(v) => { setAvailabilityWarning(null); setDateFrom(v); setPeriodPreset("custom"); }}
+          onDateToChange={(v) => { setDateTo(v); setPeriodPreset("custom"); }}
+          feeRate={feeRate}
+          slippageRate={slippageRate}
+          onFeeRateChange={setFeeRate}
+          onSlippageRateChange={setSlippageRate}
+          isPremiumUser={isPremiumUser}
+          isBetaGrandfatheredUser={isBetaGrandfatheredUser}
+          forceRefreshPrices={forceRefreshPrices}
+          onForceRefreshChange={setForceRefreshPrices}
+          availabilityWarning={availabilityWarning}
+        />
+
+        {/* Run status messages */}
+        {selectedRun && (
+          <div ref={firstRunResultsRef} className="space-y-3" onClick={handleFirstRunInteraction}>
+            {/* Status badge + range */}
+            <div className="flex items-center gap-3">
+              {statusBadge(selectedRun.status)}
+              {selectedRunRange && (
+                <span className="font-mono text-xs text-muted-foreground">{selectedRunRange}</span>
+              )}
             </div>
 
-            {/* Period checkboxes for batch selection */}
-            <div className="space-y-4">
-              <div>
-                <div className="block text-sm font-medium mb-2" id="periods-label">Periods</div>
-                <div className="flex flex-wrap gap-x-4 gap-y-2">
-                  {BATCH_PERIOD_PRESETS.map((option) => {
-                    const isDisabled = option.premiumOnly && !isPremiumUser;
-                    return (
-                      <label
-                        key={option.value}
-                        className={`flex items-center gap-2 text-sm ${isDisabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
-                      >
-                        <Checkbox
-                          checked={selectedPeriods.has(option.value)}
-                          onCheckedChange={(checked) => handleTogglePeriod(option.value, !!checked)}
-                          disabled={isDisabled}
-                        />
-                        <span>{option.label}</span>
-                        {option.premiumOnly && (
-                          <span className="text-xs text-muted-foreground/70">(Pro/Premium)</span>
-                        )}
-                      </label>
-                    );
-                  })}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowCustomDates(!showCustomDates)}
-                  className="mt-2 text-xs text-muted-foreground underline hover:text-foreground"
-                >
-                  {showCustomDates ? "Hide custom dates" : "Use custom dates instead"}
-                </button>
-              </div>
-
-              {/* Custom date inputs (collapsed by default) */}
-              {showCustomDates && (
-                <form ref={customFormRef} onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 rounded-lg border bg-secondary/30 p-3 md:grid-cols-2">
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium" htmlFor="period-preset">Period</label>
-                    <Select value={periodPreset} onValueChange={(v) => handlePeriodChange(v as PeriodPreset)}>
-                      <SelectTrigger id="period-preset" className="mt-1">
-                        <SelectValue placeholder="Select period" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {PERIOD_PRESETS.map((option) => {
-                          const isDisabled = option.premiumOnly && !isPremiumUser;
-                          return (
-                            <SelectItem key={option.value} value={option.value} disabled={isDisabled}>
-                              {option.label}
-                              {option.premiumOnly && (
-                                <span className={`ml-2 text-xs ${isDisabled ? "text-muted-foreground/70" : "text-amber-600"}`}>(Pro/Premium)</span>
-                              )}
-                            </SelectItem>
-                          );
-                        })}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {availabilityWarning && (
-                    <div className="md:col-span-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-300">
-                      {availabilityWarning}
-                    </div>
-                  )}
-                  <div className="min-w-0">
-                    <label className="block text-sm font-medium" htmlFor="date-from">Date from</label>
-                    <Input
-                      id="date-from"
-                      type="date"
-                      value={dateFrom}
-                      max={dateTo}
-                      onChange={(e) => {
-                        setAvailabilityWarning(null);
-                        setDateFrom(e.target.value);
-                        setPeriodPreset("custom");
-                      }}
-                      className="mt-1 w-full min-w-0"
-                      required
-                    />
-                  </div>
-                  <div className="min-w-0">
-                    <label className="block text-sm font-medium" htmlFor="date-to">Date to</label>
-                    <Input
-                      id="date-to"
-                      type="date"
-                      value={dateTo}
-                      min={dateFrom}
-                      onChange={(e) => {
-                        setDateTo(e.target.value);
-                        setPeriodPreset("custom");
-                      }}
-                      className="mt-1 w-full min-w-0"
-                      required
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    <Button type="submit" variant="outline" disabled={isSubmitting} className="w-full md:w-auto">
-                      {isSubmitting ? "Starting..." : "Run single backtest"}
-                    </Button>
-                  </div>
-                </form>
-              )}
-
-              {/* Data availability line */}
-              <div className="text-sm text-muted-foreground">
-                {dataAvailability?.earliest_date ? (
-                  <span>Data available: {dataAvailability.earliest_date} &ndash; Present</span>
-                ) : dataAvailability === null && strategy ? (
-                  <span>Loading data availability&hellip;</span>
-                ) : (
-                  <span>Data availability not found</span>
-                )}
-              </div>
-
-              {/* Fee / slippage rates */}
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div>
-                  <label className="block text-sm font-medium" htmlFor="fee-rate">Fee rate (optional)</label>
-                  <Input
-                    id="fee-rate"
-                    type="number"
-                    step="0.0001"
-                    min="0"
-                    max="0.1"
-                    value={feeRate}
-                    onChange={(e) => setFeeRate(e.target.value)}
-                    placeholder="0.001 for 0.1%"
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium" htmlFor="slippage-rate">Slippage rate (optional)</label>
-                  <Input
-                    id="slippage-rate"
-                    type="number"
-                    step="0.0001"
-                    min="0"
-                    max="0.1"
-                    value={slippageRate}
-                    onChange={(e) => setSlippageRate(e.target.value)}
-                    placeholder="0.0005 for 0.05%"
-                    className="mt-1"
-                  />
-                </div>
-              </div>
-
-              {isBetaGrandfatheredUser && (
-                <label className="flex items-start gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={forceRefreshPrices}
-                    onChange={(e) => setForceRefreshPrices(e.target.checked)}
-                    className="mt-0.5 h-4 w-4 rounded border-border"
-                  />
-                  <span>
-                    Force refresh candle prices before running (Beta User — Grandfathered Perks Applied).
-                    <span className="block text-xs text-muted-foreground">
-                      Re-fetches OHLCV for this exact period and overwrites cached values.
-                    </span>
-                  </span>
-                </label>
-              )}
-
-              {/* Run All button */}
-              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                <p className="text-sm text-muted-foreground">
-                  Backtests run in the background. You can leave this page and results will still be saved.
-                </p>
-                <Button
-                  onClick={submitBatchBacktest}
-                  disabled={isSubmitting || selectedPeriods.size === 0}
-                  className="w-full md:w-auto"
-                >
-                  {isSubmitting
-                    ? "Starting..."
-                    : `Run ${selectedPeriods.size} backtest${selectedPeriods.size === 1 ? "" : "s"}`}
-                </Button>
-              </div>
-            </div>
-          </section>
-
-          <div className="lg:col-span-2">
-            <BacktestRunsList
-              backtests={backtests}
-              batchSkippedRuns={batchSkippedRuns}
-              isLoadingBacktests={isLoadingBacktests}
-              onRefresh={loadBacktests}
-              currentPage={runsCurrentPage}
-              pageSize={runsPageSize}
-              onPageChange={setRunsCurrentPage}
-              selectedRunId={selectedRunId}
-              onSelectRun={setSelectedRunId}
-              selectedRunIds={selectedRunIds}
-              onToggleRunSelection={handleSelectRun}
-              onCompare={handleCompareClick}
-              timezone={timezone}
-            />
-          </div>
-        </div>
-
-        <section ref={runDetailsRef} className="rounded-xl border bg-card p-3 shadow-sm sm:p-4">
-          <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <h2 className="text-base font-semibold tracking-tight">Run details</h2>
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-              <Link
-                href="/metrics-glossary"
-                className="text-sm text-primary/80 transition-colors hover:text-primary hover:underline"
-              >
-                Metrics glossary
-              </Link>
-              {selectedRun?.status === "completed" && selectedRun.summary && !isZeroTradeNarrativeMode && (
-                <>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowShareModal(true)}
-                  >
-                    Share Results
-                  </Button>
-                  <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm">
-                      Export
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent>
-                    <DropdownMenuItem
-                      onClick={() =>
-                        exportMetricsToCSV(
-                          selectedRun.summary!,
-                          selectedRun,
-                          selectedRunId!
-                        )
-                      }
-                    >
-                      Download CSV
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() =>
-                        exportMetricsToJSON(
-                          selectedRun.summary!,
-                          selectedRun,
-                          selectedRunId!
-                        )
-                      }
-                    >
-                      Download JSON
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                </>
-              )}
-              {selectedRun && statusBadge(selectedRun.status)}
-            </div>
-          </div>
-          {!selectedRunId && <p className="text-sm text-muted-foreground">Select a run to see details.</p>}
-          {selectedRunId && !selectedRun && (
-            <p className="text-sm text-muted-foreground">Loading backtest details...</p>
-          )}
-          {selectedRun && (
-            <div ref={firstRunResultsRef} className="space-y-3" onClick={handleFirstRunInteraction}>
-              <div className="text-sm text-muted-foreground">
-                <span className="font-medium">Range:</span>{" "}
-                <span className="data-text">{selectedRunRange}</span>
-              </div>
-              {selectedRun.narrative && (
-                <NarrativeCard
-                  narrative={selectedRun.narrative}
-                  strategyId={id}
-                  isZeroTradeRun={!!isZeroTradeRun}
-                  userId={user?.id}
-                />
-              )}
-              <LowTradeCountWarning
-                numTrades={selectedRun.summary?.num_trades}
-                runId={selectedRunId}
+            {/* Narrative */}
+            {selectedRun.narrative && (
+              <NarrativeCard
+                narrative={selectedRun.narrative}
+                strategyId={id}
+                isZeroTradeRun={!!isZeroTradeRun}
                 userId={user?.id}
               />
-              {selectedRun.status === "failed" ? (
-                <div
-                  role="alert"
-                  className="flex flex-col gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive sm:flex-row sm:items-center sm:justify-between"
+            )}
+
+            {/* Low trade count */}
+            <LowTradeCountWarning
+              numTrades={selectedRun.summary?.num_trades}
+              runId={selectedRunId!}
+              userId={user?.id}
+            />
+
+            {/* Failed run */}
+            {selectedRun.status === "failed" && (
+              <div
+                role="alert"
+                className="flex flex-col gap-2 rounded border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive sm:flex-row sm:items-center sm:justify-between"
+              >
+                <span>{selectedRun.error_message || "Backtest failed. Please try again."}</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    if (selectedRun.date_from && selectedRun.date_to) {
+                      setDateFrom(selectedRun.date_from.split("T")[0]);
+                      setDateTo(selectedRun.date_to.split("T")[0]);
+                      setPeriodPreset("custom");
+                    }
+                    submitBacktest();
+                  }}
+                  disabled={isSubmitting}
                 >
-                  <span>{selectedRun.error_message || "Backtest failed. Please try again."}</span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      if (selectedRun.date_from && selectedRun.date_to) {
-                        setDateFrom(selectedRun.date_from.split("T")[0]);
-                        setDateTo(selectedRun.date_to.split("T")[0]);
-                        setPeriodPreset("custom");
-                      }
-                      submitBacktest();
-                    }}
-                    disabled={isSubmitting}
-                  >
-                    Retry with same parameters
-                  </Button>
-                </div>
-              ) : isZeroTradeNarrativeMode ? null : (
-                selectedRun.summary ? ((() => {
-                  const orderedMetrics = getOrderedMetrics(selectedRun.summary!, user?.favorite_metrics || null);
-                  const primaryKeys = hasFavoriteMetrics ? user!.favorite_metrics! : DEFAULT_METRIC_KEYS;
-                  const primaryMetrics = orderedMetrics.filter(m => primaryKeys.includes(m.key));
-                  const detailedMetrics = orderedMetrics.filter(m => !primaryKeys.includes(m.key));
+                  Retry with same parameters
+                </Button>
+              </div>
+            )}
 
-                  const renderMetricCard = (metric: MetricConfig) => {
-                    const isPinned = user?.favorite_metrics?.includes(metric.key) || false;
-                    const pinnedMetrics = user?.favorite_metrics || [];
-                    const pinnedIndex = pinnedMetrics.indexOf(metric.key);
-                    const isFirstRunMetric = FIRST_RUN_METRIC_KEYS.includes(metric.key);
-                    const metricTooltip = getTooltip(metricToGlossaryId(metric.key));
+            {/* Pending/running status */}
+            {selectedRun.status !== "completed" && selectedRun.status !== "failed" && (
+              <p className="text-sm text-muted-foreground">
+                Backtest is {selectedRun.status}. We&apos;ll keep polling for results.
+              </p>
+            )}
+          </div>
+        )}
 
-                    return (
-                      <MetricCard
-                        key={metric.key}
-                        metricKey={metric.key}
-                        label={metric.label}
-                        value={metric.getValue(selectedRun.summary!)}
-                        isPinned={isPinned}
-                        canMoveLeft={isPinned && pinnedIndex > 0}
-                        canMoveRight={isPinned && pinnedIndex < pinnedMetrics.length - 1}
-                        onTogglePin={() => handleToggleFavorite(metric.key)}
-                        onMoveLeft={() => handleReorderFavorite(metric.key, "left")}
-                        onMoveRight={() => handleReorderFavorite(metric.key, "right")}
-                        disabled={savingMetrics}
-                        firstRunExplanation={showFirstRunExplanations && isFirstRunMetric ? metricTooltip?.firstRun : undefined}
-                        showFirstRunHelper={!showFirstRunExplanations && isFirstRunMetric && !!metricTooltip?.firstRun}
-                      />
-                    );
-                  };
+        {!selectedRunId && (
+          <p className="text-sm text-muted-foreground">Select a run to see details, or run a new backtest.</p>
+        )}
 
-                  return (
-                    <div className="space-y-3" data-first-run-metrics="true">
-                      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-                        {primaryMetrics.map(renderMetricCard)}
-                      </div>
-                      {detailedMetrics.length > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => setShowDetailedAnalysis(prev => !prev)}
-                          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors"
-                        >
-                          <svg
-                            className={`h-4 w-4 transition-transform ${showDetailedAnalysis ? "rotate-180" : ""}`}
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                          </svg>
-                          {showDetailedAnalysis ? "Hide detailed analysis" : "Show detailed analysis"}
-                        </button>
-                      )}
-                      {showDetailedAnalysis && detailedMetrics.length > 0 && (
-                        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-                          {detailedMetrics.map(renderMetricCard)}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })()) : (
-                  <p className="text-sm text-muted-foreground">
-                    Backtest is {selectedRun.status}. We&apos;ll keep polling for results.
-                  </p>
-                )
-              )}
-
-              {/* What You Just Learned — first-run only */}
-              {!isZeroTradeNarrativeMode &&
-                showSummaryCard &&
-                selectedRun?.summary &&
-                selectedRun.summary.benchmark_return_pct != null && (
-                  <WhatYouLearnedCard
-                    strategyReturnPct={selectedRun.summary.total_return_pct}
-                    benchmarkReturnPct={selectedRun.summary.benchmark_return_pct}
-                    asset={selectedRun.asset}
-                    dateRange={selectedRunRange || "the test period"}
-                    onDismiss={() => {
-                      markSummaryCardSeen();
-                      setShowSummaryCard(false);
-                    }}
-                  />
-                )}
-
-            </div>
-          )}
-        </section>
-
-        {/* Charts, metrics & trades — hidden in zero-trade mode with narrative */}
-        {!isZeroTradeNarrativeMode && (
+        {/* Results — only for completed runs, hidden in zero-trade narrative mode */}
+        {selectedRun?.status === "completed" && !isZeroTradeNarrativeMode && selectedRun.summary && (
           <>
-        {/* Equity Curve Chart - only show for completed runs */}
-        {selectedRun?.status === "completed" && (
-          <section className="rounded-xl border bg-card p-3 shadow-sm sm:p-4">
-            <div className="mb-3 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <h2 className="text-base font-semibold tracking-tight">Equity Curve</h2>
-                {isMobile && (
-                  <span className="text-xs text-muted-foreground">(Pinch to zoom)</span>
-                )}
-              </div>
-              {equityCurve.length > 0 && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm">
-                      Export
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent>
-                    <DropdownMenuItem
-                      onClick={() => exportEquityToCSV(equityCurve, selectedRunId!)}
+            {/* KPI Strip */}
+            <KPIStrip
+              summary={selectedRun.summary}
+              trades={trades}
+              positionStats={positionStatsForKPI}
+            />
+
+            {/* Detailed metrics toggle */}
+            {(() => {
+              const orderedMetrics = getOrderedMetrics(selectedRun.summary!, user?.favorite_metrics || null);
+              const primaryKeys = hasFavoriteMetrics ? user!.favorite_metrics! : DEFAULT_METRIC_KEYS;
+              const detailedMetrics = orderedMetrics.filter(m => !primaryKeys.includes(m.key));
+
+              if (detailedMetrics.length === 0) return null;
+
+              return (
+                <div className="space-y-3" data-first-run-metrics="true">
+                  <button
+                    type="button"
+                    onClick={() => setShowDetailedAnalysis(prev => !prev)}
+                    className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    <svg
+                      className={`h-4 w-4 transition-transform ${showDetailedAnalysis ? "rotate-180" : ""}`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
                     >
-                      Download CSV
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => exportEquityToJSON(equityCurve, selectedRunId!)}
-                    >
-                      Download JSON
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
-            </div>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                    {showDetailedAnalysis ? "Hide detailed analysis" : "Show detailed analysis"}
+                  </button>
+                  {showDetailedAnalysis && (
+                    <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+                      {detailedMetrics.map((metric) => {
+                        const isPinned = user?.favorite_metrics?.includes(metric.key) || false;
+                        const pinnedMetrics = user?.favorite_metrics || [];
+                        const pinnedIndex = pinnedMetrics.indexOf(metric.key);
+                        const isFirstRunMetric = FIRST_RUN_METRIC_KEYS.includes(metric.key);
+                        const metricTooltip = getTooltip(metricToGlossaryId(metric.key));
 
-            {isLoadingEquityCurve ? (
-              <div className="flex h-64 items-center justify-center">
-                <p className="text-sm text-muted-foreground">Loading equity curve...</p>
-              </div>
-            ) : equityCurveError ? (
-              <div className="flex h-64 items-center justify-center rounded-lg border border-destructive/30 bg-destructive/5">
-                <div className="text-center">
-                  <p className="text-sm text-destructive">{equityCurveError}</p>
-                  <Button variant="link" size="sm" onClick={refetchEquityCurve} className="mt-2">
-                    Retry
-                  </Button>
-                </div>
-              </div>
-            ) : equityCurve.length === 0 ? (
-              <div className="flex h-64 items-center justify-center">
-                <div className="text-center">
-                  <p className="text-sm text-muted-foreground">No equity data available for this run.</p>
-                  <Button variant="link" size="sm" onClick={refetchEquityCurve} className="mt-2">
-                    Retry
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="h-64 sm:h-72 md:h-80">
-                <ZoomableChart>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={chartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                      <XAxis
-                        dataKey="timestamp"
-                        tickFormatter={(v) => formatChartDate(v, timezone)}
-                        tick={{ fontSize: 12 }}
-                        tickLine={false}
-                        axisLine={{ stroke: "hsl(var(--border))" }}
-                        tickCount={tickConfig.xAxisTicks}
-                      />
-                      <YAxis
-                        tickFormatter={(v) => formatPrice(v, "").trim()}
-                        tick={{ fontSize: 12 }}
-                        tickLine={false}
-                        axisLine={{ stroke: "hsl(var(--border))" }}
-                        width={80}
-                        tickCount={tickConfig.yAxisTicks}
-                      />
-                    <Tooltip
-                      formatter={(value) => [formatPrice(Number(value)), "Equity"]}
-                      labelFormatter={(label) => formatDateTime(label as string, timezone)}
-                      contentStyle={{
-                        backgroundColor: "hsl(var(--popover))",
-                        border: "1px solid hsl(var(--border))",
-                        borderRadius: "0.375rem",
-                        fontSize: "0.875rem",
-                        color: "hsl(var(--popover-foreground))",
-                      }}
-                    />
-                    <Legend
-                      wrapperStyle={{ fontSize: "0.875rem" }}
-                      iconType="line"
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="equity"
-                      stroke="hsl(var(--chart-1))"
-                      strokeWidth={2}
-                      dot={false}
-                      activeDot={{ r: 4, fill: "hsl(var(--chart-1))" }}
-                      name="Strategy"
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="benchmark"
-                      stroke="hsl(var(--muted-foreground))"
-                      strokeWidth={2}
-                      dot={false}
-                      strokeDasharray="5 5"
-                      name="Buy & Hold"
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-                </ZoomableChart>
-              </div>
-            )}
-          </section>
-        )}
-
-        {/* Drawdown Chart - only show for completed runs */}
-        {selectedRun?.status === "completed" && (
-          <section className="rounded-xl border bg-card p-3 shadow-sm sm:p-4">
-            <div className="mb-3 flex items-center gap-2">
-              <h2 className="text-base font-semibold tracking-tight">Drawdown (%)</h2>
-              {isMobile && (
-                <span className="text-xs text-muted-foreground">(Pinch to zoom)</span>
-              )}
-            </div>
-
-            {isLoadingEquityCurve ? (
-              <div className="flex h-64 items-center justify-center">
-                <p className="text-sm text-muted-foreground">Loading drawdown data...</p>
-              </div>
-            ) : equityCurveError ? (
-              <div className="flex h-64 items-center justify-center rounded-lg border border-destructive/30 bg-destructive/5">
-                <div className="text-center">
-                  <p className="text-sm text-destructive">{equityCurveError}</p>
-                  <Button variant="link" size="sm" onClick={refetchEquityCurve} className="mt-2">
-                    Retry
-                  </Button>
-                </div>
-              </div>
-            ) : drawdownData.length < 2 ? (
-              <div className="flex h-64 items-center justify-center">
-                <p className="text-sm text-muted-foreground">Not enough data to display drawdown chart</p>
-              </div>
-            ) : (
-              <div className="h-64 sm:h-72 md:h-80">
-                <ZoomableChart>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={drawdownData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                      <defs>
-                        <linearGradient id="drawdownGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="hsl(var(--destructive))" stopOpacity={0.1} />
-                          <stop offset="100%" stopColor="hsl(var(--destructive))" stopOpacity={0.3} />
-                        </linearGradient>
-                      </defs>
-                      <XAxis
-                        dataKey="timestamp"
-                        tickFormatter={(v) => formatChartDate(v, timezone)}
-                        tick={{ fontSize: 12 }}
-                        tickLine={false}
-                        axisLine={{ stroke: "hsl(var(--border))" }}
-                        tickCount={tickConfig.xAxisTicks}
-                      />
-                      <YAxis
-                        tickFormatter={(v) => `${v.toFixed(1)}%`}
-                        tick={{ fontSize: 12 }}
-                        tickLine={false}
-                        axisLine={{ stroke: "hsl(var(--border))" }}
-                        width={60}
-                        tickCount={tickConfig.yAxisTicks}
-                      />
-                    <Tooltip
-                      formatter={(value) => [`${Number(value).toFixed(2)}%`, "Drawdown"]}
-                      labelFormatter={(label) => formatDateTime(label as string, timezone)}
-                      contentStyle={{
-                        backgroundColor: "hsl(var(--popover))",
-                        border: "1px solid hsl(var(--border))",
-                        borderRadius: "0.375rem",
-                        fontSize: "0.875rem",
-                        color: "hsl(var(--popover-foreground))",
-                      }}
-                    />
-                    <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
-                    {drawdownData.some((d) => d.isMaxDrawdown) && (
-                      <ReferenceArea
-                        x1={drawdownData.find((d) => d.isMaxDrawdown)?.timestamp}
-                        x2={drawdownData.filter((d) => d.isMaxDrawdown).pop()?.timestamp}
-                        fill="hsl(var(--destructive))"
-                        fillOpacity={0.2}
-                        strokeOpacity={0}
-                      />
-                    )}
-                    <Area
-                      type="monotone"
-                      dataKey="drawdown"
-                      stroke="hsl(var(--destructive))"
-                      strokeWidth={2}
-                      fill="url(#drawdownGradient)"
-                      dot={false}
-                      activeDot={{ r: 4, fill: "hsl(var(--destructive))" }}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-                </ZoomableChart>
-              </div>
-            )}
-          </section>
-        )}
-
-        {/* Position Analysis - only show for completed runs */}
-        {selectedRun?.status === 'completed' &&
-          (() => {
-            const timeframeSeconds = timeframeToSeconds(selectedRun.timeframe);
-            const positionStats = computePositionStats(trades, timeframeSeconds);
-
-            return (
-              <section className="rounded-xl border bg-card p-3 shadow-sm sm:p-4">
-                <h2 className="mb-3 text-base font-semibold tracking-tight">
-                  Position Analysis
-                </h2>
-
-                {!positionStats ? (
-                  <div className="rounded-lg border border-dashed border-border bg-secondary/50 dark:bg-secondary/30 p-8 text-center">
-                    <p className="text-sm text-muted-foreground">
-                      Not enough trades to analyze. Need at least 2 trades.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {/* Metrics Grid */}
-                    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-                      {/* Average Hold Time */}
-                      {!positionStats.hasMissingTimestamps && (
-                        <div className="rounded-lg border border-border bg-secondary/50 dark:bg-secondary/30 p-2 sm:p-3">
-                          <div className="text-xs uppercase text-muted-foreground">
-                            Avg Hold
-                          </div>
-                          <div className="data-text text-base font-semibold tracking-tight sm:text-lg">
-                            {formatDuration(positionStats.avgHoldSeconds)}
-                          </div>
-                          <div className="data-text text-xs text-muted-foreground">
-                            {positionStats.avgHoldBars.toFixed(1)} bars
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Longest Position */}
-                      {!positionStats.hasMissingTimestamps && (
-                        <div className="rounded-lg border border-border bg-secondary/50 dark:bg-secondary/30 p-2 sm:p-3">
-                          <div className="text-xs uppercase text-muted-foreground">
-                            Longest
-                          </div>
-                          <div className="data-text text-base font-semibold tracking-tight sm:text-lg">
-                            {formatDuration(positionStats.longestHoldSeconds)}
-                          </div>
-                          <div className="data-text text-xs text-muted-foreground">
-                            {positionStats.longestHoldBars.toFixed(1)} bars
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Shortest Position */}
-                      {!positionStats.hasMissingTimestamps && (
-                        <div className="rounded-lg border border-border bg-secondary/50 dark:bg-secondary/30 p-2 sm:p-3">
-                          <div className="text-xs uppercase text-muted-foreground">
-                            Shortest
-                          </div>
-                          <div className="data-text text-base font-semibold tracking-tight sm:text-lg">
-                            {formatDuration(positionStats.shortestHoldSeconds)}
-                          </div>
-                          <div className="data-text text-xs text-muted-foreground">
-                            {positionStats.shortestHoldBars.toFixed(1)} bars
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Average Position Size */}
-                      {!positionStats.hasMissingPositionData &&
-                        positionStats.avgPositionSize > 0 && (
-                          <div className="rounded-lg border border-border bg-secondary/50 dark:bg-secondary/30 p-2 sm:p-3">
-                            <div className="text-xs uppercase text-muted-foreground">
-                              Avg Size
-                            </div>
-                            <div className="data-text text-base font-semibold tracking-tight sm:text-lg">
-                              {formatMoney(positionStats.avgPositionSize)}
-                            </div>
-                          </div>
-                        )}
-                    </div>
-
-                    {/* Interpretation Helper */}
-                    {!positionStats.hasMissingTimestamps &&
-                      positionStats.avgHoldSeconds > 0 && (
-                        <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-900 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-400">
-                          {getHoldTimeInterpretation(
-                            positionStats.avgHoldSeconds
-                          )}
-                        </div>
-                      )}
-
-                    {/* Warning Messages */}
-                    {positionStats.hasMissingTimestamps && (
-                      <div className="rounded-lg border border-yellow-200 bg-yellow-50 px-3 py-2 text-sm text-yellow-800 dark:border-yellow-800 dark:bg-yellow-950 dark:text-yellow-400">
-                        Some trades have missing or invalid timestamps. Hold
-                        time statistics are hidden.
-                      </div>
-                    )}
-                  </div>
-                )}
-              </section>
-            );
-          })()}
-
-        {/* Seasonality Analysis - only show for completed runs */}
-        {selectedRun?.status === "completed" && (
-          <section className="rounded-xl border bg-card p-3 shadow-sm sm:p-4">
-            <h2 className="mb-3 text-base font-semibold tracking-tight">
-              Seasonality Analysis
-            </h2>
-
-            {trades.length === 0 ? (
-              <div className="rounded-lg border border-dashed border-border bg-secondary/50 dark:bg-secondary/30 p-8 text-center">
-                <p className="text-sm text-muted-foreground">
-                  No trades available for seasonality analysis.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <Tabs value={periodType} onValueChange={(value) => setPeriodType(value as PeriodType)}>
-                  <TabsList>
-                    <TabsTrigger value="month">Month</TabsTrigger>
-                    <TabsTrigger value="quarter">Quarter</TabsTrigger>
-                    <TabsTrigger value="weekday">Weekday</TabsTrigger>
-                  </TabsList>
-                  <TabsContent value={periodType} className="mt-4">
-                    <div
-                      className={`grid gap-2 ${
-                        periodType === "month"
-                          ? "grid-cols-4 sm:grid-cols-6 lg:grid-cols-12"
-                          : periodType === "quarter"
-                          ? "grid-cols-2 sm:grid-cols-4"
-                          : "grid-cols-4 sm:grid-cols-7"
-                      }`}
-                    >
-                      {seasonalityData.map((bucket, idx) => {
-                        const arrow =
-                          bucket.count === 0
-                            ? ""
-                            : bucket.avgReturn > 0.5
-                              ? "▲ "
-                              : bucket.avgReturn < -0.5
-                                ? "▼ "
-                                : "";
                         return (
-                          <div
-                            key={idx}
-                            className={`rounded-lg border p-2 text-center sm:p-3 ${getColorClass(bucket.avgReturn)}`}
-                            title={`${bucket.label}: ${formatPercent(bucket.avgReturn)} avg return, ${bucket.count} trades`}
-                            aria-label={`${bucket.label}: ${bucket.count === 0 ? "no trades" : `${formatPercent(bucket.avgReturn)} average return across ${bucket.count} trades`}`}
-                          >
-                            <div className="text-xs font-medium">{bucket.label}</div>
-                            <div className="data-text mt-0.5 text-xs font-semibold sm:mt-1 sm:text-sm">
-                              {bucket.count > 0 ? `${arrow}${formatPercent(bucket.avgReturn)}` : "—"}
-                            </div>
-                            <div className="data-text mt-0.5 hidden text-xs opacity-75 sm:block">
-                              {bucket.count} {bucket.count === 1 ? "trade" : "trades"}
-                            </div>
-                          </div>
+                          <MetricCard
+                            key={metric.key}
+                            metricKey={metric.key}
+                            label={metric.label}
+                            value={metric.getValue(selectedRun.summary!)}
+                            isPinned={isPinned}
+                            canMoveLeft={isPinned && pinnedIndex > 0}
+                            canMoveRight={isPinned && pinnedIndex < pinnedMetrics.length - 1}
+                            onTogglePin={() => handleToggleFavorite(metric.key)}
+                            onMoveLeft={() => handleReorderFavorite(metric.key, "left")}
+                            onMoveRight={() => handleReorderFavorite(metric.key, "right")}
+                            disabled={savingMetrics}
+                            firstRunExplanation={showFirstRunExplanations && isFirstRunMetric ? metricTooltip?.firstRun : undefined}
+                            showFirstRunHelper={!showFirstRunExplanations && isFirstRunMetric && !!metricTooltip?.firstRun}
+                          />
                         );
                       })}
                     </div>
-                    <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                      <span>Legend:</span>
-                      <span className="inline-flex items-center gap-1">
-                        <span className="inline-block h-3 w-3 rounded border bg-red-100 dark:bg-red-950" aria-hidden="true" />
-                        ▼ Worse
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* What You Learned — first-run only */}
+            {showSummaryCard &&
+              selectedRun.summary.benchmark_return_pct != null && (
+                <WhatYouLearnedCard
+                  strategyReturnPct={selectedRun.summary.total_return_pct}
+                  benchmarkReturnPct={selectedRun.summary.benchmark_return_pct}
+                  asset={selectedRun.asset}
+                  dateRange={selectedRunRange || "the test period"}
+                  onDismiss={() => {
+                    markSummaryCardSeen();
+                    setShowSummaryCard(false);
+                  }}
+                />
+              )}
+
+            {/* Charts + Runs side by side */}
+            <div className="flex flex-col gap-5 lg:flex-row">
+              {/* Equity Curve Card */}
+              <div className="min-w-0 flex-1 rounded border border-border bg-card">
+                <div className="flex items-center justify-between border-b border-border px-4 py-4 sm:px-5">
+                  <div className="space-y-1">
+                    <h2 className="text-[15px] font-semibold">Equity curve</h2>
+                    <div className="flex items-center gap-4 text-[11px] text-muted-foreground">
+                      <span className="flex items-center gap-1.5">
+                        <span className="h-0.5 w-4 rounded bg-primary" />
+                        Strategy
                       </span>
-                      <span className="inline-flex items-center gap-1">
-                        <span className="inline-block h-3 w-3 rounded border bg-secondary/50" aria-hidden="true" />
-                        Neutral
-                      </span>
-                      <span className="inline-flex items-center gap-1">
-                        <span className="inline-block h-3 w-3 rounded border bg-green-100 dark:bg-green-950" aria-hidden="true" />
-                        ▲ Better
+                      <span className="flex items-center gap-1.5">
+                        <span className="h-0.5 w-4 rounded border-b border-dashed border-muted-foreground" />
+                        Buy &amp; Hold
                       </span>
                     </div>
-                  </TabsContent>
-                </Tabs>
-              </div>
-            )}
-          </section>
-        )}
-
-        {/* Trade Distribution Analysis - only show for completed runs */}
-        {selectedRun?.status === "completed" && (
-          <section className="rounded-xl border bg-card p-3 shadow-sm sm:p-4">
-            <h2 className="mb-3 text-base font-semibold tracking-tight">
-              Trade Distribution
-            </h2>
-
-            {trades.length < 3 ? (
-              <div className="rounded-lg border border-dashed border-border bg-secondary/50 dark:bg-secondary/30 p-8 text-center">
-                <p className="text-sm text-muted-foreground">
-                  Not enough trades to analyze. Need at least 3 trades.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-6">
-                {/* Return Distribution Histogram */}
-                <div>
-                  <h3 className="mb-2 text-sm font-medium text-foreground">Return Distribution</h3>
-                  <div className="h-64 sm:h-72 md:h-80">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart
-                        data={returnDistribution}
-                        margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
-                      >
-                        <XAxis
-                          dataKey="label"
-                          tick={{ fontSize: 12 }}
-                          tickLine={false}
-                          axisLine={{ stroke: "hsl(var(--border))" }}
-                        />
-                        <YAxis
-                          label={{ value: 'Count', angle: -90, position: 'insideLeft', style: { fontSize: 12 } }}
-                          tick={{ fontSize: 12 }}
-                          tickLine={false}
-                          axisLine={{ stroke: "hsl(var(--border))" }}
-                        />
-                        <Tooltip
-                          formatter={(value) => [
-                            `${value} trades (${formatPercent((value as number / trades.length) * 100)})`,
-                            'Count'
-                          ]}
-                          contentStyle={{
-                            backgroundColor: "hsl(var(--popover))",
-                            border: "1px solid hsl(var(--border))",
-                            borderRadius: "0.375rem",
-                            fontSize: "0.875rem",
-                            color: "hsl(var(--popover-foreground))",
-                          }}
-                        />
-                        <Bar
-                          dataKey="count"
-                          fill="hsl(var(--chart-1))"
-                          radius={[4, 4, 0, 0]}
-                        />
-                      </BarChart>
-                    </ResponsiveContainer>
                   </div>
+                  {equityCurve.length > 0 && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="sm" className="h-7 text-xs">Export</Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        <DropdownMenuItem onClick={() => exportEquityToCSV(equityCurve, selectedRunId!)}>CSV</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => exportEquityToJSON(equityCurve, selectedRunId!)}>JSON</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
                 </div>
+                <div className="px-4 py-5 sm:px-5">
+                  {isLoadingEquityCurve ? (
+                    <div className="flex h-56 items-center justify-center">
+                      <p className="text-sm text-muted-foreground">Loading equity curve...</p>
+                    </div>
+                  ) : equityCurveError ? (
+                    <div className="flex h-56 items-center justify-center rounded border border-destructive/30 bg-destructive/5">
+                      <div className="text-center">
+                        <p className="text-sm text-destructive">{equityCurveError}</p>
+                        <Button variant="link" size="sm" onClick={refetchEquityCurve} className="mt-2">Retry</Button>
+                      </div>
+                    </div>
+                  ) : equityCurve.length === 0 ? (
+                    <div className="flex h-56 items-center justify-center">
+                      <div className="text-center">
+                        <p className="text-sm text-muted-foreground">No equity data available.</p>
+                        <Button variant="link" size="sm" onClick={refetchEquityCurve} className="mt-2">Retry</Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="h-56 sm:h-64">
+                      <ZoomableChart>
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                            <XAxis
+                              dataKey="timestamp"
+                              tickFormatter={(v) => formatChartDate(v, timezone)}
+                              tick={{ fontSize: 10, fontFamily: "var(--font-mono)" }}
+                              tickLine={false}
+                              axisLine={{ stroke: "hsl(var(--border))" }}
+                              tickCount={tickConfig.xAxisTicks}
+                            />
+                            <YAxis
+                              tickFormatter={(v) => formatPrice(v, "").trim()}
+                              tick={{ fontSize: 10, fontFamily: "var(--font-mono)" }}
+                              tickLine={false}
+                              axisLine={{ stroke: "hsl(var(--border))" }}
+                              width={65}
+                              tickCount={tickConfig.yAxisTicks}
+                            />
+                            <Tooltip
+                              formatter={(value) => [formatPrice(Number(value)), "Equity"]}
+                              labelFormatter={(label) => formatDateTime(label as string, timezone)}
+                              contentStyle={{
+                                backgroundColor: "hsl(var(--popover))",
+                                border: "1px solid hsl(var(--border))",
+                                borderRadius: "0.25rem",
+                                fontSize: "0.75rem",
+                                color: "hsl(var(--popover-foreground))",
+                              }}
+                            />
+                            <Line type="monotone" dataKey="equity" stroke="hsl(var(--chart-1))" strokeWidth={1.5} dot={false} activeDot={{ r: 3, fill: "hsl(var(--chart-1))" }} name="Strategy" />
+                            <Line type="monotone" dataKey="benchmark" stroke="hsl(var(--muted-foreground))" strokeWidth={1.5} dot={false} strokeDasharray="5 5" name="Buy & Hold" />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </ZoomableChart>
+                    </div>
+                  )}
+                </div>
+              </div>
 
-                {/* Duration Distribution (bars) */}
-                {durationDistribution && (
-                  <div>
-                    <h3 className="mb-2 text-sm font-medium text-foreground">
-                      Duration Distribution (bars)
-                    </h3>
-                    <div className="h-64 sm:h-72 md:h-80">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart
-                          data={durationDistribution}
-                          margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
+              {/* Runs list side panel */}
+              <BacktestRunsList
+                className="lg:w-[420px] lg:flex-shrink-0"
+                backtests={backtests}
+                batchSkippedRuns={batchSkippedRuns}
+                isLoadingBacktests={isLoadingBacktests}
+                onRefresh={loadBacktests}
+                currentPage={runsCurrentPage}
+                pageSize={runsPageSize}
+                onPageChange={setRunsCurrentPage}
+                selectedRunId={selectedRunId}
+                onSelectRun={setSelectedRunId}
+                selectedRunIds={selectedRunIds}
+                onToggleRunSelection={handleSelectRun}
+                onCompare={handleCompareClick}
+                timezone={timezone}
+              />
+            </div>
+
+            {/* Drawdown */}
+            <DrawdownSection
+              drawdownData={drawdownData}
+              summary={selectedRun.summary}
+              isLoading={isLoadingEquityCurve}
+              error={equityCurveError}
+              onRetry={refetchEquityCurve}
+              timezone={timezone}
+              tickConfig={tickConfig}
+            />
+
+            {/* Position + Seasonality */}
+            <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+              <PositionAnalysisCard trades={trades} timeframe={selectedRun.timeframe} />
+
+              {/* Seasonality (inline — kept in page) */}
+              <div className="rounded border border-border bg-card">
+                <div className="border-b border-border px-4 py-4 sm:px-5">
+                  <h2 className="text-[15px] font-semibold">Seasonality</h2>
+                  <p className="text-xs text-muted-foreground">Return distribution by period</p>
+                </div>
+                <div className="px-4 py-5 sm:px-5">
+                  {trades.length === 0 ? (
+                    <p className="py-4 text-center text-sm text-muted-foreground">No trades available.</p>
+                  ) : (
+                    <Tabs value={periodType} onValueChange={(value) => setPeriodType(value as PeriodType)}>
+                      <TabsList className="rounded-md bg-secondary p-0.5">
+                        <TabsTrigger value="month" className="text-xs">Month</TabsTrigger>
+                        <TabsTrigger value="quarter" className="text-xs">Quarter</TabsTrigger>
+                        <TabsTrigger value="weekday" className="text-xs">Weekday</TabsTrigger>
+                      </TabsList>
+                      <TabsContent value={periodType} className="mt-4">
+                        <div
+                          className={`grid gap-1.5 ${
+                            periodType === "month"
+                              ? "grid-cols-4 sm:grid-cols-6"
+                              : periodType === "quarter"
+                              ? "grid-cols-2 sm:grid-cols-4"
+                              : "grid-cols-4 sm:grid-cols-7"
+                          }`}
                         >
-                          <XAxis
-                            dataKey="label"
-                            tick={{ fontSize: 12 }}
-                            tickLine={false}
-                            axisLine={{ stroke: "hsl(var(--border))" }}
-                          />
-                          <YAxis
-                            label={{ value: 'Count', angle: -90, position: 'insideLeft', style: { fontSize: 12 } }}
-                            tick={{ fontSize: 12 }}
-                            tickLine={false}
-                            axisLine={{ stroke: "hsl(var(--border))" }}
-                          />
-                          <Tooltip
-                            formatter={(value) => [
-                              `${value} trades (${formatPercent(durationDistributionTotal > 0 ? (value as number / durationDistributionTotal) * 100 : 0)})`,
-                              'Count'
-                            ]}
-                            contentStyle={{
-                              backgroundColor: "hsl(var(--popover))",
-                              border: "1px solid hsl(var(--border))",
-                              borderRadius: "0.375rem",
-                              fontSize: "0.875rem",
-                              color: "hsl(var(--popover-foreground))",
-                            }}
-                          />
-                          <Bar
-                            dataKey="count"
-                            fill="hsl(var(--chart-1))"
-                            radius={[4, 4, 0, 0]}
-                          />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
-                )}
-
-                {/* Skew Callout */}
-                <div className={`rounded-lg border p-3 text-sm ${
-                  skewCallout.includes('Review risk')
-                    ? 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-400'
-                    : 'border-border bg-secondary/50 dark:bg-secondary/30 text-foreground'
-                }`}>
-                  {skewCallout}
+                          {seasonalityData.map((bucket, idx) => {
+                            const arrow = bucket.count === 0 ? "" : bucket.avgReturn > 0.5 ? "▲ " : bucket.avgReturn < -0.5 ? "▼ " : "";
+                            return (
+                              <div
+                                key={idx}
+                                className={`rounded border p-1.5 text-center sm:p-2 ${getColorClass(bucket.avgReturn)}`}
+                                title={`${bucket.label}: ${formatPercent(bucket.avgReturn)} avg, ${bucket.count} trades`}
+                              >
+                                <div className="text-[10px] font-medium">{bucket.label}</div>
+                                <div className="font-mono text-[10px] font-semibold sm:text-xs">
+                                  {bucket.count > 0 ? `${arrow}${formatPercent(bucket.avgReturn)}` : "—"}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <div className="mt-3 flex flex-wrap items-center gap-3 text-[10px] text-muted-foreground">
+                          <span>Legend:</span>
+                          <span className="inline-flex items-center gap-1">
+                            <span className="inline-block h-2.5 w-2.5 rounded border bg-red-100 dark:bg-red-950" />
+                            ▼ Worse
+                          </span>
+                          <span className="inline-flex items-center gap-1">
+                            <span className="inline-block h-2.5 w-2.5 rounded border bg-secondary/50" />
+                            Neutral
+                          </span>
+                          <span className="inline-flex items-center gap-1">
+                            <span className="inline-block h-2.5 w-2.5 rounded border bg-green-100 dark:bg-green-950" />
+                            ▲ Better
+                          </span>
+                        </div>
+                      </TabsContent>
+                    </Tabs>
+                  )}
                 </div>
-              </div>
-            )}
-          </section>
-        )}
-
-        {/* Trades Table - only show for completed runs */}
-        {selectedRun?.status === "completed" && (
-          <section className="rounded-xl border bg-card p-3 shadow-sm sm:p-4">
-            <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <h2 className="text-base font-semibold tracking-tight">Trades</h2>
-              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                {trades.length > 0 && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        Export
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                      <DropdownMenuItem
-                        onClick={() => exportTradesToCSV(trades, selectedRunId!)}
-                      >
-                        Download CSV
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => exportTradesToJSON(trades, selectedRunId!)}
-                      >
-                        Download JSON
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                )}
-                {trades.length > 0 && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <span className="data-text">{trades.length} total</span>
-                    <Select
-                      value={String(tradesPageSize)}
-                      onValueChange={(value) => {
-                        setTradesPageSize(Number(value));
-                        setTradesCurrentPage(1);
-                      }}
-                    >
-                      <SelectTrigger className="h-8 w-[70px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="25">25</SelectItem>
-                        <SelectItem value="50">50</SelectItem>
-                        <SelectItem value="100">100</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
               </div>
             </div>
 
-            {isLoadingTrades ? (
-              <p className="text-sm text-muted-foreground">Loading trades...</p>
-            ) : tradesError ? (
-              <div className="flex items-center gap-2">
-                <p className="text-sm text-destructive">{tradesError}</p>
-                <Button variant="link" size="sm" onClick={refetchTrades} className="h-auto p-0">
-                  Retry
-                </Button>
-              </div>
-            ) : trades.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No trades were generated for this run.</p>
-            ) : (
-              <>
-                {/* Mobile: Card-based layout */}
-                <div className="space-y-3 md:hidden">
-                  {paginatedTrades.map((trade, idx) => (
-                    <button
-                      key={`${trade.entry_time}-${idx}`}
-                      className="w-full rounded-lg border border-border bg-secondary/50 dark:bg-secondary/30 p-3 text-left transition hover:border-primary/30"
-                      onClick={() => setSelectedTradeIdx((tradesCurrentPage - 1) * tradesPageSize + idx)}
-                    >
-                      <div className="mb-2 flex items-center justify-between">
-                        <span className="text-xs font-medium uppercase text-muted-foreground">{trade.side}</span>
-                        <span className={`data-text text-sm font-semibold ${trade.pnl >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
-                          {trade.pnl_pct >= 0 ? "+" : ""}{formatPercent(trade.pnl_pct).replace("%", "")}%
-                        </span>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2 text-sm">
-                        <div>
-                          <div className="text-xs text-muted-foreground">Entry</div>
-                          <div className="data-text font-medium">{formatPrice(trade.entry_price)}</div>
-                          <div className="data-text text-xs text-muted-foreground">{formatDateTime(trade.entry_time, timezone)}</div>
-                        </div>
-                        <div>
-                          <div className="text-xs text-muted-foreground">Exit</div>
-                          <div className="data-text font-medium">{formatPrice(trade.exit_price)}</div>
-                          <div className="data-text text-xs text-muted-foreground">{formatDateTime(trade.exit_time, timezone)}</div>
-                        </div>
-                      </div>
-                      <div className="mt-2 flex justify-between border-t border-border pt-2">
-                        <span className="text-xs text-muted-foreground">P&L</span>
-                        <span className={`data-text text-sm font-medium ${trade.pnl >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
-                          {formatMoney(trade.pnl, "USDT", true)}
-                        </span>
-                      </div>
-                      <div className="mt-2 flex justify-between border-t border-border pt-2">
-                        <span className="text-xs text-muted-foreground">Costs</span>
-                        <span className="data-text text-sm font-medium text-foreground">
-                          {trade.total_cost_usd !== undefined && trade.total_cost_usd !== null
-                            ? formatMoney(trade.total_cost_usd, "USDT", false)
-                            : "—"}
-                        </span>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-
-                {/* Desktop: Table layout */}
-                <div className="hidden overflow-x-auto rounded-lg border md:block">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>
-                          Entry {timezone === "utc" ? "(UTC)" : ""}
-                        </TableHead>
-                        <TableHead>Entry Price</TableHead>
-                        <TableHead>
-                          Exit {timezone === "utc" ? "(UTC)" : ""}
-                        </TableHead>
-                        <TableHead>Exit Price</TableHead>
-                        <TableHead>Side</TableHead>
-                        <TableHead className="text-right">P&L</TableHead>
-                        <TableHead className="text-right">P&L %</TableHead>
-                        <TableHead className="text-right">Costs</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {paginatedTrades.map((trade, idx) => (
-                        <TableRow
-                          key={`${trade.entry_time}-${idx}`}
-                          className="cursor-pointer"
-                          role="button"
-                          aria-label={`Open details for trade ${(tradesCurrentPage - 1) * tradesPageSize + idx + 1}`}
-                          onClick={() => setSelectedTradeIdx((tradesCurrentPage - 1) * tradesPageSize + idx)}
-                          tabIndex={0}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" || e.key === " ") {
-                              e.preventDefault();
-                              setSelectedTradeIdx((tradesCurrentPage - 1) * tradesPageSize + idx);
-                            }
-                          }}
-                        >
-                          <TableCell className="data-text">
-                            {formatDateTime(trade.entry_time, timezone)}
-                          </TableCell>
-                          <TableCell className="data-text text-muted-foreground">
-                            {formatPrice(trade.entry_price)}
-                          </TableCell>
-                          <TableCell className="data-text">
-                            {formatDateTime(trade.exit_time, timezone)}
-                          </TableCell>
-                          <TableCell className="data-text text-muted-foreground">
-                            {formatPrice(trade.exit_price)}
-                          </TableCell>
-                          <TableCell className="text-muted-foreground uppercase">
-                            {trade.side}
-                          </TableCell>
-                          <TableCell
-                            className={`data-text text-right font-medium ${
-                              trade.pnl >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
-                            }`}
-                          >
-                            {formatMoney(trade.pnl, "USDT", true)}
-                          </TableCell>
-                          <TableCell
-                            className={`data-text text-right ${
-                              trade.pnl_pct >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
-                            }`}
-                          >
-                            {trade.pnl_pct >= 0 ? "+" : ""}{formatPercent(trade.pnl_pct).replace("%", "")}%
-                          </TableCell>
-                          <TableCell className="data-text text-right text-foreground">
-                            {trade.total_cost_usd !== undefined && trade.total_cost_usd !== null
-                              ? formatMoney(trade.total_cost_usd, "USDT", false)
-                              : "—"}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-
-                {/* Pagination */}
-                {totalPages > 1 && (
-                  <div className="mt-3 flex flex-col gap-2 border-t pt-3 sm:flex-row sm:items-center sm:justify-between">
-                    <p className="data-text text-sm text-muted-foreground">
-                      Page {tradesCurrentPage} of {totalPages}
-                    </p>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setTradesCurrentPage((p) => Math.max(1, p - 1))}
-                        disabled={tradesCurrentPage === 1}
-                      >
-                        Previous
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setTradesCurrentPage((p) => Math.min(totalPages, p + 1))}
-                        disabled={tradesCurrentPage === totalPages}
-                      >
-                        Next
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </>
+            {/* Distribution charts */}
+            {trades.length >= 3 && (
+              <DistributionRow
+                returnDistribution={returnDistribution}
+                durationDistribution={durationDistribution}
+                totalTrades={trades.length}
+                durationDistributionTotal={durationDistributionTotal}
+                skewCallout={skewCallout}
+              />
             )}
-          </section>
-        )}
 
-        {/* Transaction Cost Analysis - only show for completed runs */}
-        {selectedRun?.status === "completed" && selectedRun.summary && (
-          <TransactionCostAnalysis summary={selectedRun.summary} />
-        )}
+            {/* Trades table */}
+            {!isLoadingTrades && !tradesError && (
+              <TradesSection
+                trades={trades}
+                selectedRunId={selectedRunId!}
+                timezone={timezone}
+                onSelectTrade={setSelectedTradeIdx}
+                tradesCurrentPage={tradesCurrentPage}
+                tradesPageSize={tradesPageSize}
+                onPageChange={setTradesCurrentPage}
+                onPageSizeChange={setTradesPageSize}
+              />
+            )}
+
+            {isLoadingTrades && (
+              <div className="rounded border border-border bg-card px-4 py-8 text-center">
+                <p className="text-sm text-muted-foreground">Loading trades...</p>
+              </div>
+            )}
+
+            {tradesError && (
+              <div className="flex items-center gap-2 rounded border border-border bg-card px-4 py-4">
+                <p className="text-sm text-destructive">{tradesError}</p>
+                <Button variant="link" size="sm" onClick={refetchTrades} className="h-auto p-0">Retry</Button>
+              </div>
+            )}
+
+            {/* Transaction Cost Analysis */}
+            <TransactionCostAnalysis summary={selectedRun.summary} />
           </>
         )}
       </div>
@@ -2616,7 +1787,7 @@ export default function StrategyBacktestPage({ params }: Props) {
         />
       )}
 
-      {/* Download confirmation dialog for out-of-range start date */}
+      {/* Download confirmation dialog */}
       <Dialog open={showDownloadConfirm} onOpenChange={setShowDownloadConfirm}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>

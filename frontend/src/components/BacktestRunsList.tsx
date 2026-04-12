@@ -18,6 +18,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 import { formatDateTime, formatPercent, formatRelativeTime, type TimezoneMode } from "@/lib/format";
 import { PERIOD_LABEL, statusStyles } from "@/lib/backtest-constants";
 import type { BacktestListItem, BacktestStatus, BatchRunResult } from "@/types/backtest";
@@ -36,6 +37,7 @@ interface BacktestRunsListProps {
   onToggleRunSelection: (runId: string, checked: boolean) => void;
   onCompare: () => void;
   timezone: TimezoneMode;
+  className?: string;
 }
 
 const MAX_COMPARE = 4;
@@ -276,6 +278,7 @@ export function BacktestRunsList({
   onToggleRunSelection,
   onCompare,
   timezone,
+  className,
 }: BacktestRunsListProps) {
   const selectionCount = selectedRunIds.size;
   const canCompare = selectionCount >= 2 && selectionCount <= MAX_COMPARE;
@@ -296,7 +299,7 @@ export function BacktestRunsList({
   return (
     <TooltipProvider delayDuration={150}>
       <section
-        className="rounded-xl border bg-card p-3 shadow-sm sm:p-4"
+        className={cn("rounded border border-border bg-card p-3 sm:p-4", className)}
         aria-labelledby="runs-heading"
       >
         {/* Header */}
