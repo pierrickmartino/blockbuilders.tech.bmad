@@ -2,6 +2,13 @@
 
 **Blockbuilders** — web no-code strategy lab, retail crypto traders build/backtest strategies visually, major pairs. Post-MVP iteration; keep simplicity-first.
 
+## Claude principles
+- Enter plan mode for any 3+ step task
+- Write plan to tasks/todo.md before any implementation
+- When given a bug: just fix it. No hand-holding.
+- After any correction, update tasks/lessons.md
+- Never mark done without proving it works
+
 ## Stack
 - **Frontend:** Next.js 16.x (App Router) + TypeScript, Tailwind CSS — see `frontend/CLAUDE.md`
 - **Backend:** FastAPI 0.129.x monolith, Python 3.12, Postgres, Redis, S3-compatible storage — see `backend/CLAUDE.md`
