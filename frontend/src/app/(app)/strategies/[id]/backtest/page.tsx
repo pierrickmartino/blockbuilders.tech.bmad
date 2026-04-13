@@ -1352,6 +1352,7 @@ export default function StrategyBacktestPage({ params }: Props) {
       <div className="flex-1 space-y-5 overflow-auto bg-secondary p-4 dark:bg-background sm:px-8 sm:py-7">
         {/* Data Availability */}
         <DataAvailabilitySection
+          dataAvailability={dataAvailability}
           completeness={completeness}
           dataQuality={dataQuality}
           gapOverlap={gapOverlap}

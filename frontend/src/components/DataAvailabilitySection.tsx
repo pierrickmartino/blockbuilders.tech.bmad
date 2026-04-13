@@ -1,8 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { AlertTriangle, CheckCircle2, ChevronDown } from "lucide-react";
-import { DataCompletenessResponse, DataQualityMetrics } from "@/types/backtest";
+import { AlertTriangle, CheckCircle2, ChevronDown, Database } from "lucide-react";
+import {
+  DataAvailabilityResponse,
+  DataCompletenessResponse,
+  DataQualityMetrics,
+} from "@/types/backtest";
 import { DataCompletenessTimeline } from "./DataCompletenessTimeline";
 import InfoIcon from "./InfoIcon";
 
@@ -19,7 +23,85 @@ const formatLocalDate = (value: string) => {
   return new Date(year, month - 1, day).toLocaleDateString();
 };
 
+const formatNumber = (value: number) => new Intl.NumberFormat().format(value);
+
+const formatRelativeDate = (value: string) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  const diffMs = Date.now() - date.getTime();
+  const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+
+  if (Math.abs(diffDays) < 1) {
+    return "today";
+  }
+
+  if (Math.abs(diffDays) < 30) {
+    return `${Math.abs(diffDays)} day${Math.abs(diffDays) === 1 ? "" : "s"} ${diffDays >= 0 ? "ago" : "from now"}`;
+  }
+
+  return formatLocalDate(value);
+};
+
+const timeframeToMs = (timeframe: string) => {
+  const match = timeframe.match(/^(\d+)([mhdw])$/i);
+  if (!match) {
+    return null;
+  }
+
+  const value = Number(match[1]);
+  const unit = match[2].toLowerCase();
+  const unitMs =
+    unit === "m"
+      ? 60_000
+      : unit === "h"
+        ? 3_600_000
+        : unit === "d"
+          ? 86_400_000
+          : 604_800_000;
+
+  return value * unitMs;
+};
+
+const getAvailableCandleCount = (completeness: DataCompletenessResponse | null) => {
+  if (!completeness?.coverage_start || !completeness.coverage_end) {
+    return null;
+  }
+
+  const timeframeMs = timeframeToMs(completeness.timeframe);
+  if (!timeframeMs) {
+    return null;
+  }
+
+  const startMs = new Date(completeness.coverage_start).getTime();
+  const endMs = new Date(completeness.coverage_end).getTime();
+  if (Number.isNaN(startMs) || Number.isNaN(endMs) || endMs < startMs) {
+    return null;
+  }
+
+  const expectedCandles = Math.floor((endMs - startMs) / timeframeMs) + 1;
+  return Math.max(0, Math.round(expectedCandles * (completeness.completeness_percent / 100)));
+};
+
+const formatAvailabilitySource = (source: string | null | undefined) => {
+  if (!source) {
+    return "Binance OHLCV";
+  }
+
+  if (source === "metadata" || source === "candle_fallback") {
+    return "Binance OHLCV";
+  }
+
+  return source
+    .split("_")
+    .map((part) => (part.toUpperCase() === "OHLCV" ? "OHLCV" : part.charAt(0).toUpperCase() + part.slice(1)))
+    .join(" ");
+};
+
 interface DataAvailabilitySectionProps {
+  dataAvailability?: DataAvailabilityResponse | null;
   completeness: DataCompletenessResponse | null;
   dataQuality: DataQualityMetrics | null;
   gapOverlap: Array<{ start: string; end: string }> | null;
@@ -28,6 +110,7 @@ interface DataAvailabilitySectionProps {
 }
 
 export function DataAvailabilitySection({
+  dataAvailability = null,
   completeness,
   dataQuality,
   gapOverlap,
@@ -45,6 +128,15 @@ export function DataAvailabilitySection({
 
   const hasOverallData = completeness && completeness.coverage_start && completeness.coverage_end;
   const panelId = "data-availability-panel";
+  const availableCandleCount = getAvailableCandleCount(completeness);
+  const statusLabel = hasIssues ? "Needs Review" : "Ready";
+  const syncSourceDate = dataAvailability?.latest_date ?? completeness?.coverage_end ?? null;
+  const metadataItems = [
+    availableCandleCount !== null ? `${formatNumber(availableCandleCount)} candles` : null,
+    completeness ? `${completeness.completeness_percent.toFixed(1)}% coverage` : null,
+    formatAvailabilitySource(dataAvailability?.source),
+    syncSourceDate ? `last sync ${formatRelativeDate(syncSourceDate)}` : null,
+  ].filter(Boolean) as string[];
 
   return (
     <div className="rounded-lg border border-border bg-card text-card-foreground">
@@ -54,21 +146,47 @@ export function DataAvailabilitySection({
         onClick={() => setIsExpanded(!isExpanded)}
         aria-expanded={isExpanded}
         aria-controls={panelId}
-        className="flex w-full items-center justify-between px-3 py-2 text-left transition hover:bg-muted/50 sm:px-4"
+        className="flex w-full items-start justify-between gap-2 px-3 py-2 text-left transition hover:bg-muted/50 sm:px-4"
       >
-        <div className="flex items-center gap-2">
-          <h3 className="text-sm font-medium">Data Availability</h3>
-          {hasIssues && !isExpanded && (
-            <span className="inline-flex items-center gap-1 rounded bg-warning/15 px-2 py-0.5 text-xs font-medium text-warning">
-              <AlertTriangle aria-hidden="true" className="h-3 w-3" />
-              Issues detected
-            </span>
-          )}
+        <div className="flex min-w-0 items-start gap-2">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-secondary text-sky-500">
+            <Database aria-hidden="true" className="h-4 w-4" strokeWidth={1.8} />
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <h2 className="text-[13px] font-semibold">Data availability</h2>
+            </div>
+            {metadataItems.length > 0 && (
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                {metadataItems.map((item, index) => (
+                  <span key={item} className="flex items-center">
+                    {index > 0 && <span className="mr-2 text-muted-foreground/60">•</span>}
+                    <span className="data-text text-muted-foreground">{item}</span>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-        <ChevronDown
-          aria-hidden="true"
-          className={`h-5 w-5 text-muted-foreground transition-transform ${isExpanded ? "rotate-180" : ""}`}
-        />
+        <div className="flex shrink-0 items-center gap-2 self-center">
+          <span
+            className={`inline-flex items-center gap-2 rounded-md px-2.5 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.12em] ${
+              hasIssues
+                ? "bg-[hsl(var(--warning)/0.08)] text-warning dark:bg-[hsl(var(--warning)/0.14)]"
+                : "bg-[hsl(var(--success)/0.08)] text-success dark:bg-[hsl(var(--success)/0.14)]"
+            }`}
+          >
+            <span
+              aria-hidden="true"
+              className={`h-2.5 w-2.5 rounded-full ${hasIssues ? "bg-warning" : "bg-success"}`}
+            />
+            {statusLabel}
+          </span>
+          <ChevronDown
+            aria-hidden="true"
+            className={`h-4 w-4 text-muted-foreground transition-transform ${isExpanded ? "rotate-180" : ""}`}
+          />
+        </div>
       </button>
 
       {/* Expandable Content */}
