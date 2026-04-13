@@ -1,34 +1,41 @@
 export interface KeyboardShortcut {
-  key: string;
+  /** Key combo parts, e.g. ["Cmd/Ctrl", "S"]. Alternatives as separate arrays. */
+  keys: string[][];
   action: string;
   description: string;
+  category: "Canvas" | "Navigation";
 }
 
 export const KEYBOARD_SHORTCUTS: KeyboardShortcut[] = [
   {
-    key: "Cmd/Ctrl+S",
+    keys: [["Cmd/Ctrl", "S"]],
     action: "Save strategy",
     description: "Save current canvas as a new version",
+    category: "Canvas",
   },
   {
-    key: "Cmd/Ctrl+R",
-    action: "Run backtest",
-    description: "Go to backtest tab (or run backtest if already there)",
-  },
-  {
-    key: "Cmd/Ctrl+Z",
+    keys: [["Cmd/Ctrl", "Z"]],
     action: "Undo",
     description: "Undo last canvas change",
+    category: "Canvas",
   },
   {
-    key: "Cmd/Ctrl+Shift+Z or Cmd/Ctrl+Y",
+    keys: [["Cmd/Ctrl", "Shift", "Z"], ["Cmd/Ctrl", "Y"]],
     action: "Redo",
     description: "Redo canvas change",
+    category: "Canvas",
   },
   {
-    key: "?",
+    keys: [["Cmd/Ctrl", "R"]],
+    action: "Run backtest",
+    description: "Go to backtest tab (or run backtest if already there)",
+    category: "Navigation",
+  },
+  {
+    keys: [["?"]],
     action: "Show shortcuts",
     description: "Open this reference modal",
+    category: "Navigation",
   },
 ];
 

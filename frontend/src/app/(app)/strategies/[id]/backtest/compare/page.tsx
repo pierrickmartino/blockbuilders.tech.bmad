@@ -21,6 +21,8 @@ import { StrategyTabs } from "@/components/StrategyTabs";
 import { ZoomableChart } from "@/components/ZoomableChart";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 import {
   Table,
   TableBody,
@@ -136,21 +138,53 @@ export default function CompareBacktestsPage({ params }: Props) {
     });
   }, [compareData]);
 
-  // Metrics for comparison table
-  const metricsConfig = [
-    { key: "total_return_pct", label: "Total return", format: formatPercent },
-    { key: "cagr_pct", label: "CAGR", format: formatPercent },
-    { key: "max_drawdown_pct", label: "Max drawdown", format: formatPercent },
-    { key: "sharpe_ratio", label: "Sharpe ratio", format: (v: number) => v.toFixed(2) },
-    { key: "sortino_ratio", label: "Sortino ratio", format: (v: number) => v.toFixed(2) },
-    { key: "calmar_ratio", label: "Calmar ratio", format: (v: number) => v.toFixed(2) },
-    { key: "num_trades", label: "Trades", format: (v: number) => v.toString() },
-    { key: "win_rate_pct", label: "Win rate", format: formatPercent },
-    { key: "max_consecutive_losses", label: "Max consec. losses", format: (v: number) => v.toString() },
-    { key: "benchmark_return_pct", label: "Benchmark return", format: formatPercent },
-    { key: "alpha", label: "Alpha", format: formatPercent },
-    { key: "beta", label: "Beta", format: (v: number) => v.toFixed(2) },
+  // Metrics for comparison table. `direction` controls best-value highlighting:
+  // 'higher' = max wins, 'lower' = min wins, 'none' = no winner (benchmark/beta).
+  const metricsConfig: Array<{
+    key: string;
+    label: string;
+    format: (v: number) => string;
+    direction: "higher" | "lower" | "none";
+  }> = [
+    { key: "total_return_pct", label: "Total return", format: formatPercent, direction: "higher" },
+    { key: "cagr_pct", label: "CAGR", format: formatPercent, direction: "higher" },
+    { key: "max_drawdown_pct", label: "Max drawdown", format: formatPercent, direction: "higher" }, // stored as negative, so higher = less bad
+    { key: "sharpe_ratio", label: "Sharpe ratio", format: (v: number) => v.toFixed(2), direction: "higher" },
+    { key: "sortino_ratio", label: "Sortino ratio", format: (v: number) => v.toFixed(2), direction: "higher" },
+    { key: "calmar_ratio", label: "Calmar ratio", format: (v: number) => v.toFixed(2), direction: "higher" },
+    { key: "num_trades", label: "Trades", format: (v: number) => v.toString(), direction: "none" },
+    { key: "win_rate_pct", label: "Win rate", format: formatPercent, direction: "higher" },
+    { key: "max_consecutive_losses", label: "Max consecutive losses", format: (v: number) => v.toString(), direction: "lower" },
+    { key: "benchmark_return_pct", label: "Benchmark return", format: formatPercent, direction: "none" },
+    { key: "alpha", label: "Alpha", format: formatPercent, direction: "higher" },
+    { key: "beta", label: "Beta", format: (v: number) => v.toFixed(2), direction: "none" },
   ];
+
+  // Precompute the best value per metric row across all runs for highlighting.
+  const bestByMetric = useMemo(() => {
+    const map = new Map<string, number>();
+    if (!compareData) return map;
+    metricsConfig.forEach((metric) => {
+      if (metric.direction === "none") return;
+      const values: number[] = [];
+      compareData.runs.forEach((run) => {
+        const v = run.summary
+          ? (run.summary as unknown as Record<string, unknown>)[metric.key]
+          : null;
+        if (typeof v === "number" && Number.isFinite(v)) values.push(v);
+      });
+      if (values.length === 0) return;
+      const best = metric.direction === "higher" ? Math.max(...values) : Math.min(...values);
+      map.set(metric.key, best);
+    });
+    return map;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [compareData]);
+
+  // Short label per run, reused in legend, tooltip, and table header.
+  const runLabel = (idx: number) => `Run ${idx + 1}`;
+  const runDateRange = (run: BacktestCompareResponse["runs"][number]) =>
+    `${formatDateTime(run.date_from, timezone).split(" ")[0]} → ${formatDateTime(run.date_to, timezone).split(" ")[0]}`;
 
   const tickConfig = useMemo(() => {
     if (isMobile) {
@@ -159,22 +193,14 @@ export default function CompareBacktestsPage({ params }: Props) {
     return { xAxisTicks: undefined, yAxisTicks: undefined };
   }, [isMobile]);
 
-  if (isLoadingStrategy) {
-    return (
-      <div className="flex min-h-[200px] items-center justify-center">
-        <p className="text-muted-foreground">Loading strategy...</p>
-      </div>
-    );
-  }
-
-  if (!strategy) {
+  if (!isLoadingStrategy && !strategy) {
     return (
       <div className="flex min-h-[200px] items-center justify-center">
         <div className="text-center">
-          <p className="text-muted-foreground">Strategy not found</p>
-          <Link href="/strategies" className="mt-4 text-primary hover:underline">
-            Back to strategies
-          </Link>
+          <p className="mb-4 text-muted-foreground">Strategy not found</p>
+          <Button asChild variant="outline" size="sm">
+            <Link href="/strategies">Back to strategies</Link>
+          </Button>
         </div>
       </div>
     );
@@ -186,15 +212,24 @@ export default function CompareBacktestsPage({ params }: Props) {
         <div className="mx-auto max-w-7xl">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h1 className="text-xl font-semibold text-foreground sm:text-2xl">{strategy.name}</h1>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {strategy.asset} · {strategy.timeframe}
-              </p>
+              {isLoadingStrategy || !strategy ? (
+                <>
+                  <Skeleton className="h-7 w-56" />
+                  <Skeleton className="mt-2 h-4 w-32" />
+                </>
+              ) : (
+                <>
+                  <h1 className="text-xl font-semibold text-foreground sm:text-2xl">{strategy.name}</h1>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {strategy.asset} · {strategy.timeframe}
+                  </p>
+                </>
+              )}
             </div>
             <Button
               variant="outline"
               size="sm"
-              onClick={() => router.push(`/strategies/${id}/backtest`)}
+              onClick={() => router.back()}
             >
               Back to backtests
             </Button>
@@ -208,18 +243,32 @@ export default function CompareBacktestsPage({ params }: Props) {
         <div className="mt-6 space-y-6">
           <div className="rounded-lg border border-border bg-card p-3 shadow-sm sm:p-4">
             <h2 className="mb-4 text-lg font-semibold tracking-tight">
-              Compare Backtests ({runIds.length})
+              Compare Backtests
             </h2>
 
             {error && (
-              <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-                {error}
+              <div className="mb-4 flex flex-col gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive sm:flex-row sm:items-center sm:justify-between">
+                <span>{error}</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => router.push(`/strategies/${id}/backtest`)}
+                >
+                  Go to backtest runs
+                </Button>
               </div>
             )}
 
             {isLoading ? (
-              <div className="flex h-64 items-center justify-center">
-                <p className="text-sm text-muted-foreground">Loading comparison...</p>
+              <div className="space-y-6">
+                <div>
+                  <Skeleton className="mb-3 h-5 w-32" />
+                  <Skeleton className="h-64 w-full sm:h-72 md:h-96" />
+                </div>
+                <div>
+                  <Skeleton className="mb-3 h-5 w-40" />
+                  <Skeleton className="h-80 w-full" />
+                </div>
               </div>
             ) : !compareData || compareData.runs.length === 0 ? (
               <div className="flex h-64 items-center justify-center">
@@ -262,8 +311,8 @@ export default function CompareBacktestsPage({ params }: Props) {
                             <Tooltip
                               formatter={(value, name) => {
                                 const idx = parseInt(String(name).replace("run_", ""));
-                                const runLabel = formatDateTime(compareData.runs[idx].created_at, timezone);
-                                return [formatPrice(Number(value)), runLabel];
+                                const run = compareData.runs[idx];
+                                return [formatPrice(Number(value)), `${runLabel(idx)} · ${runDateRange(run)}`];
                               }}
                               labelFormatter={(label) => formatDateTime(label as string, timezone)}
                               contentStyle={{
@@ -279,7 +328,7 @@ export default function CompareBacktestsPage({ params }: Props) {
                               iconType="line"
                               formatter={(value) => {
                                 const idx = parseInt(String(value).replace("run_", ""));
-                                return formatDateTime(compareData.runs[idx].created_at, timezone);
+                                return `${runLabel(idx)} · ${runDateRange(compareData.runs[idx])}`;
                               }}
                             />
                             {compareData.runs.map((_, idx) => (
@@ -299,51 +348,75 @@ export default function CompareBacktestsPage({ params }: Props) {
                       </ZoomableChart>
                     </div>
                   )}
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Lines break where a run has no data for that time period.
+                  </p>
                 </section>
 
                 {/* Metrics Comparison Table */}
                 <section>
                   <h3 className="mb-3 text-base font-semibold text-foreground">Metrics Comparison</h3>
-                  <div className="overflow-x-auto">
+                  <div className="relative min-h-[320px] overflow-x-auto">
                     <Table>
                       <TableHeader>
                         <TableRow>
                           <TableHead className="w-40">Metric</TableHead>
                           {compareData.runs.map((run, idx) => (
                             <TableHead key={run.run_id} className="text-center">
-                              <div
-                                className="inline-block h-3 w-3 rounded-full"
-                                style={{ backgroundColor: RUN_COLORS[idx] }}
-                              />
-                              <div className="mt-1 text-xs">
-                                {formatDateTime(run.created_at, timezone)}
-                              </div>
-                              <div className="text-xs text-muted-foreground">
-                                {formatDateTime(run.date_from, timezone).split(" ")[0]} →{" "}
-                                {formatDateTime(run.date_to, timezone).split(" ")[0]}
+                              <div className="flex flex-col items-center gap-1">
+                                <div className="flex items-center gap-1.5">
+                                  <span
+                                    className="inline-block h-3 w-4 rounded-sm"
+                                    style={{ backgroundColor: RUN_COLORS[idx] }}
+                                  />
+                                  <span className="text-xs font-semibold text-foreground">
+                                    {runLabel(idx)}
+                                  </span>
+                                </div>
+                                <div className="data-text text-xs text-muted-foreground">
+                                  {runDateRange(run)}
+                                </div>
+                                <div className="data-text text-[10px] text-muted-foreground">
+                                  {formatDateTime(run.created_at, timezone)}
+                                </div>
                               </div>
                             </TableHead>
                           ))}
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {metricsConfig.map((metric) => (
-                          <TableRow key={metric.key}>
-                            <TableCell className="font-medium">{metric.label}</TableCell>
-                            {compareData.runs.map((run) => {
-                              const value = run.summary ? (run.summary as unknown as Record<string, unknown>)[metric.key] : null;
-                              return (
-                                <TableCell key={run.run_id} className="text-center">
-                                  {value !== null && value !== undefined
-                                    ? metric.format(value as number)
-                                    : "—"}
-                                </TableCell>
-                              );
-                            })}
-                          </TableRow>
-                        ))}
+                        {metricsConfig.map((metric) => {
+                          const bestValue = bestByMetric.get(metric.key);
+                          return (
+                            <TableRow key={metric.key}>
+                              <TableCell className="font-medium">{metric.label}</TableCell>
+                              {compareData.runs.map((run) => {
+                                const value = run.summary ? (run.summary as unknown as Record<string, unknown>)[metric.key] : null;
+                                const isNumber = typeof value === "number" && Number.isFinite(value);
+                                const isBest =
+                                  isNumber &&
+                                  bestValue !== undefined &&
+                                  compareData.runs.length > 1 &&
+                                  (value as number) === bestValue;
+                                return (
+                                  <TableCell
+                                    key={run.run_id}
+                                    className={cn(
+                                      "data-text text-center",
+                                      isBest && "font-semibold text-primary"
+                                    )}
+                                  >
+                                    {isNumber ? metric.format(value as number) : "—"}
+                                  </TableCell>
+                                );
+                              })}
+                            </TableRow>
+                          );
+                        })}
                       </TableBody>
                     </Table>
+                    {/* Right-edge scroll hint for horizontally overflowing tables */}
+                    <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-card to-transparent sm:hidden" />
                   </div>
                 </section>
               </>

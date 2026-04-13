@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { ProfileSettingsSection } from "./profile-settings-section";
 import { Strategy } from "@/types/strategy";
@@ -52,6 +53,10 @@ export default function ProfilePage() {
   const [digestEnabled, setDigestEnabled] = useState(true);
   const [strategies, setStrategies] = useState<Strategy[]>([]);
   const [strategiesLoading, setStrategiesLoading] = useState(true);
+  const [strategiesError, setStrategiesError] = useState<string | null>(null);
+  const [initialFeePercent, setInitialFeePercent] = useState("");
+  const [initialSlippagePercent, setInitialSlippagePercent] = useState("");
+  const [prefsMessage, setPrefsMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [pendingStrategyToggleIds, setPendingStrategyToggleIds] = useState<Set<string>>(new Set());
   const [digestMessage, setDigestMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const digestRequestSeqRef = useRef(0);
@@ -72,8 +77,12 @@ export default function ProfilePage() {
       try {
         const data = await apiFetch<ProfileResponse>("/users/me");
         setProfile(data);
-        setFeePercent(data.settings.default_fee_percent?.toString() ?? "");
-        setSlippagePercent(data.settings.default_slippage_percent?.toString() ?? "");
+        const fee = data.settings.default_fee_percent?.toString() ?? "";
+        const slip = data.settings.default_slippage_percent?.toString() ?? "";
+        setFeePercent(fee);
+        setSlippagePercent(slip);
+        setInitialFeePercent(fee);
+        setInitialSlippagePercent(slip);
         if (data.settings.timezone_preference) {
           setTimezone(data.settings.timezone_preference);
         }
@@ -96,14 +105,34 @@ export default function ProfilePage() {
       try {
         const data = await apiFetch<Strategy[]>("/strategies");
         setStrategies(data);
-      } catch {
-        // Non-critical: digest section will show error state
+        setStrategiesError(null);
+      } catch (err) {
+        setStrategiesError(
+          err instanceof ApiError ? err.message : "Couldn't load strategies"
+        );
       } finally {
         setStrategiesLoading(false);
       }
     }
     fetchStrategies();
   }, []);
+
+  // Auto-dismiss success banners after 4s
+  useEffect(() => {
+    if (message?.type !== "success") return;
+    const t = setTimeout(() => setMessage(null), 4000);
+    return () => clearTimeout(t);
+  }, [message]);
+  useEffect(() => {
+    if (digestMessage?.type !== "success") return;
+    const t = setTimeout(() => setDigestMessage(null), 4000);
+    return () => clearTimeout(t);
+  }, [digestMessage]);
+  useEffect(() => {
+    if (!prefsMessage) return;
+    const t = setTimeout(() => setPrefsMessage(null), 4000);
+    return () => clearTimeout(t);
+  }, [prefsMessage]);
 
   async function handleSaveDefaults(e: React.FormEvent) {
     e.preventDefault();
@@ -124,6 +153,8 @@ export default function ProfilePage() {
         body: JSON.stringify(data),
       });
       setProfile(updated);
+      setInitialFeePercent(feePercent);
+      setInitialSlippagePercent(slippagePercent);
       setMessage({ type: "success", text: "Settings saved successfully" });
     } catch (err) {
       if (err instanceof ApiError) {
@@ -145,8 +176,10 @@ export default function ProfilePage() {
         body: JSON.stringify({ timezone_preference: tz }),
       });
       setProfile(updated);
+      setPrefsMessage({ type: "success", text: "Timezone saved" });
     } catch {
       setTimezone(previousTz);
+      setPrefsMessage({ type: "error", text: "Couldn't save timezone — reverted" });
     }
   }
 
@@ -159,8 +192,10 @@ export default function ProfilePage() {
         body: JSON.stringify({ theme_preference: newTheme }),
       });
       setProfile(updated);
+      setPrefsMessage({ type: "success", text: "Theme saved" });
     } catch {
       setTheme(previousTheme);
+      setPrefsMessage({ type: "error", text: "Couldn't save theme — reverted" });
     }
   }
 
@@ -369,17 +404,42 @@ export default function ProfilePage() {
         }.`;
 
   return (
-    <div className="container mx-auto max-w-4xl">
-      <div className="mb-8">
+    <div className="container mx-auto max-w-4xl p-4 md:p-6">
+      <div className="mb-6">
         <h1 className="text-2xl font-bold tracking-tight">Profile</h1>
         <p className="mt-1 text-muted-foreground">
           Manage your preferences and see your current usage.
         </p>
       </div>
 
+      {/* In-page section nav */}
+      <nav
+        aria-label="Profile sections"
+        className="mb-6 flex flex-wrap gap-2 border-b pb-4 text-sm"
+      >
+        {[
+          { href: "#account", label: "Account" },
+          { href: "#defaults", label: "Defaults" },
+          { href: "#display", label: "Display" },
+          { href: "#digest", label: "Digest" },
+          { href: "#privacy", label: "Privacy" },
+          { href: "#usage", label: "Usage" },
+          { href: "#credits", label: "Credits" },
+          { href: "#billing", label: "Billing" },
+        ].map((item) => (
+          <a
+            key={item.href}
+            href={item.href}
+            className="rounded-md px-2.5 py-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          >
+            {item.label}
+          </a>
+        ))}
+      </nav>
+
       <div className="space-y-6">
         {/* Account */}
-        <Card>
+        <Card id="account">
           <CardHeader>
             <div className="flex items-center gap-2">
               <User className="h-4 w-4 text-muted-foreground" />
@@ -389,17 +449,18 @@ export default function ProfilePage() {
           </CardHeader>
           {profile?.settings.user_tier === "beta" && (
             <CardContent>
-              <div className="flex items-start gap-3 rounded-lg bg-blue-500/5 p-3 dark:bg-blue-400/5">
-                <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-blue-500 dark:text-blue-400" />
+              <div className="flex items-start gap-3 rounded-lg border border-primary/20 bg-primary/5 p-3">
+                <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                 <div>
-                  <Badge
-                    variant="secondary"
-                    className="mb-1.5 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
-                  >
+                  <Badge variant="secondary" className="mb-1.5">
                     Beta User — Grandfathered Perks
                   </Badge>
                   <p className="text-sm text-muted-foreground">
-                    +10 strategies, +50 backtests/day, 20% off paid plans
+                    +10 strategies and +50 backtests/day are already applied to your limits below.{" "}
+                    <a href="#billing" className="font-medium text-primary underline">
+                      20% off paid plans
+                    </a>
+                    .
                   </p>
                 </div>
               </div>
@@ -408,7 +469,7 @@ export default function ProfilePage() {
         </Card>
 
         {/* Backtest Defaults */}
-        <Card>
+        <Card id="defaults">
           <CardHeader>
             <div className="flex items-center gap-2">
               <Settings className="h-4 w-4 text-muted-foreground" />
@@ -422,14 +483,23 @@ export default function ProfilePage() {
             <form onSubmit={handleSaveDefaults} className="max-w-md space-y-4">
               {message && (
                 <div
+                  role="status"
                   className={cn(
-                    "rounded-lg border px-4 py-3 text-sm",
+                    "flex items-start justify-between gap-2 rounded-lg border px-4 py-3 text-sm",
                     message.type === "success"
-                      ? "border-green-200 bg-green-50 text-green-600 dark:border-green-800 dark:bg-green-950 dark:text-green-400"
+                      ? "border-success/30 bg-success/5 text-success"
                       : "border-destructive/30 bg-destructive/5 text-destructive"
                   )}
                 >
-                  {message.text}
+                  <span>{message.text}</span>
+                  <button
+                    type="button"
+                    onClick={() => setMessage(null)}
+                    aria-label="Dismiss message"
+                    className="shrink-0 opacity-70 hover:opacity-100"
+                  >
+                    ×
+                  </button>
                 </div>
               )}
 
@@ -471,7 +541,14 @@ export default function ProfilePage() {
                 />
               </div>
 
-              <Button type="submit" disabled={isSaving}>
+              <Button
+                type="submit"
+                disabled={
+                  isSaving ||
+                  (feePercent === initialFeePercent &&
+                    slippagePercent === initialSlippagePercent)
+                }
+              >
                 {isSaving ? "Saving..." : "Save Defaults"}
               </Button>
             </form>
@@ -479,7 +556,7 @@ export default function ProfilePage() {
         </Card>
 
         {/* Display Preferences */}
-        <Card>
+        <Card id="display">
           <CardHeader>
             <div className="flex items-center gap-2">
               <Palette className="h-4 w-4 text-muted-foreground" />
@@ -491,80 +568,65 @@ export default function ProfilePage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-6">
-              <div>
-                <label className="mb-2.5 block text-sm font-medium">
-                  Timezone
-                </label>
-                <div className="inline-flex rounded-lg border bg-muted/50 p-0.5">
-                  <SegmentButton
-                    active={timezone === "local"}
-                    onClick={() => handleTimezoneChange("local")}
+              {prefsMessage && (
+                <div
+                  role="status"
+                  className={cn(
+                    "flex items-start justify-between gap-2 rounded-lg border px-4 py-3 text-sm",
+                    prefsMessage.type === "success"
+                      ? "border-success/30 bg-success/5 text-success"
+                      : "border-destructive/30 bg-destructive/5 text-destructive"
+                  )}
+                >
+                  <span>{prefsMessage.text}</span>
+                  <button
+                    type="button"
+                    onClick={() => setPrefsMessage(null)}
+                    aria-label="Dismiss message"
+                    className="shrink-0 opacity-70 hover:opacity-100"
                   >
-                    Local
-                  </SegmentButton>
-                  <SegmentButton
-                    active={timezone === "utc"}
-                    onClick={() => handleTimezoneChange("utc")}
-                  >
-                    UTC
-                  </SegmentButton>
+                    ×
+                  </button>
                 </div>
-              </div>
+              )}
 
-              <div>
-                <label className="mb-2.5 block text-sm font-medium">
-                  Theme
-                </label>
-                <div className="inline-flex rounded-lg border bg-muted/50 p-0.5">
-                  <SegmentButton
-                    active={theme === "system"}
-                    onClick={() => handleThemeChange("system")}
-                  >
-                    System
-                  </SegmentButton>
-                  <SegmentButton
-                    active={theme === "light"}
-                    onClick={() => handleThemeChange("light")}
-                  >
-                    Light
-                  </SegmentButton>
-                  <SegmentButton
-                    active={theme === "dark"}
-                    onClick={() => handleThemeChange("dark")}
-                  >
-                    Dark
-                  </SegmentButton>
-                </div>
-              </div>
+              <SegmentedGroup
+                label="Timezone"
+                value={timezone}
+                onChange={(v) => handleTimezoneChange(v as "local" | "utc")}
+                options={[
+                  { value: "local", label: "Local" },
+                  { value: "utc", label: "UTC" },
+                ]}
+              />
 
-              <div>
-                <label className="mb-2.5 block text-sm font-medium">
-                  Node Display Mode
-                </label>
-                <div className="inline-flex rounded-lg border bg-muted/50 p-0.5">
-                  <SegmentButton
-                    active={nodeDisplayMode === "compact"}
-                    onClick={() => handleNodeDisplayModeChange("compact")}
-                  >
-                    Compact
-                  </SegmentButton>
-                  <SegmentButton
-                    active={nodeDisplayMode === "expanded"}
-                    onClick={() => handleNodeDisplayModeChange("expanded")}
-                  >
-                    Expanded
-                  </SegmentButton>
-                </div>
-                <p className="mt-2 text-xs text-muted-foreground">
-                  Compact mode shows one-line summaries. Click nodes to expand details.
-                </p>
-              </div>
+              <SegmentedGroup
+                label="Theme"
+                value={theme}
+                onChange={(v) => handleThemeChange(v as "system" | "light" | "dark")}
+                options={[
+                  { value: "system", label: "System" },
+                  { value: "light", label: "Light" },
+                  { value: "dark", label: "Dark" },
+                ]}
+              />
+
+              <SegmentedGroup
+                label="Node Display Mode"
+                value={nodeDisplayMode}
+                onChange={(v) => handleNodeDisplayModeChange(v as "compact" | "expanded")}
+                options={[
+                  { value: "compact", label: "Compact" },
+                  { value: "expanded", label: "Expanded" },
+                ]}
+                helper="Compact mode shows one-line summaries. Click nodes to expand details."
+              />
             </div>
           </CardContent>
         </Card>
 
         {/* Email Digest Preferences */}
-        <Card>
+        <Card id="digest">
           <CardHeader>
             <div className="flex items-center gap-2">
               <Mail className="h-4 w-4 text-muted-foreground" />
@@ -578,32 +640,41 @@ export default function ProfilePage() {
             <div className="space-y-4">
               {digestMessage && (
                 <div
+                  role="status"
                   className={cn(
-                    "rounded-lg border px-4 py-3 text-sm",
+                    "flex items-start justify-between gap-2 rounded-lg border px-4 py-3 text-sm",
                     digestMessage.type === "success"
-                      ? "border-green-200 bg-green-50 text-green-600 dark:border-green-800 dark:bg-green-950 dark:text-green-400"
+                      ? "border-success/30 bg-success/5 text-success"
                       : "border-destructive/30 bg-destructive/5 text-destructive"
                   )}
                 >
-                  {digestMessage.text}
+                  <span>{digestMessage.text}</span>
+                  <button
+                    type="button"
+                    onClick={() => setDigestMessage(null)}
+                    aria-label="Dismiss message"
+                    className="shrink-0 opacity-70 hover:opacity-100"
+                  >
+                    ×
+                  </button>
                 </div>
               )}
 
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-4">
                 <div>
-                  <label htmlFor="digest-global" className="text-sm font-medium">
+                  <div id="digest-global-label" className="text-sm font-medium">
                     Weekly Strategy Digest
-                  </label>
-                  <p className="text-xs text-muted-foreground">
+                  </div>
+                  <p id="digest-global-desc" className="text-xs text-muted-foreground">
                     Receive a weekly summary of your strategy performance by email.
                   </p>
                 </div>
-                <input
-                  type="checkbox"
+                <Switch
                   id="digest-global"
                   checked={digestEnabled}
-                  onChange={(e) => handleDigestGlobalToggle(e.target.checked)}
-                  className="h-4 w-4 rounded border-gray-300"
+                  onCheckedChange={handleDigestGlobalToggle}
+                  aria-labelledby="digest-global-label"
+                  aria-describedby="digest-global-desc"
                 />
               </div>
 
@@ -621,23 +692,51 @@ export default function ProfilePage() {
                       <Skeleton key={i} className="h-8 w-full" />
                     ))}
                   </div>
+                ) : strategiesError ? (
+                  <div className="flex items-center justify-between rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+                    <span>Couldn&apos;t load strategies — {strategiesError}</span>
+                    <Button
+                      variant="link"
+                      size="sm"
+                      onClick={() => window.location.reload()}
+                      className="h-auto p-0 text-destructive underline"
+                    >
+                      Retry
+                    </Button>
+                  </div>
                 ) : strategies.length === 0 ? (
                   <p className="text-sm text-muted-foreground">No strategies yet.</p>
                 ) : (
-                  <div className="space-y-2">
-                    {strategies.map((s) => (
-                      <div key={s.id} className="flex items-center justify-between rounded-md border px-3 py-2">
-                        <span className="truncate text-sm">{s.name}</span>
-                        <input
-                          type="checkbox"
-                          checked={s.digest_email_enabled}
-                          disabled={pendingStrategyToggleIds.has(s.id)}
-                          onChange={(e) => handleStrategyDigestToggle(s.id, e.target.checked)}
-                          className="h-4 w-4 shrink-0 rounded border-gray-300"
-                        />
-                      </div>
-                    ))}
-                  </div>
+                  <ul className="space-y-2">
+                    {strategies.map((s) => {
+                      const pending = pendingStrategyToggleIds.has(s.id);
+                      const labelId = `digest-strategy-${s.id}`;
+                      return (
+                        <li
+                          key={s.id}
+                          className={cn(
+                            "flex items-center justify-between gap-3 rounded-md border px-3 py-2 transition-opacity",
+                            pending && "opacity-60"
+                          )}
+                        >
+                          <label
+                            id={labelId}
+                            htmlFor={`digest-strategy-switch-${s.id}`}
+                            className="min-w-0 flex-1 cursor-pointer truncate text-sm"
+                          >
+                            {s.name}
+                          </label>
+                          <Switch
+                            id={`digest-strategy-switch-${s.id}`}
+                            checked={s.digest_email_enabled}
+                            disabled={pending}
+                            onCheckedChange={(v) => handleStrategyDigestToggle(s.id, v)}
+                            aria-labelledby={labelId}
+                          />
+                        </li>
+                      );
+                    })}
+                  </ul>
                 )}
               </div>
             </div>
@@ -645,7 +744,7 @@ export default function ProfilePage() {
         </Card>
 
         {/* Analytics Privacy */}
-        <Card>
+        <Card id="privacy">
           <CardHeader>
             <div className="flex items-center gap-2">
               <Shield className="h-4 w-4 text-muted-foreground" />
@@ -703,7 +802,7 @@ export default function ProfilePage() {
         </Card>
 
         {/* Usage */}
-        <Card>
+        <Card id="usage">
           <CardHeader>
             <div className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4 text-muted-foreground" />
@@ -737,7 +836,7 @@ export default function ProfilePage() {
         </Card>
 
         {/* Credits & Add-Ons */}
-        <Card>
+        <Card id="credits">
           <CardHeader>
             <div className="flex items-center gap-2">
               <Zap className="h-4 w-4 text-muted-foreground" />
@@ -916,28 +1015,65 @@ export default function ProfilePage() {
   );
 }
 
-function SegmentButton({
-  active,
-  onClick,
-  children,
+function SegmentedGroup({
+  label,
+  value,
+  onChange,
+  options,
+  helper,
 }: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: { value: string; label: string }[];
+  helper?: string;
 }) {
+  const groupId = `seg-${label.replace(/\s+/g, "-").toLowerCase()}`;
+  function handleKey(e: React.KeyboardEvent<HTMLDivElement>) {
+    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+    e.preventDefault();
+    const idx = options.findIndex((o) => o.value === value);
+    const next =
+      e.key === "ArrowRight"
+        ? (idx + 1) % options.length
+        : (idx - 1 + options.length) % options.length;
+    onChange(options[next].value);
+  }
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "rounded-md px-3.5 py-1.5 text-sm font-medium transition-all duration-150",
-        active
-          ? "bg-background text-foreground shadow-sm"
-          : "text-muted-foreground hover:text-foreground"
-      )}
-    >
-      {children}
-    </button>
+    <div>
+      <div id={`${groupId}-label`} className="mb-2.5 block text-sm font-medium">
+        {label}
+      </div>
+      <div
+        role="radiogroup"
+        aria-labelledby={`${groupId}-label`}
+        onKeyDown={handleKey}
+        className="inline-flex rounded-lg border bg-muted/50 p-0.5"
+      >
+        {options.map((opt) => {
+          const active = opt.value === value;
+          return (
+            <button
+              key={opt.value}
+              type="button"
+              role="radio"
+              aria-checked={active}
+              tabIndex={active ? 0 : -1}
+              onClick={() => onChange(opt.value)}
+              className={cn(
+                "rounded-md px-3.5 py-1.5 text-sm font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                active
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {opt.label}
+            </button>
+          );
+        })}
+      </div>
+      {helper && <p className="mt-2 text-xs text-muted-foreground">{helper}</p>}
+    </div>
   );
 }
 

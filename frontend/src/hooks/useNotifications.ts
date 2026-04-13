@@ -9,17 +9,20 @@ export function useNotifications() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchNotifications = useCallback(async () => {
     try {
       setIsLoading(true);
+      setError(null);
       const response = await apiFetch<NotificationListResponse>(
         "/notifications/"
       );
       setNotifications(response.items);
       setUnreadCount(response.unread_count);
-    } catch (error) {
-      console.error("Failed to fetch notifications:", error);
+    } catch (err) {
+      console.error("Failed to fetch notifications:", err);
+      setError("Couldn't load notifications. Check your connection and try again.");
     } finally {
       setIsLoading(false);
     }
@@ -72,6 +75,7 @@ export function useNotifications() {
     notifications,
     unreadCount,
     isLoading,
+    error,
     fetchNotifications,
     markAsRead,
     markAllAsRead,

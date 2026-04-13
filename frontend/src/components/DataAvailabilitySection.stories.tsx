@@ -1,6 +1,18 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { DataAvailabilitySection } from "./DataAvailabilitySection";
-import type { DataCompletenessResponse, DataQualityMetrics } from "@/types/backtest";
+import type {
+  DataAvailabilityResponse,
+  DataCompletenessResponse,
+  DataQualityMetrics,
+} from "@/types/backtest";
+
+const availability: DataAvailabilityResponse = {
+  asset: "BTC/USDT",
+  timeframe: "1h",
+  earliest_date: "2024-01-01",
+  latest_date: "2024-12-31",
+  source: "binance_ohlcv",
+};
 
 const goodCompleteness: DataCompletenessResponse = {
   asset: "BTC/USDT",
@@ -78,6 +90,7 @@ type Story = StoryObj<typeof meta>;
 
 export const NoIssues: Story = {
   args: {
+    dataAvailability: availability,
     completeness: goodCompleteness,
     dataQuality: goodQuality,
     gapOverlap: null,
@@ -88,6 +101,7 @@ export const NoIssues: Story = {
 
 export const WithIssues: Story = {
   args: {
+    dataAvailability: availability,
     completeness: withGapsCompleteness,
     dataQuality: withIssuesQuality,
     gapOverlap: [{ start: "2024-06-01", end: "2024-06-03" }],
@@ -98,6 +112,7 @@ export const WithIssues: Story = {
 
 export const NullData: Story = {
   args: {
+    dataAvailability: null,
     completeness: null,
     dataQuality: null,
     gapOverlap: null,

@@ -54,7 +54,7 @@ export function TransactionCostAnalysis({ summary }: TransactionCostAnalysisProp
         {costRows.map((row) => (
           <div key={row.label} className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">{row.label}</span>
-            <span className={row.color}>{formatMoney(row.value, "USDT", false)}</span>
+            <span className={`data-text ${row.color}`}>{formatMoney(row.value, "USDT", false)}</span>
           </div>
         ))}
 
@@ -64,7 +64,7 @@ export function TransactionCostAnalysis({ summary }: TransactionCostAnalysisProp
             Cost % of Gross Return
             <InfoIcon tooltip={getTooltip(metricToGlossaryId("cost_pct_gross_return"))} />
           </span>
-          <span className="font-semibold text-foreground">
+          <span className="data-text font-semibold text-foreground">
             {summary.cost_pct_gross_return !== null &&
             summary.cost_pct_gross_return !== undefined
               ? formatPercent(summary.cost_pct_gross_return)
@@ -81,13 +81,13 @@ export function TransactionCostAnalysis({ summary }: TransactionCostAnalysisProp
         <div className="mt-2 grid gap-2 sm:grid-cols-2">
           <div className="rounded-md border border-border/60 bg-background/70 p-2">
             <div className="text-xs text-muted-foreground">Gross return</div>
-            <div className="text-sm font-semibold text-foreground">
+            <div className="data-text text-sm font-semibold text-foreground">
               {formatMoney(summary.gross_return_usd ?? 0, "USDT", true)}
             </div>
           </div>
           <div className="rounded-md border border-border/60 bg-background/70 p-2">
             <div className="text-xs text-muted-foreground">Net return (after costs)</div>
-            <div className="text-sm font-semibold text-foreground">
+            <div className="data-text text-sm font-semibold text-foreground">
               {formatMoney(summary.final_balance - summary.initial_balance, "USDT", true)}
             </div>
           </div>

@@ -31,11 +31,15 @@ import {
 } from "@/components/ui/dialog";
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Card, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -45,7 +49,20 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Upload, BookOpen, Layers, Search, MoreVertical } from "lucide-react";
+import {
+  Plus,
+  Upload,
+  BookOpen,
+  Layers,
+  Search,
+  MoreVertical,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  X,
+  Loader2,
+  RefreshCw,
+} from "lucide-react";
 
 type SortField = "name" | "updated_at" | "total_return" | "last_run" | "asset"
   | "return_30d" | "return_60d" | "return_90d" | "return_1y" | "return_2y" | "return_3y";
@@ -91,6 +108,7 @@ export default function StrategiesPage() {
   const [bulkActionLoading, setBulkActionLoading] = useState(false);
   const [showBulkTagDialog, setShowBulkTagDialog] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [bulkTagIds, setBulkTagIds] = useState<string[]>([]);
   const [bulkResult, setBulkResult] = useState<{
     type: 'success' | 'partial' | 'error';
@@ -158,7 +176,7 @@ export default function StrategiesPage() {
   };
 
   const clearBulkResult = () => {
-    setTimeout(() => setBulkResult(null), 3000);
+    setTimeout(() => setBulkResult(null), 5000);
   };
 
   // Bulk action handlers
@@ -478,6 +496,11 @@ export default function StrategiesPage() {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+      setBulkResult({
+        type: 'success',
+        message: `Exported "${strategy.name}"`,
+      });
+      clearBulkResult();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to export strategy");
     } finally {
@@ -604,27 +627,73 @@ export default function StrategiesPage() {
   };
 
   const SortIcon = ({ field }: { field: SortField }) => {
-    if (sortField !== field) return <span className="ml-1 text-muted-foreground">↕</span>;
-    return <span className="ml-1">{sortOrder === "asc" ? "↑" : "↓"}</span>;
+    if (sortField !== field)
+      return <ArrowUpDown className="ml-1 inline h-3 w-3 text-muted-foreground" aria-hidden="true" />;
+    return sortOrder === "asc" ? (
+      <ArrowUp className="ml-1 inline h-3 w-3" aria-hidden="true" />
+    ) : (
+      <ArrowDown className="ml-1 inline h-3 w-3" aria-hidden="true" />
+    );
   };
+
+  const getAriaSort = (field: SortField): "ascending" | "descending" | "none" => {
+    if (sortField !== field) return "none";
+    return sortOrder === "asc" ? "ascending" : "descending";
+  };
+
+  const SortableHeader = ({
+    field,
+    children,
+    className = "",
+  }: {
+    field: SortField;
+    children: React.ReactNode;
+    className?: string;
+  }) => (
+    <TableHead aria-sort={getAriaSort(field)} className={className}>
+      <button
+        type="button"
+        onClick={() => handleSort(field)}
+        className="inline-flex items-center gap-0.5 rounded-sm font-medium hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+      >
+        {children}
+        <SortIcon field={field} />
+      </button>
+    </TableHead>
+  );
 
   if (isLoading) {
     return (
-      <main className="container mx-auto max-w-6xl space-y-6 p-4 md:p-6">
+      <main className="container mx-auto max-w-screen-2xl space-y-6 p-4 md:p-6">
         <div className="flex items-center justify-between">
           <Skeleton className="h-8 w-40" />
           <Skeleton className="h-9 w-32" />
         </div>
         <Skeleton className="h-10 w-64" />
-        <div className="space-y-3">
-          {[1, 2, 3, 4, 5].map((i) => (
+        {/* Desktop table skeleton */}
+        <div className="hidden space-y-2 md:block">
+          <div className="flex gap-3 border-b pb-3">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+              <Skeleton key={i} className="h-4 flex-1" />
+            ))}
+          </div>
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="flex items-center gap-3 py-3">
+              {[1, 2, 3, 4, 5, 6, 7, 8].map((j) => (
+                <Skeleton key={j} className="h-4 flex-1" />
+              ))}
+            </div>
+          ))}
+        </div>
+        {/* Mobile card skeleton */}
+        <div className="space-y-3 md:hidden">
+          {[1, 2, 3, 4].map((i) => (
             <Card key={i}>
               <CardContent className="flex items-center gap-4 p-4">
                 <div className="flex-1 space-y-2">
                   <Skeleton className="h-5 w-48" />
                   <Skeleton className="h-4 w-24" />
                 </div>
-                <Skeleton className="h-5 w-16" />
                 <Skeleton className="h-5 w-16" />
               </CardContent>
             </Card>
@@ -635,7 +704,7 @@ export default function StrategiesPage() {
   }
 
   return (
-    <main className="container mx-auto max-w-6xl space-y-6 p-4 md:p-6">
+    <main className="container mx-auto max-w-screen-2xl space-y-6 p-4 md:p-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold tracking-tight">Strategies</h1>
         <div className="flex flex-wrap gap-2">
@@ -663,20 +732,58 @@ export default function StrategiesPage() {
       </div>
 
       {error && (
-        <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-          {error}
+        <div
+          role="alert"
+          className="flex items-start justify-between gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive"
+        >
+          <span className="flex-1">{error}</span>
+          <div className="flex shrink-0 gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 text-destructive hover:text-destructive"
+              onClick={() => {
+                setError(null);
+                refreshStrategies();
+              }}
+            >
+              <RefreshCw className="mr-1 h-3 w-3" />
+              Retry
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+              onClick={() => setError(null)}
+              aria-label="Dismiss error"
+            >
+              <X className="h-3.5 w-3.5" />
+            </Button>
+          </div>
         </div>
       )}
 
       {bulkResult && (
-        <div className={`rounded-lg border px-4 py-3 text-sm ${
-          bulkResult.type === 'success'
-            ? 'border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-950 dark:text-green-300'
-            : bulkResult.type === 'partial'
-            ? 'border-yellow-200 bg-yellow-50 text-yellow-800 dark:border-yellow-800 dark:bg-yellow-950 dark:text-yellow-300'
-            : 'border-destructive/30 bg-destructive/5 text-destructive'
-        }`}>
-          {bulkResult.message}
+        <div
+          role="status"
+          aria-live="polite"
+          className={`flex items-start justify-between gap-3 rounded-lg border px-4 py-3 text-sm ${
+            bulkResult.type === 'success'
+              ? 'border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-950 dark:text-green-300'
+              : bulkResult.type === 'partial'
+              ? 'border-yellow-200 bg-yellow-50 text-yellow-800 dark:border-yellow-800 dark:bg-yellow-950 dark:text-yellow-300'
+              : 'border-destructive/30 bg-destructive/5 text-destructive'
+          }`}
+        >
+          <span className="flex-1">{bulkResult.message}</span>
+          <button
+            type="button"
+            onClick={() => setBulkResult(null)}
+            aria-label="Dismiss notification"
+            className="shrink-0 rounded-sm opacity-70 hover:opacity-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
       )}
 
@@ -689,23 +796,15 @@ export default function StrategiesPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
+            aria-label="Search strategies"
           />
         </div>
-        <label className="flex items-center gap-2 text-sm text-muted-foreground">
-          <input
-            type="checkbox"
-            checked={showArchived}
-            onChange={(e) => setShowArchived(e.target.checked)}
-            className="rounded border-input"
-          />
-          Show archived
-        </label>
       </div>
 
       {/* Filter Controls */}
       <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/30 p-2 dark:bg-muted/10">
         <Select value={assetFilter} onValueChange={setAssetFilter}>
-          <SelectTrigger className="w-full sm:w-[150px]">
+          <SelectTrigger className="w-full sm:w-[150px]" aria-label="Filter by asset">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -719,7 +818,7 @@ export default function StrategiesPage() {
         </Select>
 
         <Select value={performanceFilter} onValueChange={(v) => setPerformanceFilter(v as PerformanceFilter)}>
-          <SelectTrigger className="w-full sm:w-[150px]">
+          <SelectTrigger className="w-full sm:w-[150px]" aria-label="Filter by performance">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -730,7 +829,7 @@ export default function StrategiesPage() {
         </Select>
 
         <Select value={lastRunFilter} onValueChange={(v) => setLastRunFilter(v as LastRunFilter)}>
-          <SelectTrigger className="w-full sm:w-[150px]">
+          <SelectTrigger className="w-full sm:w-[150px]" aria-label="Filter by last run">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -742,49 +841,55 @@ export default function StrategiesPage() {
         </Select>
 
         {availableTags.length > 0 && (
-          <div className="relative">
-            <Select
-              value={selectedTagIds.length > 0 ? "selected" : "all"}
-              onValueChange={(v) => {
-                if (v === "all") setSelectedTagIds([]);
-              }}
-            >
-              <SelectTrigger className="w-full sm:w-[150px]">
-                <SelectValue>
-                  {selectedTagIds.length > 0 ? `${selectedTagIds.length} tag(s)` : "All Tags"}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Tags</SelectItem>
-                {availableTags.map((tag) => (
-                  <div
-                    key={tag.id}
-                    className="flex items-center gap-2 px-2 py-1.5 hover:bg-muted/50 cursor-pointer"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setSelectedTagIds(prev =>
-                        prev.includes(tag.id)
-                          ? prev.filter(id => id !== tag.id)
-                          : [...prev, tag.id]
-                      );
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedTagIds.includes(tag.id)}
-                      onChange={() => {}}
-                      className="rounded border-input"
-                    />
-                    <span className="text-sm">{tag.name}</span>
-                  </div>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                className="w-full justify-start sm:w-[150px]"
+                aria-label="Filter by tags"
+              >
+                {selectedTagIds.length > 0 ? `${selectedTagIds.length} tag(s)` : "All Tags"}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-[220px]">
+              <DropdownMenuLabel>Filter by tag</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {availableTags.map((tag) => (
+                <DropdownMenuCheckboxItem
+                  key={tag.id}
+                  checked={selectedTagIds.includes(tag.id)}
+                  onCheckedChange={(checked) => {
+                    setSelectedTagIds((prev) =>
+                      checked ? [...prev, tag.id] : prev.filter((id) => id !== tag.id)
+                    );
+                  }}
+                  onSelect={(e) => e.preventDefault()}
+                >
+                  {tag.name}
+                </DropdownMenuCheckboxItem>
+              ))}
+              {selectedTagIds.length > 0 && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setSelectedTagIds([])}>
+                    Clear tag filter
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
 
-        {(search || assetFilter !== "all" || performanceFilter !== "all" || lastRunFilter !== "all" || selectedTagIds.length > 0) && (
+        <label className="flex items-center gap-2 px-2 text-sm text-muted-foreground">
+          <Checkbox
+            checked={showArchived}
+            onCheckedChange={(checked) => setShowArchived(checked === true)}
+            aria-label="Show archived strategies"
+          />
+          Show archived
+        </label>
+
+        {(search || assetFilter !== "all" || performanceFilter !== "all" || lastRunFilter !== "all" || selectedTagIds.length > 0 || showArchived) && (
           <Button
             variant="outline"
             size="sm"
@@ -794,6 +899,7 @@ export default function StrategiesPage() {
               setPerformanceFilter("all");
               setLastRunFilter("all");
               setSelectedTagIds([]);
+              setShowArchived(false);
             }}
           >
             Clear filters
@@ -802,14 +908,21 @@ export default function StrategiesPage() {
       </div>
 
       {selectedIds.size > 0 && (
-        <div className="sticky top-0 z-10 flex items-center justify-between rounded-lg border bg-background/80 p-3 shadow-sm backdrop-blur-sm">
+        <div className="sticky top-0 z-30 flex items-center justify-between rounded-lg border-2 border-primary/30 bg-background p-3 shadow-md">
           <span className="text-sm text-muted-foreground">
             {selectedIds.size} {selectedIds.size === 1 ? 'strategy' : 'strategies'} selected
           </span>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="default" size="sm" disabled={bulkActionLoading}>
-                {bulkActionLoading ? 'Processing...' : 'Bulk Actions'}
+                {bulkActionLoading ? (
+                  <>
+                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  'Bulk Actions'
+                )}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
@@ -859,65 +972,52 @@ export default function StrategiesPage() {
       ) : (
         <>
           {/* Desktop Table */}
-          <div className="hidden md:block">
+          <div
+            className={`relative hidden overflow-x-auto rounded-md border md:block ${
+              bulkActionLoading ? 'pointer-events-none opacity-60' : ''
+            }`}
+            aria-busy={bulkActionLoading}
+          >
+            {bulkActionLoading && (
+              <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/40">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            )}
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-12">
-                    <input
-                      type="checkbox"
-                      checked={selectedIds.size > 0 && selectedIds.size === filteredAndSortedStrategies.length}
-                      onChange={(e) => handleSelectAll(e.target.checked)}
-                      className="cursor-pointer rounded border-input"
+                    <Checkbox
+                      checked={
+                        filteredAndSortedStrategies.length > 0 &&
+                        selectedIds.size === filteredAndSortedStrategies.length
+                          ? true
+                          : selectedIds.size > 0
+                          ? "indeterminate"
+                          : false
+                      }
+                      onCheckedChange={(checked) => handleSelectAll(checked === true)}
                       aria-label="Select all strategies"
                     />
                   </TableHead>
-                  <TableHead
-                    className="cursor-pointer hover:text-foreground"
-                    onClick={() => handleSort("name")}
-                  >
-                    Name <SortIcon field="name" />
-                  </TableHead>
-                  <TableHead
-                    className="cursor-pointer hover:text-foreground"
-                    onClick={() => handleSort("asset")}
-                  >
-                    Asset <SortIcon field="asset" />
-                  </TableHead>
+                  <SortableHeader field="name">Name</SortableHeader>
+                  <SortableHeader field="asset">Asset</SortableHeader>
                   <TableHead>Timeframe</TableHead>
-                  <TableHead
-                    className="cursor-pointer hover:text-foreground"
-                    onClick={() => handleSort("total_return")}
-                  >
-                    Total Return <SortIcon field="total_return" />
-                  </TableHead>
+                  <SortableHeader field="total_return">Total Return</SortableHeader>
                   {(["30d", "60d", "90d", "1y"] as const).map((p) => (
-                    <TableHead
-                      key={p}
-                      className="cursor-pointer hover:text-foreground text-center"
-                      onClick={() => handleSort(`return_${p}` as SortField)}
-                    >
-                      {p} <SortIcon field={`return_${p}` as SortField} />
-                    </TableHead>
+                    <SortableHeader key={p} field={`return_${p}` as SortField} className="text-center">
+                      {p}
+                    </SortableHeader>
                   ))}
                   {isPremiumUser && (["2y", "3y"] as const).map((p) => (
-                    <TableHead
-                      key={p}
-                      className="cursor-pointer hover:text-foreground text-center"
-                      onClick={() => handleSort(`return_${p}` as SortField)}
-                    >
-                      {p} <SortIcon field={`return_${p}` as SortField} />
-                    </TableHead>
+                    <SortableHeader key={p} field={`return_${p}` as SortField} className="text-center">
+                      {p}
+                    </SortableHeader>
                   ))}
                   <TableHead>Max DD</TableHead>
                   <TableHead>Win Rate</TableHead>
                   <TableHead>Trades</TableHead>
-                  <TableHead
-                    className="cursor-pointer hover:text-foreground"
-                    onClick={() => handleSort("last_run")}
-                  >
-                    Last Run <SortIcon field="last_run" />
-                  </TableHead>
+                  <SortableHeader field="last_run">Last Run</SortableHeader>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -928,11 +1028,9 @@ export default function StrategiesPage() {
                     className={strategy.is_archived ? "opacity-60" : ""}
                   >
                     <TableCell>
-                      <input
-                        type="checkbox"
+                      <Checkbox
                         checked={selectedIds.has(strategy.id)}
-                        onChange={(e) => handleSelectOne(strategy.id, e.target.checked)}
-                        className="cursor-pointer rounded border-input"
+                        onCheckedChange={(checked) => handleSelectOne(strategy.id, checked === true)}
                         aria-label={`Select ${strategy.name}`}
                       />
                     </TableCell>
@@ -969,13 +1067,13 @@ export default function StrategiesPage() {
                     <TableCell className="text-muted-foreground">
                       {strategy.timeframe}
                     </TableCell>
-                    <TableCell className={`font-medium tabular-nums ${getReturnColorClass(strategy.latest_total_return_pct)}`}>
+                    <TableCell className={`text-base font-semibold tabular-nums ${getReturnColorClass(strategy.latest_total_return_pct)}`}>
                       {formatMetric(strategy.latest_total_return_pct, "%")}
                     </TableCell>
                     {(["30d", "60d", "90d", "1y"] as const).map((p) => {
                       const val = strategy[`return_${p}`];
                       return (
-                        <TableCell key={p} className={`tabular-nums text-center ${getReturnColorClass(val)}`}>
+                        <TableCell key={p} className={`text-xs tabular-nums text-center opacity-80 ${getReturnColorClass(val)}`}>
                           {formatMetric(val, "%")}
                         </TableCell>
                       );
@@ -983,7 +1081,7 @@ export default function StrategiesPage() {
                     {isPremiumUser && (["2y", "3y"] as const).map((p) => {
                       const val = strategy[`return_${p}`];
                       return (
-                        <TableCell key={p} className={`tabular-nums text-center ${getReturnColorClass(val)}`}>
+                        <TableCell key={p} className={`text-xs tabular-nums text-center opacity-80 ${getReturnColorClass(val)}`}>
                           {formatMetric(val, "%")}
                         </TableCell>
                       );
@@ -1047,11 +1145,9 @@ export default function StrategiesPage() {
                 className={`relative transition-shadow duration-200 hover:shadow-md ${strategy.is_archived ? "opacity-60" : ""}`}
               >
                 <div className="absolute left-3 top-3 z-10">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={selectedIds.has(strategy.id)}
-                    onChange={(e) => handleSelectOne(strategy.id, e.target.checked)}
-                    className="cursor-pointer rounded border-input"
+                    onCheckedChange={(checked) => handleSelectOne(strategy.id, checked === true)}
                     aria-label={`Select ${strategy.name}`}
                   />
                 </div>
@@ -1072,10 +1168,10 @@ export default function StrategiesPage() {
                           <Badge variant="secondary">Archived</Badge>
                         )}
                         {strategy.auto_update_enabled && (
-                          <Badge variant="outline" className="bg-blue-50 text-blue-700">Monitor: On</Badge>
+                          <Badge variant="outline" className="bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300">Monitor: On</Badge>
                         )}
                         {strategy.tags?.map((tag) => (
-                          <Badge key={tag.id} variant="outline" className="bg-purple-50 text-purple-700">
+                          <Badge key={tag.id} variant="outline" className="bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300">
                             {tag.name}
                           </Badge>
                         ))}
@@ -1214,11 +1310,13 @@ export default function StrategiesPage() {
       )}
 
       {isFirstRun && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
-          <button
+        <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2">
+          <Button
             type="button"
-            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+            variant="ghost"
+            size="sm"
             disabled={isSkipping}
+            className="shadow-sm"
             onClick={async () => {
               setIsSkipping(true);
               try {
@@ -1230,8 +1328,15 @@ export default function StrategiesPage() {
               }
             }}
           >
-            {isSkipping ? "Redirecting..." : "Skip to dashboard"}
-          </button>
+            {isSkipping ? (
+              <>
+                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                Redirecting...
+              </>
+            ) : (
+              "Skip — take me to the dashboard"
+            )}
+          </Button>
         </div>
       )}
 
@@ -1245,18 +1350,16 @@ export default function StrategiesPage() {
               <p className="text-sm text-muted-foreground">No tags available. Create tags from individual strategy pages.</p>
             ) : (
               availableTags.map(tag => (
-                <label key={tag.id} className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 rounded p-2">
-                  <input
-                    type="checkbox"
+                <label key={tag.id} className="flex cursor-pointer items-center gap-2 rounded p-2 hover:bg-muted/50">
+                  <Checkbox
                     checked={bulkTagIds.includes(tag.id)}
-                    onChange={(e) => {
-                      if (e.target.checked) {
+                    onCheckedChange={(checked) => {
+                      if (checked === true) {
                         setBulkTagIds(prev => [...prev, tag.id]);
                       } else {
                         setBulkTagIds(prev => prev.filter(id => id !== tag.id));
                       }
                     }}
-                    className="rounded border-input"
                   />
                   <span className="text-sm">{tag.name}</span>
                 </label>
@@ -1283,19 +1386,55 @@ export default function StrategiesPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+      <Dialog
+        open={showDeleteConfirm}
+        onOpenChange={(open) => {
+          setShowDeleteConfirm(open);
+          if (!open) setDeleteConfirmText("");
+        }}
+      >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete {selectedIds.size} {selectedIds.size === 1 ? 'Strategy' : 'Strategies'}?</DialogTitle>
+            <DialogTitle>
+              Delete {selectedIds.size} {selectedIds.size === 1 ? 'Strategy' : 'Strategies'}?
+            </DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-muted-foreground">
-            This will permanently delete all versions and backtest runs. This action cannot be undone.
-          </p>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              This will permanently delete all versions and backtest runs. This action cannot be undone.
+            </p>
+            <div className="space-y-1.5">
+              <label htmlFor="delete-confirm-input" className="text-sm font-medium">
+                Type <span className="font-mono text-destructive">delete</span> to confirm
+              </label>
+              <Input
+                id="delete-confirm-input"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder="delete"
+                autoComplete="off"
+              />
+            </div>
+          </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>
+            <Button
+              variant="outline"
+              autoFocus
+              onClick={() => {
+                setShowDeleteConfirm(false);
+                setDeleteConfirmText("");
+              }}
+            >
               Cancel
             </Button>
-            <Button variant="destructive" onClick={handleBulkDeleteConfirm}>
+            <Button
+              variant="destructive"
+              disabled={deleteConfirmText.trim().toLowerCase() !== "delete"}
+              onClick={() => {
+                handleBulkDeleteConfirm();
+                setDeleteConfirmText("");
+              }}
+            >
               Delete
             </Button>
           </DialogFooter>

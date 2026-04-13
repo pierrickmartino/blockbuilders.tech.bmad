@@ -3,36 +3,38 @@ import { cn } from "@/lib/utils";
 
 interface StrategyTabsProps {
   strategyId: string;
-  activeTab: "build" | "backtest";
+  activeTab: "build" | "backtest" | "history" | "settings";
 }
+
+const tabs = [
+  { key: "build" as const, label: "Builder", href: (id: string) => `/strategies/${id}` },
+  { key: "backtest" as const, label: "Backtest", href: (id: string) => `/strategies/${id}/backtest` },
+  { key: "history" as const, label: "History", href: (id: string) => `/strategies/${id}/history` },
+  { key: "settings" as const, label: "Settings", href: (id: string) => `/strategies/${id}/settings` },
+];
 
 export function StrategyTabs({ strategyId, activeTab }: StrategyTabsProps) {
   return (
-    <div className="mt-3 inline-flex h-9 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground">
-      <Link
-        href={`/strategies/${strategyId}`}
-        className={cn(
-          "inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-          activeTab === "build"
-            ? "bg-background text-foreground shadow"
-            : "hover:bg-background/50 hover:text-foreground"
-        )}
-        aria-current={activeTab === "build" ? "page" : undefined}
-      >
-        Build
-      </Link>
-      <Link
-        href={`/strategies/${strategyId}/backtest`}
-        className={cn(
-          "inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-          activeTab === "backtest"
-            ? "bg-background text-foreground shadow"
-            : "hover:bg-background/50 hover:text-foreground"
-        )}
-        aria-current={activeTab === "backtest" ? "page" : undefined}
-      >
-        Backtest
-      </Link>
+    <div
+      role="tablist"
+      className="flex h-[52px] items-end border-b border-border bg-card px-4 sm:px-8"
+    >
+      {tabs.map((tab) => (
+        <Link
+          key={tab.key}
+          href={tab.href(strategyId)}
+          role="tab"
+          aria-selected={activeTab === tab.key}
+          className={cn(
+            "inline-flex items-center gap-2 px-4 pb-0 pt-0 h-full text-sm font-medium transition-colors",
+            activeTab === tab.key
+              ? "border-b-2 border-primary text-foreground"
+              : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          {tab.label}
+        </Link>
+      ))}
     </div>
   );
 }
