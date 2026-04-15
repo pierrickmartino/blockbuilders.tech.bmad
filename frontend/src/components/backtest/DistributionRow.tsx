@@ -35,7 +35,7 @@ const tooltipStyle = {
 
 // Return distribution: red for negative buckets, green for positive
 function getReturnBarColor(label: string): string {
-  if (label.includes("-") || label.startsWith("<")) return "hsl(var(--destructive))";
+  if (label.includes("to") || label.startsWith("<")) return "hsl(var(--destructive))";
   return "hsl(var(--success))";
 }
 

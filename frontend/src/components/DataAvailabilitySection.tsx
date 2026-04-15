@@ -149,7 +149,7 @@ export function DataAvailabilitySection({
         className="flex w-full items-start justify-between gap-2 px-3 py-2 text-left transition hover:bg-muted/50 sm:px-4"
       >
         <div className="flex min-w-0 items-start gap-2">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-secondary text-sky-500">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-secondary text-sky-500">
             <Database aria-hidden="true" className="h-4 w-4" strokeWidth={1.8} />
           </div>
           <div className="min-w-0">

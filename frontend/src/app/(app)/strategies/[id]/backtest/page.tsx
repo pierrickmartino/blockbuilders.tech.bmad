@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type CSSProperties, use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -55,7 +55,7 @@ import {
   TooltipProvider,
 } from "@/components/ui/tooltip";
 import { trackBacktestView } from "@/lib/recent-views";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -88,6 +88,7 @@ import { DrawdownSection } from "@/components/backtest/DrawdownSection";
 import { PositionAnalysisCard } from "@/components/backtest/PositionAnalysisCard";
 import { TradesSection } from "@/components/backtest/TradesSection";
 import { DistributionRow } from "@/components/backtest/DistributionRow";
+import { cn } from "@/lib/utils";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -307,6 +308,11 @@ interface SeasonalityBucket {
   count: number;
 }
 
+interface SeasonalityYearRow {
+  year: number;
+  buckets: SeasonalityBucket[];
+}
+
 interface DistributionBucket {
   label: string;
   count: number;
@@ -317,50 +323,96 @@ const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "S
 const QUARTER_LABELS = ["Q1", "Q2", "Q3", "Q4"];
 const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-function getColorClass(avgReturn: number): string {
-  if (avgReturn > 2) return "bg-green-100 text-green-700 border-green-200 dark:bg-green-950 dark:text-green-400 dark:border-green-800";
-  if (avgReturn > 0.5) return "bg-green-50 text-green-600 border-green-100 dark:bg-green-950/50 dark:text-green-400 dark:border-green-900";
-  if (avgReturn > -0.5) return "bg-secondary/50 text-muted-foreground border-border";
-  if (avgReturn > -2) return "bg-red-50 text-red-600 border-red-100 dark:bg-red-950/50 dark:text-red-400 dark:border-red-900";
-  return "bg-red-100 text-red-700 border-red-200 dark:bg-red-950 dark:text-red-400 dark:border-red-800";
+const SEASONALITY_PERCENT_FORMATTER = new Intl.NumberFormat(undefined, {
+  minimumFractionDigits: 1,
+  maximumFractionDigits: 1,
+  useGrouping: false,
+});
+
+function getSeasonalityLabels(periodType: PeriodType): string[] {
+  return periodType === "month"
+    ? MONTH_LABELS
+    : periodType === "quarter"
+      ? QUARTER_LABELS
+      : WEEKDAY_LABELS;
+}
+
+function getSeasonalityBucketIndex(date: Date, periodType: PeriodType): number {
+  if (periodType === "month") return date.getUTCMonth();
+  if (periodType === "quarter") return Math.floor(date.getUTCMonth() / 3);
+  return (date.getUTCDay() + 6) % 7;
+}
+
+function formatSeasonalityPercent(value: number): string {
+  return `${value >= 0 ? "+" : "-"}${SEASONALITY_PERCENT_FORMATTER.format(Math.abs(value))}%`;
+}
+
+function getSeasonalityGridClass(periodType: PeriodType): string {
+  if (periodType === "month") return "grid-cols-12 min-w-[720px]";
+  if (periodType === "quarter") return "grid-cols-4 min-w-[360px]";
+  return "grid-cols-7 min-w-[560px]";
+}
+
+function getSeasonalityCellStyle(
+  avgReturn: number,
+  count: number,
+  scaleMax: number
+): CSSProperties {
+  if (count === 0) {
+    return {
+      backgroundColor: "rgba(148, 163, 184, 0.08)",
+      borderColor: "rgba(148, 163, 184, 0.12)",
+      color: "rgba(100, 116, 139, 0.7)",
+    };
+  }
+
+  const intensity = Math.min(Math.abs(avgReturn) / Math.max(scaleMax, 0.01), 1);
+  const easedIntensity = Math.pow(intensity, 0.8);
+  const alpha = 0.14 + easedIntensity * 0.78;
+  const isPositive = avgReturn >= 0;
+  const base = isPositive ? "22, 163, 74" : "220, 38, 38";
+
+  return {
+    backgroundColor: `rgba(${base}, ${alpha})`,
+    borderColor: `rgba(${base}, ${Math.min(alpha + 0.08, 1)})`,
+    color: easedIntensity > 0.72 ? "#ffffff" : isPositive ? "#166534" : "#991b1b",
+  };
 }
 
 function computeSeasonality(
   trades: Array<{ exit_time: string; pnl_pct: number }>,
   periodType: PeriodType
-): SeasonalityBucket[] {
-  const buckets = new Map<number, { sum: number; count: number }>();
-  const numBuckets = periodType === "month" ? 12 : periodType === "quarter" ? 4 : 7;
+): SeasonalityYearRow[] {
+  const bucketsByYear = new Map<number, Map<number, { sum: number; count: number }>>();
+  const labels = getSeasonalityLabels(periodType);
+  const numBuckets = labels.length;
 
   for (const trade of trades) {
     const date = new Date(trade.exit_time);
-    let bucket: number;
+    if (Number.isNaN(date.getTime())) continue;
 
-    if (periodType === "month") {
-      bucket = date.getUTCMonth();
-    } else if (periodType === "quarter") {
-      bucket = Math.floor(date.getUTCMonth() / 3);
-    } else {
-      bucket = (date.getUTCDay() + 6) % 7;
-    }
+    const year = date.getUTCFullYear();
+    const bucket = getSeasonalityBucketIndex(date, periodType);
+    const yearBuckets = bucketsByYear.get(year) ?? new Map<number, { sum: number; count: number }>();
+    const current = yearBuckets.get(bucket) ?? { sum: 0, count: 0 };
 
-    const current = buckets.get(bucket) || { sum: 0, count: 0 };
-    buckets.set(bucket, { sum: current.sum + trade.pnl_pct, count: current.count + 1 });
+    yearBuckets.set(bucket, { sum: current.sum + trade.pnl_pct, count: current.count + 1 });
+    bucketsByYear.set(year, yearBuckets);
   }
 
-  const labels = periodType === "month" ? MONTH_LABELS : periodType === "quarter" ? QUARTER_LABELS : WEEKDAY_LABELS;
-  const result: SeasonalityBucket[] = [];
-
-  for (let i = 0; i < numBuckets; i++) {
-    const data = buckets.get(i);
-    result.push({
-      label: labels[i],
-      avgReturn: data ? data.sum / data.count : 0,
-      count: data?.count || 0,
-    });
-  }
-
-  return result;
+  return Array.from(bucketsByYear.entries())
+    .sort(([leftYear], [rightYear]) => leftYear - rightYear)
+    .map(([year, buckets]) => ({
+      year,
+      buckets: Array.from({ length: numBuckets }, (_, index) => {
+        const data = buckets.get(index);
+        return {
+          label: labels[index],
+          avgReturn: data ? data.sum / data.count : 0,
+          count: data?.count ?? 0,
+        };
+      }),
+    }));
 }
 
 function timeframeToSeconds(timeframe: string): number {
@@ -817,10 +869,23 @@ export default function StrategyBacktestPage({ params }: Props) {
   } = useBacktestResults(selectedRunId, handleRunDetailFetched);
 
   // Compute seasonality data
-  const seasonalityData = useMemo(
+  const seasonalityRows = useMemo(
     () => computeSeasonality(trades, periodType),
     [trades, periodType]
   );
+
+  const seasonalityScaleMax = useMemo(() => {
+    const maxAbsValue = seasonalityRows.reduce((rowMax, row) => {
+      const bucketMax = row.buckets.reduce((valueMax, bucket) => {
+        if (bucket.count === 0) return valueMax;
+        return Math.max(valueMax, Math.abs(bucket.avgReturn));
+      }, 0);
+
+      return Math.max(rowMax, bucketMax);
+    }, 0);
+
+    return Math.max(5, Math.ceil(maxAbsValue));
+  }, [seasonalityRows]);
 
   // Compute trade distribution data
   const returnDistribution = useMemo(() => {
@@ -1305,7 +1370,7 @@ export default function StrategyBacktestPage({ params }: Props) {
   }
 
   return (
-    <div className="flex h-screen flex-col overflow-x-hidden">
+    <div className="flex flex-col overflow-x-hidden">
       {/* Alerts */}
       {error && (
         <div
@@ -1655,67 +1720,94 @@ export default function StrategyBacktestPage({ params }: Props) {
               <PositionAnalysisCard trades={trades} timeframe={selectedRun.timeframe} />
 
               {/* Seasonality (inline — kept in page) */}
-              <div className="rounded border border-border bg-card">
-                <div className="border-b border-border px-4 py-4 sm:px-5">
-                  <h2 className="text-[15px] font-semibold">Seasonality</h2>
-                  <p className="text-xs text-muted-foreground">Return distribution by period</p>
+              <Tabs
+                value={periodType}
+                onValueChange={(value) => setPeriodType(value as PeriodType)}
+                className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm"
+              >
+                <div className="flex flex-col gap-4 border-b border-border px-4 py-4 sm:px-6 sm:py-5 lg:flex-row lg:items-start lg:justify-between">
+                  <div>
+                    <h2 className="text-[15px] font-semibold">Seasonality</h2>
+                    <p className="text-sm text-muted-foreground">Returns by calendar period</p>
+                  </div>
+
+                  <TabsList>
+                    <TabsTrigger value="month" className="text-xs">Month</TabsTrigger>
+                    <TabsTrigger value="quarter" className="text-xs">Quarter</TabsTrigger>
+                    <TabsTrigger value="weekday" className="text-xs">Weekday</TabsTrigger>
+                  </TabsList>
                 </div>
-                <div className="px-4 py-5 sm:px-5">
+
+                <div className="px-4 py-5 sm:px-6">
                   {trades.length === 0 ? (
                     <p className="py-4 text-center text-sm text-muted-foreground">No trades available.</p>
                   ) : (
-                    <Tabs value={periodType} onValueChange={(value) => setPeriodType(value as PeriodType)}>
-                      <TabsList className="rounded-md bg-secondary p-0.5">
-                        <TabsTrigger value="month" className="text-xs">Month</TabsTrigger>
-                        <TabsTrigger value="quarter" className="text-xs">Quarter</TabsTrigger>
-                        <TabsTrigger value="weekday" className="text-xs">Weekday</TabsTrigger>
-                      </TabsList>
-                      <TabsContent value={periodType} className="mt-4">
-                        <div
-                          className={`grid gap-1.5 ${
-                            periodType === "month"
-                              ? "grid-cols-4 sm:grid-cols-6"
-                              : periodType === "quarter"
-                              ? "grid-cols-2 sm:grid-cols-4"
-                              : "grid-cols-4 sm:grid-cols-7"
-                          }`}
-                        >
-                          {seasonalityData.map((bucket, idx) => {
-                            const arrow = bucket.count === 0 ? "" : bucket.avgReturn > 0.5 ? "▲ " : bucket.avgReturn < -0.5 ? "▼ " : "";
-                            return (
-                              <div
-                                key={idx}
-                                className={`rounded border p-1.5 text-center sm:p-2 ${getColorClass(bucket.avgReturn)}`}
-                                title={`${bucket.label}: ${formatPercent(bucket.avgReturn)} avg, ${bucket.count} trades`}
-                              >
-                                <div className="text-[10px] font-medium">{bucket.label}</div>
-                                <div className="font-mono text-[10px] font-semibold sm:text-xs">
-                                  {bucket.count > 0 ? `${arrow}${formatPercent(bucket.avgReturn)}` : "—"}
-                                </div>
+                    <div className="space-y-4">
+                      <div className="space-y-3">
+                        {seasonalityRows.map((row) => (
+                          <div
+                            key={row.year}
+                            className="grid sm:grid-cols-[58px_minmax(0,1fr)] sm:items-start"
+                          >
+                            <div className="pt-1 text-[10px] font-semibold tracking-tight text-muted-foreground/80">
+                              {row.year}
+                            </div>
+
+                            <div className="overflow-x-auto pb-1">
+                              <div className={cn("grid gap-1", getSeasonalityGridClass(periodType))}>
+                                {row.buckets.map((bucket) => {
+                                  const cellStyle = getSeasonalityCellStyle(
+                                    bucket.avgReturn,
+                                    bucket.count,
+                                    seasonalityScaleMax
+                                  );
+
+                                  return (
+                                    <div
+                                      key={`${row.year}-${bucket.label}`}
+                                      className={cn(
+                                        "flex min-h-[44px] flex-col justify-between rounded-xl border py-2 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.22)]",
+                                        bucket.count === 0 && "shadow-none"
+                                      )}
+                                      style={cellStyle}
+                                      title={
+                                        bucket.count > 0
+                                          ? `${row.year} ${bucket.label}: ${formatPercent(bucket.avgReturn)} average across ${bucket.count} trades`
+                                          : `${row.year} ${bucket.label}: no trades`
+                                      }
+                                    >
+                                      {bucket.count > 0 ? (
+                                        <>
+                                          <div className="text-[9px] font-medium tracking-tight text-center">{bucket.label}</div>
+                                          <div className="font-mono text-[11px] font-semibold sm:text-xs text-center">
+                                            {formatSeasonalityPercent(bucket.avgReturn)}
+                                          </div>
+                                        </>
+                                      ) : null}
+                                    </div>
+                                  );
+                                })}
                               </div>
-                            );
-                          })}
-                        </div>
-                        <div className="mt-3 flex flex-wrap items-center gap-3 text-[10px] text-muted-foreground">
-                          <span>Legend:</span>
-                          <span className="inline-flex items-center gap-1">
-                            <span className="inline-block h-2.5 w-2.5 rounded border bg-red-100 dark:bg-red-950" />
-                            ▼ Worse
-                          </span>
-                          <span className="inline-flex items-center gap-1">
-                            <span className="inline-block h-2.5 w-2.5 rounded border bg-secondary/50" />
-                            Neutral
-                          </span>
-                          <span className="inline-flex items-center gap-1">
-                            <span className="inline-block h-2.5 w-2.5 rounded border bg-green-100 dark:bg-green-950" />
-                            ▲ Better
-                          </span>
-                        </div>
-                      </TabsContent>
-                    </Tabs>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="flex flex-wrap items-center justify-end gap-2 text-xs text-muted-foreground">
+                        <span>{`< -${seasonalityScaleMax}%`}</span>
+                        {[-1, -0.45, 0, 0.45, 1].map((multiplier, index) => (
+                          <span
+                            key={`${multiplier}-${index}`}
+                            className="inline-block h-5 w-8 rounded-md border"
+                            style={getSeasonalityCellStyle(multiplier * seasonalityScaleMax, multiplier === 0 ? 0 : 1, seasonalityScaleMax)}
+                          />
+                        ))}
+                        <span>{`> +${seasonalityScaleMax}%`}</span>
+                      </div>
+                    </div>
                   )}
                 </div>
-              </div>
+              </Tabs>
             </div>
 
             {/* Distribution charts */}
