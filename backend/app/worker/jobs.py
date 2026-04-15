@@ -91,7 +91,8 @@ def run_backtest_job(
 
             # Set status to running
             run.status = "running"
-            run.updated_at = datetime.now(timezone.utc)
+            run.started_at = datetime.now(timezone.utc)
+            run.updated_at = run.started_at
             session.add(run)
             session.commit()
 

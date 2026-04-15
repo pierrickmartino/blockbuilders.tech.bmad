@@ -3,8 +3,6 @@
 import {
   AlertTriangle,
   BarChart3,
-  ChevronLeft,
-  ChevronRight,
   Info,
   RefreshCw,
   TrendingDown,
@@ -19,8 +17,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { formatDateTime, formatPercent, formatRelativeTime, type TimezoneMode } from "@/lib/format";
-import { PERIOD_LABEL, statusStyles } from "@/lib/backtest-constants";
+import { formatDateTime, formatPercent, type TimezoneMode } from "@/lib/format";
 import type { BacktestListItem, BacktestStatus, BatchRunResult } from "@/types/backtest";
 
 interface BacktestRunsListProps {
@@ -37,6 +34,7 @@ interface BacktestRunsListProps {
   onToggleRunSelection: (runId: string, checked: boolean) => void;
   onCompare: () => void;
   timezone: TimezoneMode;
+  totalCount?: number;
   className?: string;
 }
 
@@ -48,8 +46,170 @@ function scrollToRunForm() {
   el?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-function RunCard({
+/** "Apr 11 · 16:24" compact format */
+function formatCompactDateTime(dateStr: string, timezone: TimezoneMode): string {
+  const date = new Date(dateStr);
+  if (Number.isNaN(date.getTime())) return "—";
+  const opts: Intl.DateTimeFormatOptions = {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  };
+  if (timezone === "utc") opts.timeZone = "UTC";
+  const parts = new Intl.DateTimeFormat("en-US", opts).formatToParts(date);
+  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
+  return `${get("month")} ${get("day")} · ${get("hour")}:${get("minute")}`;
+}
+
+const COMPACT_PERIOD: Record<string, string> = {
+  "30d": "1M",
+  "60d": "2M",
+  "90d": "3M",
+  "120d": "4M",
+  "180d": "6M",
+  "1y": "1Y",
+  "2y": "2Y",
+  "3y": "3Y",
+};
+
+function compactPeriodLabel(key: string): string {
+  return COMPACT_PERIOD[key] ? `${COMPACT_PERIOD[key]} window` : key;
+}
+
+const STATUS_BADGE: Record<
+  BacktestStatus,
+  { bg: string; text: string; label: string }
+> = {
+  completed: {
+    bg: "bg-[hsl(var(--success)/0.12)] dark:bg-[hsl(var(--success)/0.18)]",
+    text: "text-success",
+    label: "Completed",
+  },
+  running: {
+    bg: "bg-[hsl(var(--info)/0.12)] dark:bg-[hsl(var(--info)/0.18)]",
+    text: "text-info",
+    label: "Running",
+  },
+  pending: {
+    bg: "bg-[hsl(var(--warning)/0.12)] dark:bg-[hsl(var(--warning)/0.18)]",
+    text: "text-warning",
+    label: "Queued",
+  },
+  failed: {
+    bg: "bg-[hsl(var(--destructive)/0.12)] dark:bg-[hsl(var(--destructive)/0.18)]",
+    text: "text-destructive",
+    label: "Failed",
+  },
+  skipped: {
+    bg: "bg-muted",
+    text: "text-muted-foreground",
+    label: "Skipped",
+  },
+};
+
+function StatusBadge({ status }: { status: BacktestStatus }) {
+  const style = STATUS_BADGE[status] ?? STATUS_BADGE.skipped;
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium",
+        style.bg,
+        style.text
+      )}
+    >
+      {status === "running" ? (
+        <span className="relative flex h-1.5 w-1.5">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-current opacity-75" />
+          <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-current" />
+        </span>
+      ) : (
+        <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden />
+      )}
+      {style.label}
+    </span>
+  );
+}
+
+function PerfCell({ run }: { run: BacktestListItem }) {
+  const isPositive = (run.total_return ?? 0) >= 0;
+
+  if (run.status === "completed") {
+    return (
+      <div className="text-right">
+        <div
+          className={cn(
+            "text-base font-bold tabular-nums",
+            isPositive ? "text-success" : "text-destructive"
+          )}
+        >
+          {isPositive ? (
+            <TrendingUp className="mr-0.5 inline h-3.5 w-3.5" aria-hidden />
+          ) : (
+            <TrendingDown className="mr-0.5 inline h-3.5 w-3.5" aria-hidden />
+          )}
+          {isPositive ? "+" : ""}
+          {formatPercent(run.total_return)}
+        </div>
+        {run.sharpe_ratio != null && (
+          <div className="text-xs text-muted-foreground tabular-nums">
+            Sharpe {run.sharpe_ratio.toFixed(2)}
+          </div>
+        )}
+        {run.max_drawdown != null && run.sharpe_ratio == null && (
+          <div className="text-xs text-muted-foreground tabular-nums">
+            DD {formatPercent(run.max_drawdown)}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (run.status === "running") {
+    const elapsedLabel =
+      run.elapsed_seconds != null
+        ? run.elapsed_seconds >= 60
+          ? `${Math.floor(run.elapsed_seconds / 60)}m ${Math.round(run.elapsed_seconds % 60)}s`
+          : `${Math.round(run.elapsed_seconds)}s`
+        : null;
+    return (
+      <div className="text-right">
+        <div className="text-sm font-medium text-muted-foreground">— —</div>
+        <div className="text-xs text-info">
+          {elapsedLabel ? `Running ${elapsedLabel}` : "Running…"}
+        </div>
+      </div>
+    );
+  }
+
+  if (run.status === "pending") {
+    return (
+      <div className="text-right">
+        <div className="text-sm font-medium text-muted-foreground">— —</div>
+        <div className="text-xs text-warning">Waiting in queue</div>
+      </div>
+    );
+  }
+
+  if (run.status === "failed") {
+    return (
+      <div className="text-right">
+        <div className="text-sm font-medium text-muted-foreground">—</div>
+        <div className="inline-flex items-center gap-1 text-xs font-medium text-destructive">
+          <AlertTriangle className="h-3 w-3" aria-hidden />
+          Failed
+        </div>
+      </div>
+    );
+  }
+
+  return <div className="text-sm text-muted-foreground">—</div>;
+}
+
+function RunRow({
   run,
+  runLabel,
   isSelected,
   selectedRunIds,
   onSelectRun,
@@ -57,14 +217,13 @@ function RunCard({
   timezone,
 }: {
   run: BacktestListItem;
+  runLabel: string;
   isSelected: boolean;
   selectedRunIds: Set<string>;
   onSelectRun: (runId: string) => void;
   onToggleRunSelection: (runId: string, checked: boolean) => void;
   timezone: TimezoneMode;
 }) {
-  const isPositive = (run.total_return ?? 0) >= 0;
-  const returnValue = run.total_return ?? 0;
   const canSelectForCompare = run.status === "completed";
   const isChecked = selectedRunIds.has(run.run_id);
   const atLimit = !isChecked && selectedRunIds.size >= MAX_COMPARE;
@@ -76,25 +235,19 @@ function RunCard({
       ? `Maximum ${MAX_COMPARE} runs can be compared`
       : null;
 
-  const perfColor =
-    run.status !== "completed"
-      ? "bg-muted"
-      : isPositive
-        ? returnValue > 10
-          ? "bg-success"
-          : "bg-success/70"
-        : returnValue < -10
-          ? "bg-destructive"
-          : "bg-destructive/70";
-
   const absoluteDate = formatDateTime(run.created_at, timezone);
-  const rowLabel = `Run from ${absoluteDate}${
-    run.status === "completed" ? `, return ${formatPercent(run.total_return)}` : `, status ${run.status}`
+  const rowLabel = `${runLabel} from ${absoluteDate}${
+    run.status === "completed"
+      ? `, return ${formatPercent(run.total_return)}`
+      : `, status ${run.status}`
   }`;
+
+  const metaParts: string[] = [formatCompactDateTime(run.created_at, timezone)];
+  if (run.period_key) metaParts.push(compactPeriodLabel(run.period_key));
 
   const checkbox = (
     <label
-      className="flex h-full items-center"
+      className="flex h-full cursor-pointer items-center"
       onClick={(e) => e.stopPropagation()}
     >
       <span className="sr-only">Select {rowLabel} for comparison</span>
@@ -118,147 +271,83 @@ function RunCard({
   );
 
   return (
-    <div className="flex items-stretch gap-2">
-      {disabledReason ? (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div>{checkbox}</div>
-          </TooltipTrigger>
-          <TooltipContent>{disabledReason}</TooltipContent>
-        </Tooltip>
-      ) : (
-        checkbox
+    <div
+      className={cn(
+        "relative flex items-stretch transition-colors",
+        isSelected ? "bg-primary/5" : "hover:bg-muted/30"
       )}
+    >
+      {/* Left accent bar */}
+      {isSelected && (
+        <div
+          className="absolute left-0 top-0 h-full w-[3px] bg-primary"
+          aria-hidden
+        />
+      )}
+
+      {/* Checkbox */}
+      <div className="flex items-center pl-4 pr-2">
+        {disabledReason ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div>{checkbox}</div>
+            </TooltipTrigger>
+            <TooltipContent>{disabledReason}</TooltipContent>
+          </Tooltip>
+        ) : (
+          checkbox
+        )}
+      </div>
+
+      {/* Row button */}
       <button
         type="button"
         onClick={() => onSelectRun(run.run_id)}
         aria-pressed={isSelected}
         aria-label={rowLabel}
-        className={`group relative flex flex-1 overflow-hidden rounded-lg border transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring ${
-          isSelected
-            ? "border-primary bg-primary/10 shadow-sm ring-1 ring-primary"
-            : "border-border bg-card hover:border-primary/40 hover:shadow-sm"
-        }`}
+        className="flex flex-1 items-center gap-3 py-3 pr-4 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-ring"
       >
-        <div className={`w-1 shrink-0 ${perfColor}`} aria-hidden />
-        <div className="flex flex-1 flex-col px-3 py-2.5">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              {run.period_key && (
-                <span className="data-text flex h-4 items-center rounded bg-muted px-1.5 text-[10px] font-medium text-muted-foreground">
-                  {PERIOD_LABEL[run.period_key] ?? run.period_key}
-                </span>
-              )}
-              <time
-                dateTime={run.created_at}
-                className="data-text text-sm font-medium"
-              >
-                {formatRelativeTime(run.created_at)}
-              </time>
-              {run.triggered_by === "schedule" && (
-                <span className="flex h-4 items-center rounded bg-info/15 px-1.5 text-[10px] font-medium text-info">
-                  auto
-                </span>
-              )}
-              {run.batch_id && run.triggered_by !== "schedule" && (
-                <span className="flex h-4 items-center rounded bg-primary/15 px-1.5 text-[10px] font-medium text-primary">
-                  batch
-                </span>
-              )}
-            </div>
-            <span
-              className={`inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-medium capitalize ${
-                statusStyles[run.status as BacktestStatus] ?? statusStyles.pending
-              }`}
-            >
-              {run.status === "running" ? (
-                <span className="relative flex h-1.5 w-1.5">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-current opacity-75" />
-                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-current" />
-                </span>
-              ) : (
-                <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden />
-              )}
-              {run.status}
-            </span>
+        {/* Title + meta */}
+        <div className="min-w-0 flex-1 text-left">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm font-semibold leading-tight">{runLabel}</span>
+            <StatusBadge status={run.status} />
           </div>
-          <div className="mt-1.5 flex items-center justify-between gap-2">
-            <span className="data-text text-xs text-muted-foreground">
-              {formatDateTime(run.date_from, timezone).split(" ")[0]} →{" "}
-              {formatDateTime(run.date_to, timezone).split(" ")[0]}
-            </span>
-            <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-0.5 text-xs tabular-nums">
-              {run.status === "completed" && (
-                <>
-                  <span
-                    className={`inline-flex items-center gap-0.5 text-sm font-semibold ${
-                      isPositive ? "text-success" : "text-destructive"
-                    }`}
-                    aria-label={`${isPositive ? "Gain" : "Loss"} ${formatPercent(run.total_return)}`}
-                  >
-                    {isPositive ? (
-                      <TrendingUp className="h-3 w-3" aria-hidden />
-                    ) : (
-                      <TrendingDown className="h-3 w-3" aria-hidden />
-                    )}
-                    {isPositive ? "+" : ""}
-                    {formatPercent(run.total_return)}
-                  </span>
-                  {run.max_drawdown != null && (
-                    <span className="text-muted-foreground">
-                      DD {formatPercent(run.max_drawdown)}
-                    </span>
-                  )}
-                  {run.sharpe_ratio != null && (
-                    <span className="text-muted-foreground">
-                      Sharpe {run.sharpe_ratio.toFixed(2)}
-                    </span>
-                  )}
-                </>
-              )}
-              {run.status === "failed" && (
-                <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive">
-                  <AlertTriangle className="h-3 w-3" aria-hidden />
-                  Failed — open for details
-                </span>
-              )}
-            </div>
-          </div>
+          <p className="mt-0.5 truncate font-mono text-xs text-muted-foreground">
+            {metaParts.join(" · ")}
+          </p>
+        </div>
+
+        {/* Performance */}
+        <div className="flex-shrink-0">
+          <PerfCell run={run} />
         </div>
       </button>
     </div>
   );
 }
 
-function SkippedBatchRunCard({ run }: { run: BatchRunResult }) {
+function SkippedBatchRunRow({ run }: { run: BatchRunResult }) {
   return (
-    <div className="flex items-stretch gap-2">
-      <div className="flex items-center">
+    <div className="relative flex items-stretch hover:bg-muted/30">
+      <div className="flex items-center pl-4 pr-2">
         <span className="h-4 w-4" aria-hidden />
       </div>
-      <div className="group relative flex flex-1 overflow-hidden rounded-lg border border-border bg-card">
-        <div className="w-1 shrink-0 bg-muted" aria-hidden />
-        <div className="flex flex-1 flex-col px-3 py-2.5">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <span className="flex h-4 items-center rounded bg-muted px-1.5 text-[10px] font-medium text-muted-foreground">
-                {PERIOD_LABEL[run.period_key] ?? run.period_key}
+      <div className="flex flex-1 items-center gap-3 py-3 pr-4">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm font-bold leading-tight">Skipped</span>
+            {run.period_key && (
+              <span className="rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                {compactPeriodLabel(run.period_key)}
               </span>
-              <span className="flex h-4 items-center rounded bg-primary/15 px-1.5 text-[10px] font-medium text-primary">
-                batch
-              </span>
-            </div>
-            <span
-              className={`inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-medium capitalize ${statusStyles.skipped}`}
-            >
-              <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden />
-              skipped
-            </span>
+            )}
           </div>
-          <p className="mt-1.5 text-xs text-muted-foreground">
+          <p className="mt-0.5 truncate text-xs text-muted-foreground">
             {run.skip_reason ?? "This period was skipped."}
           </p>
         </div>
+        <div className="flex-shrink-0 text-sm text-muted-foreground">—</div>
       </div>
     </div>
   );
@@ -278,6 +367,7 @@ export function BacktestRunsList({
   onToggleRunSelection,
   onCompare,
   timezone,
+  totalCount,
   className,
 }: BacktestRunsListProps) {
   const selectionCount = selectedRunIds.size;
@@ -289,24 +379,42 @@ export function BacktestRunsList({
       : `Maximum ${MAX_COMPARE} runs can be compared`
     : null;
 
-  // Pagination: assume there is a next page only when the current page is full.
-  // Always keep the pager visible when the user has paginated past page 1, so a
-  // partial last page still offers a way back.
   const hasNextPage = backtests.length === pageSize;
   const showPager = hasNextPage || currentPage > 1;
   const isFirstPage = currentPage <= 1;
 
+  const shownCount = backtests.length;
+
+  /** Compute a display label for a run. Descending order if totalCount known. */
+  function runLabel(idx: number): string {
+    if (totalCount != null) {
+      const num = totalCount - (currentPage - 1) * pageSize - idx;
+      return `Run #${num}`;
+    }
+    const num = (currentPage - 1) * pageSize + idx + 1;
+    return `Run #${num}`;
+  }
+
   return (
     <TooltipProvider delayDuration={150}>
       <section
-        className={cn("rounded border border-border bg-card p-3 sm:p-4", className)}
+        className={cn(
+          "overflow-hidden rounded border border-border bg-card",
+          className
+        )}
         aria-labelledby="runs-heading"
       >
         {/* Header */}
-        <div className="mb-3 flex items-center justify-between">
-          <h2 id="runs-heading" className="text-base font-semibold tracking-tight">
-            Runs
-          </h2>
+        <div className="flex items-start justify-between border-b border-border px-4 py-3">
+          <div>
+            <h2 id="runs-heading" className="text-base font-semibold tracking-tight">
+              Recent runs
+            </h2>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {totalCount != null ? `${totalCount} total` : `${shownCount} shown`}
+              {" · select to compare"}
+            </p>
+          </div>
           <div className="flex items-center gap-2">
             {showCompareButton &&
               (canCompare ? (
@@ -337,7 +445,7 @@ export function BacktestRunsList({
                   className="h-8 px-2 text-muted-foreground transition-colors hover:text-foreground"
                 >
                   <RefreshCw
-                    className={`h-4 w-4 ${isLoadingBacktests ? "animate-spin" : ""}`}
+                    className={cn("h-4 w-4", isLoadingBacktests && "animate-spin")}
                     aria-hidden
                   />
                 </Button>
@@ -351,7 +459,7 @@ export function BacktestRunsList({
         {selectionCount > 0 && selectionCount < 2 && (
           <div
             role="status"
-            className="mb-3 flex items-center gap-2 rounded-md bg-info/10 px-3 py-2 text-sm text-info"
+            className="flex items-center gap-2 border-b border-border bg-info/5 px-4 py-2 text-sm text-info"
           >
             <Info className="h-3.5 w-3.5 shrink-0" aria-hidden />
             Select 2–{MAX_COMPARE} completed runs to compare
@@ -360,7 +468,7 @@ export function BacktestRunsList({
         {selectionCount > MAX_COMPARE && (
           <div
             role="status"
-            className="mb-3 flex items-center gap-2 rounded-md bg-warning/10 px-3 py-2 text-sm text-warning"
+            className="flex items-center gap-2 border-b border-border bg-warning/5 px-4 py-2 text-sm text-warning"
           >
             <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden />
             Maximum {MAX_COMPARE} runs can be compared
@@ -369,7 +477,7 @@ export function BacktestRunsList({
 
         {/* Runs list */}
         {backtests.length === 0 && batchSkippedRuns.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-8 text-center">
+          <div className="flex flex-col items-center justify-center py-10 text-center">
             <div className="mb-3 rounded-full bg-secondary p-3">
               <BarChart3 className="h-6 w-6 text-muted-foreground/70" aria-hidden />
             </div>
@@ -382,11 +490,12 @@ export function BacktestRunsList({
             </Button>
           </div>
         ) : (
-          <ul className="space-y-2" role="list">
-            {backtests.map((run) => (
+          <ul className="divide-y divide-border" role="list">
+            {backtests.map((run, idx) => (
               <li key={run.run_id}>
-                <RunCard
+                <RunRow
                   run={run}
+                  runLabel={runLabel(idx)}
                   isSelected={selectedRunId === run.run_id}
                   selectedRunIds={selectedRunIds}
                   onSelectRun={onSelectRun}
@@ -399,14 +508,14 @@ export function BacktestRunsList({
             {batchSkippedRuns.length > 0 && (
               <>
                 <li
-                  className="pt-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground"
+                  className="px-4 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground"
                   aria-hidden
                 >
                   Skipped periods
                 </li>
                 {batchSkippedRuns.map((run, idx) => (
                   <li key={`skipped-${run.period_key}-${idx}`}>
-                    <SkippedBatchRunCard run={run} />
+                    <SkippedBatchRunRow run={run} />
                   </li>
                 ))}
               </>
@@ -414,44 +523,34 @@ export function BacktestRunsList({
           </ul>
         )}
 
-        {/* Pagination */}
-        {showPager && (
-          <nav
-            className="mt-2 flex items-center justify-center gap-1"
-            aria-label="Runs pagination"
-          >
-            <Tooltip>
-              <TooltipTrigger asChild>
+        {/* Footer */}
+        {(shownCount > 0 || showPager) && (
+          <div className="flex items-center justify-between border-t border-border px-4 py-2.5">
+            <span className="text-xs text-muted-foreground">
+              Showing {shownCount}
+              {totalCount != null ? ` of ${totalCount}` : ""}
+            </span>
+            <div className="flex items-center gap-3">
+              {!isFirstPage && (
                 <button
                   type="button"
                   onClick={() => onPageChange(Math.max(1, currentPage - 1))}
-                  disabled={isFirstPage}
-                  aria-label="Previous page"
-                  className="flex h-6 w-6 items-center justify-center rounded border border-border text-muted-foreground hover:bg-secondary/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-30 dark:bg-secondary/30"
+                  className="text-xs font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 >
-                  <ChevronLeft className="h-3 w-3" aria-hidden />
+                  ← Previous
                 </button>
-              </TooltipTrigger>
-              <TooltipContent>Previous page</TooltipContent>
-            </Tooltip>
-            <span className="px-2 text-xs text-muted-foreground" aria-current="page">
-              Page {currentPage}
-            </span>
-            <Tooltip>
-              <TooltipTrigger asChild>
+              )}
+              {hasNextPage && (
                 <button
                   type="button"
                   onClick={() => onPageChange(currentPage + 1)}
-                  disabled={!hasNextPage}
-                  aria-label="Next page"
-                  className="flex h-6 w-6 items-center justify-center rounded border border-border text-muted-foreground hover:bg-secondary/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-30 dark:bg-secondary/30"
+                  className="text-xs font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 >
-                  <ChevronRight className="h-3 w-3" aria-hidden />
+                  View all →
                 </button>
-              </TooltipTrigger>
-              <TooltipContent>Next page</TooltipContent>
-            </Tooltip>
-          </nav>
+              )}
+            </div>
+          </div>
         )}
       </section>
     </TooltipProvider>

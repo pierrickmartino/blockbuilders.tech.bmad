@@ -27,6 +27,7 @@ import { Strategy, StrategyVersion } from "@/types/strategy";
 import {
   BacktestCreateResponse,
   BacktestListItem,
+  BacktestListPage,
   BacktestStatus,
   BacktestStatusResponse,
   BacktestSummary,
@@ -653,13 +654,14 @@ export default function StrategyBacktestPage({ params }: Props) {
   const [userPlan, setUserPlan] = useState<PlanResponse | null>(null);
 
   const [backtests, setBacktests] = useState<BacktestListItem[]>([]);
+  const [totalBacktests, setTotalBacktests] = useState<number | undefined>(undefined);
   const [isLoadingBacktests, setIsLoadingBacktests] = useState(false);
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
   const [selectedRunIds, setSelectedRunIds] = useState<Set<string>>(new Set());
 
   // Pagination state for backtest runs list
   const [runsCurrentPage, setRunsCurrentPage] = useState(1);
-  const runsPageSize = 8;
+  const runsPageSize = 5;
 
   // Pagination state for trades table
   const [tradesCurrentPage, setTradesCurrentPage] = useState(1);
@@ -950,16 +952,17 @@ export default function StrategyBacktestPage({ params }: Props) {
         limit: runsPageSize.toString(),
         offset: offset.toString(),
       });
-      const data = await apiFetch<BacktestListItem[]>(`/backtests/?${params.toString()}`);
-      setBacktests(data);
-      data.forEach((run) => {
+      const data = await apiFetch<BacktestListPage>(`/backtests/?${params.toString()}`);
+      setBacktests(data.items);
+      setTotalBacktests(data.total);
+      data.items.forEach((run) => {
         if (!prevRunStatusByIdRef.current.has(run.run_id)) {
           prevRunStatusByIdRef.current.set(run.run_id, run.status);
         }
       });
       setError(null);
-      if (data.length > 0 && !selectedRunId) {
-        setSelectedRunId(data[0].run_id);
+      if (data.items.length > 0 && !selectedRunId) {
+        setSelectedRunId(data.items[0].run_id);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load backtests");
@@ -1691,7 +1694,7 @@ export default function StrategyBacktestPage({ params }: Props) {
 
               {/* Runs list side panel */}
               <BacktestRunsList
-                className="lg:w-[420px] lg:flex-shrink-0"
+                className="lg:w-[620px] lg:flex-shrink-0"
                 backtests={backtests}
                 batchSkippedRuns={batchSkippedRuns}
                 isLoadingBacktests={isLoadingBacktests}
@@ -1705,6 +1708,7 @@ export default function StrategyBacktestPage({ params }: Props) {
                 onToggleRunSelection={handleSelectRun}
                 onCompare={handleCompareClick}
                 timezone={timezone}
+                totalCount={totalBacktests}
               />
             </div>
 

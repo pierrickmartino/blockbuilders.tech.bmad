@@ -74,6 +74,12 @@ export interface BacktestListItem {
   batch_id?: string | null;
   max_drawdown?: number | null;
   sharpe_ratio?: number | null;
+  elapsed_seconds?: number | null;
+}
+
+export interface BacktestListPage {
+  items: BacktestListItem[];
+  total: number;
 }
 
 export interface Trade {
