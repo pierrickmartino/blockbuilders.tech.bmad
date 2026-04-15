@@ -548,16 +548,16 @@ function computeReturnDistribution(
 }
 
 function computeDurationDistribution(
-  trades: Array<{ entry_time: string; exit_time: string }>,
-  timeframeSeconds: number
+  trades: Array<{ entry_time: string; exit_time: string }>
 ): DistributionBucket[] | null {
   const buckets = [
-    { label: '1', min: 0, max: 2, count: 0 },
-    { label: '2-3', min: 2, max: 4, count: 0 },
-    { label: '4-7', min: 4, max: 8, count: 0 },
-    { label: '8-14', min: 8, max: 15, count: 0 },
-    { label: '15-30', min: 15, max: 31, count: 0 },
-    { label: '>30', min: 31, max: Infinity, count: 0 },
+    { label: '<1h',   minSec: 0,       maxSec: 3600,    count: 0 },
+    { label: '1–6h',  minSec: 3600,    maxSec: 21600,   count: 0 },
+    { label: '6–24h', minSec: 21600,   maxSec: 86400,   count: 0 },
+    { label: '1–3d',  minSec: 86400,   maxSec: 259200,  count: 0 },
+    { label: '3–7d',  minSec: 259200,  maxSec: 604800,  count: 0 },
+    { label: '7–14d', minSec: 604800,  maxSec: 1209600, count: 0 },
+    { label: '>14d',  minSec: 1209600, maxSec: Infinity, count: 0 },
   ];
 
   let validCount = 0;
@@ -568,12 +568,11 @@ function computeDurationDistribution(
       const exitMs = new Date(trade.exit_time).getTime();
 
       if (isNaN(entryMs) || isNaN(exitMs)) continue;
-      const durationSeconds = (exitMs - entryMs) / 1000;
-      if (durationSeconds < 0) continue;
-      const durationBars = Math.round(durationSeconds / timeframeSeconds);
+      const holdSeconds = (exitMs - entryMs) / 1000;
+      if (holdSeconds < 0) continue;
 
       for (const bucket of buckets) {
-        if (durationBars >= bucket.min && durationBars < bucket.max) {
+        if (holdSeconds >= bucket.minSec && holdSeconds < bucket.maxSec) {
           bucket.count++;
           validCount++;
           break;
@@ -592,6 +591,18 @@ function computeDurationDistribution(
     count: b.count,
     percentage: total > 0 ? (b.count / total) * 100 : 0,
   }));
+}
+
+function computeSkew(trades: Array<{ pnl_pct: number }>): number {
+  const n = trades.length;
+  if (n < 3) return 0;
+  const values = trades.map(t => t.pnl_pct);
+  const mean = values.reduce((a, b) => a + b, 0) / n;
+  const variance = values.reduce((a, b) => a + (b - mean) ** 2, 0) / (n - 1);
+  const std = Math.sqrt(variance);
+  if (std === 0) return 0;
+  const sum = values.reduce((a, b) => a + ((b - mean) / std) ** 3, 0);
+  return (n / ((n - 1) * (n - 2))) * sum;
 }
 
 function computeSkewCallout(returnBuckets: DistributionBucket[]): string {
@@ -883,10 +894,9 @@ export default function StrategyBacktestPage({ params }: Props) {
   }, [trades]);
 
   const durationDistribution = useMemo(() => {
-    if (trades.length < 3 || !selectedRun?.timeframe) return null;
-    const timeframeSeconds = timeframeToSeconds(selectedRun.timeframe);
-    return computeDurationDistribution(trades, timeframeSeconds);
-  }, [trades, selectedRun?.timeframe]);
+    if (trades.length < 3) return null;
+    return computeDurationDistribution(trades);
+  }, [trades]);
 
   const durationDistributionTotal = useMemo(() => {
     if (!durationDistribution) return 0;
@@ -897,6 +907,11 @@ export default function StrategyBacktestPage({ params }: Props) {
     if (trades.length < 3) return "";
     return computeSkewCallout(returnDistribution);
   }, [returnDistribution, trades.length]);
+
+  const skew = useMemo(() => {
+    if (trades.length < 3) return undefined;
+    return Math.round(computeSkew(trades) * 100) / 100;
+  }, [trades]);
 
   // Reset pagination when run changes
   useEffect(() => {
@@ -1714,10 +1729,10 @@ export default function StrategyBacktestPage({ params }: Props) {
                 onValueChange={(value) => setPeriodType(value as PeriodType)}
                 className="overflow-hidden rounded border border-border bg-card"
               >
-                <div className="flex flex-col gap-4 border-b border-border px-4 py-4 sm:px-6 sm:py-5 lg:flex-row lg:items-start lg:justify-between">
+                <div className="flex flex-col gap-4 border-b border-border px-4 py-4 sm:px-6 lg:flex-row lg:items-start lg:justify-between">
                   <div>
                     <h2 className="text-[15px] font-semibold">Seasonality</h2>
-                    <p className="text-sm text-muted-foreground">Returns by calendar period</p>
+                    <p className="text-xs text-muted-foreground">Returns by calendar period</p>
                   </div>
 
                   <TabsList>
@@ -1807,6 +1822,7 @@ export default function StrategyBacktestPage({ params }: Props) {
                 totalTrades={trades.length}
                 durationDistributionTotal={durationDistributionTotal}
                 skewCallout={skewCallout}
+                skew={skew}
               />
             )}
 
