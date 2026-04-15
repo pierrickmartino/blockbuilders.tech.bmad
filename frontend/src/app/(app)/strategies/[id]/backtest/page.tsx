@@ -874,18 +874,7 @@ export default function StrategyBacktestPage({ params }: Props) {
     [trades, periodType]
   );
 
-  const seasonalityScaleMax = useMemo(() => {
-    const maxAbsValue = seasonalityRows.reduce((rowMax, row) => {
-      const bucketMax = row.buckets.reduce((valueMax, bucket) => {
-        if (bucket.count === 0) return valueMax;
-        return Math.max(valueMax, Math.abs(bucket.avgReturn));
-      }, 0);
-
-      return Math.max(rowMax, bucketMax);
-    }, 0);
-
-    return Math.max(5, Math.ceil(maxAbsValue));
-  }, [seasonalityRows]);
+  const seasonalityScaleMax = 5;
 
   // Compute trade distribution data
   const returnDistribution = useMemo(() => {
@@ -1723,7 +1712,7 @@ export default function StrategyBacktestPage({ params }: Props) {
               <Tabs
                 value={periodType}
                 onValueChange={(value) => setPeriodType(value as PeriodType)}
-                className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm"
+                className="overflow-hidden rounded border border-border bg-card"
               >
                 <div className="flex flex-col gap-4 border-b border-border px-4 py-4 sm:px-6 sm:py-5 lg:flex-row lg:items-start lg:justify-between">
                   <div>
@@ -1738,23 +1727,23 @@ export default function StrategyBacktestPage({ params }: Props) {
                   </TabsList>
                 </div>
 
-                <div className="px-4 py-5 sm:px-6">
+                <div className="px-6 py-6">
                   {trades.length === 0 ? (
                     <p className="py-4 text-center text-sm text-muted-foreground">No trades available.</p>
                   ) : (
                     <div className="space-y-4">
-                      <div className="space-y-3">
+                      <div className="space-y-5">
                         {seasonalityRows.map((row) => (
                           <div
                             key={row.year}
-                            className="grid sm:grid-cols-[58px_minmax(0,1fr)] sm:items-start"
+                            className="grid grid-cols-[40px_minmax(0,1fr)] items-center"
                           >
-                            <div className="pt-1 text-[10px] font-semibold tracking-tight text-muted-foreground/80">
+                            <div className="text-xs font-semibold text-muted-foreground">
                               {row.year}
                             </div>
 
                             <div className="overflow-x-auto pb-1">
-                              <div className={cn("grid gap-1", getSeasonalityGridClass(periodType))}>
+                              <div className={cn("grid gap-1.5", getSeasonalityGridClass(periodType))}>
                                 {row.buckets.map((bucket) => {
                                   const cellStyle = getSeasonalityCellStyle(
                                     bucket.avgReturn,
@@ -1766,7 +1755,7 @@ export default function StrategyBacktestPage({ params }: Props) {
                                     <div
                                       key={`${row.year}-${bucket.label}`}
                                       className={cn(
-                                        "flex min-h-[44px] flex-col justify-between rounded-xl border py-2 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.22)]",
+                                        "flex min-h-[52px] flex-col items-center justify-between rounded-lg border py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.22)]",
                                         bucket.count === 0 && "shadow-none"
                                       )}
                                       style={cellStyle}
@@ -1778,8 +1767,8 @@ export default function StrategyBacktestPage({ params }: Props) {
                                     >
                                       {bucket.count > 0 ? (
                                         <>
-                                          <div className="text-[9px] font-medium tracking-tight text-center">{bucket.label}</div>
-                                          <div className="font-mono text-[11px] font-semibold sm:text-xs text-center">
+                                          <div className="text-[10px] font-medium text-center">{bucket.label}</div>
+                                          <div className="text-xs font-semibold text-center">
                                             {formatSeasonalityPercent(bucket.avgReturn)}
                                           </div>
                                         </>
@@ -1794,15 +1783,15 @@ export default function StrategyBacktestPage({ params }: Props) {
                       </div>
 
                       <div className="flex flex-wrap items-center justify-end gap-2 text-xs text-muted-foreground">
-                        <span>{`< -${seasonalityScaleMax}%`}</span>
+                        <span>{`< -5%`}</span>
                         {[-1, -0.45, 0, 0.45, 1].map((multiplier, index) => (
                           <span
                             key={`${multiplier}-${index}`}
-                            className="inline-block h-5 w-8 rounded-md border"
-                            style={getSeasonalityCellStyle(multiplier * seasonalityScaleMax, multiplier === 0 ? 0 : 1, seasonalityScaleMax)}
+                            className="inline-block h-4 w-6 rounded border"
+                            style={getSeasonalityCellStyle(multiplier * 5, multiplier === 0 ? 0 : 1, 5)}
                           />
                         ))}
-                        <span>{`> +${seasonalityScaleMax}%`}</span>
+                        <span>{`> +5%`}</span>
                       </div>
                     </div>
                   )}
