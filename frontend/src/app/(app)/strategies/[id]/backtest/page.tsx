@@ -30,7 +30,6 @@ import {
   BacktestListPage,
   BacktestStatus,
   BacktestStatusResponse,
-  BacktestSummary,
   BatchBacktestCreateResponse,
   BatchRunResult,
   DataAvailabilityResponse,
@@ -41,20 +40,12 @@ import {
 import { PlanResponse, ProfileResponse } from "@/types/auth";
 import { StrategyTabs } from "@/components/StrategyTabs";
 import TradeDrawer from "@/components/TradeDrawer";
-import InfoIcon from "@/components/InfoIcon";
 import { WhatYouLearnedCard } from "@/components/WhatYouLearnedCard";
 import { NarrativeCard } from "@/components/NarrativeCard";
 import { LowTradeCountWarning } from "@/components/LowTradeCountWarning";
 import { DataAvailabilitySection } from "@/components/DataAvailabilitySection";
 import { ShareBacktestModal } from "@/components/ShareBacktestModal";
 import { TransactionCostAnalysis } from "@/components/TransactionCostAnalysis";
-import { metricToGlossaryId, getTooltip } from "@/lib/tooltip-content";
-import {
-  Tooltip as RadixTooltip,
-  TooltipTrigger as RadixTooltipTrigger,
-  TooltipContent as RadixTooltipContent,
-  TooltipProvider,
-} from "@/components/ui/tooltip";
 import { trackBacktestView } from "@/lib/recent-views";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -131,23 +122,7 @@ const PERIOD_PRESETS: PeriodOption[] = [
 const BATCH_PERIOD_PRESETS = PERIOD_PRESETS.filter((p) => p.value !== "custom");
 
 
-
-const FIRST_RUN_KEY = "bb.first_run_metric_explanations_seen";
 const SUMMARY_CARD_KEY = "bb.first_run_summary_card_seen";
-const FIRST_RUN_METRIC_KEYS = ["total-return", "max-drawdown", "win-rate", "trades", "benchmark-return"];
-const DEFAULT_METRIC_KEYS = FIRST_RUN_METRIC_KEYS;
-
-function getFirstRunSeen(): boolean {
-  if (typeof window === "undefined") return true;
-  try { return localStorage.getItem(FIRST_RUN_KEY) === "true"; }
-  catch { return true; }
-}
-
-function markFirstRunSeen(): void {
-  if (typeof window === "undefined") return;
-  try { localStorage.setItem(FIRST_RUN_KEY, "true"); }
-  catch { /* storage unavailable */ }
-}
 
 function getSummaryCardSeen(): boolean {
   if (typeof window === "undefined") return true;
@@ -159,147 +134,6 @@ function markSummaryCardSeen(): void {
   if (typeof window === "undefined") return;
   try { localStorage.setItem(SUMMARY_CARD_KEY, "true"); }
   catch { /* storage unavailable */ }
-}
-
-interface MetricConfig {
-  key: string;
-  label: string;
-  getValue: (summary: BacktestSummary) => string | number;
-}
-
-function getOrderedMetrics(
-  summary: BacktestSummary,
-  favoriteKeys: string[] | null
-): MetricConfig[] {
-  const allMetrics: MetricConfig[] = [
-    { key: "final-balance", label: "Final balance", getValue: s => formatPrice(s.final_balance) },
-    { key: "total-return", label: "Total return", getValue: s => formatPercent(s.total_return_pct) },
-    { key: "max-drawdown", label: "Max drawdown", getValue: s => formatPercent(s.max_drawdown_pct) },
-    { key: "cagr", label: "CAGR", getValue: s => formatPercent(s.cagr_pct) },
-    { key: "trades", label: "Trades", getValue: s => s.num_trades },
-    { key: "win-rate", label: "Win rate", getValue: s => formatPercent(s.win_rate_pct) },
-    { key: "benchmark-return", label: "Benchmark return", getValue: s => formatPercent(s.benchmark_return_pct) },
-    { key: "alpha", label: "Alpha", getValue: s => formatPercent(s.alpha) },
-    { key: "beta", label: "Beta", getValue: s => s.beta.toFixed(2) },
-    { key: "sharpe-ratio", label: "Sharpe ratio", getValue: s => s.sharpe_ratio.toFixed(2) },
-    { key: "sortino-ratio", label: "Sortino ratio", getValue: s => s.sortino_ratio.toFixed(2) },
-    { key: "calmar-ratio", label: "Calmar ratio", getValue: s => s.calmar_ratio.toFixed(2) },
-    { key: "max-consec-losses", label: "Max consec. losses", getValue: s => s.max_consecutive_losses },
-  ];
-
-  if (!favoriteKeys || favoriteKeys.length === 0) {
-    return allMetrics;
-  }
-
-  // Pinned metrics first (in user order), then remaining
-  const pinned = favoriteKeys
-    .map(key => allMetrics.find(m => m.key === key))
-    .filter(Boolean) as MetricConfig[];
-
-  const remaining = allMetrics.filter(m => !favoriteKeys.includes(m.key));
-
-  return [...pinned, ...remaining];
-}
-
-function MetricCard({
-  metricKey,
-  label,
-  value,
-  isPinned = false,
-  canMoveLeft = false,
-  canMoveRight = false,
-  onTogglePin,
-  onMoveLeft,
-  onMoveRight,
-  disabled = false,
-  firstRunExplanation,
-  showFirstRunHelper = false,
-}: {
-  metricKey: string;
-  label: string;
-  value: string | number;
-  isPinned?: boolean;
-  canMoveLeft?: boolean;
-  canMoveRight?: boolean;
-  onTogglePin?: () => void;
-  onMoveLeft?: () => void;
-  onMoveRight?: () => void;
-  disabled?: boolean;
-  firstRunExplanation?: string;
-  showFirstRunHelper?: boolean;
-}) {
-  const tooltip = getTooltip(metricToGlossaryId(metricKey));
-
-  return (
-    <div className="rounded-lg border bg-secondary/50 p-2 dark:bg-secondary/30 sm:p-3">
-      <div className="flex items-center justify-between gap-1 text-xs uppercase text-muted-foreground">
-        <div className="flex min-w-0 items-center gap-1">
-          <span className="truncate" title={tooltip?.short}>{label}</span>
-          {showFirstRunHelper && tooltip?.firstRun ? (
-            <TooltipProvider delayDuration={0}>
-              <RadixTooltip>
-                <RadixTooltipTrigger asChild>
-                  <button
-                    className="inline-flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full border text-[10px] leading-none text-muted-foreground transition-colors hover:text-primary"
-                    aria-label="Explain metric"
-                  >
-                    ?
-                  </button>
-                </RadixTooltipTrigger>
-                <RadixTooltipContent side="top" className="max-w-[220px] text-xs">
-                  {tooltip.firstRun}
-                </RadixTooltipContent>
-              </RadixTooltip>
-            </TooltipProvider>
-          ) : (
-            <InfoIcon tooltip={tooltip} className="hidden flex-shrink-0 sm:inline-flex" />
-          )}
-        </div>
-
-        <button
-          onClick={onTogglePin}
-          disabled={disabled}
-          aria-label={isPinned ? `Unpin ${label}` : `Pin ${label}`}
-          aria-pressed={isPinned}
-          className="flex-shrink-0 text-muted-foreground transition-colors hover:text-primary disabled:opacity-50"
-          title={isPinned ? "Unpin metric" : "Pin metric"}
-        >
-          <svg className="h-4 w-4" fill={isPinned ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path strokeWidth="2" d="M5 5l7-2 7 2v10l-7 2-7-2V5z" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </button>
-      </div>
-
-      <div className="data-text text-2xl font-bold sm:text-3xl">{value}</div>
-
-      {firstRunExplanation && (
-        <p className="mt-1 text-xs text-muted-foreground/70">{firstRunExplanation}</p>
-      )}
-
-      {isPinned && (
-        <div className="mt-2 flex gap-1">
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={onMoveLeft}
-            disabled={!canMoveLeft || disabled}
-            className="h-6 px-2 text-xs"
-          >
-            ← Left
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={onMoveRight}
-            disabled={!canMoveRight || disabled}
-            className="h-6 px-2 text-xs"
-          >
-            Right →
-          </Button>
-        </div>
-      )}
-    </div>
-  );
 }
 
 type PeriodType = "month" | "quarter" | "weekday";
@@ -635,7 +469,7 @@ export default function StrategyBacktestPage({ params }: Props) {
   const { id } = use(params);
   const router = useRouter();
   const { timezone } = useDisplay();
-  const { user, refreshUser } = useAuth();
+  const { user } = useAuth();
   const isMobile = useIsMobile();
 
   const [strategy, setStrategy] = useState<Strategy | null>(null);
@@ -691,23 +525,13 @@ export default function StrategyBacktestPage({ params }: Props) {
   // Seasonality state
   const [periodType, setPeriodType] = useState<PeriodType>("month");
 
-  // Favorite metrics state
-  const [savingMetrics, setSavingMetrics] = useState(false);
-
   // Keyboard shortcuts modal state
   const [showShortcutsModal, setShowShortcutsModal] = useState(false);
-
-  // First-run metric explanations state
-  const [showFirstRunExplanations, setShowFirstRunExplanations] = useState(false);
-  const firstRunEventFired = useRef(false);
-  const firstRunResultsRef = useRef<HTMLDivElement | null>(null);
   const customFormRef = useRef<HTMLFormElement | null>(null);
   const runDetailsRef = useRef<HTMLElement | null>(null);
 
   // Summary card has its own key so scroll-based overlay dismissal doesn't hide it
   const [showSummaryCard, setShowSummaryCard] = useState(false);
-  const [showDetailedAnalysis, setShowDetailedAnalysis] = useState(false);
-  const hasFavoriteMetrics = (user?.favorite_metrics?.length ?? 0) > 0;
 
   // Batch backtesting state
   const [selectedPeriods, setSelectedPeriods] = useState<Set<string>>(new Set());
@@ -718,59 +542,10 @@ export default function StrategyBacktestPage({ params }: Props) {
   const { isAllDone: isBatchDone } = useBatchBacktestResults(activeBatchId);
 
   useEffect(() => {
-    const isFirstRun = Boolean(user?.has_completed_onboarding && !getFirstRunSeen());
-    setShowFirstRunExplanations(isFirstRun);
     if (!showSummaryCard) {
       setShowSummaryCard(Boolean(user?.has_completed_onboarding && !getSummaryCardSeen()));
     }
   }, [user?.has_completed_onboarding, selectedRunId, showSummaryCard]);
-
-  useEffect(() => {
-    // Detailed metrics should always start collapsed when the active run changes.
-    setShowDetailedAnalysis(false);
-  }, [selectedRunId]);
-
-  useEffect(() => {
-    // Returning to default metric mode (no favorites) should reset to collapsed.
-    if (!hasFavoriteMetrics) {
-      setShowDetailedAnalysis(false);
-    }
-  }, [hasFavoriteMetrics]);
-
-  const hasVisibleFirstRunMetrics = useCallback(() => {
-    if (typeof window === "undefined") return false;
-    const container = firstRunResultsRef.current;
-    if (!container) return false;
-    return container.querySelector('[data-first-run-metrics="true"]') !== null;
-  }, []);
-
-  const handleFirstRunInteraction = useCallback(() => {
-    if (!showFirstRunExplanations || firstRunEventFired.current || !hasVisibleFirstRunMetrics()) return;
-    firstRunEventFired.current = true;
-    trackEvent("first_run_overlay_completed", undefined, user?.id);
-    markFirstRunSeen();
-    setShowFirstRunExplanations(false);
-  }, [hasVisibleFirstRunMetrics, showFirstRunExplanations, user?.id]);
-
-  useEffect(() => {
-    if (!showFirstRunExplanations || firstRunEventFired.current) return;
-
-    const handleScrollCompletion = () => {
-      if (firstRunEventFired.current || !hasVisibleFirstRunMetrics()) return;
-      const container = firstRunResultsRef.current;
-      if (!container) return;
-
-      const rect = container.getBoundingClientRect();
-      if (rect.bottom <= window.innerHeight) {
-        handleFirstRunInteraction();
-      }
-    };
-
-    window.addEventListener("scroll", handleScrollCompletion, { capture: true, passive: true });
-    return () => {
-      window.removeEventListener("scroll", handleScrollCompletion, { capture: true });
-    };
-  }, [handleFirstRunInteraction, hasVisibleFirstRunMetrics, showFirstRunExplanations]);
 
   // Use custom hook for backtest results (trades, equity curve, benchmark, polling)
   const prevRunStatusByIdRef = useRef<Map<string, BacktestStatus>>(new Map());
@@ -806,56 +581,6 @@ export default function StrategyBacktestPage({ params }: Props) {
     }
     prevRunStatusByIdRef.current.set(detail.run_id, detail.status);
   }, [id]);
-
-  // Favorite metrics handlers
-  const handleToggleFavorite = useCallback(async (metricKey: string) => {
-    if (!user) return;
-
-    const current = user.favorite_metrics || [];
-    const newFavorites = current.includes(metricKey)
-      ? current.filter(k => k !== metricKey)
-      : [...current, metricKey];
-
-    setSavingMetrics(true);
-    try {
-      await apiFetch("/users/me", {
-        method: "PUT",
-        body: JSON.stringify({ favorite_metrics: newFavorites }),
-      });
-      await refreshUser();
-    } catch {
-      setError("Couldn't save your pinned metrics. Please try again.");
-    } finally {
-      setSavingMetrics(false);
-    }
-  }, [user, refreshUser]);
-
-  const handleReorderFavorite = useCallback(async (metricKey: string, direction: "left" | "right") => {
-    if (!user?.favorite_metrics) return;
-
-    const current = [...user.favorite_metrics];
-    const idx = current.indexOf(metricKey);
-    if (idx === -1) return;
-
-    const newIdx = direction === "left" ? idx - 1 : idx + 1;
-    if (newIdx < 0 || newIdx >= current.length) return;
-
-    // Swap
-    [current[idx], current[newIdx]] = [current[newIdx], current[idx]];
-
-    setSavingMetrics(true);
-    try {
-      await apiFetch("/users/me", {
-        method: "PUT",
-        body: JSON.stringify({ favorite_metrics: current }),
-      });
-      await refreshUser();
-    } catch {
-      setError("Couldn't reorder metrics. Please try again.");
-    } finally {
-      setSavingMetrics(false);
-    }
-  }, [user, refreshUser]);
 
   // Comparison selection handlers
   const handleSelectRun = useCallback((runId: string, checked: boolean) => {
@@ -1458,7 +1183,7 @@ export default function StrategyBacktestPage({ params }: Props) {
 
         {/* Run status messages */}
         {selectedRun && (
-          <div ref={firstRunResultsRef} className="space-y-3" onClick={handleFirstRunInteraction}>
+          <div className="space-y-3">
             {/* Status badge + range */}
             <div className="flex items-center gap-3">
               {statusBadge(selectedRun.status)}
@@ -1531,64 +1256,6 @@ export default function StrategyBacktestPage({ params }: Props) {
               trades={trades}
               positionStats={positionStatsForKPI}
             />
-
-            {/* Detailed metrics toggle */}
-            {(() => {
-              const orderedMetrics = getOrderedMetrics(selectedRun.summary!, user?.favorite_metrics || null);
-              const primaryKeys = hasFavoriteMetrics ? user!.favorite_metrics! : DEFAULT_METRIC_KEYS;
-              const detailedMetrics = orderedMetrics.filter(m => !primaryKeys.includes(m.key));
-
-              if (detailedMetrics.length === 0) return null;
-
-              return (
-                <div className="space-y-3" data-first-run-metrics="true">
-                  <button
-                    type="button"
-                    onClick={() => setShowDetailedAnalysis(prev => !prev)}
-                    className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors"
-                  >
-                    <svg
-                      className={`h-4 w-4 transition-transform ${showDetailedAnalysis ? "rotate-180" : ""}`}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                    {showDetailedAnalysis ? "Hide detailed analysis" : "Show detailed analysis"}
-                  </button>
-                  {showDetailedAnalysis && (
-                    <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-                      {detailedMetrics.map((metric) => {
-                        const isPinned = user?.favorite_metrics?.includes(metric.key) || false;
-                        const pinnedMetrics = user?.favorite_metrics || [];
-                        const pinnedIndex = pinnedMetrics.indexOf(metric.key);
-                        const isFirstRunMetric = FIRST_RUN_METRIC_KEYS.includes(metric.key);
-                        const metricTooltip = getTooltip(metricToGlossaryId(metric.key));
-
-                        return (
-                          <MetricCard
-                            key={metric.key}
-                            metricKey={metric.key}
-                            label={metric.label}
-                            value={metric.getValue(selectedRun.summary!)}
-                            isPinned={isPinned}
-                            canMoveLeft={isPinned && pinnedIndex > 0}
-                            canMoveRight={isPinned && pinnedIndex < pinnedMetrics.length - 1}
-                            onTogglePin={() => handleToggleFavorite(metric.key)}
-                            onMoveLeft={() => handleReorderFavorite(metric.key, "left")}
-                            onMoveRight={() => handleReorderFavorite(metric.key, "right")}
-                            disabled={savingMetrics}
-                            firstRunExplanation={showFirstRunExplanations && isFirstRunMetric ? metricTooltip?.firstRun : undefined}
-                            showFirstRunHelper={!showFirstRunExplanations && isFirstRunMetric && !!metricTooltip?.firstRun}
-                          />
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              );
-            })()}
 
             {/* What You Learned — first-run only */}
             {showSummaryCard &&
