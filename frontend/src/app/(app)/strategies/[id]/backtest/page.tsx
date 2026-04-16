@@ -81,6 +81,7 @@ import {
 import { KeyboardShortcutsModal } from "@/components/KeyboardShortcutsModal";
 import { isInputElement } from "@/lib/keyboard-shortcuts";
 import { BacktestRunsList } from "@/components/BacktestRunsList";
+import { AllRunsDrawer } from "@/components/AllRunsDrawer";
 import { statusStyles } from "@/lib/backtest-constants";
 import { BacktestPageHeader } from "@/components/backtest/PageHeader";
 import { RunConfig } from "@/components/backtest/RunConfig";
@@ -680,6 +681,9 @@ export default function StrategyBacktestPage({ params }: Props) {
 
   // Trade drawer state
   const [selectedTradeIdx, setSelectedTradeIdx] = useState<number | null>(null);
+
+  // All runs drawer state
+  const [showAllRunsDrawer, setShowAllRunsDrawer] = useState(false);
 
   // Share modal state
   const [showShareModal, setShowShareModal] = useState(false);
@@ -1702,6 +1706,7 @@ export default function StrategyBacktestPage({ params }: Props) {
                 currentPage={runsCurrentPage}
                 pageSize={runsPageSize}
                 onPageChange={setRunsCurrentPage}
+                onViewAll={() => setShowAllRunsDrawer(true)}
                 selectedRunId={selectedRunId}
                 onSelectRun={setSelectedRunId}
                 selectedRunIds={selectedRunIds}
@@ -1862,6 +1867,19 @@ export default function StrategyBacktestPage({ params }: Props) {
           </>
         )}
       </div>
+
+      {/* All Runs Drawer */}
+      <AllRunsDrawer
+        open={showAllRunsDrawer}
+        onClose={() => setShowAllRunsDrawer(false)}
+        strategyId={id}
+        timezone={timezone}
+        selectedRunId={selectedRunId}
+        onSelectRun={setSelectedRunId}
+        selectedRunIds={selectedRunIds}
+        onToggleRunSelection={handleSelectRun}
+        onCompare={handleCompareClick}
+      />
 
       {/* Trade Details Drawer */}
       {selectedTradeIdx !== null && selectedRunId && selectedRun && (

@@ -13,6 +13,7 @@
 - **Frontend:** Next.js 16.x (App Router) + TypeScript, Tailwind CSS — see `frontend/CLAUDE.md`
 - **Backend:** FastAPI 0.129.x monolith, Python 3.12, Postgres, Redis, S3-compatible storage — see `backend/CLAUDE.md`
 - Single deployable backend; worker mode for background jobs
+- On version upgrade: smoke test OAuth callback, login, strategy creation, backtest run
 
 ## Architecture
 - One module > many micro-modules; add to existing files before new ones
@@ -29,10 +30,6 @@
 - Plain-language errors: what wrong + next action + help link if available
 - Market data: explicit validation + stored metadata; warn users, never silent fail
 - Prefer in-app notifications over email for time-sensitive; email/webhook only explicit opt-in
-
-## Secure baseline versions
-- Next.js **16.x**, FastAPI **0.129.x**, Python **3.12**
-- On version upgrade: smoke test OAuth callback, login, strategy creation, backtest run
 
 ## Spec precedence (highest → lowest)
 1. `docs/product.md` — current product truth

@@ -28,6 +28,7 @@ interface BacktestRunsListProps {
   currentPage: number;
   pageSize: number;
   onPageChange: (page: number) => void;
+  onViewAll?: () => void;
   selectedRunId: string | null;
   onSelectRun: (runId: string) => void;
   selectedRunIds: Set<string>;
@@ -207,7 +208,7 @@ function PerfCell({ run }: { run: BacktestListItem }) {
   return <div className="text-sm text-muted-foreground">—</div>;
 }
 
-function RunRow({
+export function RunRow({
   run,
   runLabel,
   isSelected,
@@ -361,6 +362,7 @@ export function BacktestRunsList({
   currentPage,
   pageSize,
   onPageChange,
+  onViewAll,
   selectedRunId,
   onSelectRun,
   selectedRunIds,
@@ -543,7 +545,9 @@ export function BacktestRunsList({
               {hasNextPage && (
                 <button
                   type="button"
-                  onClick={() => onPageChange(currentPage + 1)}
+                  onClick={() =>
+                    onViewAll ? onViewAll() : onPageChange(currentPage + 1)
+                  }
                   className="text-xs font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 >
                   View all →
