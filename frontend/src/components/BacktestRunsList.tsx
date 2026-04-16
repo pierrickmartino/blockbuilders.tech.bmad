@@ -407,7 +407,7 @@ export function BacktestRunsList({
         {/* Header */}
         <div className="flex items-start justify-between border-b border-border px-4 py-3">
           <div>
-            <h2 id="runs-heading" className="text-base font-semibold tracking-tight">
+            <h2 id="runs-heading" className="text-[15px] font-semibold">
               Recent runs
             </h2>
             <p className="mt-0.5 text-xs text-muted-foreground">
