@@ -1,5 +1,5 @@
 {
-  "version": "2.10",
+  "version": "2.11",
   "children": [
     {
       "type": "frame",
@@ -1229,6 +1229,115 @@
             },
             {
               "type": "frame",
+              "id": "6nrdX",
+              "name": "NarrativeCard",
+              "width": "fill_container",
+              "fill": "#FFFFFF",
+              "cornerRadius": 4,
+              "stroke": {
+                "thickness": 1,
+                "fill": "#EEF0F2"
+              },
+              "gap": 18,
+              "padding": [
+                18,
+                22
+              ],
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "ekfXM",
+                  "name": "narrIcon",
+                  "width": 36,
+                  "height": 36,
+                  "fill": "#EEF6FB",
+                  "cornerRadius": 4,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "sA4lO",
+                      "width": 18,
+                      "height": 18,
+                      "iconFontName": "book-open",
+                      "iconFontFamily": "lucide",
+                      "fill": "#4A9FD8"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "VKv6z",
+                  "name": "narrBody",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "U6zTn",
+                      "name": "narrHead",
+                      "width": "fill_container",
+                      "justifyContent": "space_between",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "Ezr2E",
+                          "fill": "#1A1A1A",
+                          "content": "Strategy Narrative",
+                          "fontFamily": "IBM Plex Sans",
+                          "fontSize": 14,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "PgaUC",
+                          "name": "narrMeta",
+                          "gap": 6,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon_font",
+                              "id": "wKuyO",
+                              "width": 12,
+                              "height": 12,
+                              "iconFontName": "calendar",
+                              "iconFontFamily": "lucide",
+                              "fill": "#999999"
+                            },
+                            {
+                              "type": "text",
+                              "id": "R5902",
+                              "fill": "#666666",
+                              "content": "2023-04-18 → 2026-04-17",
+                              "fontFamily": "IBM Plex Sans",
+                              "fontSize": 12,
+                              "fontWeight": "500"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "opiqg",
+                      "name": "narrBodyTxt",
+                      "fill": "#555555",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Starting with $10,000, the strategy grew to $19,531 over 44 trades. Peak-to-trough equity drew down 38.4%. Compared to buy-and-hold, the strategy underperformed by 50.4 percentage points.",
+                      "lineHeight": 1.55,
+                      "fontFamily": "IBM Plex Sans",
+                      "fontSize": 13
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
               "id": "RQt4F",
               "name": "KPIStrip",
               "width": "fill_container",
@@ -1664,6 +1773,165 @@
                       "fontFamily": "IBM Plex Sans",
                       "fontSize": 11,
                       "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "jRozi",
+              "name": "LearnedCard",
+              "width": "fill_container",
+              "fill": "#FFFFFF",
+              "cornerRadius": 4,
+              "stroke": {
+                "thickness": 1,
+                "fill": "#EEF0F2"
+              },
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "PdXwE",
+                  "name": "accentStripe",
+                  "width": 3,
+                  "height": "fill_container",
+                  "fill": "#4A9FD8"
+                },
+                {
+                  "type": "frame",
+                  "id": "ZZLi1",
+                  "name": "lrInner",
+                  "width": "fill_container",
+                  "gap": 18,
+                  "padding": [
+                    18,
+                    22
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "JmEth",
+                      "name": "lrIcon",
+                      "width": 36,
+                      "height": 36,
+                      "fill": "#EEF6FB",
+                      "cornerRadius": 4,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "IpmU1",
+                          "width": 18,
+                          "height": 18,
+                          "iconFontName": "graduation-cap",
+                          "iconFontFamily": "lucide",
+                          "fill": "#4A9FD8"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "SN2wf",
+                      "name": "lrBody",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 6,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "BBSwO",
+                          "name": "lrHead",
+                          "gap": 10,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "in1SE",
+                              "fill": "#1A1A1A",
+                              "content": "What you just learned",
+                              "fontFamily": "IBM Plex Sans",
+                              "fontSize": 14,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "bZMZP",
+                              "name": "lrBadge",
+                              "fill": "#EEF6FB",
+                              "cornerRadius": 4,
+                              "gap": 4,
+                              "padding": [
+                                3,
+                                8
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "81yv5",
+                                  "fill": "#1F6FA0",
+                                  "content": "Insight",
+                                  "fontFamily": "IBM Plex Sans",
+                                  "fontSize": 10,
+                                  "fontWeight": "600",
+                                  "letterSpacing": 0.3
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "QjZRd",
+                          "fill": "#555555",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "You tested whether your strategy would have outperformed simply holding BTC/USDT. It lagged buy-and-hold by 50.3 percentage points over the 3-year window.",
+                          "lineHeight": 1.55,
+                          "fontFamily": "IBM Plex Sans",
+                          "fontSize": 13
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "JyB7w",
+                      "name": "gotit",
+                      "fill": "#FFFFFF",
+                      "cornerRadius": 4,
+                      "stroke": {
+                        "thickness": 1,
+                        "fill": "#EEF0F2"
+                      },
+                      "gap": 6,
+                      "padding": [
+                        8,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "NfyvU",
+                          "width": 12,
+                          "height": 12,
+                          "iconFontName": "check",
+                          "iconFontFamily": "lucide",
+                          "fill": "#4A9FD8"
+                        },
+                        {
+                          "type": "text",
+                          "id": "FZ1z8",
+                          "fill": "#1A1A1A",
+                          "content": "Got it",
+                          "fontFamily": "IBM Plex Sans",
+                          "fontSize": 12,
+                          "fontWeight": "600"
+                        }
+                      ]
                     }
                   ]
                 }
@@ -7154,6 +7422,797 @@
                               "iconFontName": "chevron-right",
                               "iconFontFamily": "lucide",
                               "fill": "#666666"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "xbLqc",
+              "name": "CostCard",
+              "width": "fill_container",
+              "fill": "#FFFFFF",
+              "cornerRadius": 4,
+              "stroke": {
+                "thickness": 1,
+                "fill": "#EEF0F2"
+              },
+              "layout": "vertical",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "EMg7x",
+                  "name": "cH",
+                  "width": "fill_container",
+                  "stroke": {
+                    "align": "inside",
+                    "thickness": {
+                      "bottom": 1
+                    },
+                    "fill": "#EEF0F2"
+                  },
+                  "padding": [
+                    18,
+                    22
+                  ],
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "Ogrsv",
+                      "name": "cHL",
+                      "layout": "vertical",
+                      "gap": 4,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "2Lu5U",
+                          "fill": "#1A1A1A",
+                          "content": "Transaction cost analysis",
+                          "fontFamily": "IBM Plex Sans",
+                          "fontSize": 15,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "3zWS0",
+                          "fill": "#666666",
+                          "content": "What the strategy pays to trade · 44 fills",
+                          "fontFamily": "IBM Plex Sans",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "JTNl4",
+                      "name": "cHR",
+                      "fill": "#FEF2F2",
+                      "cornerRadius": 4,
+                      "stroke": {
+                        "thickness": 1,
+                        "fill": "#FECACA"
+                      },
+                      "gap": 8,
+                      "padding": [
+                        6,
+                        12
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "GkQhq",
+                          "width": 13,
+                          "height": 13,
+                          "iconFontName": "trending-down",
+                          "iconFontFamily": "lucide",
+                          "fill": "#DC2626"
+                        },
+                        {
+                          "type": "text",
+                          "id": "XvUjV",
+                          "fill": "#DC2626",
+                          "content": "18.58% cost drag",
+                          "fontFamily": "IBM Plex Mono",
+                          "fontSize": 11,
+                          "fontWeight": "600",
+                          "letterSpacing": 0.4
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "MMSKo",
+                  "name": "cBody",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 22,
+                  "padding": 22,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "RCWlq",
+                      "name": "cKPIs",
+                      "width": "fill_container",
+                      "gap": 12,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "N2ZsI",
+                          "name": "ck1",
+                          "width": "fill_container",
+                          "fill": "#FAFBFC",
+                          "cornerRadius": 4,
+                          "stroke": {
+                            "thickness": 1,
+                            "fill": "#EEF0F2"
+                          },
+                          "layout": "vertical",
+                          "gap": 8,
+                          "padding": [
+                            14,
+                            16
+                          ],
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "LLBQu",
+                              "name": "k1h",
+                              "width": "fill_container",
+                              "justifyContent": "space_between",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "67LtK",
+                                  "fill": "#666666",
+                                  "content": "FEES",
+                                  "fontFamily": "IBM Plex Mono",
+                                  "fontSize": 10,
+                                  "fontWeight": "600",
+                                  "letterSpacing": 0.6
+                                },
+                                {
+                                  "type": "icon_font",
+                                  "id": "wnyw0",
+                                  "width": 12,
+                                  "height": 12,
+                                  "iconFontName": "percent",
+                                  "iconFontFamily": "lucide",
+                                  "fill": "#9B9BA0"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "cvUtO",
+                              "name": "k1v",
+                              "gap": 4,
+                              "alignItems": "end",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "l6m27",
+                                  "fill": "#1A1A1A",
+                                  "content": "1 359,13",
+                                  "fontFamily": "IBM Plex Mono",
+                                  "fontSize": 20,
+                                  "fontWeight": "700"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "2QzsK",
+                                  "fill": "#9B9BA0",
+                                  "content": "USDT",
+                                  "fontFamily": "IBM Plex Mono",
+                                  "fontSize": 10,
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "text",
+                              "id": "S1YoB",
+                              "fill": "#666666",
+                              "content": "62.5% of costs",
+                              "fontFamily": "IBM Plex Sans",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "BkTC1",
+                          "name": "ck2",
+                          "width": "fill_container",
+                          "fill": "#FAFBFC",
+                          "cornerRadius": 4,
+                          "stroke": {
+                            "thickness": 1,
+                            "fill": "#EEF0F2"
+                          },
+                          "layout": "vertical",
+                          "gap": 8,
+                          "padding": [
+                            14,
+                            16
+                          ],
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "kPKta",
+                              "name": "k2h",
+                              "width": "fill_container",
+                              "justifyContent": "space_between",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "RLazB",
+                                  "fill": "#666666",
+                                  "content": "SLIPPAGE",
+                                  "fontFamily": "IBM Plex Mono",
+                                  "fontSize": 10,
+                                  "fontWeight": "600",
+                                  "letterSpacing": 0.6
+                                },
+                                {
+                                  "type": "icon_font",
+                                  "id": "RkEsM",
+                                  "width": 12,
+                                  "height": 12,
+                                  "iconFontName": "waves",
+                                  "iconFontFamily": "lucide",
+                                  "fill": "#9B9BA0"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "Uvrns",
+                              "name": "k2v",
+                              "gap": 4,
+                              "alignItems": "end",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "YLffS",
+                                  "fill": "#1A1A1A",
+                                  "content": "679,55",
+                                  "fontFamily": "IBM Plex Mono",
+                                  "fontSize": 20,
+                                  "fontWeight": "700"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "0cUdb",
+                                  "fill": "#9B9BA0",
+                                  "content": "USDT",
+                                  "fontFamily": "IBM Plex Mono",
+                                  "fontSize": 10,
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "text",
+                              "id": "KjsGq",
+                              "fill": "#666666",
+                              "content": "31.3% of costs",
+                              "fontFamily": "IBM Plex Sans",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "Rab0d",
+                          "name": "ck3",
+                          "width": "fill_container",
+                          "fill": "#FAFBFC",
+                          "cornerRadius": 4,
+                          "stroke": {
+                            "thickness": 1,
+                            "fill": "#EEF0F2"
+                          },
+                          "layout": "vertical",
+                          "gap": 8,
+                          "padding": [
+                            14,
+                            16
+                          ],
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "0wyT8",
+                              "name": "k3h",
+                              "width": "fill_container",
+                              "justifyContent": "space_between",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "urNXq",
+                                  "fill": "#666666",
+                                  "content": "SPREAD",
+                                  "fontFamily": "IBM Plex Mono",
+                                  "fontSize": 10,
+                                  "fontWeight": "600",
+                                  "letterSpacing": 0.6
+                                },
+                                {
+                                  "type": "icon_font",
+                                  "id": "OVPWJ",
+                                  "width": 12,
+                                  "height": 12,
+                                  "iconFontName": "git-commit-horizontal",
+                                  "iconFontFamily": "lucide",
+                                  "fill": "#9B9BA0"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "wl9XS",
+                              "name": "k3v",
+                              "gap": 4,
+                              "alignItems": "end",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "Zc33s",
+                                  "fill": "#1A1A1A",
+                                  "content": "135,91",
+                                  "fontFamily": "IBM Plex Mono",
+                                  "fontSize": 20,
+                                  "fontWeight": "700"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "z60YW",
+                                  "fill": "#9B9BA0",
+                                  "content": "USDT",
+                                  "fontFamily": "IBM Plex Mono",
+                                  "fontSize": 10,
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "text",
+                              "id": "q6ShD",
+                              "fill": "#666666",
+                              "content": "6.2% of costs",
+                              "fontFamily": "IBM Plex Sans",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "USmpI",
+                          "name": "ck4",
+                          "width": "fill_container",
+                          "fill": "#FAFBFC",
+                          "cornerRadius": 4,
+                          "stroke": {
+                            "thickness": 1,
+                            "fill": "#EEF0F2"
+                          },
+                          "layout": "vertical",
+                          "gap": 8,
+                          "padding": [
+                            14,
+                            16
+                          ],
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "lPoWv",
+                              "name": "k4h",
+                              "width": "fill_container",
+                              "justifyContent": "space_between",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "QW8a2",
+                                  "fill": "#666666",
+                                  "content": "AVG PER TRADE",
+                                  "fontFamily": "IBM Plex Mono",
+                                  "fontSize": 10,
+                                  "fontWeight": "600",
+                                  "letterSpacing": 0.6
+                                },
+                                {
+                                  "type": "icon_font",
+                                  "id": "t1C21",
+                                  "width": 12,
+                                  "height": 12,
+                                  "iconFontName": "divide",
+                                  "iconFontFamily": "lucide",
+                                  "fill": "#9B9BA0"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "KJlYc",
+                              "name": "k4v",
+                              "gap": 4,
+                              "alignItems": "end",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "Oh5PV",
+                                  "fill": "#1A1A1A",
+                                  "content": "49,42",
+                                  "fontFamily": "IBM Plex Mono",
+                                  "fontSize": 20,
+                                  "fontWeight": "700"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "Wlw7x",
+                                  "fill": "#9B9BA0",
+                                  "content": "USDT",
+                                  "fontFamily": "IBM Plex Mono",
+                                  "fontSize": 10,
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "text",
+                              "id": "A6sgA",
+                              "fill": "#666666",
+                              "content": "across 44 fills",
+                              "fontFamily": "IBM Plex Sans",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Hw0ze",
+                      "name": "cProp",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 10,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "FsEAQ",
+                          "name": "propH",
+                          "width": "fill_container",
+                          "justifyContent": "space_between",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "9Biur",
+                              "fill": "#1A1A1A",
+                              "content": "Cost breakdown",
+                              "fontFamily": "IBM Plex Sans",
+                              "fontSize": 12,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "text",
+                              "id": "9Cgyr",
+                              "fill": "#666666",
+                              "content": "Total 2 174,59 USDT",
+                              "fontFamily": "IBM Plex Mono",
+                              "fontSize": 11,
+                              "fontWeight": "600"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "KB6wK",
+                          "name": "cBar",
+                          "clip": true,
+                          "width": "fill_container",
+                          "height": 10,
+                          "cornerRadius": 4,
+                          "gap": 2,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "Y9AbP",
+                              "width": 625,
+                              "height": "fill_container",
+                              "fill": "#DC2626"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "tR6hH",
+                              "width": 313,
+                              "height": "fill_container",
+                              "fill": "#F59E0B"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "MgKtv",
+                              "width": 62,
+                              "height": "fill_container",
+                              "fill": "#6B7280"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "aQfM6",
+                          "name": "leg",
+                          "width": "fill_container",
+                          "gap": 18,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "zhmTy",
+                              "name": "lg1",
+                              "gap": 6,
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "ellipse",
+                                  "id": "qcUev",
+                                  "fill": "#DC2626",
+                                  "width": 8,
+                                  "height": 8
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "XtAfJ",
+                                  "fill": "#666666",
+                                  "content": "Fees 62.5%",
+                                  "fontFamily": "IBM Plex Sans",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "OTiYz",
+                              "name": "lg2",
+                              "gap": 6,
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "ellipse",
+                                  "id": "w0JnF",
+                                  "fill": "#F59E0B",
+                                  "width": 8,
+                                  "height": 8
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "vZG3Q",
+                                  "fill": "#666666",
+                                  "content": "Slippage 31.3%",
+                                  "fontFamily": "IBM Plex Sans",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "QSKYW",
+                              "name": "lg3",
+                              "gap": 6,
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "ellipse",
+                                  "id": "DGWB7",
+                                  "fill": "#6B7280",
+                                  "width": 8,
+                                  "height": 8
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "bMR66",
+                                  "fill": "#666666",
+                                  "content": "Spread 6.2%",
+                                  "fontFamily": "IBM Plex Sans",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "TWeiO",
+                      "name": "cFlow",
+                      "width": "fill_container",
+                      "fill": "#FAFBFC",
+                      "cornerRadius": 4,
+                      "stroke": {
+                        "thickness": 1,
+                        "fill": "#EEF0F2"
+                      },
+                      "padding": [
+                        16,
+                        18
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "TmvFV",
+                          "name": "fG",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 6,
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "rZqil",
+                              "fill": "#666666",
+                              "content": "GROSS RETURN",
+                              "fontFamily": "IBM Plex Mono",
+                              "fontSize": 10,
+                              "fontWeight": "600",
+                              "letterSpacing": 0.6
+                            },
+                            {
+                              "type": "frame",
+                              "id": "eRJ6v",
+                              "name": "gV",
+                              "gap": 4,
+                              "alignItems": "end",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "WQUNz",
+                                  "fill": "#16A34A",
+                                  "content": "+11 705,60",
+                                  "fontFamily": "IBM Plex Mono",
+                                  "fontSize": 22,
+                                  "fontWeight": "700"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "LMiTW",
+                                  "fill": "#9B9BA0",
+                                  "content": "USDT",
+                                  "fontFamily": "IBM Plex Mono",
+                                  "fontSize": 10,
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "psQuh",
+                          "name": "arr1",
+                          "gap": 8,
+                          "padding": [
+                            0,
+                            18
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon_font",
+                              "id": "50dnu",
+                              "width": 14,
+                              "height": 14,
+                              "iconFontName": "minus",
+                              "iconFontFamily": "lucide",
+                              "fill": "#9B9BA0"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "x1ktc",
+                              "name": "fC",
+                              "layout": "vertical",
+                              "gap": 2,
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "BFlPZ",
+                                  "fill": "#DC2626",
+                                  "content": "COSTS",
+                                  "fontFamily": "IBM Plex Mono",
+                                  "fontSize": 9,
+                                  "fontWeight": "600",
+                                  "letterSpacing": 0.6
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "sPPE3",
+                                  "fill": "#DC2626",
+                                  "content": "2 174,59",
+                                  "fontFamily": "IBM Plex Mono",
+                                  "fontSize": 14,
+                                  "fontWeight": "700"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "icon_font",
+                              "id": "2kIze",
+                              "width": 16,
+                              "height": 16,
+                              "iconFontName": "arrow-right",
+                              "iconFontFamily": "lucide",
+                              "fill": "#9B9BA0"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "PKrUE",
+                          "name": "fN",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 6,
+                          "alignItems": "end",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "Euhlx",
+                              "fill": "#666666",
+                              "content": "NET RETURN",
+                              "fontFamily": "IBM Plex Mono",
+                              "fontSize": 10,
+                              "fontWeight": "600",
+                              "letterSpacing": 0.6
+                            },
+                            {
+                              "type": "frame",
+                              "id": "jiPVn",
+                              "name": "nV",
+                              "gap": 4,
+                              "alignItems": "end",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "gbVmq",
+                                  "fill": "#16A34A",
+                                  "content": "+9 531,00",
+                                  "fontFamily": "IBM Plex Mono",
+                                  "fontSize": 22,
+                                  "fontWeight": "700"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "vQJvt",
+                                  "fill": "#9B9BA0",
+                                  "content": "USDT",
+                                  "fontFamily": "IBM Plex Mono",
+                                  "fontSize": 10,
+                                  "fontWeight": "600"
+                                }
+                              ]
                             }
                           ]
                         }
