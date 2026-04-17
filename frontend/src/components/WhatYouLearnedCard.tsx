@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { GraduationCap, Check } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 interface WhatYouLearnedCardProps {
   strategyReturnPct: number;
@@ -46,37 +48,48 @@ export function WhatYouLearnedCard({
   };
 
   return (
-    <Card
-      className={`border-border bg-muted/50 transition-all duration-150 ease-out motion-reduce:transition-none ${
+    <div
+      className={cn(
+        "flex items-center gap-4 rounded-lg border border-dashed border-blue-300 bg-white px-4 py-3 transition-all duration-150 ease-out motion-reduce:transition-none dark:border-blue-800 dark:bg-card",
         exiting ? "scale-95 opacity-0" : "scale-100 opacity-100"
-      }`}
+      )}
       onTransitionEnd={() => {
         if (exiting) onDismiss?.();
       }}
     >
-      <CardHeader className="pb-2 pt-4 px-4">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-semibold">
+      <div className="flex-shrink-0 rounded-md bg-blue-50 p-2 text-blue-500 dark:bg-blue-950 dark:text-blue-400">
+        <GraduationCap className="h-5 w-5" />
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <div className="mb-0.5 flex items-center gap-2">
+          <span className="text-sm font-semibold text-foreground">
             What you just learned
-          </CardTitle>
-          {onDismiss && (
-            <button
-              onClick={handleDismiss}
-              className="min-h-[44px] min-w-[44px] rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              aria-label="Dismiss"
-            >
-              Got it
-            </button>
-          )}
+          </span>
+          <Badge
+            variant="outline"
+            className="border-blue-300 text-blue-600 dark:border-blue-700 dark:text-blue-400"
+          >
+            Insight
+          </Badge>
         </div>
-      </CardHeader>
-      <CardContent className="px-4 pb-4 pt-0">
         <p className="text-sm text-muted-foreground">
           You tested whether your strategy would have outperformed simply holding{" "}
           <span className="font-medium text-foreground">{asset}</span>.{" "}
           {comparison}
         </p>
-      </CardContent>
-    </Card>
+      </div>
+
+      {onDismiss && (
+        <button
+          onClick={handleDismiss}
+          className="flex min-h-[44px] flex-shrink-0 items-center gap-1 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          aria-label="Dismiss"
+        >
+          <Check className="h-4 w-4" />
+          Got it
+        </button>
+      )}
+    </div>
   );
 }
