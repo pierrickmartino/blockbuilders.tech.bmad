@@ -60,7 +60,7 @@ export function TransactionCostAnalysis({ summary }: TransactionCostAnalysisProp
   const spreadPct = total > 0 ? (spread / total) * 100 : 0;
 
   return (
-    <section className="rounded-xl border bg-card p-6 shadow-sm">
+    <section className="rounded border bg-card p-6">
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
