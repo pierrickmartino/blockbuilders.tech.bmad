@@ -3,14 +3,12 @@ import { cn } from "@/lib/utils";
 
 interface StrategyTabsProps {
   strategyId: string;
-  activeTab: "build" | "backtest" | "history" | "settings";
+  activeTab: "build" | "backtest";
 }
 
 const tabs = [
   { key: "build" as const, label: "Builder", href: (id: string) => `/strategies/${id}` },
   { key: "backtest" as const, label: "Backtest", href: (id: string) => `/strategies/${id}/backtest` },
-  { key: "history" as const, label: "History", href: (id: string) => `/strategies/${id}/history` },
-  { key: "settings" as const, label: "Settings", href: (id: string) => `/strategies/${id}/settings` },
 ];
 
 export function StrategyTabs({ strategyId, activeTab }: StrategyTabsProps) {
