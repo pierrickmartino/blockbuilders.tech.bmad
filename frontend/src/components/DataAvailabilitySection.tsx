@@ -7,6 +7,8 @@ import {
   DataCompletenessResponse,
   DataQualityMetrics,
 } from "@/types/backtest";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import { DataCompletenessTimeline } from "./DataCompletenessTimeline";
 import InfoIcon from "./InfoIcon";
 
@@ -169,19 +171,24 @@ export function DataAvailabilitySection({
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2 self-center">
-          <span
-            className={`inline-flex items-center gap-2 rounded-md px-2.5 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.12em] ${
+          <Badge
+            variant="outline"
+            className={cn(
+              "gap-2 text-[10px] font-semibold uppercase tracking-[0.12em]",
               hasIssues
-                ? "bg-[hsl(var(--warning)/0.08)] text-warning dark:bg-[hsl(var(--warning)/0.14)]"
-                : "bg-[hsl(var(--success)/0.08)] text-success dark:bg-[hsl(var(--success)/0.14)]"
-            }`}
+                ? "border-warning/30 text-warning"
+                : "border-success/30 text-success",
+            )}
           >
             <span
               aria-hidden="true"
-              className={`h-2.5 w-2.5 rounded-full ${hasIssues ? "bg-warning" : "bg-success"}`}
+              className={cn(
+                "h-2.5 w-2.5 rounded-full",
+                hasIssues ? "bg-warning" : "bg-success",
+              )}
             />
             {statusLabel}
-          </span>
+          </Badge>
           <ChevronDown
             aria-hidden="true"
             className={`h-4 w-4 text-muted-foreground transition-transform ${isExpanded ? "rotate-180" : ""}`}

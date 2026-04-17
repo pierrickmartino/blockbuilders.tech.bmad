@@ -126,7 +126,7 @@ export function DistributionRow({
         <div className="flex items-center justify-between border-b border-border px-4 py-4 sm:px-5">
           <div>
             <h2 className="text-[15px] font-semibold">Return distribution</h2>
-            <p className="text-xs text-muted-foreground">Histogram of trade P&amp;L %</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">Histogram of trade P&amp;L %</p>
           </div>
           {skew !== undefined ? (
             <span className="rounded border border-blue-200 bg-blue-50 px-2 py-1 text-[10px] font-mono font-medium uppercase tracking-wide text-blue-700 dark:border-blue-700 dark:bg-blue-950 dark:text-blue-400">
@@ -191,7 +191,7 @@ export function DistributionRow({
           <div className="flex items-center justify-between border-b border-border px-4 py-4 sm:px-5">
             <div>
               <h2 className="text-[15px] font-semibold">Duration distribution</h2>
-              <p className="text-xs text-muted-foreground">Trades bucketed by hold time</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">Trades bucketed by hold time</p>
             </div>
             <span className="rounded border border-border bg-secondary px-2 py-1 text-[10px] font-mono font-medium uppercase tracking-wide text-muted-foreground">
               {durationDistributionTotal} TRADES

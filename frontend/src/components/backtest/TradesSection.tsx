@@ -1,23 +1,13 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TradeDetail } from "@/types/backtest";
-import { formatDateTime, formatPrice, formatMoney, formatPercent, formatDuration, type TimezoneMode } from "@/lib/format";
+import { formatDateTime, formatPrice, formatMoney, formatPercent, formatDuration, formatQuantity, type TimezoneMode } from "@/lib/format";
 import { exportTradesToCSV, exportTradesToJSON } from "@/lib/backtest-export";
 import { Search, Download, Filter } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -60,15 +50,12 @@ export function TradesSection({
         t.side.toLowerCase().includes(q) ||
         formatPrice(t.entry_price).toLowerCase().includes(q) ||
         formatPrice(t.exit_price).toLowerCase().includes(q) ||
-        formatDateTime(t.entry_time, timezone).toLowerCase().includes(q)
+        formatDateTime(t.entry_time, timezone).toLowerCase().includes(q),
     );
   }, [trades, searchQuery, sideFilter, timezone]);
 
   const totalPages = Math.ceil(filteredTrades.length / tradesPageSize);
-  const paginatedTrades = filteredTrades.slice(
-    (tradesCurrentPage - 1) * tradesPageSize,
-    tradesCurrentPage * tradesPageSize
-  );
+  const paginatedTrades = filteredTrades.slice((tradesCurrentPage - 1) * tradesPageSize, tradesCurrentPage * tradesPageSize);
 
   const wins = trades.filter((t) => t.pnl >= 0).length;
   const losses = trades.length - wins;
@@ -97,7 +84,7 @@ export function TradesSection({
       <div className="flex flex-col gap-3 border-b border-border px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-[15px] font-semibold">Trades</h2>
-          <p className="text-xs text-muted-foreground">
+          <p className="mt-0.5 text-xs text-muted-foreground">
             Chronological order &middot; {wins} wins, {losses} losses
           </p>
         </div>
@@ -122,13 +109,28 @@ export function TradesSection({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => { setSideFilter("all"); onPageChange(1); }}>
+              <DropdownMenuItem
+                onClick={() => {
+                  setSideFilter("all");
+                  onPageChange(1);
+                }}
+              >
                 All
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => { setSideFilter("long"); onPageChange(1); }}>
+              <DropdownMenuItem
+                onClick={() => {
+                  setSideFilter("long");
+                  onPageChange(1);
+                }}
+              >
                 Long
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => { setSideFilter("short"); onPageChange(1); }}>
+              <DropdownMenuItem
+                onClick={() => {
+                  setSideFilter("short");
+                  onPageChange(1);
+                }}
+              >
                 Short
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -142,12 +144,8 @@ export function TradesSection({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => exportTradesToCSV(trades, selectedRunId)}>
-                  Download CSV
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => exportTradesToJSON(trades, selectedRunId)}>
-                  Download JSON
-                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => exportTradesToCSV(trades, selectedRunId)}>Download CSV</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => exportTradesToJSON(trades, selectedRunId)}>Download JSON</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           )}
@@ -161,9 +159,10 @@ export function TradesSection({
         <div className="flex-1 px-2 font-mono text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Entry</div>
         <div className="flex-1 px-2 font-mono text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Exit</div>
         <div className="w-20 px-2 font-mono text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Duration</div>
+        <div className="w-24 px-2 text-right font-mono text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Qty</div>
         <div className="w-36 px-2 text-right font-mono text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">P&L</div>
         <div className="w-20 px-2 text-right font-mono text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">P&L %</div>
-        <div className="w-20 px-2 text-right font-mono text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Costs</div>
+        <div className="w-32 px-2 text-right font-mono text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Costs</div>
       </div>
 
       {/* Table body */}
@@ -186,20 +185,21 @@ export function TradesSection({
                   <div className="mb-2 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="font-mono text-[10px] text-muted-foreground">#{globalIdx + 1}</span>
-                      <span className={cn(
-                        "rounded px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase",
-                        trade.side === "long"
-                          ? "bg-success/10 text-success"
-                          : "bg-destructive/10 text-destructive"
-                      )}>
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase leading-none",
+                          trade.side === "long"
+                            ? "border-success/30 text-success"
+                            : "border-destructive/30 text-destructive",
+                        )}
+                      >
                         {trade.side}
-                      </span>
+                      </Badge>
                     </div>
-                    <span className={cn(
-                      "font-mono text-sm font-semibold",
-                      trade.pnl >= 0 ? "text-success" : "text-destructive"
-                    )}>
-                      {trade.pnl_pct >= 0 ? "+" : ""}{formatPercent(trade.pnl_pct)}
+                    <span className={cn("font-mono text-sm font-semibold", trade.pnl >= 0 ? "text-success" : "text-destructive")}>
+                      {trade.pnl_pct >= 0 ? "+" : ""}
+                      {formatPercent(trade.pnl_pct)}
                     </span>
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-xs">
@@ -229,52 +229,59 @@ export function TradesSection({
                   className="flex w-full items-center px-5 py-3 text-left transition hover:bg-muted/30"
                   onClick={() => onSelectTrade(globalIdx)}
                 >
-                  <div className="w-10 font-mono text-xs text-muted-foreground">
-                    {globalIdx + 1}
-                  </div>
+                  <div className="w-10 font-mono text-xs text-muted-foreground">{globalIdx + 1}</div>
                   <div className="w-24 px-2">
-                    <span className={cn(
-                      "rounded px-2 py-0.5 font-mono text-[10px] font-semibold uppercase",
-                      trade.side === "long"
-                        ? "bg-success/10 text-success"
-                        : "bg-destructive/10 text-destructive"
-                    )}>
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        "px-2 py-0.5 font-mono text-[10px] font-semibold uppercase leading-none",
+                        trade.side === "long"
+                          ? "border-success/30 text-success"
+                          : "border-destructive/30 text-destructive",
+                      )}
+                    >
                       {trade.side}
-                    </span>
+                    </Badge>
                   </div>
                   <div className="flex-1 space-y-0.5 px-2">
-                    <div className="font-mono text-xs font-medium">{formatPrice(trade.entry_price)}</div>
-                    <div className="font-mono text-[10px] text-muted-foreground">
-                      {formatDateTime(trade.entry_time, timezone)}
+                    <div>
+                      <span className="font-mono text-xs font-medium">{formatPrice(trade.entry_price, "")}</span>
+                      <span className="font-mono text-[10px] text-muted-foreground">USDT</span>
                     </div>
+                    <div className="font-mono text-[10px] text-muted-foreground">{formatDateTime(trade.entry_time, timezone)}</div>
                   </div>
                   <div className="flex-1 space-y-0.5 px-2">
-                    <div className="font-mono text-xs font-medium">{formatPrice(trade.exit_price)}</div>
-                    <div className="font-mono text-[10px] text-muted-foreground">
-                      {formatDateTime(trade.exit_time, timezone)}
+                    <div>
+                      <span className="font-mono text-xs font-medium">{formatPrice(trade.exit_price, "")}</span>
+                      <span className="font-mono text-[10px] text-muted-foreground">USDT</span>
                     </div>
+                    <div className="font-mono text-[10px] text-muted-foreground">{formatDateTime(trade.exit_time, timezone)}</div>
                   </div>
                   <div className="w-20 px-2 font-mono text-xs text-muted-foreground">
-                    {trade.duration_seconds != null
-                      ? formatDuration(trade.duration_seconds)
-                      : "—"}
+                    {trade.duration_seconds != null ? formatDuration(trade.duration_seconds) : "—"}
                   </div>
-                  <div className={cn(
-                    "w-36 px-2 text-right font-mono text-xs font-medium",
-                    trade.pnl >= 0 ? "text-success" : "text-destructive"
-                  )}>
-                    {formatMoney(trade.pnl, "USDT", true)}
+                  <div className="w-24 px-2 text-right font-mono text-xs text-muted-foreground">
+                    {formatQuantity(trade.qty)}
                   </div>
-                  <div className={cn(
-                    "w-20 px-2 text-right font-mono text-xs",
-                    trade.pnl_pct >= 0 ? "text-success" : "text-destructive"
-                  )}>
-                    {trade.pnl_pct >= 0 ? "+" : ""}{formatPercent(trade.pnl_pct)}
+                  <div className="w-36 px-2 text-right ">
+                    <span className={cn("font-mono text-xs font-medium", trade.pnl >= 0 ? "text-success" : "text-destructive")}>
+                      {formatMoney(trade.pnl, "", true)}
+                    </span>
+                    <span
+                      className={cn("font-mono text-[10px] text-muted-foreground", trade.pnl >= 0 ? "text-success" : "text-destructive")}
+                    >
+                      USDT
+                    </span>
                   </div>
-                  <div className="w-20 px-2 text-right font-mono text-xs text-muted-foreground">
-                    {trade.total_cost_usd != null
-                      ? formatMoney(trade.total_cost_usd, "USDT", false)
-                      : "—"}
+                  <div className={cn("w-20 px-2 text-right font-mono text-xs", trade.pnl_pct >= 0 ? "text-success" : "text-destructive")}>
+                    {trade.pnl_pct >= 0 ? "+" : ""}
+                    {formatPercent(trade.pnl_pct)}
+                  </div>
+                  <div className="w-32 px-2 text-right">
+                    <span className="font-mono text-xs text-muted-foreground">
+                      {trade.total_cost_usd != null ? formatMoney(trade.total_cost_usd, "", false) : "—"}
+                    </span>
+                    <span className="font-mono text-[10px] text-muted-foreground">USDT</span>
                   </div>
                 </button>
               );
@@ -287,8 +294,7 @@ export function TradesSection({
               <div className="flex items-center gap-3">
                 <span className="text-xs text-muted-foreground">
                   Showing {(tradesCurrentPage - 1) * tradesPageSize + 1}&ndash;
-                  {Math.min(tradesCurrentPage * tradesPageSize, filteredTrades.length)} of{" "}
-                  {filteredTrades.length}
+                  {Math.min(tradesCurrentPage * tradesPageSize, filteredTrades.length)} of {filteredTrades.length}
                 </span>
                 <div className="h-3.5 w-px bg-border" />
                 <div className="flex items-center gap-1.5">
@@ -325,12 +331,12 @@ export function TradesSection({
                         "flex h-7 w-7 items-center justify-center rounded text-xs font-medium transition-colors",
                         page === tradesCurrentPage
                           ? "bg-primary text-primary-foreground"
-                          : "border border-border bg-card text-foreground hover:bg-muted/50"
+                          : "border border-border bg-card text-foreground hover:bg-muted/50",
                       )}
                     >
                       {page}
                     </button>
-                  )
+                  ),
                 )}
               </div>
             </div>

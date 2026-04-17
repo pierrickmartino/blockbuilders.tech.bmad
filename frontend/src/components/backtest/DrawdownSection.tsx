@@ -49,7 +49,7 @@ export function DrawdownSection({
       <div className="flex items-center justify-between border-b border-border px-4 py-4 sm:px-5">
         <div className="space-y-1">
           <h2 className="text-[15px] font-semibold">Drawdown</h2>
-          <p className="text-xs text-muted-foreground">
+          <p className="mt-0.5 text-xs text-muted-foreground">
             Peak-to-trough equity decline
             {isMobile && " (Pinch to zoom)"}
           </p>

@@ -63,12 +63,12 @@ export function NarrativeCard({
         </div>
         <div className="flex min-w-0 flex-1 flex-col gap-1">
           <div className="flex items-center gap-2">
-            <h3
+            <h2
               id={titleId}
-              className="text-sm font-semibold leading-none"
+              className="text-[15px] font-semibold"
             >
               Strategy Narrative
-            </h3>
+            </h2>
             {isZeroTradeRun && (
               <span
                 className="rounded-full border border-warning/30 bg-warning/10 px-2 py-0.5 text-xs font-medium text-warning"
@@ -89,11 +89,11 @@ export function NarrativeCard({
               <div className="h-3 w-2/3 animate-pulse rounded bg-muted" />
             </div>
           ) : hasNarrative ? (
-            <p className="text-xs leading-relaxed text-muted-foreground">
+            <p className="mt-0.5 text-xs text-muted-foreground">
               {narrative}
             </p>
           ) : (
-            <p className="text-xs leading-relaxed text-muted-foreground">
+            <p className="mt-0.5 text-xs text-muted-foreground">
               No narrative available for this run.
             </p>
           )}

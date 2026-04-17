@@ -9,6 +9,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -81,31 +82,26 @@ function compactPeriodLabel(key: string): string {
 
 const STATUS_BADGE: Record<
   BacktestStatus,
-  { bg: string; text: string; label: string }
+  { className: string; label: string }
 > = {
   completed: {
-    bg: "bg-[hsl(var(--success)/0.12)] dark:bg-[hsl(var(--success)/0.18)]",
-    text: "text-success",
+    className: "border-success/30 text-success",
     label: "Completed",
   },
   running: {
-    bg: "bg-[hsl(var(--info)/0.12)] dark:bg-[hsl(var(--info)/0.18)]",
-    text: "text-info",
+    className: "border-info/30 text-info",
     label: "Running",
   },
   pending: {
-    bg: "bg-[hsl(var(--warning)/0.12)] dark:bg-[hsl(var(--warning)/0.18)]",
-    text: "text-warning",
+    className: "border-warning/30 text-warning",
     label: "Queued",
   },
   failed: {
-    bg: "bg-[hsl(var(--destructive)/0.12)] dark:bg-[hsl(var(--destructive)/0.18)]",
-    text: "text-destructive",
+    className: "border-destructive/30 text-destructive",
     label: "Failed",
   },
   skipped: {
-    bg: "bg-muted",
-    text: "text-muted-foreground",
+    className: "border-border text-muted-foreground",
     label: "Skipped",
   },
 };
@@ -113,12 +109,9 @@ const STATUS_BADGE: Record<
 function StatusBadge({ status }: { status: BacktestStatus }) {
   const style = STATUS_BADGE[status] ?? STATUS_BADGE.skipped;
   return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium",
-        style.bg,
-        style.text
-      )}
+    <Badge
+      variant="outline"
+      className={cn("gap-1.5 px-2 py-0.5 text-xs font-medium", style.className)}
     >
       {status === "running" ? (
         <span className="relative flex h-1.5 w-1.5">
@@ -129,7 +122,7 @@ function StatusBadge({ status }: { status: BacktestStatus }) {
         <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden />
       )}
       {style.label}
-    </span>
+    </Badge>
   );
 }
 

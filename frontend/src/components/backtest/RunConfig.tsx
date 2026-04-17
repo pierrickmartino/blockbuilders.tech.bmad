@@ -57,7 +57,7 @@ export function RunConfig({
       <div className="flex items-center justify-between border-b border-border px-4 py-4 sm:px-5">
         <div className="space-y-0.5">
           <h2 className="text-[15px] font-semibold">Run configuration</h2>
-          <p className="text-xs text-muted-foreground">
+          <p className="mt-0.5 text-xs text-muted-foreground">
             Pick periods, fees and slippage for this run
           </p>
         </div>

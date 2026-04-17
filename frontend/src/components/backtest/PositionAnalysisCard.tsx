@@ -28,18 +28,20 @@ function timeframeToSeconds(timeframe: string): number {
   const value = parseInt(match[1], 10);
   const unit = match[2];
   switch (unit) {
-    case "m": return value * 60;
-    case "h": return value * 3600;
-    case "d": return value * 86400;
-    case "w": return value * 604800;
-    default: return 86400;
+    case "m":
+      return value * 60;
+    case "h":
+      return value * 3600;
+    case "d":
+      return value * 86400;
+    case "w":
+      return value * 604800;
+    default:
+      return 86400;
   }
 }
 
-function computePositionStats(
-  trades: TradeDetail[],
-  timeframeSeconds: number
-): PositionStats | null {
+function computePositionStats(trades: TradeDetail[], timeframeSeconds: number): PositionStats | null {
   if (trades.length < 2) return null;
 
   let totalDuration = 0;
@@ -102,17 +104,13 @@ export function PositionAnalysisCard({ trades, timeframe }: PositionAnalysisCard
       {/* Header */}
       <div className="border-b border-border px-4 py-4 sm:px-5">
         <h2 className="text-[15px] font-semibold">Position analysis</h2>
-        <p className="text-xs text-muted-foreground">
-          How long positions are held and sized
-        </p>
+        <p className="mt-0.5 text-xs text-muted-foreground">How long positions are held and sized</p>
       </div>
 
       {/* Body */}
       {!positionStats ? (
         <div className="px-4 py-8 text-center sm:px-5">
-          <p className="text-sm text-muted-foreground">
-            Not enough trades to analyze. Need at least 2 trades.
-          </p>
+          <p className="text-sm text-muted-foreground">Not enough trades to analyze. Need at least 2 trades.</p>
         </div>
       ) : (
         <>
@@ -121,26 +119,14 @@ export function PositionAnalysisCard({ trades, timeframe }: PositionAnalysisCard
             {!positionStats.hasMissingTimestamps && (
               <div className="flex items-center px-4 py-3 sm:px-5">
                 <div className="flex-1">
-                  <div className="font-mono text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-                    Avg hold
-                  </div>
-                  <div className="font-mono text-lg font-semibold">
-                    {formatDuration(positionStats.avgHoldSeconds)}
-                  </div>
-                  <div className="font-mono text-xs text-muted-foreground">
-                    {positionStats.avgHoldBars.toFixed(1)} bars
-                  </div>
+                  <div className="font-mono text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Avg hold</div>
+                  <div className="mt-1.5 flex items-baseline justify-left gap-1"><span className="text-xl font-bold leading-tight text-foreground">{formatDuration(positionStats.avgHoldSeconds)}</span></div>
+                  <div className="mt-1 font-mono text-xs text-muted-foreground">{positionStats.avgHoldBars.toFixed(1)} bars</div>
                 </div>
                 <div className="flex-1">
-                  <div className="font-mono text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-                    Longest
-                  </div>
-                  <div className="font-mono text-lg font-semibold">
-                    {formatDuration(positionStats.longestHoldSeconds)}
-                  </div>
-                  <div className="font-mono text-xs text-muted-foreground">
-                    {positionStats.longestHoldBars.toFixed(1)} bars
-                  </div>
+                  <div className="font-mono text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Longest</div>
+                  <div className="mt-1.5 flex items-baseline justify-left gap-1"><span className="text-xl font-bold leading-tight text-foreground">{formatDuration(positionStats.longestHoldSeconds)}</span></div>
+                  <div className="mt-1 font-mono text-xs text-muted-foreground">{positionStats.longestHoldBars.toFixed(1)} bars</div>
                 </div>
               </div>
             )}
@@ -149,23 +135,18 @@ export function PositionAnalysisCard({ trades, timeframe }: PositionAnalysisCard
             {!positionStats.hasMissingTimestamps && (
               <div className="flex items-center px-4 py-3 sm:px-5">
                 <div className="flex-1">
-                  <div className="font-mono text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-                    Shortest
-                  </div>
-                  <div className="font-mono text-lg font-semibold">
-                    {formatDuration(positionStats.shortestHoldSeconds)}
-                  </div>
-                  <div className="font-mono text-xs text-muted-foreground">
-                    {positionStats.shortestHoldBars.toFixed(1)} bars
-                  </div>
+                  <div className="font-mono text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Shortest</div>
+                  <div className="mt-1.5 flex items-baseline justify-left gap-1"><span className="text-xl font-bold leading-tight text-foreground">{formatDuration(positionStats.shortestHoldSeconds)}</span></div>
+                  <div className="mt-1 font-mono text-xs text-muted-foreground">{positionStats.shortestHoldBars.toFixed(1)} bars</div>
                 </div>
                 {!positionStats.hasMissingPositionData && positionStats.avgPositionSize > 0 && (
                   <div className="flex-1">
-                    <div className="font-mono text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-                      Avg size
-                    </div>
-                    <div className="font-mono text-lg font-semibold">
-                      {formatMoney(positionStats.avgPositionSize)}
+                    <div className="font-mono text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Avg size</div>
+                    <div className="mt-1.5 flex items-baseline justify-left gap-1">
+                      <span className="text-xl font-bold leading-tight text-foreground">
+                        {formatMoney(positionStats.avgPositionSize, "")}
+                      </span>
+                      <span className="text-xs text-muted-foreground">USDT</span>
                     </div>
                   </div>
                 )}
@@ -184,9 +165,7 @@ export function PositionAnalysisCard({ trades, timeframe }: PositionAnalysisCard
           {!positionStats.hasMissingTimestamps && positionStats.avgHoldSeconds > 0 && (
             <div className="flex gap-3 border-t border-border px-4 py-3.5 sm:px-5">
               <Info className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-primary" />
-              <p className="text-xs text-muted-foreground">
-                {getHoldTimeInterpretation(positionStats.avgHoldSeconds)}
-              </p>
+              <p className="text-xs text-muted-foreground">{getHoldTimeInterpretation(positionStats.avgHoldSeconds)}</p>
             </div>
           )}
         </>

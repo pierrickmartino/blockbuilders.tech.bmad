@@ -20,6 +20,8 @@ import {
 } from "@/lib/format";
 import { useDisplay } from "@/context/display";
 import { TradeDetailResponse } from "@/types/backtest";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import TradeExplanation from "./TradeExplanation";
 
 interface TradeDrawerProps {
@@ -241,15 +243,17 @@ export default function TradeDrawer({
               Trade #{tradeIdx + 1}
             </h2>
             {trade && (
-              <span
-                className={`rounded-full px-2 py-0.5 text-xs font-medium uppercase ${
+              <Badge
+                variant="outline"
+                className={cn(
+                  "font-medium uppercase",
                   trade.side === "long"
-                    ? "bg-green-100 text-green-700 dark:bg-green-950/30 dark:text-green-300"
-                    : "bg-red-100 text-red-700 dark:bg-red-950/30 dark:text-red-300"
-                }`}
+                    ? "border-success/30 text-success"
+                    : "border-destructive/30 text-destructive",
+                )}
               >
                 {trade.side}
-              </span>
+              </Badge>
             )}
             <span className="data-text text-sm text-muted-foreground">
               {asset} · {timeframe}

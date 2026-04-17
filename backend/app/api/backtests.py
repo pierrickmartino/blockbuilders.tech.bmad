@@ -687,6 +687,11 @@ def get_backtest_trades(
                     (t.get("trough_ts") or entry_ts_str).replace("Z", "+00:00")
                 ),
                 duration_seconds=t.get("duration_seconds", 0),
+                fee_cost_usd=t.get("fee_cost_usd"),
+                slippage_cost_usd=t.get("slippage_cost_usd"),
+                spread_cost_usd=t.get("spread_cost_usd"),
+                total_cost_usd=t.get("total_cost_usd"),
+                notional_usd=t.get("notional_usd"),
             )
             normalized.append(trade_detail)
 
@@ -958,6 +963,11 @@ def get_trade_detail(
             (trade_raw.get("trough_ts") or entry_ts_str).replace("Z", "+00:00")
         ),
         duration_seconds=trade_raw.get("duration_seconds", 0),
+        fee_cost_usd=trade_raw.get("fee_cost_usd"),
+        slippage_cost_usd=trade_raw.get("slippage_cost_usd"),
+        spread_cost_usd=trade_raw.get("spread_cost_usd"),
+        total_cost_usd=trade_raw.get("total_cost_usd"),
+        notional_usd=trade_raw.get("notional_usd"),
     )
 
     # Fetch strategy definition for explanation

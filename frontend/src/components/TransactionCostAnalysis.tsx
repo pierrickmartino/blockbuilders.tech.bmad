@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { BacktestSummary } from "@/types/backtest";
-import { formatPercent } from "@/lib/format";
+import { formatNumber, formatPercent } from "@/lib/format";
 import {
   TrendingDown,
   DollarSign,
@@ -13,17 +13,6 @@ import {
   Minus,
 } from "lucide-react";
 
-function fmtNum(value: number | null | undefined): string {
-  if (value == null || !Number.isFinite(value as number)) return "—";
-  return new Intl.NumberFormat(
-    typeof navigator !== "undefined" ? navigator.language : "en-US",
-    { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: true }
-  ).format(Math.abs(value as number));
-}
-
-function fmtPct1(value: number): string {
-  return value.toFixed(1);
-}
 
 interface TransactionCostAnalysisProps {
   summary: BacktestSummary;
@@ -60,11 +49,11 @@ export function TransactionCostAnalysis({ summary }: TransactionCostAnalysisProp
   const spreadPct = total > 0 ? (spread / total) * 100 : 0;
 
   return (
-    <section className="rounded border bg-card p-6">
+    <section className="rounded border border-border bg-card p-6">
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-base font-semibold text-foreground">Transaction cost analysis</h2>
+          <h2 className="text-[15px] font-semibold text-foreground">Transaction cost analysis</h2>
           <p className="mt-0.5 text-xs text-muted-foreground">
             What the strategy pays to trade · {numTrades} fills
           </p>
@@ -84,25 +73,25 @@ export function TransactionCostAnalysis({ summary }: TransactionCostAnalysisProp
         <MetricCard
           label="FEES"
           icon={<DollarSign className="h-3.5 w-3.5 text-muted-foreground/60" />}
-          value={fmtNum(fees)}
-          sub={`${fmtPct1(feesPct)}% of costs`}
+          value={formatNumber(fees, 2)}
+          sub={`${formatNumber(feesPct, 1)}% of costs`}
         />
         <MetricCard
           label="SLIPPAGE"
           icon={<Zap className="h-3.5 w-3.5 text-muted-foreground/60" />}
-          value={fmtNum(slippage)}
-          sub={`${fmtPct1(slippagePct)}% of costs`}
+          value={formatNumber(slippage, 2)}
+          sub={`${formatNumber(slippagePct, 1)}% of costs`}
         />
         <MetricCard
           label="SPREAD"
           icon={<Activity className="h-3.5 w-3.5 text-muted-foreground/60" />}
-          value={fmtNum(spread)}
-          sub={`${fmtPct1(spreadPct)}% of costs`}
+          value={formatNumber(spread, 2)}
+          sub={`${formatNumber(spreadPct, 1)}% of costs`}
         />
         <MetricCard
           label="AVG PER TRADE"
           icon={<BarChart2 className="h-3.5 w-3.5 text-muted-foreground/60" />}
-          value={fmtNum(avgPerTrade)}
+          value={formatNumber(avgPerTrade, 2)}
           sub={`across ${numTrades} fills`}
         />
       </div>
@@ -115,7 +104,7 @@ export function TransactionCostAnalysis({ summary }: TransactionCostAnalysisProp
           </span>
           <span className="text-xs text-muted-foreground">
             Total{" "}
-            <span className="font-semibold text-foreground">{fmtNum(total)} USDT</span>
+            <span className="font-semibold text-foreground">{formatNumber(total, 2)} USDT</span>
           </span>
         </div>
 
@@ -131,11 +120,11 @@ export function TransactionCostAnalysis({ summary }: TransactionCostAnalysisProp
 
         {/* Legend */}
         <div className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1">
-          <LegendDot colorClass="bg-destructive" label={`Fees ${fmtPct1(feesPct)}%`} />
-          <LegendDot colorClass="bg-warning" label={`Slippage ${fmtPct1(slippagePct)}%`} />
+          <LegendDot colorClass="bg-destructive" label={`Fees ${formatNumber(feesPct, 1)}%`} />
+          <LegendDot colorClass="bg-warning" label={`Slippage ${formatNumber(slippagePct, 1)}%`} />
           <LegendDot
             colorClass="bg-slate-400 dark:bg-slate-500"
-            label={`Spread ${fmtPct1(spreadPct)}%`}
+            label={`Spread ${formatNumber(spreadPct, 1)}%`}
           />
         </div>
       </div>
@@ -151,7 +140,7 @@ export function TransactionCostAnalysis({ summary }: TransactionCostAnalysisProp
               className={`text-xl font-bold leading-tight ${grossReturn >= 0 ? "text-success" : "text-destructive"}`}
             >
               {grossReturn >= 0 ? "+" : "-"}
-              {fmtNum(grossReturn)}
+              {formatNumber(Math.abs(grossReturn), 2)}
             </span>
             <span className="text-xs text-muted-foreground">USDT</span>
           </div>
@@ -160,10 +149,10 @@ export function TransactionCostAnalysis({ summary }: TransactionCostAnalysisProp
           <div className="text-[10px] font-semibold uppercase tracking-widest text-destructive">
             Costs
           </div>
-          <div className="mt-1 flex items-center gap-1">
+          <div className="mt-1.5 flex items-baseline justify-center gap-1">
             <Minus className="h-3 w-3 text-destructive" />
-            <span className="text-base font-semibold text-destructive">{fmtNum(total)}</span>
-            <ArrowRight className="h-3 w-3 text-muted-foreground/60" />
+            <span className="text-xl font-semibold text-destructive">{formatNumber(total, 2)}</span>
+            <span className="text-xs text-muted-foreground">USDT</span>
           </div>
         </div>
         <div className="px-4 py-3 text-center">
@@ -175,7 +164,7 @@ export function TransactionCostAnalysis({ summary }: TransactionCostAnalysisProp
               className={`text-xl font-bold leading-tight ${netReturn >= 0 ? "text-success" : "text-destructive"}`}
             >
               {netReturn >= 0 ? "+" : "-"}
-              {fmtNum(netReturn)}
+              {formatNumber(Math.abs(netReturn), 2)}
             </span>
             <span className="text-xs text-muted-foreground">USDT</span>
           </div>
