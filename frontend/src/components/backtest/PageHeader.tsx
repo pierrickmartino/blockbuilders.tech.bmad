@@ -9,11 +9,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { formatDateTime, formatRelativeTime, type TimezoneMode } from "@/lib/format";
 import { Strategy, StrategyVersion } from "@/types/strategy";
-import { BacktestStatusResponse, DataQualityMetrics } from "@/types/backtest";
+import { BacktestStatus, BacktestStatusResponse, DataQualityMetrics } from "@/types/backtest";
 import {
   exportMetricsToCSV,
   exportMetricsToJSON,
 } from "@/lib/backtest-export";
+import { StatusBadge } from "@/components/backtest/StatusBadge";
 import { CalendarDays, Download, Play, Share2 } from "lucide-react";
 
 const GAP_THRESHOLDS = { excellent: 2, good: 5 } as const;
@@ -79,6 +80,8 @@ interface BacktestPageHeaderProps {
   onRunBacktest: () => void;
   isSubmitting: boolean;
   selectedPeriodCount: number;
+  runStatus?: BacktestStatus | null;
+  runRange?: string | null;
 }
 
 export function BacktestPageHeader({
@@ -95,6 +98,8 @@ export function BacktestPageHeader({
   onRunBacktest,
   isSubmitting,
   selectedPeriodCount,
+  runStatus = null,
+  runRange = null,
 }: BacktestPageHeaderProps) {
   const showActions =
     selectedRun?.status === "completed" &&
@@ -146,9 +151,15 @@ export function BacktestPageHeader({
             <span className="inline-flex items-center rounded border border-border bg-secondary px-2.5 py-1 font-mono text-xs text-muted-foreground">
               {strategy.timeframe}
             </span>
-            <span className="inline-flex items-center gap-2 rounded border border-border bg-secondary px-2.5 py-1 font-mono text-xs text-muted-foreground">
+            {runStatus && <StatusBadge status={runStatus} />}
+            <span
+              className="inline-flex items-center gap-2 rounded border border-border bg-secondary px-2.5 py-1 font-mono text-xs text-muted-foreground"
+              title={runRange ? "Backtested period" : "Data availability range"}
+            >
               <CalendarDays className="h-4 w-4 text-muted-foreground" />
-              {formatHeaderDate(displayedDateFrom)} &rarr; {formatHeaderDate(displayedDateTo)}
+              {runRange
+                ? runRange
+                : `${formatHeaderDate(displayedDateFrom)} \u2192 ${formatHeaderDate(displayedDateTo)}`}
             </span>
           </div>
         </div>

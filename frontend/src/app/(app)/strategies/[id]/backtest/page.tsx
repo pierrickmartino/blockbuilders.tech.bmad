@@ -73,7 +73,6 @@ import { KeyboardShortcutsModal } from "@/components/KeyboardShortcutsModal";
 import { isInputElement } from "@/lib/keyboard-shortcuts";
 import { BacktestRunsList } from "@/components/BacktestRunsList";
 import { AllRunsDrawer } from "@/components/AllRunsDrawer";
-import { statusStyles } from "@/lib/backtest-constants";
 import { BacktestPageHeader } from "@/components/backtest/PageHeader";
 import { RunConfig } from "@/components/backtest/RunConfig";
 import { KPIStrip } from "@/components/backtest/KPIStrip";
@@ -970,16 +969,6 @@ export default function StrategyBacktestPage({ params }: Props) {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [isSubmitting]);
 
-  const statusBadge = useCallback((status: BacktestStatus) => {
-    const cls = statusStyles[status];
-    return (
-      <span className={`inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-medium capitalize ${cls}`}>
-        <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden />
-        {status}
-      </span>
-    );
-  }, []);
-
   const selectedRunRange = useMemo(() => {
     if (!selectedRun) return null;
     return `${formatDateTime(selectedRun.date_from, timezone).split(" ")[0]} → ${formatDateTime(selectedRun.date_to, timezone).split(" ")[0]}`;
@@ -1147,6 +1136,8 @@ export default function StrategyBacktestPage({ params }: Props) {
         onRunBacktest={submitBatchBacktest}
         isSubmitting={isSubmitting}
         selectedPeriodCount={selectedPeriods.size}
+        runStatus={selectedRun?.status ?? null}
+        runRange={selectedRunRange}
       />
 
       {/* Main Content */}
@@ -1184,14 +1175,6 @@ export default function StrategyBacktestPage({ params }: Props) {
         {/* Run status messages */}
         {selectedRun && (
           <div className="space-y-3">
-            {/* Status badge + range */}
-            <div className="flex items-center gap-3">
-              {statusBadge(selectedRun.status)}
-              {selectedRunRange && (
-                <span className="font-mono text-xs text-muted-foreground">{selectedRunRange}</span>
-              )}
-            </div>
-
             {/* Narrative */}
             {selectedRun.narrative && (
               <NarrativeCard
@@ -1234,10 +1217,10 @@ export default function StrategyBacktestPage({ params }: Props) {
               </div>
             )}
 
-            {/* Pending/running status */}
+            {/* Pending/running context (status pill shown in header) */}
             {selectedRun.status !== "completed" && selectedRun.status !== "failed" && (
               <p className="text-sm text-muted-foreground">
-                Backtest is {selectedRun.status}. We&apos;ll keep polling for results.
+                Results will appear automatically once the run finishes.
               </p>
             )}
           </div>

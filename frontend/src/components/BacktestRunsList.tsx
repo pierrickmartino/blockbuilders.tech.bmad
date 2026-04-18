@@ -9,8 +9,8 @@ import {
   TrendingUp,
 } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { StatusBadge } from "@/components/backtest/StatusBadge";
 import {
   Tooltip,
   TooltipContent,
@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { formatDateTime, formatPercent, type TimezoneMode } from "@/lib/format";
-import type { BacktestListItem, BacktestStatus, BatchRunResult } from "@/types/backtest";
+import type { BacktestListItem, BatchRunResult } from "@/types/backtest";
 
 interface BacktestRunsListProps {
   backtests: BacktestListItem[];
@@ -78,52 +78,6 @@ const COMPACT_PERIOD: Record<string, string> = {
 
 function compactPeriodLabel(key: string): string {
   return COMPACT_PERIOD[key] ? `${COMPACT_PERIOD[key]} window` : key;
-}
-
-const STATUS_BADGE: Record<
-  BacktestStatus,
-  { className: string; label: string }
-> = {
-  completed: {
-    className: "border-success/30 text-success",
-    label: "Completed",
-  },
-  running: {
-    className: "border-info/30 text-info",
-    label: "Running",
-  },
-  pending: {
-    className: "border-warning/30 text-warning",
-    label: "Queued",
-  },
-  failed: {
-    className: "border-destructive/30 text-destructive",
-    label: "Failed",
-  },
-  skipped: {
-    className: "border-border text-muted-foreground",
-    label: "Skipped",
-  },
-};
-
-function StatusBadge({ status }: { status: BacktestStatus }) {
-  const style = STATUS_BADGE[status] ?? STATUS_BADGE.skipped;
-  return (
-    <Badge
-      variant="outline"
-      className={cn("gap-1.5 px-2 py-0.5 text-xs font-medium", style.className)}
-    >
-      {status === "running" ? (
-        <span className="relative flex h-1.5 w-1.5">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-current opacity-75" />
-          <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-current" />
-        </span>
-      ) : (
-        <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden />
-      )}
-      {style.label}
-    </Badge>
-  );
 }
 
 function PerfCell({ run }: { run: BacktestListItem }) {

@@ -141,7 +141,7 @@ export function DataAvailabilitySection({
   ].filter(Boolean) as string[];
 
   return (
-    <div className="rounded-lg border border-border bg-card text-card-foreground">
+    <div className="rounded border border-border bg-card text-card-foreground">
       {/* Header - Always visible */}
       <button
         type="button"
