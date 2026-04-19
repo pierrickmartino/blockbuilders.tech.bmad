@@ -3,22 +3,13 @@
 import { use, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from "recharts";
+import { LineChart } from "@tremor/react";
 import { apiFetch } from "@/lib/api";
 import { formatDateTime, formatPercent, formatPrice, formatChartDate } from "@/lib/format";
 import { useDisplay } from "@/context/display";
 import { BacktestCompareResponse } from "@/types/backtest";
 import { Strategy } from "@/types/strategy";
 import { StrategyTabs } from "@/components/StrategyTabs";
-import { ZoomableChart } from "@/components/ZoomableChart";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -36,13 +27,8 @@ interface Props {
   params: Promise<{ id: string }>;
 }
 
-// Colors for up to 4 runs
-const RUN_COLORS = [
-  "hsl(var(--chart-1))", // blue
-  "hsl(var(--chart-2))", // green
-  "hsl(var(--chart-3))", // orange
-  "hsl(var(--chart-4))", // purple
-];
+// Colors for up to 4 runs (Tremor palette)
+const RUN_COLORS = ["blue", "emerald", "amber", "violet"];
 
 export default function CompareBacktestsPage({ params }: Props) {
   const { id } = use(params);
@@ -288,65 +274,19 @@ export default function CompareBacktestsPage({ params }: Props) {
                       <p className="text-sm text-muted-foreground">No equity data available</p>
                     </div>
                   ) : (
-                    <div className="h-64 sm:h-72 md:h-96">
-                      <ZoomableChart>
-                        <ResponsiveContainer width="100%" height="100%">
-                          <LineChart data={alignedChartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                            <XAxis
-                              dataKey="timestamp"
-                              tickFormatter={(v) => formatChartDate(v, timezone)}
-                              tick={{ fontSize: 12 }}
-                              tickLine={false}
-                              axisLine={{ stroke: "hsl(var(--border))" }}
-                              tickCount={tickConfig.xAxisTicks}
-                            />
-                            <YAxis
-                              tickFormatter={(v) => formatPrice(v, "").trim()}
-                              tick={{ fontSize: 12 }}
-                              tickLine={false}
-                              axisLine={{ stroke: "hsl(var(--border))" }}
-                              width={80}
-                              tickCount={tickConfig.yAxisTicks}
-                            />
-                            <Tooltip
-                              formatter={(value, name) => {
-                                const idx = parseInt(String(name).replace("run_", ""));
-                                const run = compareData.runs[idx];
-                                return [formatPrice(Number(value)), `${runLabel(idx)} · ${runDateRange(run)}`];
-                              }}
-                              labelFormatter={(label) => formatDateTime(label as string, timezone)}
-                              contentStyle={{
-                                backgroundColor: "hsl(var(--popover))",
-                                border: "1px solid hsl(var(--border))",
-                                borderRadius: "0.375rem",
-                                fontSize: "0.875rem",
-                                color: "hsl(var(--popover-foreground))",
-                              }}
-                            />
-                            <Legend
-                              wrapperStyle={{ fontSize: "0.875rem" }}
-                              iconType="line"
-                              formatter={(value) => {
-                                const idx = parseInt(String(value).replace("run_", ""));
-                                return `${runLabel(idx)} · ${runDateRange(compareData.runs[idx])}`;
-                              }}
-                            />
-                            {compareData.runs.map((_, idx) => (
-                              <Line
-                                key={idx}
-                                type="monotone"
-                                dataKey={`run_${idx}`}
-                                stroke={RUN_COLORS[idx]}
-                                strokeWidth={2}
-                                dot={false}
-                                connectNulls={false}
-                                name={`run_${idx}`}
-                              />
-                            ))}
-                          </LineChart>
-                        </ResponsiveContainer>
-                      </ZoomableChart>
-                    </div>
+                    <LineChart
+                      data={alignedChartData.map((d) => ({
+                        ...d,
+                        timestamp: formatChartDate(String(d.timestamp), timezone),
+                      }))}
+                      index="timestamp"
+                      categories={compareData.runs.map((_, idx) => `run_${idx}`)}
+                      colors={compareData.runs.map((_, idx) => RUN_COLORS[idx] ?? "blue")}
+                      valueFormatter={(v) => formatPrice(v)}
+                      connectNulls={false}
+                      showLegend
+                      className="h-64 sm:h-72 md:h-96"
+                    />
                   )}
                   <p className="mt-2 text-xs text-muted-foreground">
                     Lines break where a run has no data for that time period.

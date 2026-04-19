@@ -3,14 +3,7 @@
 import { type CSSProperties, use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
+import { LineChart } from "@tremor/react";
 import { apiFetch, ApiError, fetchDataQuality, fetchDataCompleteness, fetchDataAvailability } from "@/lib/api";
 import { trackEvent } from "@/lib/analytics";
 import {
@@ -63,7 +56,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ZoomableChart } from "@/components/ZoomableChart";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   exportEquityToCSV,
@@ -1305,43 +1297,18 @@ export default function StrategyBacktestPage({ params }: Props) {
                       </div>
                     </div>
                   ) : (
-                    <div className="h-56 sm:h-64">
-                      <ZoomableChart>
-                        <ResponsiveContainer width="100%" height="100%">
-                          <LineChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
-                            <XAxis
-                              dataKey="timestamp"
-                              tickFormatter={(v) => formatChartDate(v, timezone)}
-                              tick={{ fontSize: 10, fontFamily: "var(--font-mono)" }}
-                              tickLine={false}
-                              axisLine={{ stroke: "hsl(var(--border))" }}
-                              tickCount={tickConfig.xAxisTicks}
-                            />
-                            <YAxis
-                              tickFormatter={(v) => formatPrice(v, "").trim()}
-                              tick={{ fontSize: 10, fontFamily: "var(--font-mono)" }}
-                              tickLine={false}
-                              axisLine={{ stroke: "hsl(var(--border))" }}
-                              width={65}
-                              tickCount={tickConfig.yAxisTicks}
-                            />
-                            <Tooltip
-                              formatter={(value) => [formatPrice(Number(value)), "Equity"]}
-                              labelFormatter={(label) => formatDateTime(label as string, timezone)}
-                              contentStyle={{
-                                backgroundColor: "hsl(var(--popover))",
-                                border: "1px solid hsl(var(--border))",
-                                borderRadius: "0.25rem",
-                                fontSize: "0.75rem",
-                                color: "hsl(var(--popover-foreground))",
-                              }}
-                            />
-                            <Line type="monotone" dataKey="equity" stroke="hsl(var(--chart-1))" strokeWidth={1.5} dot={false} activeDot={{ r: 3, fill: "hsl(var(--chart-1))" }} name="Strategy" />
-                            <Line type="monotone" dataKey="benchmark" stroke="hsl(var(--muted-foreground))" strokeWidth={1.5} dot={false} strokeDasharray="5 5" name="Buy & Hold" />
-                          </LineChart>
-                        </ResponsiveContainer>
-                      </ZoomableChart>
-                    </div>
+                    <LineChart
+                      data={chartData.map((d) => ({
+                        ...d,
+                        timestamp: formatChartDate(d.timestamp, timezone),
+                      }))}
+                      index="timestamp"
+                      categories={["equity", "benchmark"]}
+                      colors={["blue", "gray"]}
+                      valueFormatter={(v) => formatPrice(v)}
+                      showLegend
+                      className="h-56 sm:h-64"
+                    />
                   )}
                 </div>
               </div>

@@ -13,8 +13,8 @@ interface MarketSentimentPanelProps {
 }
 
 const HEADING_ID = "market-sentiment-heading";
-const LONG_SHORT_COLOR = "hsl(var(--chart-1))";
-const FUNDING_COLOR = "hsl(var(--chart-2))";
+const LONG_SHORT_COLOR = "blue";
+const FUNDING_COLOR = "emerald";
 
 function SentimentNarrative({ sentiment }: { sentiment: MarketSentimentResponse }) {
   const value = sentiment.fear_greed.value;

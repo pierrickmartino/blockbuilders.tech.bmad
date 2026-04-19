@@ -2,15 +2,7 @@
 
 import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from "recharts";
+import { LineChart } from "@tremor/react";
 import { formatDateTime, formatPercent, formatPrice } from "@/lib/format";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -190,55 +182,18 @@ export default function SharedBacktestPage({ params }: Props) {
               <h2 className="mb-4 font-semibold tracking-tight">
                 Equity Curve
               </h2>
-              <div className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart
-                    data={data.equity_curve}
-                    margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
-                  >
-                    <XAxis
-                      dataKey="timestamp"
-                      tickFormatter={(v) => new Date(v).toLocaleDateString()}
-                      tick={{ fontSize: 12 }}
-                      tickLine={false}
-                      axisLine={{ stroke: "hsl(var(--border))" }}
-                    />
-                    <YAxis
-                      tickFormatter={(v) => formatPrice(v, "").trim()}
-                      tick={{ fontSize: 12 }}
-                      tickLine={false}
-                      axisLine={{ stroke: "hsl(var(--border))" }}
-                      width={80}
-                    />
-                    <Tooltip
-                      formatter={(value) => [formatPrice(Number(value)), "Equity"]}
-                      labelFormatter={(label) =>
-                        formatDateTime(label as string, "utc")
-                      }
-                      contentStyle={{
-                        backgroundColor: "hsl(var(--card))",
-                        border: "1px solid hsl(var(--border))",
-                        borderRadius: "0.5rem",
-                        fontSize: "0.875rem",
-                        color: "hsl(var(--foreground))",
-                      }}
-                    />
-                    <Legend
-                      wrapperStyle={{ fontSize: "0.875rem" }}
-                      iconType="line"
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="equity"
-                      stroke="hsl(var(--primary))"
-                      strokeWidth={2}
-                      dot={false}
-                      activeDot={{ r: 4, fill: "hsl(var(--primary))" }}
-                      name="Strategy"
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
+              <LineChart
+                data={data.equity_curve.map((d) => ({
+                  ...d,
+                  timestamp: new Date(d.timestamp).toLocaleDateString(),
+                }))}
+                index="timestamp"
+                categories={["equity"]}
+                colors={["blue"]}
+                valueFormatter={(v) => formatPrice(v)}
+                showLegend
+                className="h-80"
+              />
             </CardContent>
           </Card>
         )}
