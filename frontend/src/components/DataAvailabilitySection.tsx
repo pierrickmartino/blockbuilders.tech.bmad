@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { AlertTriangle, CheckCircle2, ChevronDown, Database } from "lucide-react";
+import { Callout } from "@tremor/react";
 import {
   DataAvailabilityResponse,
   DataCompletenessResponse,
@@ -368,24 +369,22 @@ export function DataAvailabilitySection({
 
           {/* Overall Warning Summary */}
           {hasIssues && (
-            <div className="rounded border border-warning/40 bg-warning/10 px-3 py-2">
-              <div className="mb-1 flex items-center gap-1 text-sm font-medium text-warning">
-                <AlertTriangle aria-hidden="true" className="h-4 w-4" />
-                Data Quality Warning
-              </div>
-              <div className="text-sm text-foreground">
-                {dataQuality?.issues_description && (
-                  <div className="mb-1">{dataQuality.issues_description}</div>
-                )}
-                {gapOverlap && gapOverlap.length > 0 && (
-                  <div>
-                    Your selected period overlaps {gapOverlap.length} large data gap
-                    {gapOverlap.length > 1 ? "s" : ""}.
-                  </div>
-                )}
-                <div className="mt-2 font-medium">Backtest results may be less reliable.</div>
-              </div>
-            </div>
+            <Callout
+              title="Data Quality Warning"
+              icon={AlertTriangle}
+              color="yellow"
+            >
+              {dataQuality?.issues_description && (
+                <div className="mb-1">{dataQuality.issues_description}</div>
+              )}
+              {gapOverlap && gapOverlap.length > 0 && (
+                <div>
+                  Your selected period overlaps {gapOverlap.length} large data gap
+                  {gapOverlap.length > 1 ? "s" : ""}.
+                </div>
+              )}
+              <div className="mt-2 font-medium">Backtest results may be less reliable.</div>
+            </Callout>
           )}
         </div>
       )}
