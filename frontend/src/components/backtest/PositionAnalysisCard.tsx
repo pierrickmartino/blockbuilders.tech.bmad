@@ -1,5 +1,6 @@
 "use client";
 
+import { Card } from "@tremor/react";
 import { TradeDetail } from "@/types/backtest";
 import { formatDuration, formatMoney } from "@/lib/format";
 import { Info } from "lucide-react";
@@ -100,7 +101,7 @@ export function PositionAnalysisCard({ trades, timeframe }: PositionAnalysisCard
   }, [trades, timeframe]);
 
   return (
-    <div className="rounded border border-border bg-card">
+    <Card className="!p-0 overflow-hidden">
       {/* Header */}
       <div className="border-b border-border px-4 py-4 sm:px-5">
         <h2 className="text-[15px] font-semibold">Position analysis</h2>
@@ -155,7 +156,7 @@ export function PositionAnalysisCard({ trades, timeframe }: PositionAnalysisCard
 
             {/* Warning */}
             {positionStats.hasMissingTimestamps && (
-              <div className="px-4 py-3 text-xs text-amber-800 dark:text-amber-400 sm:px-5">
+              <div className="px-4 py-3 text-xs text-warning sm:px-5">
                 Some trades have missing timestamps. Hold time statistics are hidden.
               </div>
             )}
@@ -170,6 +171,6 @@ export function PositionAnalysisCard({ trades, timeframe }: PositionAnalysisCard
           )}
         </>
       )}
-    </div>
+    </Card>
   );
 }

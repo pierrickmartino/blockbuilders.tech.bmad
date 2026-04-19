@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { Card } from "@tremor/react";
 import { BacktestSummary } from "@/types/backtest";
 import { formatNumber, formatPercent } from "@/lib/format";
 import {
@@ -9,7 +10,6 @@ import {
   Zap,
   Activity,
   BarChart2,
-  ArrowRight,
   Minus,
 } from "lucide-react";
 
@@ -23,7 +23,7 @@ export function TransactionCostAnalysis({ summary }: TransactionCostAnalysisProp
 
   if (!hasCostData) {
     return (
-      <section className="rounded border bg-card p-6">
+      <Card className="!p-6">
         <h2 className="mb-3 text-lg font-semibold tracking-tight text-foreground">
           Transaction cost analysis
         </h2>
@@ -31,7 +31,7 @@ export function TransactionCostAnalysis({ summary }: TransactionCostAnalysisProp
           Cost breakdown not available for this backtest run. Run a new backtest to see detailed
           transaction costs.
         </p>
-      </section>
+      </Card>
     );
   }
 
@@ -49,7 +49,7 @@ export function TransactionCostAnalysis({ summary }: TransactionCostAnalysisProp
   const spreadPct = total > 0 ? (spread / total) * 100 : 0;
 
   return (
-    <section className="rounded border border-border bg-card p-6">
+    <Card className="!p-6">
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
@@ -123,7 +123,7 @@ export function TransactionCostAnalysis({ summary }: TransactionCostAnalysisProp
           <LegendDot colorClass="bg-destructive" label={`Fees ${formatNumber(feesPct, 1)}%`} />
           <LegendDot colorClass="bg-warning" label={`Slippage ${formatNumber(slippagePct, 1)}%`} />
           <LegendDot
-            colorClass="bg-slate-400 dark:bg-slate-500"
+            colorClass="bg-muted-foreground/50"
             label={`Spread ${formatNumber(spreadPct, 1)}%`}
           />
         </div>
@@ -170,7 +170,7 @@ export function TransactionCostAnalysis({ summary }: TransactionCostAnalysisProp
           </div>
         </div>
       </div>
-    </section>
+    </Card>
   );
 }
 
