@@ -1,5 +1,6 @@
 "use client";
 
+import { Card, Metric, BadgeDelta } from "@tremor/react";
 import { BacktestSummary, TradeDetail } from "@/types/backtest";
 import { formatPercent, formatDuration } from "@/lib/format";
 import { TrendingUp, Activity, TrendingDown, Target, Repeat, Clock3 } from "lucide-react";
@@ -21,22 +22,30 @@ interface KPICardProps {
   subtitle: string;
   icon: React.ReactNode;
   valueColor?: string;
+  delta?: { type: "increase" | "decrease" | "unchanged"; label: string };
 }
 
-function KPICard({ label, value, subtitle, icon, valueColor }: KPICardProps) {
+function KPICard({ label, value, subtitle, icon, valueColor, delta }: KPICardProps) {
   return (
-    <div className="rounded border border-border bg-card p-4 sm:p-5">
+    <Card className="!p-4 sm:!p-5">
       <div className="flex items-center justify-between">
         <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
           {label}
         </span>
         {icon}
       </div>
-      <div className={cn("mt-2 font-mono text-2xl font-bold sm:text-[26px]", valueColor)}>
+      <Metric className={cn("mt-2 font-mono text-2xl font-bold sm:text-[26px]", valueColor)}>
         {value}
+      </Metric>
+      <div className="mt-1 flex items-center gap-2 text-[11px] text-muted-foreground">
+        {delta && (
+          <BadgeDelta deltaType={delta.type} size="xs">
+            {delta.label}
+          </BadgeDelta>
+        )}
+        <span>{subtitle}</span>
       </div>
-      <div className="mt-1 text-[11px] text-muted-foreground">{subtitle}</div>
-    </div>
+    </Card>
   );
 }
 
@@ -44,15 +53,20 @@ export function KPIStrip({ summary, trades, positionStats }: KPIStripProps) {
   const totalReturn = summary.total_return_pct;
   const isPositiveReturn = totalReturn >= 0;
   const wins = Math.round((summary.win_rate_pct / 100) * summary.num_trades);
+  const benchmark = summary.benchmark_return_pct;
+  const vsBenchmark = totalReturn - benchmark;
+  const vsDeltaType: "increase" | "decrease" | "unchanged" =
+    Math.abs(vsBenchmark) < 0.01 ? "unchanged" : vsBenchmark > 0 ? "increase" : "decrease";
 
   return (
     <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
       <KPICard
         label="Total return"
         value={`${isPositiveReturn ? "+" : ""}${formatPercent(totalReturn)}`}
-        subtitle={`vs B&H ${summary.benchmark_return_pct >= 0 ? "+" : ""}${formatPercent(summary.benchmark_return_pct)}`}
+        subtitle={`vs B&H ${benchmark >= 0 ? "+" : ""}${formatPercent(benchmark)}`}
         icon={<TrendingUp className={cn("h-3.5 w-3.5", isPositiveReturn ? "text-success" : "text-destructive")} />}
         valueColor={isPositiveReturn ? "text-success" : "text-destructive"}
+        delta={{ type: vsDeltaType, label: `${vsBenchmark >= 0 ? "+" : ""}${formatPercent(vsBenchmark)}` }}
       />
       <KPICard
         label="Sharpe ratio"
