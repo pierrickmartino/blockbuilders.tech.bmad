@@ -8,6 +8,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { KEYBOARD_SHORTCUTS, isMacPlatform } from "@/lib/keyboard-shortcuts";
+import type { KeyboardShortcut } from "@/lib/keyboard-shortcuts";
 
 interface KeyboardShortcutsModalProps {
   open: boolean;
@@ -20,8 +21,35 @@ export function KeyboardShortcutsModal({
 }: KeyboardShortcutsModalProps) {
   const isMac = isMacPlatform();
 
-  const formatKey = (key: string) => {
-    return key.replace("Cmd/Ctrl", isMac ? "Cmd" : "Ctrl");
+  const formatKey = (key: string) =>
+    key.replace("Cmd/Ctrl", isMac ? "⌘" : "Ctrl");
+
+  const categories = [...new Set(KEYBOARD_SHORTCUTS.map((s) => s.category))];
+
+  const renderKeys = (shortcut: KeyboardShortcut) => {
+    const ariaLabel = shortcut.keys
+      .map((combo) => combo.map(formatKey).join(" + "))
+      .join(" or ");
+
+    return (
+      <div className="flex shrink-0 items-center gap-1.5" aria-label={ariaLabel}>
+        {shortcut.keys.map((combo, ci) => (
+          <span key={ci} className="flex items-center gap-0.5">
+            {ci > 0 && (
+              <span className="mx-1 text-xs text-muted-foreground">or</span>
+            )}
+            {combo.map((part) => (
+              <kbd
+                key={part}
+                className="rounded border border-border bg-muted px-1.5 py-0.5 text-xs font-mono text-muted-foreground"
+              >
+                {formatKey(part)}
+              </kbd>
+            ))}
+          </span>
+        ))}
+      </div>
+    );
   };
 
   return (
@@ -34,20 +62,30 @@ export function KeyboardShortcutsModal({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-3">
-          {KEYBOARD_SHORTCUTS.map((shortcut, idx) => (
-            <div key={idx} className="flex items-start gap-4">
-              <kbd className="min-w-[120px] rounded border border-gray-300 bg-gray-50 px-2 py-1 text-xs font-mono text-gray-700">
-                {formatKey(shortcut.key)}
-              </kbd>
-              <div className="flex-1">
-                <div className="font-medium text-sm text-gray-900">
-                  {shortcut.action}
-                </div>
-                <div className="text-xs text-gray-500">
-                  {shortcut.description}
-                </div>
-              </div>
+        <div className="space-y-4">
+          {categories.map((category) => (
+            <div key={category} className="space-y-2">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                {category}
+              </h3>
+              {KEYBOARD_SHORTCUTS.filter((s) => s.category === category).map(
+                (shortcut) => (
+                  <div
+                    key={shortcut.action}
+                    className="flex items-start gap-4"
+                  >
+                    {renderKeys(shortcut)}
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-medium text-foreground">
+                        {shortcut.action}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {shortcut.description}
+                      </div>
+                    </div>
+                  </div>
+                ),
+              )}
             </div>
           ))}
         </div>

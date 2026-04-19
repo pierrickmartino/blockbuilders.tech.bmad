@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
 import { ProgressResponse } from "@/types/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Award,
   BarChart3,
@@ -13,34 +14,128 @@ import {
   Circle,
   GitBranch,
   Layers,
+  Lock,
+  Sparkles,
   Zap,
+  type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
+
+type AchievementDef = {
+  key: string;
+  label: string;
+  icon: LucideIcon;
+  threshold: number;
+  current: (p: ProgressResponse) => number;
+  hint: string;
+};
+
+const ACHIEVEMENTS: AchievementDef[] = [
+  {
+    key: "first-strategy",
+    label: "First Strategy",
+    icon: Award,
+    threshold: 1,
+    current: (p) => p.strategies_count,
+    hint: "Create 1 strategy",
+  },
+  {
+    key: "five-strategies",
+    label: "5 Strategies",
+    icon: Layers,
+    threshold: 5,
+    current: (p) => p.strategies_count,
+    hint: "Create 5 strategies",
+  },
+  {
+    key: "first-backtest",
+    label: "First Backtest",
+    icon: BarChart3,
+    threshold: 1,
+    current: (p) => p.completed_backtests_count,
+    hint: "Run 1 backtest",
+  },
+  {
+    key: "ten-backtests",
+    label: "10 Backtests",
+    icon: Zap,
+    threshold: 10,
+    current: (p) => p.completed_backtests_count,
+    hint: "Run 10 backtests",
+  },
+];
+
+function MetricCard({
+  title,
+  icon: Icon,
+  value,
+  caption,
+  emptyHint,
+}: {
+  title: string;
+  icon: LucideIcon;
+  value: number;
+  caption: string;
+  emptyHint?: string;
+}) {
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium">{title}</CardTitle>
+        <Icon className="h-4 w-4 text-muted-foreground" />
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold tabular-nums tracking-tight">
+          {value}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          {value === 0 && emptyHint ? emptyHint : caption}
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function ProgressPage() {
   const [progress, setProgress] = useState<ProgressResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function fetchProgress() {
-      try {
-        const data = await apiFetch<ProgressResponse>("/progress");
-        setProgress(data);
-      } catch {
-        setError("Couldn't load progress. Please try again.");
-      } finally {
-        setIsLoading(false);
-      }
+  const fetchProgress = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await apiFetch<ProgressResponse>("/progress");
+      setProgress(data);
+    } catch {
+      setError("Couldn't load progress. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
-    fetchProgress();
   }, []);
+
+  useEffect(() => {
+    fetchProgress();
+  }, [fetchProgress]);
 
   if (isLoading) {
     return (
       <main className="container mx-auto max-w-6xl space-y-6 p-4 md:p-6">
-        <div className="flex items-center justify-center py-12">
-          <div className="text-muted-foreground">Loading progress...</div>
+        <div className="space-y-2">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-4 w-64" />
+        </div>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div className="flex flex-col gap-4">
+            {[0, 1, 2].map((i) => (
+              <Skeleton key={i} className="h-[104px] w-full" />
+            ))}
+          </div>
+          <div className="flex flex-col gap-4">
+            <Skeleton className="h-48 w-full" />
+            <Skeleton className="h-64 w-full" />
+            <Skeleton className="h-40 w-full" />
+          </div>
         </div>
       </main>
     );
@@ -49,8 +144,16 @@ export default function ProgressPage() {
   if (error) {
     return (
       <main className="container mx-auto max-w-6xl space-y-6 p-4 md:p-6">
-        <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-          {error}
+        <div className="flex flex-col gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive sm:flex-row sm:items-center sm:justify-between">
+          <span>{error}</span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={fetchProgress}
+            className="self-start sm:self-auto"
+          >
+            Retry
+          </Button>
         </div>
       </main>
     );
@@ -60,97 +163,87 @@ export default function ProgressPage() {
     return null;
   }
 
+  const lessonsPct =
+    progress.lessons.total > 0
+      ? Math.round((progress.lessons.completed / progress.lessons.total) * 100)
+      : 0;
+  const primaryStep = progress.next_steps[0];
+  const remainingSteps = progress.next_steps.slice(1);
+
   return (
     <main className="container mx-auto max-w-6xl space-y-6 p-4 md:p-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Your Progress</h1>
-        <p className="text-sm text-muted-foreground">
-          Building momentum one strategy at a time
-        </p>
+      <div className="flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <Sparkles className="h-5 w-5" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Your Progress</h1>
+          <p className="text-sm text-muted-foreground">
+            Building momentum one strategy at a time
+          </p>
+        </div>
       </div>
 
       {/* Main Grid Layout */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Left Column: Core Metrics */}
         <div className="flex flex-col gap-4">
-          {/* Strategies Card */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Strategies Created
-              </CardTitle>
-              <Layers className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold tabular-nums tracking-tight">
-                {progress.strategies_count}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Total strategies in your lab
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* Backtests Card */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Backtests Run
-              </CardTitle>
-              <BarChart3 className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold tabular-nums tracking-tight">
-                {progress.completed_backtests_count}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Completed backtest runs
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* Versions Card */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Strategy Versions
-              </CardTitle>
-              <GitBranch className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold tabular-nums tracking-tight">
-                {progress.strategy_versions_count}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Total saved versions
-              </p>
-            </CardContent>
-          </Card>
+          <MetricCard
+            title="Strategies Created"
+            icon={Layers}
+            value={progress.strategies_count}
+            caption="Total strategies in your lab"
+            emptyHint="Create your first strategy to get started"
+          />
+          <MetricCard
+            title="Backtests Run"
+            icon={BarChart3}
+            value={progress.completed_backtests_count}
+            caption="Completed backtest runs"
+            emptyHint="Run a backtest to see results here"
+          />
+          <MetricCard
+            title="Strategy Versions"
+            icon={GitBranch}
+            value={progress.strategy_versions_count}
+            caption="Total saved versions"
+            emptyHint="Save a version to track your iterations"
+          />
         </div>
 
         {/* Right Column: Lessons & Achievements */}
         <div className="flex flex-col gap-4">
           {/* Lessons Card */}
           <Card>
-            <CardHeader>
+            <CardHeader className="space-y-2">
               <CardTitle className="flex items-center gap-2">
-                <Zap className="h-5 w-5" />
+                <Zap className="h-4 w-4" />
                 Lessons Learned
                 <Badge variant="secondary" className="ml-auto">
                   {progress.lessons.completed}/{progress.lessons.total}
                 </Badge>
               </CardTitle>
+              <div
+                className="h-1.5 w-full overflow-hidden rounded-full bg-muted"
+                role="progressbar"
+                aria-valuenow={lessonsPct}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label="Lessons completed"
+              >
+                <div
+                  className="h-full rounded-full bg-primary transition-all"
+                  style={{ width: `${lessonsPct}%` }}
+                />
+              </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
                 {progress.lessons.items.map((lesson) => (
-                  <div
-                    key={lesson.key}
-                    className="flex items-center gap-3"
-                  >
+                  <div key={lesson.key} className="flex items-center gap-3">
                     {lesson.done ? (
-                      <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
+                      <CheckCircle2 className="h-5 w-5 text-[hsl(var(--success))]" />
                     ) : (
                       <Circle className="h-5 w-5 text-muted-foreground" />
                     )}
@@ -173,7 +266,7 @@ export default function ProgressPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Award className="h-5 w-5" />
+                <Award className="h-4 w-4" />
                 Achievements
                 <Badge variant="secondary" className="ml-auto">
                   {progress.achievements.unlocked}/{progress.achievements.total}
@@ -182,77 +275,42 @@ export default function ProgressPage() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 gap-3">
-                {/* First Strategy */}
-                <div
-                  className={`rounded-lg border p-3 text-center ${
-                    progress.strategies_count >= 1
-                      ? "border-primary bg-primary/10"
-                      : "border-muted bg-muted/50"
-                  }`}
-                >
-                  <Award
-                    className={`mx-auto mb-2 h-6 w-6 ${
-                      progress.strategies_count >= 1
-                        ? "text-primary"
-                        : "text-muted-foreground"
-                    }`}
-                  />
-                  <div className="text-xs font-medium">First Strategy</div>
-                </div>
-
-                {/* 5 Strategies */}
-                <div
-                  className={`rounded-lg border p-3 text-center ${
-                    progress.strategies_count >= 5
-                      ? "border-primary bg-primary/10"
-                      : "border-muted bg-muted/50"
-                  }`}
-                >
-                  <Layers
-                    className={`mx-auto mb-2 h-6 w-6 ${
-                      progress.strategies_count >= 5
-                        ? "text-primary"
-                        : "text-muted-foreground"
-                    }`}
-                  />
-                  <div className="text-xs font-medium">5 Strategies</div>
-                </div>
-
-                {/* First Backtest */}
-                <div
-                  className={`rounded-lg border p-3 text-center ${
-                    progress.completed_backtests_count >= 1
-                      ? "border-primary bg-primary/10"
-                      : "border-muted bg-muted/50"
-                  }`}
-                >
-                  <BarChart3
-                    className={`mx-auto mb-2 h-6 w-6 ${
-                      progress.completed_backtests_count >= 1
-                        ? "text-primary"
-                        : "text-muted-foreground"
-                    }`}
-                  />
-                  <div className="text-xs font-medium">First Backtest</div>
-                </div>
-
-                {/* 10 Backtests */}
-                <div
-                  className={`rounded-lg border p-3 text-center ${
-                    progress.completed_backtests_count >= 10
-                      ? "border-primary bg-primary/10"
-                      : "border-muted bg-muted/50"
-                  }`}
-                >
-                  <Zap
-                    className={`mx-auto mb-2 h-6 w-6 ${
-                      progress.completed_backtests_count >= 10
-                        ? "text-primary"
-                        : "text-muted-foreground"
-                    }`}
-                  />
-                  <div className="text-xs font-medium">10 Backtests</div>
-                </div>
+                {ACHIEVEMENTS.map((a) => {
+                  const current = a.current(progress);
+                  const unlocked = current >= a.threshold;
+                  const Icon = a.icon;
+                  const status = unlocked ? "unlocked" : "locked";
+                  return (
+                    <div
+                      key={a.key}
+                      aria-label={`${a.label} — ${status}. ${a.hint}. Progress: ${Math.min(current, a.threshold)} of ${a.threshold}`}
+                      className={`relative rounded-lg border p-3 text-center ${
+                        unlocked
+                          ? "border-primary bg-primary/10"
+                          : "border-muted bg-muted/50"
+                      }`}
+                    >
+                      {!unlocked && (
+                        <Lock
+                          aria-hidden
+                          className="absolute right-2 top-2 h-3 w-3 text-muted-foreground"
+                        />
+                      )}
+                      <Icon
+                        aria-hidden
+                        className={`mx-auto mb-2 h-6 w-6 ${
+                          unlocked ? "text-primary" : "text-muted-foreground"
+                        }`}
+                      />
+                      <div className="text-xs font-medium">{a.label}</div>
+                      <div className="mt-1 text-[10px] tabular-nums text-muted-foreground">
+                        {unlocked
+                          ? "Unlocked"
+                          : `${Math.min(current, a.threshold)}/${a.threshold}`}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
 
               {progress.achievements.latest && (
@@ -269,39 +327,33 @@ export default function ProgressPage() {
           </Card>
 
           {/* Next Steps Card */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Next Steps</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {progress.next_steps.map((step, index) => {
-                  let href = "/strategies";
-                  if (step.includes("backtest")) {
-                    href = "/strategies";
-                  } else if (step.includes("Create")) {
-                    href = "/strategies";
-                  }
-
-                  return index === 0 ? (
-                    <Link key={index} href={href} className="block">
+          {progress.next_steps.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Next Steps</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {primaryStep && (
+                    <Link href="/strategies" className="block">
                       <Button className="w-full" size="lg">
-                        {step}
+                        <span className="truncate">{primaryStep}</span>
                       </Button>
                     </Link>
-                  ) : (
+                  )}
+                  {remainingSteps.map((step) => (
                     <div
-                      key={index}
+                      key={step}
                       className="flex items-center gap-2 text-sm text-muted-foreground"
                     >
                       <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground" />
                       <span>{step}</span>
                     </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </main>

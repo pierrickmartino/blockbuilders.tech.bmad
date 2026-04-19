@@ -55,5 +55,6 @@ class BacktestRun(SQLModel, table=True):
     triggered_by: str = Field(default="manual")  # "manual" or "auto"
     batch_id: Optional[UUID] = Field(default=None, index=True)
     period_key: Optional[str] = Field(default=None)
+    started_at: Optional[datetime] = Field(default=None)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)

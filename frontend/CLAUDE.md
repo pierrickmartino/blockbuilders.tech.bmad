@@ -16,6 +16,15 @@ npm run storybook    # Storybook → localhost:6006
 - Use `cn()` from `@/lib/utils` for conditional class names
 - Canvas nodes (`components/canvas/`) use **custom Tailwind only — no shadcn/ui**
 
+## Tremor (`@tremor/react`)
+- **Use for:** charts (AreaChart, LineChart, BarChart, SparkLineChart), KPIs (Card + Metric + BadgeDelta), Callouts, Tracker
+- **Do NOT use for:** canvas nodes, forms, dialogs — keep shadcn/ui primitives there
+- Import from `@tremor/react`; shells wrap with Tremor `Card` (override padding via `!p-*`)
+- Chart color names use Tremor built-in palette: `blue`, `emerald`, `amber`, `red`, `violet`, `gray` — NOT semantic tokens (primary/success/etc.) because Tremor resolves to `text-${color}-500` classes
+- `tremor.*` + `dark-tremor.*` tailwind keys alias our CSS vars (see `tailwind.config.ts`) so Tremor shells (backgrounds, borders, text) match the theme
+- Installed with `--legacy-peer-deps` (Tremor 3.18 still declares React 18 peer). Works at runtime on React 19.
+- Recharts is **removed** — do not reintroduce; use Tremor charts or (for candlesticks) `lightweight-charts`.
+
 ## Design system — read before writing any UI
 
 Two source-of-truth files (relative to this directory):

@@ -1,44 +1,28 @@
 "use client";
 
-import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type CSSProperties, use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  LineChart,
-  Line,
-  AreaChart,
-  Area,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  ReferenceArea,
-  ReferenceLine,
-} from "recharts";
+import { LineChart } from "@tremor/react";
 import { apiFetch, ApiError, fetchDataQuality, fetchDataCompleteness, fetchDataAvailability } from "@/lib/api";
 import { trackEvent } from "@/lib/analytics";
 import {
   formatDateTime,
   formatPercent,
   formatPrice,
-  formatMoney,
   formatChartDate,
-  formatDuration,
 } from "@/lib/format";
 import { useDisplay } from "@/context/display";
 import { useAuth } from "@/context/auth";
 import { useBacktestResults } from "@/hooks/useBacktestResults";
 import { useBatchBacktestResults } from "@/hooks/useBatchBacktestResults";
-import { Strategy } from "@/types/strategy";
+import { Strategy, StrategyVersion } from "@/types/strategy";
 import {
   BacktestCreateResponse,
   BacktestListItem,
+  BacktestListPage,
   BacktestStatus,
   BacktestStatusResponse,
-  BacktestSummary,
   BatchBacktestCreateResponse,
   BatchRunResult,
   DataAvailabilityResponse,
@@ -49,22 +33,14 @@ import {
 import { PlanResponse, ProfileResponse } from "@/types/auth";
 import { StrategyTabs } from "@/components/StrategyTabs";
 import TradeDrawer from "@/components/TradeDrawer";
-import InfoIcon from "@/components/InfoIcon";
 import { WhatYouLearnedCard } from "@/components/WhatYouLearnedCard";
 import { NarrativeCard } from "@/components/NarrativeCard";
 import { LowTradeCountWarning } from "@/components/LowTradeCountWarning";
 import { DataAvailabilitySection } from "@/components/DataAvailabilitySection";
 import { ShareBacktestModal } from "@/components/ShareBacktestModal";
 import { TransactionCostAnalysis } from "@/components/TransactionCostAnalysis";
-import { metricToGlossaryId, getTooltip } from "@/lib/tooltip-content";
-import {
-  Tooltip as RadixTooltip,
-  TooltipTrigger as RadixTooltipTrigger,
-  TooltipContent as RadixTooltipContent,
-  TooltipProvider,
-} from "@/components/ui/tooltip";
 import { trackBacktestView } from "@/lib/recent-views";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -72,7 +48,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -81,36 +56,23 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { ZoomableChart } from "@/components/ZoomableChart";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  exportTradesToCSV,
-  exportTradesToJSON,
   exportEquityToCSV,
   exportEquityToJSON,
-  exportMetricsToCSV,
-  exportMetricsToJSON,
 } from "@/lib/backtest-export";
 import { KeyboardShortcutsModal } from "@/components/KeyboardShortcutsModal";
 import { isInputElement } from "@/lib/keyboard-shortcuts";
-import { Checkbox } from "@/components/ui/checkbox";
 import { BacktestRunsList } from "@/components/BacktestRunsList";
-import { statusStyles } from "@/lib/backtest-constants";
+import { AllRunsDrawer } from "@/components/AllRunsDrawer";
+import { BacktestPageHeader } from "@/components/backtest/PageHeader";
+import { RunConfig } from "@/components/backtest/RunConfig";
+import { KPIStrip } from "@/components/backtest/KPIStrip";
+import { DrawdownSection } from "@/components/backtest/DrawdownSection";
+import { PositionAnalysisCard } from "@/components/backtest/PositionAnalysisCard";
+import { TradesSection } from "@/components/backtest/TradesSection";
+import { DistributionRow } from "@/components/backtest/DistributionRow";
+import { cn } from "@/lib/utils";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -151,32 +113,7 @@ const PERIOD_PRESETS: PeriodOption[] = [
 const BATCH_PERIOD_PRESETS = PERIOD_PRESETS.filter((p) => p.value !== "custom");
 
 
-function getDatesFromPreset(preset: PeriodPreset): { from: string; to: string } | null {
-  const option = PERIOD_PRESETS.find((p) => p.value === preset);
-  if (!option || option.days === null) return null;
-  const today = new Date();
-  const past = new Date();
-  past.setDate(today.getDate() - option.days);
-  return { from: formatDateInput(past), to: formatDateInput(today) };
-}
-
-
-const FIRST_RUN_KEY = "bb.first_run_metric_explanations_seen";
 const SUMMARY_CARD_KEY = "bb.first_run_summary_card_seen";
-const FIRST_RUN_METRIC_KEYS = ["total-return", "max-drawdown", "win-rate", "trades", "benchmark-return"];
-const DEFAULT_METRIC_KEYS = FIRST_RUN_METRIC_KEYS;
-
-function getFirstRunSeen(): boolean {
-  if (typeof window === "undefined") return true;
-  try { return localStorage.getItem(FIRST_RUN_KEY) === "true"; }
-  catch { return true; }
-}
-
-function markFirstRunSeen(): void {
-  if (typeof window === "undefined") return;
-  try { localStorage.setItem(FIRST_RUN_KEY, "true"); }
-  catch { /* storage unavailable */ }
-}
 
 function getSummaryCardSeen(): boolean {
   if (typeof window === "undefined") return true;
@@ -190,151 +127,17 @@ function markSummaryCardSeen(): void {
   catch { /* storage unavailable */ }
 }
 
-interface MetricConfig {
-  key: string;
-  label: string;
-  getValue: (summary: BacktestSummary) => string | number;
-}
-
-function getOrderedMetrics(
-  summary: BacktestSummary,
-  favoriteKeys: string[] | null
-): MetricConfig[] {
-  const allMetrics: MetricConfig[] = [
-    { key: "final-balance", label: "Final balance", getValue: s => formatPrice(s.final_balance) },
-    { key: "total-return", label: "Total return", getValue: s => formatPercent(s.total_return_pct) },
-    { key: "max-drawdown", label: "Max drawdown", getValue: s => formatPercent(s.max_drawdown_pct) },
-    { key: "cagr", label: "CAGR", getValue: s => formatPercent(s.cagr_pct) },
-    { key: "trades", label: "Trades", getValue: s => s.num_trades },
-    { key: "win-rate", label: "Win rate", getValue: s => formatPercent(s.win_rate_pct) },
-    { key: "benchmark-return", label: "Benchmark return", getValue: s => formatPercent(s.benchmark_return_pct) },
-    { key: "alpha", label: "Alpha", getValue: s => formatPercent(s.alpha) },
-    { key: "beta", label: "Beta", getValue: s => s.beta.toFixed(2) },
-    { key: "sharpe-ratio", label: "Sharpe ratio", getValue: s => s.sharpe_ratio.toFixed(2) },
-    { key: "sortino-ratio", label: "Sortino ratio", getValue: s => s.sortino_ratio.toFixed(2) },
-    { key: "calmar-ratio", label: "Calmar ratio", getValue: s => s.calmar_ratio.toFixed(2) },
-    { key: "max-consec-losses", label: "Max consec. losses", getValue: s => s.max_consecutive_losses },
-  ];
-
-  if (!favoriteKeys || favoriteKeys.length === 0) {
-    return allMetrics;
-  }
-
-  // Pinned metrics first (in user order), then remaining
-  const pinned = favoriteKeys
-    .map(key => allMetrics.find(m => m.key === key))
-    .filter(Boolean) as MetricConfig[];
-
-  const remaining = allMetrics.filter(m => !favoriteKeys.includes(m.key));
-
-  return [...pinned, ...remaining];
-}
-
-function MetricCard({
-  metricKey,
-  label,
-  value,
-  isPinned = false,
-  canMoveLeft = false,
-  canMoveRight = false,
-  onTogglePin,
-  onMoveLeft,
-  onMoveRight,
-  disabled = false,
-  firstRunExplanation,
-  showFirstRunHelper = false,
-}: {
-  metricKey: string;
-  label: string;
-  value: string | number;
-  isPinned?: boolean;
-  canMoveLeft?: boolean;
-  canMoveRight?: boolean;
-  onTogglePin?: () => void;
-  onMoveLeft?: () => void;
-  onMoveRight?: () => void;
-  disabled?: boolean;
-  firstRunExplanation?: string;
-  showFirstRunHelper?: boolean;
-}) {
-  const tooltip = getTooltip(metricToGlossaryId(metricKey));
-
-  return (
-    <div className="rounded-lg border bg-secondary/50 p-2 dark:bg-secondary/30 sm:p-3">
-      <div className="flex items-center justify-between gap-1 text-xs uppercase text-muted-foreground">
-        <div className="flex min-w-0 items-center gap-1">
-          <span className="truncate" title={tooltip?.short}>{label}</span>
-          {showFirstRunHelper && tooltip?.firstRun ? (
-            <TooltipProvider delayDuration={0}>
-              <RadixTooltip>
-                <RadixTooltipTrigger asChild>
-                  <button
-                    className="inline-flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full border text-[10px] leading-none text-muted-foreground transition-colors hover:text-primary"
-                    aria-label="Explain metric"
-                  >
-                    ?
-                  </button>
-                </RadixTooltipTrigger>
-                <RadixTooltipContent side="top" className="max-w-[220px] text-xs">
-                  {tooltip.firstRun}
-                </RadixTooltipContent>
-              </RadixTooltip>
-            </TooltipProvider>
-          ) : (
-            <InfoIcon tooltip={tooltip} className="hidden flex-shrink-0 sm:inline-flex" />
-          )}
-        </div>
-
-        <button
-          onClick={onTogglePin}
-          disabled={disabled}
-          className="flex-shrink-0 text-muted-foreground transition-colors hover:text-primary disabled:opacity-50"
-          title={isPinned ? "Unpin metric" : "Pin metric"}
-        >
-          <svg className="h-4 w-4" fill={isPinned ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeWidth="2" d="M5 5l7-2 7 2v10l-7 2-7-2V5z" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </button>
-      </div>
-
-      <div className="text-base font-semibold tabular-nums sm:text-lg">{value}</div>
-
-      {firstRunExplanation && (
-        <p className="mt-1 text-xs text-muted-foreground/70">{firstRunExplanation}</p>
-      )}
-
-      {isPinned && (
-        <div className="mt-2 hidden gap-1 sm:flex">
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={onMoveLeft}
-            disabled={!canMoveLeft || disabled}
-            className="h-6 px-2 text-xs"
-          >
-            ← Left
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={onMoveRight}
-            disabled={!canMoveRight || disabled}
-            className="h-6 px-2 text-xs"
-          >
-            Right →
-          </Button>
-        </div>
-      )}
-    </div>
-  );
-}
-
 type PeriodType = "month" | "quarter" | "weekday";
 
 interface SeasonalityBucket {
   label: string;
   avgReturn: number;
   count: number;
+}
+
+interface SeasonalityYearRow {
+  year: number;
+  buckets: SeasonalityBucket[];
 }
 
 interface DistributionBucket {
@@ -347,50 +150,96 @@ const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "S
 const QUARTER_LABELS = ["Q1", "Q2", "Q3", "Q4"];
 const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-function getColorClass(avgReturn: number): string {
-  if (avgReturn > 2) return "bg-green-100 text-green-700 border-green-200 dark:bg-green-950 dark:text-green-400 dark:border-green-800";
-  if (avgReturn > 0.5) return "bg-green-50 text-green-600 border-green-100 dark:bg-green-950/50 dark:text-green-400 dark:border-green-900";
-  if (avgReturn > -0.5) return "bg-secondary/50 text-muted-foreground border-border";
-  if (avgReturn > -2) return "bg-red-50 text-red-600 border-red-100 dark:bg-red-950/50 dark:text-red-400 dark:border-red-900";
-  return "bg-red-100 text-red-700 border-red-200 dark:bg-red-950 dark:text-red-400 dark:border-red-800";
+const SEASONALITY_PERCENT_FORMATTER = new Intl.NumberFormat(undefined, {
+  minimumFractionDigits: 1,
+  maximumFractionDigits: 1,
+  useGrouping: false,
+});
+
+function getSeasonalityLabels(periodType: PeriodType): string[] {
+  return periodType === "month"
+    ? MONTH_LABELS
+    : periodType === "quarter"
+      ? QUARTER_LABELS
+      : WEEKDAY_LABELS;
+}
+
+function getSeasonalityBucketIndex(date: Date, periodType: PeriodType): number {
+  if (periodType === "month") return date.getUTCMonth();
+  if (periodType === "quarter") return Math.floor(date.getUTCMonth() / 3);
+  return (date.getUTCDay() + 6) % 7;
+}
+
+function formatSeasonalityPercent(value: number): string {
+  return `${value >= 0 ? "+" : "-"}${SEASONALITY_PERCENT_FORMATTER.format(Math.abs(value))}%`;
+}
+
+function getSeasonalityGridClass(periodType: PeriodType): string {
+  if (periodType === "month") return "grid-cols-12 min-w-[720px]";
+  if (periodType === "quarter") return "grid-cols-4 min-w-[360px]";
+  return "grid-cols-7 min-w-[560px]";
+}
+
+function getSeasonalityCellStyle(
+  avgReturn: number,
+  count: number,
+  scaleMax: number
+): CSSProperties {
+  if (count === 0) {
+    return {
+      backgroundColor: "rgba(148, 163, 184, 0.08)",
+      borderColor: "rgba(148, 163, 184, 0.12)",
+      color: "rgba(100, 116, 139, 0.7)",
+    };
+  }
+
+  const intensity = Math.min(Math.abs(avgReturn) / Math.max(scaleMax, 0.01), 1);
+  const easedIntensity = Math.pow(intensity, 0.8);
+  const alpha = 0.14 + easedIntensity * 0.78;
+  const isPositive = avgReturn >= 0;
+  const base = isPositive ? "22, 163, 74" : "220, 38, 38";
+
+  return {
+    backgroundColor: `rgba(${base}, ${alpha})`,
+    borderColor: `rgba(${base}, ${Math.min(alpha + 0.08, 1)})`,
+    color: easedIntensity > 0.72 ? "#ffffff" : isPositive ? "#166534" : "#991b1b",
+  };
 }
 
 function computeSeasonality(
   trades: Array<{ exit_time: string; pnl_pct: number }>,
   periodType: PeriodType
-): SeasonalityBucket[] {
-  const buckets = new Map<number, { sum: number; count: number }>();
-  const numBuckets = periodType === "month" ? 12 : periodType === "quarter" ? 4 : 7;
+): SeasonalityYearRow[] {
+  const bucketsByYear = new Map<number, Map<number, { sum: number; count: number }>>();
+  const labels = getSeasonalityLabels(periodType);
+  const numBuckets = labels.length;
 
   for (const trade of trades) {
     const date = new Date(trade.exit_time);
-    let bucket: number;
+    if (Number.isNaN(date.getTime())) continue;
 
-    if (periodType === "month") {
-      bucket = date.getUTCMonth();
-    } else if (periodType === "quarter") {
-      bucket = Math.floor(date.getUTCMonth() / 3);
-    } else {
-      bucket = (date.getUTCDay() + 6) % 7;
-    }
+    const year = date.getUTCFullYear();
+    const bucket = getSeasonalityBucketIndex(date, periodType);
+    const yearBuckets = bucketsByYear.get(year) ?? new Map<number, { sum: number; count: number }>();
+    const current = yearBuckets.get(bucket) ?? { sum: 0, count: 0 };
 
-    const current = buckets.get(bucket) || { sum: 0, count: 0 };
-    buckets.set(bucket, { sum: current.sum + trade.pnl_pct, count: current.count + 1 });
+    yearBuckets.set(bucket, { sum: current.sum + trade.pnl_pct, count: current.count + 1 });
+    bucketsByYear.set(year, yearBuckets);
   }
 
-  const labels = periodType === "month" ? MONTH_LABELS : periodType === "quarter" ? QUARTER_LABELS : WEEKDAY_LABELS;
-  const result: SeasonalityBucket[] = [];
-
-  for (let i = 0; i < numBuckets; i++) {
-    const data = buckets.get(i);
-    result.push({
-      label: labels[i],
-      avgReturn: data ? data.sum / data.count : 0,
-      count: data?.count || 0,
-    });
-  }
-
-  return result;
+  return Array.from(bucketsByYear.entries())
+    .sort(([leftYear], [rightYear]) => leftYear - rightYear)
+    .map(([year, buckets]) => ({
+      year,
+      buckets: Array.from({ length: numBuckets }, (_, index) => {
+        const data = buckets.get(index);
+        return {
+          label: labels[index],
+          avgReturn: data ? data.sum / data.count : 0,
+          count: data?.count ?? 0,
+        };
+      }),
+    }));
 }
 
 function timeframeToSeconds(timeframe: string): number {
@@ -482,14 +331,6 @@ function computePositionStats(
   };
 }
 
-function getHoldTimeInterpretation(avgHoldSeconds: number): string {
-  const oneDaySeconds = 86400;
-  if (avgHoldSeconds <= oneDaySeconds) {
-    return 'Holding times suggest a day-trading style.';
-  }
-  return 'Holding times suggest a swing-trading style.';
-}
-
 function computeReturnDistribution(
   trades: Array<{ pnl_pct: number }>
 ): DistributionBucket[] {
@@ -534,16 +375,16 @@ function computeReturnDistribution(
 }
 
 function computeDurationDistribution(
-  trades: Array<{ entry_time: string; exit_time: string }>,
-  timeframeSeconds: number
+  trades: Array<{ entry_time: string; exit_time: string }>
 ): DistributionBucket[] | null {
   const buckets = [
-    { label: '1', min: 0, max: 2, count: 0 },
-    { label: '2-3', min: 2, max: 4, count: 0 },
-    { label: '4-7', min: 4, max: 8, count: 0 },
-    { label: '8-14', min: 8, max: 15, count: 0 },
-    { label: '15-30', min: 15, max: 31, count: 0 },
-    { label: '>30', min: 31, max: Infinity, count: 0 },
+    { label: '<1h',   minSec: 0,       maxSec: 3600,    count: 0 },
+    { label: '1–6h',  minSec: 3600,    maxSec: 21600,   count: 0 },
+    { label: '6–24h', minSec: 21600,   maxSec: 86400,   count: 0 },
+    { label: '1–3d',  minSec: 86400,   maxSec: 259200,  count: 0 },
+    { label: '3–7d',  minSec: 259200,  maxSec: 604800,  count: 0 },
+    { label: '7–14d', minSec: 604800,  maxSec: 1209600, count: 0 },
+    { label: '>14d',  minSec: 1209600, maxSec: Infinity, count: 0 },
   ];
 
   let validCount = 0;
@@ -554,12 +395,11 @@ function computeDurationDistribution(
       const exitMs = new Date(trade.exit_time).getTime();
 
       if (isNaN(entryMs) || isNaN(exitMs)) continue;
-      const durationSeconds = (exitMs - entryMs) / 1000;
-      if (durationSeconds < 0) continue;
-      const durationBars = Math.round(durationSeconds / timeframeSeconds);
+      const holdSeconds = (exitMs - entryMs) / 1000;
+      if (holdSeconds < 0) continue;
 
       for (const bucket of buckets) {
-        if (durationBars >= bucket.min && durationBars < bucket.max) {
+        if (holdSeconds >= bucket.minSec && holdSeconds < bucket.maxSec) {
           bucket.count++;
           validCount++;
           break;
@@ -578,6 +418,18 @@ function computeDurationDistribution(
     count: b.count,
     percentage: total > 0 ? (b.count / total) * 100 : 0,
   }));
+}
+
+function computeSkew(trades: Array<{ pnl_pct: number }>): number {
+  const n = trades.length;
+  if (n < 3) return 0;
+  const values = trades.map(t => t.pnl_pct);
+  const mean = values.reduce((a, b) => a + b, 0) / n;
+  const variance = values.reduce((a, b) => a + (b - mean) ** 2, 0) / (n - 1);
+  const std = Math.sqrt(variance);
+  if (std === 0) return 0;
+  const sum = values.reduce((a, b) => a + ((b - mean) / std) ** 3, 0);
+  return (n / ((n - 1) * (n - 2))) * sum;
 }
 
 function computeSkewCallout(returnBuckets: DistributionBucket[]): string {
@@ -608,17 +460,18 @@ export default function StrategyBacktestPage({ params }: Props) {
   const { id } = use(params);
   const router = useRouter();
   const { timezone } = useDisplay();
-  const { user, refreshUser } = useAuth();
+  const { user } = useAuth();
   const isMobile = useIsMobile();
 
   const [strategy, setStrategy] = useState<Strategy | null>(null);
+  const [strategyVersion, setStrategyVersion] = useState<StrategyVersion | null>(null);
   const [isLoadingStrategy, setIsLoadingStrategy] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   const [dateFrom, setDateFrom] = useState(defaultRange.from);
   const [dateTo, setDateTo] = useState(defaultRange.to);
-  const [periodPreset, setPeriodPreset] = useState<PeriodPreset>("custom");
+  const [, setPeriodPreset] = useState<PeriodPreset>("custom");
   const [feeRate, setFeeRate] = useState("");
   const [slippageRate, setSlippageRate] = useState("");
   const [forceRefreshPrices, setForceRefreshPrices] = useState(false);
@@ -627,13 +480,14 @@ export default function StrategyBacktestPage({ params }: Props) {
   const [userPlan, setUserPlan] = useState<PlanResponse | null>(null);
 
   const [backtests, setBacktests] = useState<BacktestListItem[]>([]);
+  const [totalBacktests, setTotalBacktests] = useState<number | undefined>(undefined);
   const [isLoadingBacktests, setIsLoadingBacktests] = useState(false);
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
   const [selectedRunIds, setSelectedRunIds] = useState<Set<string>>(new Set());
 
   // Pagination state for backtest runs list
   const [runsCurrentPage, setRunsCurrentPage] = useState(1);
-  const runsPageSize = 8;
+  const runsPageSize = 5;
 
   // Pagination state for trades table
   const [tradesCurrentPage, setTradesCurrentPage] = useState(1);
@@ -653,91 +507,36 @@ export default function StrategyBacktestPage({ params }: Props) {
   // Trade drawer state
   const [selectedTradeIdx, setSelectedTradeIdx] = useState<number | null>(null);
 
+  // All runs drawer state
+  const [showAllRunsDrawer, setShowAllRunsDrawer] = useState(false);
+
   // Share modal state
   const [showShareModal, setShowShareModal] = useState(false);
 
   // Seasonality state
   const [periodType, setPeriodType] = useState<PeriodType>("month");
 
-  // Favorite metrics state
-  const [savingMetrics, setSavingMetrics] = useState(false);
-
   // Keyboard shortcuts modal state
   const [showShortcutsModal, setShowShortcutsModal] = useState(false);
-
-  // First-run metric explanations state
-  const [showFirstRunExplanations, setShowFirstRunExplanations] = useState(false);
-  const firstRunEventFired = useRef(false);
-  const firstRunResultsRef = useRef<HTMLDivElement | null>(null);
+  const customFormRef = useRef<HTMLFormElement | null>(null);
+  const runDetailsRef = useRef<HTMLElement | null>(null);
 
   // Summary card has its own key so scroll-based overlay dismissal doesn't hide it
   const [showSummaryCard, setShowSummaryCard] = useState(false);
-  const [showDetailedAnalysis, setShowDetailedAnalysis] = useState(false);
-  const hasFavoriteMetrics = (user?.favorite_metrics?.length ?? 0) > 0;
 
   // Batch backtesting state
   const [selectedPeriods, setSelectedPeriods] = useState<Set<string>>(new Set());
   const [activeBatchId, setActiveBatchId] = useState<string | null>(null);
   const [batchSkippedRuns, setBatchSkippedRuns] = useState<BatchRunResult[]>([]);
-  const [showCustomDates, setShowCustomDates] = useState(false);
   const batchInitialized = useRef(false);
 
-  const { runs: batchRuns, isAllDone: isBatchDone } = useBatchBacktestResults(activeBatchId);
+  const { isAllDone: isBatchDone } = useBatchBacktestResults(activeBatchId);
 
   useEffect(() => {
-    const isFirstRun = Boolean(user?.has_completed_onboarding && !getFirstRunSeen());
-    setShowFirstRunExplanations(isFirstRun);
     if (!showSummaryCard) {
       setShowSummaryCard(Boolean(user?.has_completed_onboarding && !getSummaryCardSeen()));
     }
   }, [user?.has_completed_onboarding, selectedRunId, showSummaryCard]);
-
-  useEffect(() => {
-    // Detailed metrics should always start collapsed when the active run changes.
-    setShowDetailedAnalysis(false);
-  }, [selectedRunId]);
-
-  useEffect(() => {
-    // Returning to default metric mode (no favorites) should reset to collapsed.
-    if (!hasFavoriteMetrics) {
-      setShowDetailedAnalysis(false);
-    }
-  }, [hasFavoriteMetrics]);
-
-  const hasVisibleFirstRunMetrics = useCallback(() => {
-    if (typeof window === "undefined") return false;
-    const container = firstRunResultsRef.current;
-    if (!container) return false;
-    return container.querySelector('[data-first-run-metrics="true"]') !== null;
-  }, []);
-
-  const handleFirstRunInteraction = useCallback(() => {
-    if (!showFirstRunExplanations || firstRunEventFired.current || !hasVisibleFirstRunMetrics()) return;
-    firstRunEventFired.current = true;
-    trackEvent("first_run_overlay_completed", undefined, user?.id);
-    markFirstRunSeen();
-    setShowFirstRunExplanations(false);
-  }, [hasVisibleFirstRunMetrics, showFirstRunExplanations, user?.id]);
-
-  useEffect(() => {
-    if (!showFirstRunExplanations || firstRunEventFired.current) return;
-
-    const handleScrollCompletion = () => {
-      if (firstRunEventFired.current || !hasVisibleFirstRunMetrics()) return;
-      const container = firstRunResultsRef.current;
-      if (!container) return;
-
-      const rect = container.getBoundingClientRect();
-      if (rect.bottom <= window.innerHeight) {
-        handleFirstRunInteraction();
-      }
-    };
-
-    window.addEventListener("scroll", handleScrollCompletion, { capture: true, passive: true });
-    return () => {
-      window.removeEventListener("scroll", handleScrollCompletion, { capture: true });
-    };
-  }, [handleFirstRunInteraction, hasVisibleFirstRunMetrics, showFirstRunExplanations]);
 
   // Use custom hook for backtest results (trades, equity curve, benchmark, polling)
   const prevRunStatusByIdRef = useRef<Map<string, BacktestStatus>>(new Map());
@@ -774,56 +573,6 @@ export default function StrategyBacktestPage({ params }: Props) {
     prevRunStatusByIdRef.current.set(detail.run_id, detail.status);
   }, [id]);
 
-  // Favorite metrics handlers
-  const handleToggleFavorite = useCallback(async (metricKey: string) => {
-    if (!user) return;
-
-    const current = user.favorite_metrics || [];
-    const newFavorites = current.includes(metricKey)
-      ? current.filter(k => k !== metricKey)
-      : [...current, metricKey];
-
-    setSavingMetrics(true);
-    try {
-      await apiFetch("/users/me", {
-        method: "PUT",
-        body: JSON.stringify({ favorite_metrics: newFavorites }),
-      });
-      await refreshUser();
-    } catch {
-      // Silent fail or show toast
-    } finally {
-      setSavingMetrics(false);
-    }
-  }, [user, refreshUser]);
-
-  const handleReorderFavorite = useCallback(async (metricKey: string, direction: "left" | "right") => {
-    if (!user?.favorite_metrics) return;
-
-    const current = [...user.favorite_metrics];
-    const idx = current.indexOf(metricKey);
-    if (idx === -1) return;
-
-    const newIdx = direction === "left" ? idx - 1 : idx + 1;
-    if (newIdx < 0 || newIdx >= current.length) return;
-
-    // Swap
-    [current[idx], current[newIdx]] = [current[newIdx], current[idx]];
-
-    setSavingMetrics(true);
-    try {
-      await apiFetch("/users/me", {
-        method: "PUT",
-        body: JSON.stringify({ favorite_metrics: current }),
-      });
-      await refreshUser();
-    } catch {
-      // Silent fail
-    } finally {
-      setSavingMetrics(false);
-    }
-  }, [user, refreshUser]);
-
   // Comparison selection handlers
   const handleSelectRun = useCallback((runId: string, checked: boolean) => {
     setSelectedRunIds(prev => {
@@ -853,10 +602,12 @@ export default function StrategyBacktestPage({ params }: Props) {
   } = useBacktestResults(selectedRunId, handleRunDetailFetched);
 
   // Compute seasonality data
-  const seasonalityData = useMemo(
+  const seasonalityRows = useMemo(
     () => computeSeasonality(trades, periodType),
     [trades, periodType]
   );
+
+  const seasonalityScaleMax = 5;
 
   // Compute trade distribution data
   const returnDistribution = useMemo(() => {
@@ -865,10 +616,9 @@ export default function StrategyBacktestPage({ params }: Props) {
   }, [trades]);
 
   const durationDistribution = useMemo(() => {
-    if (trades.length < 3 || !selectedRun?.timeframe) return null;
-    const timeframeSeconds = timeframeToSeconds(selectedRun.timeframe);
-    return computeDurationDistribution(trades, timeframeSeconds);
-  }, [trades, selectedRun?.timeframe]);
+    if (trades.length < 3) return null;
+    return computeDurationDistribution(trades);
+  }, [trades]);
 
   const durationDistributionTotal = useMemo(() => {
     if (!durationDistribution) return 0;
@@ -880,6 +630,11 @@ export default function StrategyBacktestPage({ params }: Props) {
     return computeSkewCallout(returnDistribution);
   }, [returnDistribution, trades.length]);
 
+  const skew = useMemo(() => {
+    if (trades.length < 3) return undefined;
+    return Math.round(computeSkew(trades) * 100) / 100;
+  }, [trades]);
+
   // Reset pagination when run changes
   useEffect(() => {
     if (selectedRun?.status === "completed") {
@@ -890,8 +645,12 @@ export default function StrategyBacktestPage({ params }: Props) {
   const loadStrategy = useCallback(async () => {
     setIsLoadingStrategy(true);
     try {
-      const data = await apiFetch<Strategy>(`/strategies/${id}`);
+      const [data, versions] = await Promise.all([
+        apiFetch<Strategy>(`/strategies/${id}`),
+        apiFetch<StrategyVersion[]>(`/strategies/${id}/versions`).catch(() => null),
+      ]);
       setStrategy(data);
+      setStrategyVersion(versions?.[0] ?? null);
       setError(null);
     } catch (err) {
       if (err instanceof ApiError && err.status === 404) {
@@ -913,16 +672,17 @@ export default function StrategyBacktestPage({ params }: Props) {
         limit: runsPageSize.toString(),
         offset: offset.toString(),
       });
-      const data = await apiFetch<BacktestListItem[]>(`/backtests/?${params.toString()}`);
-      setBacktests(data);
-      data.forEach((run) => {
+      const data = await apiFetch<BacktestListPage>(`/backtests/?${params.toString()}`);
+      setBacktests(data.items);
+      setTotalBacktests(data.total);
+      data.items.forEach((run) => {
         if (!prevRunStatusByIdRef.current.has(run.run_id)) {
           prevRunStatusByIdRef.current.set(run.run_id, run.status);
         }
       });
       setError(null);
-      if (data.length > 0 && !selectedRunId) {
-        setSelectedRunId(data[0].run_id);
+      if (data.items.length > 0 && !selectedRunId) {
+        setSelectedRunId(data.items[0].run_id);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load backtests");
@@ -985,18 +745,8 @@ export default function StrategyBacktestPage({ params }: Props) {
       .catch(() => {
         setUserPlan(null);
         setIsBetaGrandfatheredUser(false);
+        setError("Couldn't load your plan. Some period options may be unavailable — please refresh.");
       });
-  }, []);
-
-  // Handle period preset changes
-  const handlePeriodChange = useCallback((preset: PeriodPreset) => {
-    setAvailabilityWarning(null);
-    setPeriodPreset(preset);
-    const dates = getDatesFromPreset(preset);
-    if (dates) {
-      setDateFrom(dates.from);
-      setDateTo(dates.to);
-    }
   }, []);
 
   // Check if user can use premium periods
@@ -1115,6 +865,7 @@ export default function StrategyBacktestPage({ params }: Props) {
       setStatusMessage("Backtest started. It will update automatically when finished.");
       setSelectedRunId(res.run_id);
       await loadBacktests();
+      runDetailsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to start backtest");
     } finally {
@@ -1122,32 +873,6 @@ export default function StrategyBacktestPage({ params }: Props) {
     }
   };
 
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    if (isSubmitting) return;
-    setStatusMessage(null);
-    setError(null);
-
-    if (!dateFrom || !dateTo) {
-      setError("Please select a start and end date.");
-      return;
-    }
-
-    const fromDate = new Date(`${dateFrom}T00:00:00Z`);
-    const toDate = new Date(`${dateTo}T23:59:59Z`);
-
-    if (fromDate >= toDate) {
-      setError("End date must be after start date.");
-      return;
-    }
-
-    if (availabilityWarning) {
-      setShowDownloadConfirm(true);
-      return;
-    }
-
-    await submitBacktest();
-  };
 
   const handleTogglePeriod = useCallback((period: string, checked: boolean) => {
     setSelectedPeriods((prev) => {
@@ -1189,6 +914,7 @@ export default function StrategyBacktestPage({ params }: Props) {
       const queuedCount = res.runs.filter((r) => r.status === "pending").length;
       setStatusMessage(`Batch started: ${queuedCount} backtest${queuedCount !== 1 ? "s" : ""} queued. Results will appear below as they complete.`);
       await loadBacktests();
+      runDetailsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to start batch backtest");
     } finally {
@@ -1208,16 +934,17 @@ export default function StrategyBacktestPage({ params }: Props) {
       const isMod = e.metaKey || e.ctrlKey;
       const key = e.key.toLowerCase();
 
-      // Run backtest: Cmd/Ctrl+R
-      if (isMod && key === "r" && !e.shiftKey) {
+      // Run backtest: Cmd/Ctrl+Enter (standard "submit" shortcut)
+      if (isMod && key === "enter") {
         if (isSubmitting) return;
         e.preventDefault();
-        // Trigger form submission programmatically
-        const form = document.querySelector("form");
+        const form = customFormRef.current;
         if (form) {
           form.dispatchEvent(
             new Event("submit", { cancelable: true, bubbles: true })
           );
+        } else {
+          setStatusMessage("Open custom dates to run a single backtest, or use Run All.");
         }
         return;
       }
@@ -1233,15 +960,6 @@ export default function StrategyBacktestPage({ params }: Props) {
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [isSubmitting]);
-
-  const statusBadge = useCallback((status: BacktestStatus) => {
-    const cls = statusStyles[status];
-    return (
-      <span className={`rounded-full px-2 py-0.5 text-xs font-medium capitalize ${cls}`}>
-        {status}
-      </span>
-    );
-  }, []);
 
   const selectedRunRange = useMemo(() => {
     if (!selectedRun) return null;
@@ -1340,12 +1058,12 @@ export default function StrategyBacktestPage({ params }: Props) {
     };
   }, [isMobile]);
 
-  // Trades pagination
-  const totalPages = Math.ceil(trades.length / tradesPageSize);
-  const paginatedTrades = trades.slice(
-    (tradesCurrentPage - 1) * tradesPageSize,
-    tradesCurrentPage * tradesPageSize
-  );
+  // Compute position stats for KPI strip
+  const positionStatsForKPI = useMemo(() => {
+    if (!selectedRun?.timeframe || trades.length < 2) return null;
+    const tfs = timeframeToSeconds(selectedRun.timeframe);
+    return computePositionStats(trades, tfs);
+  }, [trades, selectedRun?.timeframe]);
 
   if (isLoadingStrategy) {
     return (
@@ -1369,1135 +1087,416 @@ export default function StrategyBacktestPage({ params }: Props) {
   }
 
   return (
-    <div className="flex h-screen flex-col overflow-x-hidden">
-      {/* Top Bar */}
-      <div className="border-b bg-background px-3 py-3 sm:px-4">
-        <div className="flex flex-col gap-2">
-          <div className="flex flex-wrap items-center gap-3">
-            <Link href="/strategies" className="text-muted-foreground transition-colors hover:text-foreground">
-              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </Link>
-            <h1 className="text-lg font-semibold tracking-tight">{strategy.name}</h1>
-            <span className="hidden rounded-md bg-secondary px-2 py-0.5 text-xs text-muted-foreground sm:inline">
-              {strategy.asset}
-            </span>
-            <span className="hidden rounded-md bg-secondary px-2 py-0.5 text-xs text-muted-foreground sm:inline">
-              {strategy.timeframe}
-            </span>
-          </div>
-          <p className="text-sm text-muted-foreground">Run a backtest on the latest saved version of this strategy.</p>
+    <div className="flex flex-col overflow-x-hidden">
+      {/* Alerts */}
+      {error && (
+        <div
+          role="alert"
+          aria-live="assertive"
+          className="flex items-start justify-between gap-2 border-b border-destructive/30 bg-destructive/5 px-4 py-2 text-sm text-destructive sm:px-8"
+        >
+          <span>{error}</span>
+          <button type="button" onClick={() => setError(null)} aria-label="Dismiss error" className="flex-shrink-0 text-destructive/70 hover:text-destructive">×</button>
         </div>
+      )}
+      {statusMessage && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="flex items-start justify-between gap-2 border-b border-green-200 bg-green-50 px-4 py-2 text-sm text-green-600 dark:border-green-800 dark:bg-green-950 dark:text-green-400 sm:px-8"
+        >
+          <span>{statusMessage}</span>
+          <button type="button" onClick={() => setStatusMessage(null)} aria-label="Dismiss message" className="flex-shrink-0 opacity-70 hover:opacity-100">×</button>
+        </div>
+      )}
 
-        <StrategyTabs strategyId={id} activeTab="backtest" />
+      {/* Tab Bar */}
+      <StrategyTabs strategyId={id} activeTab="backtest" />
 
-        {error && (
-          <div className="mt-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
-            {error}
-          </div>
-        )}
-        {statusMessage && (
-          <div className="mt-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-600 dark:border-green-800 dark:bg-green-950 dark:text-green-400">
-            {statusMessage}
-          </div>
-        )}
-      </div>
+      {/* Page Header */}
+      <BacktestPageHeader
+        strategy={strategy}
+        strategyVersion={strategyVersion}
+        selectedRun={selectedRun ?? null}
+        selectedRunId={selectedRunId}
+        dataQuality={dataQuality}
+        displayedDateFrom={dataAvailability?.earliest_date ?? dateFrom}
+        displayedDateTo={dataAvailability?.latest_date ?? dateTo}
+        timezone={timezone}
+        isZeroTradeNarrativeMode={isZeroTradeNarrativeMode}
+        onShare={() => setShowShareModal(true)}
+        onRunBacktest={submitBatchBacktest}
+        isSubmitting={isSubmitting}
+        selectedPeriodCount={selectedPeriods.size}
+        runStatus={selectedRun?.status ?? null}
+        runRange={selectedRunRange}
+      />
 
       {/* Main Content */}
-      <div className="flex-1 space-y-4 overflow-auto bg-secondary/30 p-3 dark:bg-secondary/10 sm:p-4">
-        <div className="grid gap-3 sm:gap-4 lg:grid-cols-3">
-          {/* Data Availability - Full Width */}
-          <div className="lg:col-span-3">
-            <DataAvailabilitySection
-              completeness={completeness}
-              dataQuality={dataQuality}
-              gapOverlap={gapOverlap}
-              dateFrom={dateFrom}
-              dateTo={dateTo}
-            />
-          </div>
+      <div className="flex-1 space-y-5 overflow-auto bg-secondary p-4 dark:bg-background sm:px-8 sm:py-7">
+        {/* Data Availability */}
+        <DataAvailabilitySection
+          dataAvailability={dataAvailability}
+          completeness={completeness}
+          dataQuality={dataQuality}
+          gapOverlap={gapOverlap}
+          dateFrom={dateFrom}
+          dateTo={dateTo}
+        />
 
-          <section className="lg:col-span-2 rounded-xl border bg-card p-3 shadow-sm sm:p-4">
-            <div className="mb-3 sm:mb-4">
-              <h2 className="text-base font-semibold tracking-tight">Run a backtest</h2>
-              <p className="text-sm text-muted-foreground">
-                Uses the latest saved version. Fee and slippage default to your settings.
-              </p>
-            </div>
+        {/* Run Configuration */}
+        <RunConfig
+          periods={BATCH_PERIOD_PRESETS}
+          selectedPeriods={selectedPeriods}
+          onTogglePeriod={handleTogglePeriod}
+          dateFrom={dateFrom}
+          dateTo={dateTo}
+          onDateFromChange={(v) => { setAvailabilityWarning(null); setDateFrom(v); setPeriodPreset("custom"); }}
+          onDateToChange={(v) => { setDateTo(v); setPeriodPreset("custom"); }}
+          feeRate={feeRate}
+          slippageRate={slippageRate}
+          onFeeRateChange={setFeeRate}
+          onSlippageRateChange={setSlippageRate}
+          isPremiumUser={isPremiumUser}
+          isBetaGrandfatheredUser={isBetaGrandfatheredUser}
+          forceRefreshPrices={forceRefreshPrices}
+          onForceRefreshChange={setForceRefreshPrices}
+          availabilityWarning={availabilityWarning}
+        />
 
-            {/* Period checkboxes for batch selection */}
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Periods</label>
-                <div className="flex flex-wrap gap-x-4 gap-y-2">
-                  {BATCH_PERIOD_PRESETS.map((option) => {
-                    const isDisabled = option.premiumOnly && !isPremiumUser;
-                    return (
-                      <label
-                        key={option.value}
-                        className={`flex items-center gap-2 text-sm ${isDisabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
-                      >
-                        <Checkbox
-                          checked={selectedPeriods.has(option.value)}
-                          onCheckedChange={(checked) => handleTogglePeriod(option.value, !!checked)}
-                          disabled={isDisabled}
-                        />
-                        <span>{option.label}</span>
-                        {option.premiumOnly && (
-                          <span className="text-xs text-muted-foreground/70">(Pro/Premium)</span>
-                        )}
-                      </label>
-                    );
-                  })}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowCustomDates(!showCustomDates)}
-                  className="mt-2 text-xs text-muted-foreground underline hover:text-foreground"
-                >
-                  {showCustomDates ? "Hide custom dates" : "Use custom dates instead"}
-                </button>
-              </div>
-
-              {/* Custom date inputs (collapsed by default) */}
-              {showCustomDates && (
-                <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 rounded-lg border bg-secondary/30 p-3 md:grid-cols-2">
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium">Period</label>
-                    <Select value={periodPreset} onValueChange={(v) => handlePeriodChange(v as PeriodPreset)}>
-                      <SelectTrigger className="mt-1">
-                        <SelectValue placeholder="Select period" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {PERIOD_PRESETS.map((option) => {
-                          const isDisabled = option.premiumOnly && !isPremiumUser;
-                          return (
-                            <SelectItem key={option.value} value={option.value} disabled={isDisabled}>
-                              {option.label}
-                              {option.premiumOnly && (
-                                <span className={`ml-2 text-xs ${isDisabled ? "text-muted-foreground/70" : "text-amber-600"}`}>(Pro/Premium)</span>
-                              )}
-                            </SelectItem>
-                          );
-                        })}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {availabilityWarning && (
-                    <div className="md:col-span-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-300">
-                      {availabilityWarning}
-                    </div>
-                  )}
-                  <div className="min-w-0">
-                    <label className="block text-sm font-medium">Date from</label>
-                    <Input
-                      type="date"
-                      value={dateFrom}
-                      max={dateTo}
-                      onChange={(e) => {
-                        setAvailabilityWarning(null);
-                        setDateFrom(e.target.value);
-                        setPeriodPreset("custom");
-                      }}
-                      className="mt-1 w-full min-w-0"
-                      required
-                    />
-                  </div>
-                  <div className="min-w-0">
-                    <label className="block text-sm font-medium">Date to</label>
-                    <Input
-                      type="date"
-                      value={dateTo}
-                      min={dateFrom}
-                      onChange={(e) => {
-                        setDateTo(e.target.value);
-                        setPeriodPreset("custom");
-                      }}
-                      className="mt-1 w-full min-w-0"
-                      required
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    <Button type="submit" disabled={isSubmitting} className="w-full md:w-auto">
-                      {isSubmitting ? "Starting..." : "Run backtest"}
-                    </Button>
-                  </div>
-                </form>
-              )}
-
-              {/* Data availability line */}
-              <div className="text-sm text-muted-foreground">
-                {dataAvailability?.earliest_date ? (
-                  <span>Data available: {dataAvailability.earliest_date} &ndash; Present</span>
-                ) : dataAvailability === null && strategy ? (
-                  <span>Loading data availability&hellip;</span>
-                ) : (
-                  <span>Data availability not found</span>
-                )}
-              </div>
-
-              {/* Fee / slippage rates */}
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div>
-                  <label className="block text-sm font-medium">Fee rate (optional)</label>
-                  <Input
-                    type="number"
-                    step="0.0001"
-                    min="0"
-                    max="0.1"
-                    value={feeRate}
-                    onChange={(e) => setFeeRate(e.target.value)}
-                    placeholder="0.001 for 0.1%"
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium">Slippage rate (optional)</label>
-                  <Input
-                    type="number"
-                    step="0.0001"
-                    min="0"
-                    max="0.1"
-                    value={slippageRate}
-                    onChange={(e) => setSlippageRate(e.target.value)}
-                    placeholder="0.0005 for 0.05%"
-                    className="mt-1"
-                  />
-                </div>
-              </div>
-
-              {isBetaGrandfatheredUser && (
-                <label className="flex items-start gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={forceRefreshPrices}
-                    onChange={(e) => setForceRefreshPrices(e.target.checked)}
-                    className="mt-0.5 h-4 w-4 rounded border-border"
-                  />
-                  <span>
-                    Force refresh candle prices before running (Beta User — Grandfathered Perks Applied).
-                    <span className="block text-xs text-muted-foreground">
-                      Re-fetches OHLCV for this exact period and overwrites cached values.
-                    </span>
-                  </span>
-                </label>
-              )}
-
-              {/* Run All button */}
-              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                <p className="text-sm text-muted-foreground">
-                  Backtests run in the background. You can leave this page and results will still be saved.
-                </p>
-                <Button
-                  onClick={submitBatchBacktest}
-                  disabled={isSubmitting || selectedPeriods.size === 0}
-                  className="w-full md:w-auto"
-                >
-                  {isSubmitting ? "Starting..." : `Run All (${selectedPeriods.size})`}
-                </Button>
-              </div>
-            </div>
-          </section>
-
-          <BacktestRunsList
-            backtests={backtests}
-            batchSkippedRuns={batchSkippedRuns}
-            isLoadingBacktests={isLoadingBacktests}
-            onRefresh={loadBacktests}
-            currentPage={runsCurrentPage}
-            pageSize={runsPageSize}
-            onPageChange={setRunsCurrentPage}
-            selectedRunId={selectedRunId}
-            onSelectRun={setSelectedRunId}
-            selectedRunIds={selectedRunIds}
-            onToggleRunSelection={handleSelectRun}
-            onCompare={handleCompareClick}
-            timezone={timezone}
-          />
-        </div>
-
-        <section className="rounded-xl border bg-card p-3 shadow-sm sm:p-4">
-          <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <h2 className="text-base font-semibold tracking-tight">Run details</h2>
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-              <Link
-                href="/metrics-glossary"
-                className="text-sm text-primary/80 transition-colors hover:text-primary hover:underline"
-              >
-                Metrics glossary
-              </Link>
-              {selectedRun?.status === "completed" && selectedRun.summary && !isZeroTradeNarrativeMode && (
-                <>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowShareModal(true)}
-                  >
-                    Share Results
-                  </Button>
-                  <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm">
-                      Export
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent>
-                    <DropdownMenuItem
-                      onClick={() =>
-                        exportMetricsToCSV(
-                          selectedRun.summary!,
-                          selectedRun,
-                          selectedRunId!
-                        )
-                      }
-                    >
-                      Download CSV
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() =>
-                        exportMetricsToJSON(
-                          selectedRun.summary!,
-                          selectedRun,
-                          selectedRunId!
-                        )
-                      }
-                    >
-                      Download JSON
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                </>
-              )}
-              {selectedRun && statusBadge(selectedRun.status)}
-            </div>
-          </div>
-          {!selectedRunId && <p className="text-sm text-muted-foreground">Select a run to see details.</p>}
-          {selectedRunId && !selectedRun && (
-            <p className="text-sm text-muted-foreground">Loading backtest details...</p>
-          )}
-          {selectedRun && (
-            <div ref={firstRunResultsRef} className="space-y-3" onClick={handleFirstRunInteraction}>
-              <div className="text-sm text-muted-foreground">
-                <span className="font-medium">Range:</span>{" "}
-                {selectedRunRange}
-              </div>
-              {selectedRun.narrative && (
-                <NarrativeCard
-                  narrative={selectedRun.narrative}
-                  strategyId={id}
-                  isZeroTradeRun={!!isZeroTradeRun}
-                  userId={user?.id}
-                />
-              )}
-              <LowTradeCountWarning
-                numTrades={selectedRun.summary?.num_trades}
-                runId={selectedRunId}
+        {/* Run status messages */}
+        {selectedRun && (
+          <div className="space-y-3">
+            {/* Narrative */}
+            {selectedRun.narrative && (
+              <NarrativeCard
+                narrative={selectedRun.narrative}
+                strategyId={id}
+                isZeroTradeRun={!!isZeroTradeRun}
                 userId={user?.id}
               />
-              {selectedRun.status === "failed" ? (
-                <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
-                  {selectedRun.error_message || "Backtest failed. Please try again."}
-                </div>
-              ) : isZeroTradeNarrativeMode ? null : (
-                selectedRun.summary ? ((() => {
-                  const orderedMetrics = getOrderedMetrics(selectedRun.summary!, user?.favorite_metrics || null);
-                  const primaryKeys = hasFavoriteMetrics ? user!.favorite_metrics! : DEFAULT_METRIC_KEYS;
-                  const primaryMetrics = orderedMetrics.filter(m => primaryKeys.includes(m.key));
-                  const detailedMetrics = orderedMetrics.filter(m => !primaryKeys.includes(m.key));
-
-                  const renderMetricCard = (metric: MetricConfig) => {
-                    const isPinned = user?.favorite_metrics?.includes(metric.key) || false;
-                    const pinnedMetrics = user?.favorite_metrics || [];
-                    const pinnedIndex = pinnedMetrics.indexOf(metric.key);
-                    const isFirstRunMetric = FIRST_RUN_METRIC_KEYS.includes(metric.key);
-                    const metricTooltip = getTooltip(metricToGlossaryId(metric.key));
-
-                    return (
-                      <MetricCard
-                        key={metric.key}
-                        metricKey={metric.key}
-                        label={metric.label}
-                        value={metric.getValue(selectedRun.summary!)}
-                        isPinned={isPinned}
-                        canMoveLeft={isPinned && pinnedIndex > 0}
-                        canMoveRight={isPinned && pinnedIndex < pinnedMetrics.length - 1}
-                        onTogglePin={() => handleToggleFavorite(metric.key)}
-                        onMoveLeft={() => handleReorderFavorite(metric.key, "left")}
-                        onMoveRight={() => handleReorderFavorite(metric.key, "right")}
-                        disabled={savingMetrics}
-                        firstRunExplanation={showFirstRunExplanations && isFirstRunMetric ? metricTooltip?.firstRun : undefined}
-                        showFirstRunHelper={!showFirstRunExplanations && isFirstRunMetric && !!metricTooltip?.firstRun}
-                      />
-                    );
-                  };
-
-                  return (
-                    <div className="space-y-3" data-first-run-metrics="true">
-                      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-                        {primaryMetrics.map(renderMetricCard)}
-                      </div>
-                      {detailedMetrics.length > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => setShowDetailedAnalysis(prev => !prev)}
-                          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors"
-                        >
-                          <svg
-                            className={`h-4 w-4 transition-transform ${showDetailedAnalysis ? "rotate-180" : ""}`}
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                          </svg>
-                          {showDetailedAnalysis ? "Hide detailed analysis" : "Show detailed analysis"}
-                        </button>
-                      )}
-                      {showDetailedAnalysis && detailedMetrics.length > 0 && (
-                        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-                          {detailedMetrics.map(renderMetricCard)}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })()) : (
-                  <p className="text-sm text-muted-foreground">
-                    Backtest is {selectedRun.status}. We&apos;ll keep polling for results.
-                  </p>
-                )
-              )}
-
-              {/* What You Just Learned — first-run only */}
-              {!isZeroTradeNarrativeMode &&
-                showSummaryCard &&
-                selectedRun?.summary &&
-                selectedRun.summary.benchmark_return_pct != null && (
-                  <WhatYouLearnedCard
-                    strategyReturnPct={selectedRun.summary.total_return_pct}
-                    benchmarkReturnPct={selectedRun.summary.benchmark_return_pct}
-                    asset={selectedRun.asset}
-                    dateRange={selectedRunRange || "the test period"}
-                    onDismiss={() => {
-                      markSummaryCardSeen();
-                      setShowSummaryCard(false);
-                    }}
-                  />
-                )}
-
-            </div>
-          )}
-        </section>
-
-        {/* Charts, metrics & trades — hidden in zero-trade mode with narrative */}
-        {!isZeroTradeNarrativeMode && (
-          <>
-        {/* Equity Curve Chart - only show for completed runs */}
-        {selectedRun?.status === "completed" && (
-          <section className="rounded-xl border bg-card p-3 shadow-sm sm:p-4">
-            <div className="mb-3 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <h2 className="text-base font-semibold tracking-tight">Equity Curve</h2>
-                {isMobile && (
-                  <span className="text-xs text-muted-foreground">(Pinch to zoom)</span>
-                )}
-              </div>
-              {equityCurve.length > 0 && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm">
-                      Export
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent>
-                    <DropdownMenuItem
-                      onClick={() => exportEquityToCSV(equityCurve, selectedRunId!)}
-                    >
-                      Download CSV
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => exportEquityToJSON(equityCurve, selectedRunId!)}
-                    >
-                      Download JSON
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
-            </div>
-
-            {isLoadingEquityCurve ? (
-              <div className="flex h-64 items-center justify-center">
-                <p className="text-sm text-muted-foreground">Loading equity curve...</p>
-              </div>
-            ) : equityCurveError ? (
-              <div className="flex h-64 items-center justify-center rounded-lg border border-destructive/30 bg-destructive/5">
-                <div className="text-center">
-                  <p className="text-sm text-destructive">{equityCurveError}</p>
-                  <Button variant="link" size="sm" onClick={refetchEquityCurve} className="mt-2">
-                    Retry
-                  </Button>
-                </div>
-              </div>
-            ) : equityCurve.length === 0 ? (
-              <div className="flex h-64 items-center justify-center">
-                <div className="text-center">
-                  <p className="text-sm text-muted-foreground">No equity data available for this run.</p>
-                  <Button variant="link" size="sm" onClick={refetchEquityCurve} className="mt-2">
-                    Retry
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="h-64 sm:h-72 md:h-80">
-                <ZoomableChart>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={chartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                      <XAxis
-                        dataKey="timestamp"
-                        tickFormatter={(v) => formatChartDate(v, timezone)}
-                        tick={{ fontSize: 12 }}
-                        tickLine={false}
-                        axisLine={{ stroke: "hsl(var(--border))" }}
-                        tickCount={tickConfig.xAxisTicks}
-                      />
-                      <YAxis
-                        tickFormatter={(v) => formatPrice(v, "").trim()}
-                        tick={{ fontSize: 12 }}
-                        tickLine={false}
-                        axisLine={{ stroke: "hsl(var(--border))" }}
-                        width={80}
-                        tickCount={tickConfig.yAxisTicks}
-                      />
-                    <Tooltip
-                      formatter={(value) => [formatPrice(Number(value)), "Equity"]}
-                      labelFormatter={(label) => formatDateTime(label as string, timezone)}
-                      contentStyle={{
-                        backgroundColor: "hsl(var(--popover))",
-                        border: "1px solid hsl(var(--border))",
-                        borderRadius: "0.375rem",
-                        fontSize: "0.875rem",
-                        color: "hsl(var(--popover-foreground))",
-                      }}
-                    />
-                    <Legend
-                      wrapperStyle={{ fontSize: "0.875rem" }}
-                      iconType="line"
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="equity"
-                      stroke="hsl(var(--chart-1))"
-                      strokeWidth={2}
-                      dot={false}
-                      activeDot={{ r: 4, fill: "hsl(var(--chart-1))" }}
-                      name="Strategy"
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="benchmark"
-                      stroke="hsl(var(--muted-foreground))"
-                      strokeWidth={2}
-                      dot={false}
-                      strokeDasharray="5 5"
-                      name="Buy & Hold"
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-                </ZoomableChart>
-              </div>
             )}
-          </section>
-        )}
 
-        {/* Drawdown Chart - only show for completed runs */}
-        {selectedRun?.status === "completed" && (
-          <section className="rounded-xl border bg-card p-3 shadow-sm sm:p-4">
-            <div className="mb-3 flex items-center gap-2">
-              <h2 className="text-base font-semibold tracking-tight">Drawdown (%)</h2>
-              {isMobile && (
-                <span className="text-xs text-muted-foreground">(Pinch to zoom)</span>
-              )}
-            </div>
+            {/* Low trade count */}
+            <LowTradeCountWarning
+              numTrades={selectedRun.summary?.num_trades}
+              runId={selectedRunId!}
+              userId={user?.id}
+            />
 
-            {isLoadingEquityCurve ? (
-              <div className="flex h-64 items-center justify-center">
-                <p className="text-sm text-muted-foreground">Loading drawdown data...</p>
-              </div>
-            ) : equityCurveError ? (
-              <div className="flex h-64 items-center justify-center rounded-lg border border-destructive/30 bg-destructive/5">
-                <div className="text-center">
-                  <p className="text-sm text-destructive">{equityCurveError}</p>
-                  <Button variant="link" size="sm" onClick={refetchEquityCurve} className="mt-2">
-                    Retry
-                  </Button>
-                </div>
-              </div>
-            ) : drawdownData.length < 2 ? (
-              <div className="flex h-64 items-center justify-center">
-                <p className="text-sm text-muted-foreground">Not enough data to display drawdown chart</p>
-              </div>
-            ) : (
-              <div className="h-64 sm:h-72 md:h-80">
-                <ZoomableChart>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={drawdownData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                      <defs>
-                        <linearGradient id="drawdownGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="hsl(var(--destructive))" stopOpacity={0.1} />
-                          <stop offset="100%" stopColor="hsl(var(--destructive))" stopOpacity={0.3} />
-                        </linearGradient>
-                      </defs>
-                      <XAxis
-                        dataKey="timestamp"
-                        tickFormatter={(v) => formatChartDate(v, timezone)}
-                        tick={{ fontSize: 12 }}
-                        tickLine={false}
-                        axisLine={{ stroke: "hsl(var(--border))" }}
-                        tickCount={tickConfig.xAxisTicks}
-                      />
-                      <YAxis
-                        tickFormatter={(v) => `${v.toFixed(1)}%`}
-                        tick={{ fontSize: 12 }}
-                        tickLine={false}
-                        axisLine={{ stroke: "hsl(var(--border))" }}
-                        width={60}
-                        tickCount={tickConfig.yAxisTicks}
-                      />
-                    <Tooltip
-                      formatter={(value) => [`${Number(value).toFixed(2)}%`, "Drawdown"]}
-                      labelFormatter={(label) => formatDateTime(label as string, timezone)}
-                      contentStyle={{
-                        backgroundColor: "hsl(var(--popover))",
-                        border: "1px solid hsl(var(--border))",
-                        borderRadius: "0.375rem",
-                        fontSize: "0.875rem",
-                        color: "hsl(var(--popover-foreground))",
-                      }}
-                    />
-                    <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
-                    {drawdownData.some((d) => d.isMaxDrawdown) && (
-                      <ReferenceArea
-                        x1={drawdownData.find((d) => d.isMaxDrawdown)?.timestamp}
-                        x2={drawdownData.filter((d) => d.isMaxDrawdown).pop()?.timestamp}
-                        fill="hsl(var(--destructive))"
-                        fillOpacity={0.2}
-                        strokeOpacity={0}
-                      />
-                    )}
-                    <Area
-                      type="monotone"
-                      dataKey="drawdown"
-                      stroke="hsl(var(--destructive))"
-                      strokeWidth={2}
-                      fill="url(#drawdownGradient)"
-                      dot={false}
-                      activeDot={{ r: 4, fill: "hsl(var(--destructive))" }}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-                </ZoomableChart>
-              </div>
-            )}
-          </section>
-        )}
-
-        {/* Position Analysis - only show for completed runs */}
-        {selectedRun?.status === 'completed' &&
-          (() => {
-            const timeframeSeconds = timeframeToSeconds(selectedRun.timeframe);
-            const positionStats = computePositionStats(trades, timeframeSeconds);
-
-            return (
-              <section className="rounded-xl border bg-card p-3 shadow-sm sm:p-4">
-                <h2 className="mb-3 text-base font-semibold tracking-tight">
-                  Position Analysis
-                </h2>
-
-                {!positionStats ? (
-                  <div className="rounded-lg border border-dashed border-border bg-secondary/50 dark:bg-secondary/30 p-8 text-center">
-                    <p className="text-sm text-muted-foreground">
-                      Not enough trades to analyze. Need at least 2 trades.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {/* Metrics Grid */}
-                    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-                      {/* Average Hold Time */}
-                      {!positionStats.hasMissingTimestamps && (
-                        <div className="rounded border border-border bg-secondary/50 dark:bg-secondary/30 p-2 sm:p-3">
-                          <div className="text-xs uppercase text-muted-foreground">
-                            Avg Hold
-                          </div>
-                          <div className="text-base font-semibold tracking-tight sm:text-lg">
-                            {formatDuration(positionStats.avgHoldSeconds)}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {positionStats.avgHoldBars.toFixed(1)} bars
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Longest Position */}
-                      {!positionStats.hasMissingTimestamps && (
-                        <div className="rounded border border-border bg-secondary/50 dark:bg-secondary/30 p-2 sm:p-3">
-                          <div className="text-xs uppercase text-muted-foreground">
-                            Longest
-                          </div>
-                          <div className="text-base font-semibold tracking-tight sm:text-lg">
-                            {formatDuration(positionStats.longestHoldSeconds)}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {positionStats.longestHoldBars.toFixed(1)} bars
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Shortest Position */}
-                      {!positionStats.hasMissingTimestamps && (
-                        <div className="rounded border border-border bg-secondary/50 dark:bg-secondary/30 p-2 sm:p-3">
-                          <div className="text-xs uppercase text-muted-foreground">
-                            Shortest
-                          </div>
-                          <div className="text-base font-semibold tracking-tight sm:text-lg">
-                            {formatDuration(positionStats.shortestHoldSeconds)}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {positionStats.shortestHoldBars.toFixed(1)} bars
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Average Position Size */}
-                      {!positionStats.hasMissingPositionData &&
-                        positionStats.avgPositionSize > 0 && (
-                          <div className="rounded border border-border bg-secondary/50 dark:bg-secondary/30 p-2 sm:p-3">
-                            <div className="text-xs uppercase text-muted-foreground">
-                              Avg Size
-                            </div>
-                            <div className="text-base font-semibold tracking-tight sm:text-lg">
-                              {formatMoney(positionStats.avgPositionSize)}
-                            </div>
-                          </div>
-                        )}
-                    </div>
-
-                    {/* Interpretation Helper */}
-                    {!positionStats.hasMissingTimestamps &&
-                      positionStats.avgHoldSeconds > 0 && (
-                        <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-900 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-400">
-                          {getHoldTimeInterpretation(
-                            positionStats.avgHoldSeconds
-                          )}
-                        </div>
-                      )}
-
-                    {/* Warning Messages */}
-                    {positionStats.hasMissingTimestamps && (
-                      <div className="rounded-lg border border-yellow-200 bg-yellow-50 px-3 py-2 text-sm text-yellow-800 dark:border-yellow-800 dark:bg-yellow-950 dark:text-yellow-400">
-                        Some trades have missing or invalid timestamps. Hold
-                        time statistics are hidden.
-                      </div>
-                    )}
-                  </div>
-                )}
-              </section>
-            );
-          })()}
-
-        {/* Seasonality Analysis - only show for completed runs */}
-        {selectedRun?.status === "completed" && (
-          <section className="rounded-xl border bg-card p-3 shadow-sm sm:p-4">
-            <h2 className="mb-3 text-base font-semibold tracking-tight">
-              Seasonality Analysis
-            </h2>
-
-            {trades.length === 0 ? (
-              <div className="rounded-lg border border-dashed border-border bg-secondary/50 dark:bg-secondary/30 p-8 text-center">
-                <p className="text-sm text-muted-foreground">
-                  No trades available for seasonality analysis.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <Tabs value={periodType} onValueChange={(value) => setPeriodType(value as PeriodType)}>
-                  <TabsList>
-                    <TabsTrigger value="month">Month</TabsTrigger>
-                    <TabsTrigger value="quarter">Quarter</TabsTrigger>
-                    <TabsTrigger value="weekday">Weekday</TabsTrigger>
-                  </TabsList>
-                  <TabsContent value={periodType} className="mt-4">
-                    <div
-                      className={`grid gap-2 ${
-                        periodType === "month"
-                          ? "grid-cols-4 sm:grid-cols-6 lg:grid-cols-12"
-                          : periodType === "quarter"
-                          ? "grid-cols-2 sm:grid-cols-4"
-                          : "grid-cols-4 sm:grid-cols-7"
-                      }`}
-                    >
-                      {seasonalityData.map((bucket, idx) => (
-                        <div
-                          key={idx}
-                          className={`rounded border p-2 text-center sm:p-3 ${getColorClass(bucket.avgReturn)}`}
-                          title={`${bucket.label}: ${formatPercent(bucket.avgReturn)} avg return, ${bucket.count} trades`}
-                        >
-                          <div className="text-xs font-medium">{bucket.label}</div>
-                          <div className="mt-0.5 text-xs font-semibold sm:mt-1 sm:text-sm">
-                            {bucket.count > 0 ? formatPercent(bucket.avgReturn) : "—"}
-                          </div>
-                          <div className="mt-0.5 hidden text-xs opacity-75 sm:block">
-                            {bucket.count} {bucket.count === 1 ? "trade" : "trades"}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </TabsContent>
-                </Tabs>
-              </div>
-            )}
-          </section>
-        )}
-
-        {/* Trade Distribution Analysis - only show for completed runs */}
-        {selectedRun?.status === "completed" && (
-          <section className="rounded-xl border bg-card p-3 shadow-sm sm:p-4">
-            <h2 className="mb-3 text-base font-semibold tracking-tight">
-              Trade Distribution
-            </h2>
-
-            {trades.length < 3 ? (
-              <div className="rounded-lg border border-dashed border-border bg-secondary/50 dark:bg-secondary/30 p-8 text-center">
-                <p className="text-sm text-muted-foreground">
-                  Not enough trades to analyze. Need at least 3 trades.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-6">
-                {/* Return Distribution Histogram */}
-                <div>
-                  <h3 className="mb-2 text-sm font-medium text-foreground">Return Distribution</h3>
-                  <div className="h-64 sm:h-72 md:h-80">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart
-                        data={returnDistribution}
-                        margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
-                      >
-                        <XAxis
-                          dataKey="label"
-                          tick={{ fontSize: 12 }}
-                          tickLine={false}
-                          axisLine={{ stroke: "hsl(var(--border))" }}
-                        />
-                        <YAxis
-                          label={{ value: 'Count', angle: -90, position: 'insideLeft', style: { fontSize: 12 } }}
-                          tick={{ fontSize: 12 }}
-                          tickLine={false}
-                          axisLine={{ stroke: "hsl(var(--border))" }}
-                        />
-                        <Tooltip
-                          formatter={(value) => [
-                            `${value} trades (${formatPercent((value as number / trades.length) * 100)})`,
-                            'Count'
-                          ]}
-                          contentStyle={{
-                            backgroundColor: "hsl(var(--popover))",
-                            border: "1px solid hsl(var(--border))",
-                            borderRadius: "0.375rem",
-                            fontSize: "0.875rem",
-                            color: "hsl(var(--popover-foreground))",
-                          }}
-                        />
-                        <Bar
-                          dataKey="count"
-                          fill="hsl(var(--chart-1))"
-                          radius={[4, 4, 0, 0]}
-                        />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-
-                {/* Duration Distribution (bars) */}
-                {durationDistribution && (
-                  <div>
-                    <h3 className="mb-2 text-sm font-medium text-foreground">
-                      Duration Distribution (bars)
-                    </h3>
-                    <div className="h-64 sm:h-72 md:h-80">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart
-                          data={durationDistribution}
-                          margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
-                        >
-                          <XAxis
-                            dataKey="label"
-                            tick={{ fontSize: 12 }}
-                            tickLine={false}
-                            axisLine={{ stroke: "hsl(var(--border))" }}
-                          />
-                          <YAxis
-                            label={{ value: 'Count', angle: -90, position: 'insideLeft', style: { fontSize: 12 } }}
-                            tick={{ fontSize: 12 }}
-                            tickLine={false}
-                            axisLine={{ stroke: "hsl(var(--border))" }}
-                          />
-                          <Tooltip
-                            formatter={(value) => [
-                              `${value} trades (${formatPercent(durationDistributionTotal > 0 ? (value as number / durationDistributionTotal) * 100 : 0)})`,
-                              'Count'
-                            ]}
-                            contentStyle={{
-                              backgroundColor: "hsl(var(--popover))",
-                              border: "1px solid hsl(var(--border))",
-                              borderRadius: "0.375rem",
-                              fontSize: "0.875rem",
-                              color: "hsl(var(--popover-foreground))",
-                            }}
-                          />
-                          <Bar
-                            dataKey="count"
-                            fill="hsl(var(--chart-1))"
-                            radius={[4, 4, 0, 0]}
-                          />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
-                )}
-
-                {/* Skew Callout */}
-                <div className={`rounded-lg border p-3 text-sm ${
-                  skewCallout.includes('Review risk')
-                    ? 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-400'
-                    : 'border-border bg-secondary/50 dark:bg-secondary/30 text-foreground'
-                }`}>
-                  {skewCallout}
-                </div>
-              </div>
-            )}
-          </section>
-        )}
-
-        {/* Trades Table - only show for completed runs */}
-        {selectedRun?.status === "completed" && (
-          <section className="rounded-xl border bg-card p-3 shadow-sm sm:p-4">
-            <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <h2 className="text-base font-semibold tracking-tight">Trades</h2>
-              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                {trades.length > 0 && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        Export
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                      <DropdownMenuItem
-                        onClick={() => exportTradesToCSV(trades, selectedRunId!)}
-                      >
-                        Download CSV
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => exportTradesToJSON(trades, selectedRunId!)}
-                      >
-                        Download JSON
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                )}
-                {trades.length > 0 && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <span>{trades.length} total</span>
-                    <Select
-                      value={String(tradesPageSize)}
-                      onValueChange={(value) => {
-                        setTradesPageSize(Number(value));
-                        setTradesCurrentPage(1);
-                      }}
-                    >
-                      <SelectTrigger className="h-8 w-[70px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="25">25</SelectItem>
-                        <SelectItem value="50">50</SelectItem>
-                        <SelectItem value="100">100</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {isLoadingTrades ? (
-              <p className="text-sm text-muted-foreground">Loading trades...</p>
-            ) : tradesError ? (
-              <div className="flex items-center gap-2">
-                <p className="text-sm text-destructive">{tradesError}</p>
-                <Button variant="link" size="sm" onClick={refetchTrades} className="h-auto p-0">
-                  Retry
+            {/* Failed run */}
+            {selectedRun.status === "failed" && (
+              <div
+                role="alert"
+                className="flex flex-col gap-2 rounded border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive sm:flex-row sm:items-center sm:justify-between"
+              >
+                <span>{selectedRun.error_message || "Backtest failed. Please try again."}</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    if (selectedRun.date_from && selectedRun.date_to) {
+                      setDateFrom(selectedRun.date_from.split("T")[0]);
+                      setDateTo(selectedRun.date_to.split("T")[0]);
+                      setPeriodPreset("custom");
+                    }
+                    submitBacktest();
+                  }}
+                  disabled={isSubmitting}
+                >
+                  Retry with same parameters
                 </Button>
               </div>
-            ) : trades.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No trades were generated for this run.</p>
-            ) : (
-              <>
-                {/* Mobile: Card-based layout */}
-                <div className="space-y-3 md:hidden">
-                  {paginatedTrades.map((trade, idx) => (
-                    <button
-                      key={`${trade.entry_time}-${idx}`}
-                      className="w-full rounded-lg border border-border bg-secondary/50 dark:bg-secondary/30 p-3 text-left transition hover:border-primary/30"
-                      onClick={() => setSelectedTradeIdx((tradesCurrentPage - 1) * tradesPageSize + idx)}
-                    >
-                      <div className="mb-2 flex items-center justify-between">
-                        <span className="text-xs font-medium uppercase text-muted-foreground">{trade.side}</span>
-                        <span className={`text-sm font-semibold ${trade.pnl >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
-                          {trade.pnl_pct >= 0 ? "+" : ""}{formatPercent(trade.pnl_pct).replace("%", "")}%
-                        </span>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2 text-sm">
-                        <div>
-                          <div className="text-xs text-muted-foreground">Entry</div>
-                          <div className="font-medium">{formatPrice(trade.entry_price)}</div>
-                          <div className="text-xs text-muted-foreground">{formatDateTime(trade.entry_time, timezone)}</div>
-                        </div>
-                        <div>
-                          <div className="text-xs text-muted-foreground">Exit</div>
-                          <div className="font-medium">{formatPrice(trade.exit_price)}</div>
-                          <div className="text-xs text-muted-foreground">{formatDateTime(trade.exit_time, timezone)}</div>
-                        </div>
-                      </div>
-                      <div className="mt-2 flex justify-between border-t border-border pt-2">
-                        <span className="text-xs text-muted-foreground">P&L</span>
-                        <span className={`text-sm font-medium ${trade.pnl >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
-                          {formatMoney(trade.pnl, "USDT", true)}
-                        </span>
-                      </div>
-                      <div className="mt-2 flex justify-between border-t border-border pt-2">
-                        <span className="text-xs text-muted-foreground">Costs</span>
-                        <span className="text-sm font-medium text-foreground">
-                          {trade.total_cost_usd !== undefined && trade.total_cost_usd !== null
-                            ? formatMoney(trade.total_cost_usd, "USDT", false)
-                            : "—"}
-                        </span>
-                      </div>
-                    </button>
-                  ))}
-                </div>
+            )}
 
-                {/* Desktop: Table layout */}
-                <div className="hidden overflow-x-auto rounded-lg border md:block">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>
-                          Entry {timezone === "utc" ? "(UTC)" : ""}
-                        </TableHead>
-                        <TableHead>Entry Price</TableHead>
-                        <TableHead>
-                          Exit {timezone === "utc" ? "(UTC)" : ""}
-                        </TableHead>
-                        <TableHead>Exit Price</TableHead>
-                        <TableHead>Side</TableHead>
-                        <TableHead className="text-right">P&L</TableHead>
-                        <TableHead className="text-right">P&L %</TableHead>
-                        <TableHead className="text-right">Costs</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {paginatedTrades.map((trade, idx) => (
-                        <TableRow
-                          key={`${trade.entry_time}-${idx}`}
-                          className="cursor-pointer"
-                          onClick={() => setSelectedTradeIdx((tradesCurrentPage - 1) * tradesPageSize + idx)}
-                          tabIndex={0}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" || e.key === " ") {
-                              e.preventDefault();
-                              setSelectedTradeIdx((tradesCurrentPage - 1) * tradesPageSize + idx);
-                            }
-                          }}
-                        >
-                          <TableCell>
-                            {formatDateTime(trade.entry_time, timezone)}
-                          </TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {formatPrice(trade.entry_price)}
-                          </TableCell>
-                          <TableCell>
-                            {formatDateTime(trade.exit_time, timezone)}
-                          </TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {formatPrice(trade.exit_price)}
-                          </TableCell>
-                          <TableCell className="text-muted-foreground uppercase">
-                            {trade.side}
-                          </TableCell>
-                          <TableCell
-                            className={`text-right font-medium ${
-                              trade.pnl >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
-                            }`}
-                          >
-                            {formatMoney(trade.pnl, "USDT", true)}
-                          </TableCell>
-                          <TableCell
-                            className={`text-right ${
-                              trade.pnl_pct >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
-                            }`}
-                          >
-                            {trade.pnl_pct >= 0 ? "+" : ""}{formatPercent(trade.pnl_pct).replace("%", "")}%
-                          </TableCell>
-                          <TableCell className="text-right text-foreground">
-                            {trade.total_cost_usd !== undefined && trade.total_cost_usd !== null
-                              ? formatMoney(trade.total_cost_usd, "USDT", false)
-                              : "—"}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
+            {/* Pending/running context (status pill shown in header) */}
+            {selectedRun.status !== "completed" && selectedRun.status !== "failed" && (
+              <p className="text-sm text-muted-foreground">
+                Results will appear automatically once the run finishes.
+              </p>
+            )}
+          </div>
+        )}
 
-                {/* Pagination */}
-                {totalPages > 1 && (
-                  <div className="mt-3 flex flex-col gap-2 border-t pt-3 sm:flex-row sm:items-center sm:justify-between">
-                    <p className="text-sm text-muted-foreground">
-                      Page {tradesCurrentPage} of {totalPages}
-                    </p>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setTradesCurrentPage((p) => Math.max(1, p - 1))}
-                        disabled={tradesCurrentPage === 1}
-                      >
-                        Previous
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setTradesCurrentPage((p) => Math.min(totalPages, p + 1))}
-                        disabled={tradesCurrentPage === totalPages}
-                      >
-                        Next
-                      </Button>
+        {!selectedRunId && (
+          <p className="text-sm text-muted-foreground">Select a run to see details, or run a new backtest.</p>
+        )}
+
+        {/* Results — only for completed runs, hidden in zero-trade narrative mode */}
+        {selectedRun?.status === "completed" && !isZeroTradeNarrativeMode && selectedRun.summary && (
+          <>
+            {/* KPI Strip */}
+            <KPIStrip
+              summary={selectedRun.summary}
+              trades={trades}
+              positionStats={positionStatsForKPI}
+            />
+
+            {/* What You Learned — first-run only */}
+            {showSummaryCard &&
+              selectedRun.summary.benchmark_return_pct != null && (
+                <WhatYouLearnedCard
+                  strategyReturnPct={selectedRun.summary.total_return_pct}
+                  benchmarkReturnPct={selectedRun.summary.benchmark_return_pct}
+                  asset={selectedRun.asset}
+                  dateRange={selectedRunRange || "the test period"}
+                  onDismiss={() => {
+                    markSummaryCardSeen();
+                    setShowSummaryCard(false);
+                  }}
+                />
+              )}
+
+            {/* Charts + Runs side by side */}
+            <div className="flex flex-col gap-5 lg:flex-row">
+              {/* Equity Curve Card */}
+              <div className="min-w-0 flex-1 rounded border border-border bg-card">
+                <div className="flex items-center justify-between border-b border-border px-4 py-4 sm:px-5">
+                  <div className="space-y-1">
+                    <h2 className="text-[15px] font-semibold">Equity curve</h2>
+                    <div className="flex items-center gap-4 text-[11px] text-muted-foreground">
+                      <span className="flex items-center gap-1.5">
+                        <span className="h-0.5 w-4 rounded bg-primary" />
+                        Strategy
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <span className="h-0.5 w-4 rounded border-b border-dashed border-muted-foreground" />
+                        Buy &amp; Hold
+                      </span>
                     </div>
                   </div>
-                )}
-              </>
-            )}
-          </section>
-        )}
+                  {equityCurve.length > 0 && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="sm" className="h-7 text-xs">Export</Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        <DropdownMenuItem onClick={() => exportEquityToCSV(equityCurve, selectedRunId!)}>CSV</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => exportEquityToJSON(equityCurve, selectedRunId!)}>JSON</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
+                </div>
+                <div className="px-4 py-5 sm:px-5">
+                  {isLoadingEquityCurve ? (
+                    <div className="flex h-56 items-center justify-center">
+                      <p className="text-sm text-muted-foreground">Loading equity curve...</p>
+                    </div>
+                  ) : equityCurveError ? (
+                    <div className="flex h-56 items-center justify-center rounded border border-destructive/30 bg-destructive/5">
+                      <div className="text-center">
+                        <p className="text-sm text-destructive">{equityCurveError}</p>
+                        <Button variant="link" size="sm" onClick={refetchEquityCurve} className="mt-2">Retry</Button>
+                      </div>
+                    </div>
+                  ) : equityCurve.length === 0 ? (
+                    <div className="flex h-56 items-center justify-center">
+                      <div className="text-center">
+                        <p className="text-sm text-muted-foreground">No equity data available.</p>
+                        <Button variant="link" size="sm" onClick={refetchEquityCurve} className="mt-2">Retry</Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <LineChart
+                      data={chartData.map((d) => ({
+                        ...d,
+                        timestamp: formatChartDate(d.timestamp, timezone),
+                      }))}
+                      index="timestamp"
+                      categories={["equity", "benchmark"]}
+                      colors={["blue", "gray"]}
+                      valueFormatter={(v) => formatPrice(v)}
+                      showLegend
+                      className="h-56 sm:h-64"
+                    />
+                  )}
+                </div>
+              </div>
 
-        {/* Transaction Cost Analysis - only show for completed runs */}
-        {selectedRun?.status === "completed" && selectedRun.summary && (
-          <TransactionCostAnalysis summary={selectedRun.summary} />
-        )}
+              {/* Runs list side panel */}
+              <BacktestRunsList
+                className="lg:w-[620px] lg:flex-shrink-0"
+                backtests={backtests}
+                batchSkippedRuns={batchSkippedRuns}
+                isLoadingBacktests={isLoadingBacktests}
+                onRefresh={loadBacktests}
+                currentPage={runsCurrentPage}
+                pageSize={runsPageSize}
+                onPageChange={setRunsCurrentPage}
+                onViewAll={() => setShowAllRunsDrawer(true)}
+                selectedRunId={selectedRunId}
+                onSelectRun={setSelectedRunId}
+                selectedRunIds={selectedRunIds}
+                onToggleRunSelection={handleSelectRun}
+                onCompare={handleCompareClick}
+                timezone={timezone}
+                totalCount={totalBacktests}
+              />
+            </div>
+
+            {/* Drawdown */}
+            <DrawdownSection
+              drawdownData={drawdownData}
+              summary={selectedRun.summary}
+              isLoading={isLoadingEquityCurve}
+              error={equityCurveError}
+              onRetry={refetchEquityCurve}
+              timezone={timezone}
+              tickConfig={tickConfig}
+            />
+
+            {/* Position + Seasonality */}
+            <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+              <PositionAnalysisCard trades={trades} timeframe={selectedRun.timeframe} />
+
+              {/* Seasonality (inline — kept in page) */}
+              <Tabs
+                value={periodType}
+                onValueChange={(value) => setPeriodType(value as PeriodType)}
+                className="overflow-hidden rounded border border-border bg-card"
+              >
+                <div className="flex flex-col gap-4 border-b border-border px-4 py-4 sm:px-6 lg:flex-row lg:items-start lg:justify-between">
+                  <div>
+                    <h2 className="text-[15px] font-semibold">Seasonality</h2>
+                    <p className="text-xs text-muted-foreground">Returns by calendar period</p>
+                  </div>
+
+                  <TabsList>
+                    <TabsTrigger value="month" className="text-xs">Month</TabsTrigger>
+                    <TabsTrigger value="quarter" className="text-xs">Quarter</TabsTrigger>
+                    <TabsTrigger value="weekday" className="text-xs">Weekday</TabsTrigger>
+                  </TabsList>
+                </div>
+
+                <div className="px-6 py-6">
+                  {trades.length === 0 ? (
+                    <p className="py-4 text-center text-sm text-muted-foreground">No trades available.</p>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="space-y-5">
+                        {seasonalityRows.map((row) => (
+                          <div
+                            key={row.year}
+                            className="grid grid-cols-[40px_minmax(0,1fr)] items-center"
+                          >
+                            <div className="text-xs font-semibold text-muted-foreground">
+                              {row.year}
+                            </div>
+
+                            <div className="overflow-x-auto pb-1">
+                              <div className={cn("grid gap-1.5", getSeasonalityGridClass(periodType))}>
+                                {row.buckets.map((bucket) => {
+                                  const cellStyle = getSeasonalityCellStyle(
+                                    bucket.avgReturn,
+                                    bucket.count,
+                                    seasonalityScaleMax
+                                  );
+
+                                  return (
+                                    <div
+                                      key={`${row.year}-${bucket.label}`}
+                                      className={cn(
+                                        "flex min-h-[52px] flex-col items-center justify-between rounded-lg border py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.22)]",
+                                        bucket.count === 0 && "shadow-none"
+                                      )}
+                                      style={cellStyle}
+                                      title={
+                                        bucket.count > 0
+                                          ? `${row.year} ${bucket.label}: ${formatPercent(bucket.avgReturn)} average across ${bucket.count} trades`
+                                          : `${row.year} ${bucket.label}: no trades`
+                                      }
+                                    >
+                                      {bucket.count > 0 ? (
+                                        <>
+                                          <div className="text-[10px] font-medium text-center">{bucket.label}</div>
+                                          <div className="text-xs font-semibold text-center">
+                                            {formatSeasonalityPercent(bucket.avgReturn)}
+                                          </div>
+                                        </>
+                                      ) : null}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="flex flex-wrap items-center justify-end gap-2 text-xs text-muted-foreground">
+                        <span>{`< -5%`}</span>
+                        {[-1, -0.45, 0, 0.45, 1].map((multiplier, index) => (
+                          <span
+                            key={`${multiplier}-${index}`}
+                            className="inline-block h-4 w-6 rounded border"
+                            style={getSeasonalityCellStyle(multiplier * 5, multiplier === 0 ? 0 : 1, 5)}
+                          />
+                        ))}
+                        <span>{`> +5%`}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </Tabs>
+            </div>
+
+            {/* Distribution charts */}
+            {trades.length >= 3 && (
+              <DistributionRow
+                returnDistribution={returnDistribution}
+                durationDistribution={durationDistribution}
+                totalTrades={trades.length}
+                durationDistributionTotal={durationDistributionTotal}
+                skewCallout={skewCallout}
+                skew={skew}
+              />
+            )}
+
+            {/* Trades table */}
+            {!isLoadingTrades && !tradesError && (
+              <TradesSection
+                trades={trades}
+                selectedRunId={selectedRunId!}
+                timezone={timezone}
+                onSelectTrade={setSelectedTradeIdx}
+                tradesCurrentPage={tradesCurrentPage}
+                tradesPageSize={tradesPageSize}
+                onPageChange={setTradesCurrentPage}
+                onPageSizeChange={setTradesPageSize}
+              />
+            )}
+
+            {isLoadingTrades && (
+              <div className="rounded border border-border bg-card px-4 py-8 text-center">
+                <p className="text-sm text-muted-foreground">Loading trades...</p>
+              </div>
+            )}
+
+            {tradesError && (
+              <div className="flex items-center gap-2 rounded border border-border bg-card px-4 py-4">
+                <p className="text-sm text-destructive">{tradesError}</p>
+                <Button variant="link" size="sm" onClick={refetchTrades} className="h-auto p-0">Retry</Button>
+              </div>
+            )}
+
+            {/* Transaction Cost Analysis */}
+            <TransactionCostAnalysis summary={selectedRun.summary} />
           </>
         )}
       </div>
+
+      {/* All Runs Drawer */}
+      <AllRunsDrawer
+        open={showAllRunsDrawer}
+        onClose={() => setShowAllRunsDrawer(false)}
+        strategyId={id}
+        timezone={timezone}
+        selectedRunId={selectedRunId}
+        onSelectRun={setSelectedRunId}
+        selectedRunIds={selectedRunIds}
+        onToggleRunSelection={handleSelectRun}
+        onCompare={handleCompareClick}
+      />
 
       {/* Trade Details Drawer */}
       {selectedTradeIdx !== null && selectedRunId && selectedRun && (
@@ -2525,7 +1524,7 @@ export default function StrategyBacktestPage({ params }: Props) {
         />
       )}
 
-      {/* Download confirmation dialog for out-of-range start date */}
+      {/* Download confirmation dialog */}
       <Dialog open={showDownloadConfirm} onOpenChange={setShowDownloadConfirm}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>

@@ -57,7 +57,7 @@ Displays the complete results of the most recent (or selected) backtest run for 
 | **Running** | `status === "running"` | Polling banner: "Backtest in progress…" |
 | **No results** | No runs for this strategy | Empty state with "Run Backtest" CTA |
 | **Zero trades** | `total_trades === 0` | Special `NarrativeCard` copy + `WhatYouLearnedCard` |
-| **Low trade count** | `total_trades < 30` | `LowTradeCountWarning` badge |
+| **Low trade count** | `total_trades < 10` | `LowTradeCountWarning` badge |
 | **Error** | API error | Destructive error banner |
 | **Completed** | `status === "completed"` | Full results layout |
 

@@ -1521,7 +1521,8 @@ Plain-Language Error Messages
 - tailwindcss, autoprefixer, postcss
 - shadcn/ui (Button, Input, Select, Dialog, Card, Tabs, Badge, DropdownMenu)
 - xyflow/react (React Flow)
-- recharts (charting)
+- @tremor/react (charts + KPI cards + Callouts; aliases Tremor palette to shadcn tokens via `tailwind.config.ts`)
+- lightweight-charts (candlestick OHLCV only)
 - date-fns (date formatting)
 
 ### 9.8. In-App Notifications

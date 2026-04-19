@@ -34,6 +34,15 @@ from app.services.analytics import track_backend_event, flush_backend_events
 logger = logging.getLogger(__name__)
 
 
+def _as_utc_datetime(value: datetime | None) -> datetime | None:
+    """Normalize database datetimes to UTC-aware values before comparison."""
+    if value is None:
+        return None
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)
+
+
 def run_backtest_job(
     run_id: str,
     force_refresh_prices: bool = False,
@@ -82,7 +91,8 @@ def run_backtest_job(
 
             # Set status to running
             run.status = "running"
-            run.updated_at = datetime.now(timezone.utc)
+            run.started_at = datetime.now(timezone.utc)
+            run.updated_at = run.started_at
             session.add(run)
             session.commit()
 
@@ -625,7 +635,8 @@ def evaluate_price_alerts() -> None:
         # Mark expired alerts as inactive
         expired_count = 0
         for alert in alerts:
-            if alert.expires_at and alert.expires_at <= now:
+            expires_at = _as_utc_datetime(alert.expires_at)
+            if expires_at and expires_at <= now:
                 alert.is_active = False
                 session.add(alert)
                 expired_count += 1
