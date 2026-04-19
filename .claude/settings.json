@@ -6,6 +6,7 @@
     "code-simplifier@claude-plugins-official": true,
     "playwright@claude-plugins-official": true,
     "claude-md-management@claude-plugins-official": true,
-    "caveman@caveman": true
+    "caveman@caveman": true,
+    "security-guidance@claude-plugins-official": true
   }
 }
