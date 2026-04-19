@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Card } from "@tremor/react";
 import { GraduationCap, Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -48,16 +49,16 @@ export function WhatYouLearnedCard({
   };
 
   return (
-    <div
+    <Card
       className={cn(
-        "flex items-center gap-4 rounded-lg border border-dashed border-blue-300 bg-white px-4 py-3 transition-all duration-150 ease-out motion-reduce:transition-none dark:border-blue-800 dark:bg-card",
-        exiting ? "scale-95 opacity-0" : "scale-100 opacity-100"
+        "flex items-center gap-4 border-dashed border-primary/40 bg-primary/5 !p-3 transition-all duration-150 ease-out motion-reduce:transition-none dark:border-primary/30",
+        exiting ? "scale-95 opacity-0" : "scale-100 opacity-100",
       )}
       onTransitionEnd={() => {
         if (exiting) onDismiss?.();
       }}
     >
-      <div className="flex-shrink-0 rounded-md bg-blue-50 p-2 text-blue-500 dark:bg-blue-950 dark:text-blue-400">
+      <div className="flex-shrink-0 rounded-md bg-primary/10 p-2 text-primary">
         <GraduationCap className="h-5 w-5" />
       </div>
 
@@ -66,17 +67,13 @@ export function WhatYouLearnedCard({
           <span className="text-sm font-semibold text-foreground">
             What you just learned
           </span>
-          <Badge
-            variant="outline"
-            className="border-blue-300 text-blue-600 dark:border-blue-700 dark:text-blue-400"
-          >
+          <Badge variant="outline" className="border-primary/30 text-primary">
             Insight
           </Badge>
         </div>
         <p className="text-sm text-muted-foreground">
           You tested whether your strategy would have outperformed simply holding{" "}
-          <span className="font-medium text-foreground">{asset}</span>.{" "}
-          {comparison}
+          <span className="font-medium text-foreground">{asset}</span>. {comparison}
         </p>
       </div>
 
@@ -90,6 +87,6 @@ export function WhatYouLearnedCard({
           Got it
         </button>
       )}
-    </div>
+    </Card>
   );
 }
