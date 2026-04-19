@@ -1,4 +1,4 @@
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@tremor/react";
 import { Badge } from "@/components/ui/badge";
 import {
   Tooltip,
@@ -36,11 +36,9 @@ export function SentimentGauge({
 }: SentimentGaugeProps) {
   if (status === "unavailable") {
     return (
-      <Card>
-        <CardContent className="p-4">
-          <div className="mb-2 text-sm font-medium text-muted-foreground">{label}</div>
-          <Badge variant="outline" className="text-xs">Unavailable</Badge>
-        </CardContent>
+      <Card className="!p-4">
+        <div className="mb-2 text-sm font-medium text-muted-foreground">{label}</div>
+        <Badge variant="outline" className="text-xs">Unavailable</Badge>
       </Card>
     );
   }
@@ -51,47 +49,43 @@ export function SentimentGauge({
   const displayValue = value !== null ? formatter(value) : "—";
 
   return (
-    <Card className={status === "partial" ? "opacity-80 border-dashed" : undefined}>
-      <CardContent className="p-3">
-        <div className="mb-2 flex items-center gap-2 text-sm font-semibold">
-          {label}
-          {status === "partial" && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Badge variant="outline" className="text-xs">Partial</Badge>
-                </TooltipTrigger>
-                <TooltipContent>Data may be incomplete or delayed</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )}
-        </div>
+    <Card className={`!p-3 ${status === "partial" ? "opacity-80 border-dashed" : ""}`}>
+      <div className="mb-2 flex items-center gap-2 text-sm font-semibold">
+        {label}
+        {status === "partial" && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge variant="outline" className="text-xs">Partial</Badge>
+              </TooltipTrigger>
+              <TooltipContent>Data may be incomplete or delayed</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
+      </div>
 
-        {/* Value display */}
-        <div className="text-lg font-semibold mb-2">
-          {displayValue}
-        </div>
+      <div className="text-lg font-semibold mb-2">
+        {displayValue}
+      </div>
 
-        {/* Gauge bar */}
+      <div
+        className="h-2 w-full rounded-full bg-muted"
+        role="meter"
+        aria-label={label}
+        aria-valuenow={value ?? undefined}
+        aria-valuemin={min}
+        aria-valuemax={max}
+      >
         <div
-          className="h-2 w-full rounded-full bg-muted"
-          role="meter"
-          aria-label={label}
-          aria-valuenow={value ?? undefined}
-          aria-valuemin={min}
-          aria-valuemax={max}
-        >
-          <div
-            className={`${gaugeColor(clampedPct)} h-2 rounded-full transition-all`}
-            style={{ width: `${clampedPct}%` }}
-          />
-        </div>
+          className={`${gaugeColor(clampedPct)} h-2 rounded-full transition-all`}
+          style={{ width: `${clampedPct}%` }}
+        />
+      </div>
 
-        <div className="mt-1 flex justify-between text-xs text-muted-foreground">
-          <span>{min}{unit ? ` ${unit}` : ""}</span>
-          <span>{max}{unit ? ` ${unit}` : ""}</span>
-        </div>
-      </CardContent>
+      <div className="mt-1 flex justify-between text-xs text-muted-foreground">
+        <span>{min}{unit ? ` ${unit}` : ""}</span>
+        <span>{max}{unit ? ` ${unit}` : ""}</span>
+      </div>
     </Card>
   );
 }

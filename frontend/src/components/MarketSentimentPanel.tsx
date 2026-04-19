@@ -1,5 +1,7 @@
 "use client";
 
+import { Card, Callout } from "@tremor/react";
+import { AlertTriangle } from "lucide-react";
 import { useMarketSentiment } from "@/hooks/useMarketSentiment";
 import { SentimentGauge } from "./SentimentGauge";
 import { SentimentSparkline } from "./SentimentSparkline";
@@ -10,8 +12,6 @@ interface MarketSentimentPanelProps {
   asset: string;
 }
 
-const PANEL_CLASS =
-  "rounded-lg border border-border bg-card p-4 text-card-foreground shadow-sm";
 const HEADING_ID = "market-sentiment-heading";
 const LONG_SHORT_COLOR = "hsl(var(--chart-1))";
 const FUNDING_COLOR = "hsl(var(--chart-2))";
@@ -57,7 +57,7 @@ export function MarketSentimentPanel({ asset }: MarketSentimentPanelProps) {
 
   if (isLoading) {
     return (
-      <section className={PANEL_CLASS} aria-labelledby={HEADING_ID} aria-busy="true">
+      <Card className="!p-4" aria-labelledby={HEADING_ID} aria-busy="true">
         <h2 id={HEADING_ID} className="text-lg font-semibold mb-4">
           Market Sentiment
         </h2>
@@ -71,36 +71,37 @@ export function MarketSentimentPanel({ asset }: MarketSentimentPanelProps) {
           ))}
         </div>
         <span className="sr-only">Loading sentiment data</span>
-      </section>
+      </Card>
     );
   }
 
   if (error) {
     return (
-      <section className={PANEL_CLASS} aria-labelledby={HEADING_ID}>
+      <Card className="!p-4" aria-labelledby={HEADING_ID}>
         <h2 id={HEADING_ID} className="text-lg font-semibold mb-4">
           Market Sentiment
         </h2>
-        <div className="rounded border border-amber-200 bg-amber-50 p-3 dark:border-amber-900 dark:bg-amber-950/40">
-          <p className="text-sm text-amber-800 dark:text-amber-200">
-            Sentiment data temporarily unavailable.
-          </p>
+        <Callout
+          title="Sentiment data temporarily unavailable"
+          icon={AlertTriangle}
+          color="yellow"
+        >
           <button
             type="button"
             onClick={() => refresh()}
-            className="mt-2 text-sm font-medium text-amber-900 underline underline-offset-2 hover:text-amber-950 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring dark:text-amber-100 dark:hover:text-amber-50"
+            className="text-sm font-medium underline underline-offset-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           >
             Retry
           </button>
-        </div>
-      </section>
+        </Callout>
+      </Card>
     );
   }
 
   if (!sentiment) return null;
 
   return (
-    <section className={PANEL_CLASS} aria-labelledby={HEADING_ID}>
+    <Card className="!p-4" aria-labelledby={HEADING_ID}>
       <h2 id={HEADING_ID} className="text-lg font-semibold mb-4">
         Market Sentiment
       </h2>
@@ -135,6 +136,6 @@ export function MarketSentimentPanel({ asset }: MarketSentimentPanelProps) {
       <div className="text-xs text-muted-foreground">
         <SentimentNarrative sentiment={sentiment} />
       </div>
-    </section>
+    </Card>
   );
 }
