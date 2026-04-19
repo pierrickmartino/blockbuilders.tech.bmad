@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { Callout } from "@tremor/react";
 import { AlertTriangle } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
 
@@ -30,16 +31,14 @@ export function LowTradeCountWarning({ numTrades, runId, userId }: LowTradeCount
   }
 
   return (
-    <div
+    <Callout
       role="status"
-      className="flex items-start gap-2 rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-warning"
+      title={`Only ${numTrades} trade${numTrades !== 1 ? "s" : ""} triggered`}
+      icon={AlertTriangle}
+      color="yellow"
     >
-      <AlertTriangle aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />
-      <span>
-        Your strategy triggered {numTrades} trade{numTrades !== 1 ? "s" : ""} over this period. With
-        so few trades, results can vary a lot — try a longer date range or looser entry conditions to
-        get more data points.
-      </span>
-    </div>
+      With so few trades, results can vary a lot — try a longer date range or looser entry conditions
+      to get more data points.
+    </Callout>
   );
 }
