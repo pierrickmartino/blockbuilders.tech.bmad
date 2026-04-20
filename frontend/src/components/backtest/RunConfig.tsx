@@ -29,6 +29,8 @@ interface RunConfigProps {
   forceRefreshPrices: boolean;
   onForceRefreshChange: (v: boolean) => void;
   availabilityWarning: string | null;
+  /** When true, drops the outer card chrome + heading (for embedding in a sheet). */
+  chromeless?: boolean;
 }
 
 export function RunConfig({
@@ -48,31 +50,38 @@ export function RunConfig({
   forceRefreshPrices,
   onForceRefreshChange,
   availabilityWarning,
+  chromeless = false,
 }: RunConfigProps) {
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   return (
-    <div className="rounded border border-border bg-card">
+    <div className={chromeless ? undefined : "rounded border border-border bg-card"}>
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-border px-4 py-4 sm:px-5">
-        <div className="space-y-0.5">
-          <h2 className="text-[15px] font-semibold">Run configuration</h2>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            Pick periods, fees and slippage for this run
-          </p>
+      {!chromeless && (
+        <div className="flex items-center justify-between border-b border-border px-4 py-4 sm:px-5">
+          <div className="space-y-0.5">
+            <h2 className="text-[15px] font-semibold">Run configuration</h2>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Pick periods, fees and slippage for this run
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowAdvanced(!showAdvanced)}
+            className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <SlidersHorizontal className="h-3 w-3" />
+            Advanced
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={() => setShowAdvanced(!showAdvanced)}
-          className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <SlidersHorizontal className="h-3 w-3" />
-          Advanced
-        </button>
-      </div>
+      )}
 
       {/* Body */}
-      <div className="space-y-4 px-4 py-5 sm:px-5">
+      <div
+        className={
+          chromeless ? "space-y-4" : "space-y-4 px-4 py-5 sm:px-5"
+        }
+      >
         {/* Period presets label */}
         <div className="font-mono text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
           Period presets
@@ -175,6 +184,18 @@ export function RunConfig({
           <div className="rounded border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-300">
             {availabilityWarning}
           </div>
+        )}
+
+        {/* Inline advanced toggle — shown only in chromeless mode where the header toggle is hidden */}
+        {chromeless && isBetaGrandfatheredUser && (
+          <button
+            type="button"
+            onClick={() => setShowAdvanced(!showAdvanced)}
+            className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <SlidersHorizontal className="h-3 w-3" />
+            {showAdvanced ? "Hide advanced" : "Advanced"}
+          </button>
         )}
 
         {/* Advanced section */}

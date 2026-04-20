@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { TradeDetail } from "@/types/backtest";
 import { formatDateTime, formatPrice, formatMoney, formatPercent, formatDuration, formatQuantity, type TimezoneMode } from "@/lib/format";
 import { exportTradesToCSV, exportTradesToJSON } from "@/lib/backtest-export";
-import { Search, Download, Filter } from "lucide-react";
+import { Search, Download, Filter, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type SideFilter = "all" | "long" | "short";
@@ -37,6 +37,8 @@ export function TradesSection({
 }: TradesSectionProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [sideFilter, setSideFilter] = useState<SideFilter>("all");
+  const [isExpanded, setIsExpanded] = useState(false);
+  const panelId = `trades-panel-${selectedRunId}`;
 
   const filteredTrades = useMemo(() => {
     let result = trades;
@@ -79,81 +81,100 @@ export function TradesSection({
   const sideFilterLabel = sideFilter === "all" ? "All" : sideFilter === "long" ? "Long" : "Short";
 
   return (
-    <div className="rounded border border-border bg-card">
-      {/* Header */}
-      <div className="flex flex-col gap-3 border-b border-border px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="text-[15px] font-semibold">Trades</h2>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            Chronological order &middot; {wins} wins, {losses} losses
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Search trades..."
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                onPageChange(1);
-              }}
-              className="h-8 w-[180px] pl-8 text-xs sm:w-[200px]"
-            />
-          </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="h-8 gap-1.5 px-2.5">
-                <Filter className="h-3.5 w-3.5" />
-                <span className="text-xs">{sideFilterLabel}</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem
-                onClick={() => {
-                  setSideFilter("all");
+    <div className="rounded border border-border/60 bg-muted/30 dark:bg-card/40">
+      {/* Header — reference tier toggle */}
+      <div className="flex flex-col gap-3 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <button
+          type="button"
+          onClick={() => setIsExpanded((v) => !v)}
+          aria-expanded={isExpanded}
+          aria-controls={panelId}
+          className="-mx-2 flex items-center gap-2 rounded px-2 py-1 text-left transition hover:bg-muted/40"
+        >
+          <ChevronDown
+            aria-hidden="true"
+            className={cn(
+              "h-3.5 w-3.5 text-muted-foreground transition-transform",
+              isExpanded ? "rotate-0" : "-rotate-90"
+            )}
+          />
+          <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Trades
+          </h2>
+          <span className="font-mono text-[11px] text-muted-foreground">
+            {trades.length} &middot; {wins}W / {losses}L
+          </span>
+        </button>
+        {isExpanded && (
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Search trades..."
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
                   onPageChange(1);
                 }}
-              >
-                All
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => {
-                  setSideFilter("long");
-                  onPageChange(1);
-                }}
-              >
-                Long
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => {
-                  setSideFilter("short");
-                  onPageChange(1);
-                }}
-              >
-                Short
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          {trades.length > 0 && (
+                className="h-8 w-[180px] pl-8 text-xs sm:w-[200px]"
+              />
+            </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="h-8 gap-1.5 px-2.5">
-                  <Download className="h-3.5 w-3.5" />
-                  <span className="text-xs">Export</span>
+                  <Filter className="h-3.5 w-3.5" />
+                  <span className="text-xs">{sideFilterLabel}</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => exportTradesToCSV(trades, selectedRunId)}>Download CSV</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => exportTradesToJSON(trades, selectedRunId)}>Download JSON</DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    setSideFilter("all");
+                    onPageChange(1);
+                  }}
+                >
+                  All
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    setSideFilter("long");
+                    onPageChange(1);
+                  }}
+                >
+                  Long
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    setSideFilter("short");
+                    onPageChange(1);
+                  }}
+                >
+                  Short
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-          )}
-        </div>
+            {trades.length > 0 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-8 gap-1.5 px-2.5">
+                    <Download className="h-3.5 w-3.5" />
+                    <span className="text-xs">Export</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => exportTradesToCSV(trades, selectedRunId)}>Download CSV</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => exportTradesToJSON(trades, selectedRunId)}>Download JSON</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
+        )}
       </div>
 
+      {isExpanded && (
+        <div id={panelId} className="border-t border-border/60">
       {/* Table header row */}
-      <div className="hidden border-b border-border bg-muted/40 px-5 py-2.5 md:flex">
+      <div className="hidden bg-muted/40 px-5 py-2.5 md:flex">
         <div className="w-10 font-mono text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">#</div>
         <div className="w-24 px-2 font-mono text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Side</div>
         <div className="flex-1 px-2 font-mono text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Entry</div>
@@ -342,6 +363,8 @@ export function TradesSection({
             </div>
           )}
         </>
+      )}
+        </div>
       )}
     </div>
   );

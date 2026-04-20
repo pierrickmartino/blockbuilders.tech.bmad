@@ -71,10 +71,11 @@ import {
 } from "@/lib/backtest-export";
 import { KeyboardShortcutsModal } from "@/components/KeyboardShortcutsModal";
 import { isInputElement } from "@/lib/keyboard-shortcuts";
-import { BacktestRunsList } from "@/components/BacktestRunsList";
 import { AllRunsDrawer } from "@/components/AllRunsDrawer";
 import { BacktestPageHeader } from "@/components/backtest/PageHeader";
-import { RunConfig } from "@/components/backtest/RunConfig";
+import { RunConfigSheet } from "@/components/backtest/RunConfigSheet";
+import { BacktestRunsBand } from "@/components/backtest/BacktestRunsBand";
+import { BacktestRunsRail } from "@/components/backtest/BacktestRunsRail";
 import { KPIStrip } from "@/components/backtest/KPIStrip";
 import { DrawdownSection } from "@/components/backtest/DrawdownSection";
 import { PositionAnalysisCard } from "@/components/backtest/PositionAnalysisCard";
@@ -517,6 +518,9 @@ export default function StrategyBacktestPage({ params }: Props) {
 
   // All runs drawer state
   const [showAllRunsDrawer, setShowAllRunsDrawer] = useState(false);
+
+  // Run config sheet state
+  const [runConfigSheetOpen, setRunConfigSheetOpen] = useState(false);
 
   // Share modal state
   const [showShareModal, setShowShareModal] = useState(false);
@@ -974,6 +978,22 @@ export default function StrategyBacktestPage({ params }: Props) {
     return `${formatDateTime(selectedRun.date_from, timezone).split(" ")[0]} → ${formatDateTime(selectedRun.date_to, timezone).split(" ")[0]}`;
   }, [selectedRun, timezone]);
 
+  const runLabelFor = useCallback(
+    (_run: BacktestListItem, idx: number): string => {
+      if (totalBacktests != null) {
+        const num = totalBacktests - (runsCurrentPage - 1) * runsPageSize - idx;
+        return `Run #${num}`;
+      }
+      return `Run #${(runsCurrentPage - 1) * runsPageSize + idx + 1}`;
+    },
+    [totalBacktests, runsCurrentPage, runsPageSize]
+  );
+
+  const handleSheetSubmit = async () => {
+    await submitBatchBacktest();
+    setRunConfigSheetOpen(false);
+  };
+
   const isZeroTradeRun =
     selectedRun?.status === "completed" &&
     selectedRun?.summary?.num_trades === 0;
@@ -1133,15 +1153,35 @@ export default function StrategyBacktestPage({ params }: Props) {
         timezone={timezone}
         isZeroTradeNarrativeMode={isZeroTradeNarrativeMode}
         onShare={() => setShowShareModal(true)}
-        onRunBacktest={submitBatchBacktest}
+        onRunBacktest={() => setRunConfigSheetOpen(true)}
         isSubmitting={isSubmitting}
-        selectedPeriodCount={selectedPeriods.size}
         runStatus={selectedRun?.status ?? null}
         runRange={selectedRunRange}
       />
 
       {/* Main Content */}
-      <div className="flex-1 space-y-5 overflow-auto bg-secondary p-4 dark:bg-background sm:px-8 sm:py-7">
+      <div className="flex-1 overflow-auto bg-secondary p-4 dark:bg-background sm:px-8 sm:py-7">
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:gap-6">
+        {/* Content column */}
+        <div className="min-w-0 space-y-5">
+        {/* Summary band — arrival focus */}
+        <BacktestRunsBand
+          backtests={backtests}
+          batchSkippedRuns={batchSkippedRuns}
+          isLoadingBacktests={isLoadingBacktests}
+          onRefresh={loadBacktests}
+          onViewAll={() => setShowAllRunsDrawer(true)}
+          onOpenRunSheet={() => setRunConfigSheetOpen(true)}
+          selectedRunId={selectedRunId}
+          onSelectRun={setSelectedRunId}
+          selectedRunIds={selectedRunIds}
+          onToggleRunSelection={handleSelectRun}
+          onCompare={handleCompareClick}
+          timezone={timezone}
+          totalCount={totalBacktests}
+          runLabelFor={runLabelFor}
+        />
+
         {/* Data Availability */}
         <DataAvailabilitySection
           dataAvailability={dataAvailability}
@@ -1150,26 +1190,6 @@ export default function StrategyBacktestPage({ params }: Props) {
           gapOverlap={gapOverlap}
           dateFrom={dateFrom}
           dateTo={dateTo}
-        />
-
-        {/* Run Configuration */}
-        <RunConfig
-          periods={BATCH_PERIOD_PRESETS}
-          selectedPeriods={selectedPeriods}
-          onTogglePeriod={handleTogglePeriod}
-          dateFrom={dateFrom}
-          dateTo={dateTo}
-          onDateFromChange={(v) => { setAvailabilityWarning(null); setDateFrom(v); setPeriodPreset("custom"); }}
-          onDateToChange={(v) => { setDateTo(v); setPeriodPreset("custom"); }}
-          feeRate={feeRate}
-          slippageRate={slippageRate}
-          onFeeRateChange={setFeeRate}
-          onSlippageRateChange={setSlippageRate}
-          isPremiumUser={isPremiumUser}
-          isBetaGrandfatheredUser={isBetaGrandfatheredUser}
-          forceRefreshPrices={forceRefreshPrices}
-          onForceRefreshChange={setForceRefreshPrices}
-          availabilityWarning={availabilityWarning}
         />
 
         {/* Run status messages */}
@@ -1255,117 +1275,97 @@ export default function StrategyBacktestPage({ params }: Props) {
                 />
               )}
 
-            {/* Charts + Runs side by side */}
-            <div className="flex flex-col gap-5 lg:flex-row">
-              {/* Equity Curve Card */}
-              <div className="min-w-0 flex-1 rounded border border-border bg-card">
-                <div className="flex items-center justify-between border-b border-border px-4 py-4 sm:px-5">
-                  <div className="space-y-1">
-                    <h2 className="text-[15px] font-semibold">Equity curve</h2>
-                    <div className="flex items-center gap-4 text-[11px] text-muted-foreground">
-                      <span className="flex items-center gap-1.5">
-                        <span className="h-0.5 w-4 rounded bg-primary" />
-                        Strategy
-                      </span>
-                      <span className="flex items-center gap-1.5">
-                        <span className="h-0.5 w-4 rounded border-b border-dashed border-muted-foreground" />
-                        Buy &amp; Hold
-                      </span>
+            {/* Equity Curve — hero tier (card chrome, no full-bleed to accommodate rail) */}
+            <section
+              aria-label="Equity curve"
+              className="rounded border border-border bg-card px-4 py-6 sm:px-6 sm:py-7"
+            >
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                <div className="space-y-2">
+                  <h2 className="text-[17px] font-semibold tracking-tight">Equity curve</h2>
+                  <div className="flex items-center gap-4 text-[11px] text-muted-foreground">
+                    <span className="flex items-center gap-1.5">
+                      <span className="h-0.5 w-4 rounded bg-primary" />
+                      Strategy
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <span className="h-0.5 w-4 rounded border-b border-dashed border-muted-foreground" />
+                      Buy &amp; Hold
+                    </span>
+                  </div>
+                </div>
+                {equityCurve.length > 0 && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm" className="h-7 self-start text-xs sm:self-auto">Export</Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      <DropdownMenuItem onClick={() => exportEquityToCSV(equityCurve, selectedRunId!)}>CSV</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => exportEquityToJSON(equityCurve, selectedRunId!)}>JSON</DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+              </div>
+              <div className="mt-5">
+                {isLoadingEquityCurve ? (
+                  <div className="flex h-64 items-center justify-center sm:h-80">
+                    <p className="text-sm text-muted-foreground">Loading equity curve...</p>
+                  </div>
+                ) : equityCurveError ? (
+                  <div className="flex h-64 items-center justify-center rounded border border-destructive/30 bg-destructive/5 sm:h-80">
+                    <div className="text-center">
+                      <p className="text-sm text-destructive">{equityCurveError}</p>
+                      <Button variant="link" size="sm" onClick={refetchEquityCurve} className="mt-2">Retry</Button>
                     </div>
                   </div>
-                  {equityCurve.length > 0 && (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="sm" className="h-7 text-xs">Export</Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent>
-                        <DropdownMenuItem onClick={() => exportEquityToCSV(equityCurve, selectedRunId!)}>CSV</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => exportEquityToJSON(equityCurve, selectedRunId!)}>JSON</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  )}
-                </div>
-                <div className="px-4 py-5 sm:px-5">
-                  {isLoadingEquityCurve ? (
-                    <div className="flex h-56 items-center justify-center">
-                      <p className="text-sm text-muted-foreground">Loading equity curve...</p>
+                ) : equityCurve.length === 0 ? (
+                  <div className="flex h-64 items-center justify-center sm:h-80">
+                    <div className="text-center">
+                      <p className="text-sm text-muted-foreground">No equity data available.</p>
+                      <Button variant="link" size="sm" onClick={refetchEquityCurve} className="mt-2">Retry</Button>
                     </div>
-                  ) : equityCurveError ? (
-                    <div className="flex h-56 items-center justify-center rounded border border-destructive/30 bg-destructive/5">
-                      <div className="text-center">
-                        <p className="text-sm text-destructive">{equityCurveError}</p>
-                        <Button variant="link" size="sm" onClick={refetchEquityCurve} className="mt-2">Retry</Button>
-                      </div>
-                    </div>
-                  ) : equityCurve.length === 0 ? (
-                    <div className="flex h-56 items-center justify-center">
-                      <div className="text-center">
-                        <p className="text-sm text-muted-foreground">No equity data available.</p>
-                        <Button variant="link" size="sm" onClick={refetchEquityCurve} className="mt-2">Retry</Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="h-56 sm:h-64">
-                      <ZoomableChart>
-                        <ResponsiveContainer width="100%" height="100%">
-                          <LineChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
-                            <XAxis
-                              dataKey="timestamp"
-                              tickFormatter={(v) => formatChartDate(v, timezone)}
-                              tick={{ fontSize: 10, fontFamily: "var(--font-mono)" }}
-                              tickLine={false}
-                              axisLine={{ stroke: "hsl(var(--border))" }}
-                              tickCount={tickConfig.xAxisTicks}
-                            />
-                            <YAxis
-                              tickFormatter={(v) => formatPrice(v, "").trim()}
-                              tick={{ fontSize: 10, fontFamily: "var(--font-mono)" }}
-                              tickLine={false}
-                              axisLine={{ stroke: "hsl(var(--border))" }}
-                              width={65}
-                              tickCount={tickConfig.yAxisTicks}
-                            />
-                            <Tooltip
-                              formatter={(value) => [formatPrice(Number(value)), "Equity"]}
-                              labelFormatter={(label) => formatDateTime(label as string, timezone)}
-                              contentStyle={{
-                                backgroundColor: "hsl(var(--popover))",
-                                border: "1px solid hsl(var(--border))",
-                                borderRadius: "0.25rem",
-                                fontSize: "0.75rem",
-                                color: "hsl(var(--popover-foreground))",
-                              }}
-                            />
-                            <Line type="monotone" dataKey="equity" stroke="hsl(var(--chart-1))" strokeWidth={1.5} dot={false} activeDot={{ r: 3, fill: "hsl(var(--chart-1))" }} name="Strategy" />
-                            <Line type="monotone" dataKey="benchmark" stroke="hsl(var(--muted-foreground))" strokeWidth={1.5} dot={false} strokeDasharray="5 5" name="Buy & Hold" />
-                          </LineChart>
-                        </ResponsiveContainer>
-                      </ZoomableChart>
-                    </div>
-                  )}
-                </div>
+                  </div>
+                ) : (
+                  <div className="h-64 sm:h-80">
+                    <ZoomableChart>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                          <XAxis
+                            dataKey="timestamp"
+                            tickFormatter={(v) => formatChartDate(v, timezone)}
+                            tick={{ fontSize: 10, fontFamily: "var(--font-mono)" }}
+                            tickLine={false}
+                            axisLine={{ stroke: "hsl(var(--border))" }}
+                            tickCount={tickConfig.xAxisTicks}
+                          />
+                          <YAxis
+                            tickFormatter={(v) => formatPrice(v, "").trim()}
+                            tick={{ fontSize: 10, fontFamily: "var(--font-mono)" }}
+                            tickLine={false}
+                            axisLine={{ stroke: "hsl(var(--border))" }}
+                            width={65}
+                            tickCount={tickConfig.yAxisTicks}
+                          />
+                          <Tooltip
+                            formatter={(value) => [formatPrice(Number(value)), "Equity"]}
+                            labelFormatter={(label) => formatDateTime(label as string, timezone)}
+                            contentStyle={{
+                              backgroundColor: "hsl(var(--popover))",
+                              border: "1px solid hsl(var(--border))",
+                              borderRadius: "0.25rem",
+                              fontSize: "0.75rem",
+                              color: "hsl(var(--popover-foreground))",
+                            }}
+                          />
+                          <Line type="monotone" dataKey="equity" stroke="hsl(var(--chart-1))" strokeWidth={1.5} dot={false} activeDot={{ r: 3, fill: "hsl(var(--chart-1))" }} name="Strategy" />
+                          <Line type="monotone" dataKey="benchmark" stroke="hsl(var(--muted-foreground))" strokeWidth={1.5} dot={false} strokeDasharray="5 5" name="Buy & Hold" />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </ZoomableChart>
+                  </div>
+                )}
               </div>
-
-              {/* Runs list side panel */}
-              <BacktestRunsList
-                className="lg:w-[620px] lg:flex-shrink-0"
-                backtests={backtests}
-                batchSkippedRuns={batchSkippedRuns}
-                isLoadingBacktests={isLoadingBacktests}
-                onRefresh={loadBacktests}
-                currentPage={runsCurrentPage}
-                pageSize={runsPageSize}
-                onPageChange={setRunsCurrentPage}
-                onViewAll={() => setShowAllRunsDrawer(true)}
-                selectedRunId={selectedRunId}
-                onSelectRun={setSelectedRunId}
-                selectedRunIds={selectedRunIds}
-                onToggleRunSelection={handleSelectRun}
-                onCompare={handleCompareClick}
-                timezone={timezone}
-                totalCount={totalBacktests}
-              />
-            </div>
+            </section>
 
             {/* Drawdown */}
             <DrawdownSection
@@ -1428,10 +1428,7 @@ export default function StrategyBacktestPage({ params }: Props) {
                                   return (
                                     <div
                                       key={`${row.year}-${bucket.label}`}
-                                      className={cn(
-                                        "flex min-h-[52px] flex-col items-center justify-between rounded-lg border py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.22)]",
-                                        bucket.count === 0 && "shadow-none"
-                                      )}
+                                      className="flex min-h-[52px] flex-col items-center justify-between rounded border py-2"
                                       style={cellStyle}
                                       title={
                                         bucket.count > 0
@@ -1516,7 +1513,46 @@ export default function StrategyBacktestPage({ params }: Props) {
             <TransactionCostAnalysis summary={selectedRun.summary} />
           </>
         )}
+        </div>
+
+        {/* Sticky runs rail — right column, desktop only, suppressed when ≤1 runs */}
+        <BacktestRunsRail
+          backtests={backtests}
+          isLoadingBacktests={isLoadingBacktests}
+          onRefresh={loadBacktests}
+          onViewAll={() => setShowAllRunsDrawer(true)}
+          selectedRunId={selectedRunId}
+          onSelectRun={setSelectedRunId}
+          totalCount={totalBacktests}
+          runLabelFor={runLabelFor}
+          stickyTop={0}
+        />
+        </div>
       </div>
+
+      {/* Run config sheet */}
+      <RunConfigSheet
+        open={runConfigSheetOpen}
+        onOpenChange={setRunConfigSheetOpen}
+        onSubmit={handleSheetSubmit}
+        isSubmitting={isSubmitting}
+        periods={BATCH_PERIOD_PRESETS}
+        selectedPeriods={selectedPeriods}
+        onTogglePeriod={handleTogglePeriod}
+        dateFrom={dateFrom}
+        dateTo={dateTo}
+        onDateFromChange={(v) => { setAvailabilityWarning(null); setDateFrom(v); setPeriodPreset("custom"); }}
+        onDateToChange={(v) => { setDateTo(v); setPeriodPreset("custom"); }}
+        feeRate={feeRate}
+        slippageRate={slippageRate}
+        onFeeRateChange={setFeeRate}
+        onSlippageRateChange={setSlippageRate}
+        isPremiumUser={isPremiumUser}
+        isBetaGrandfatheredUser={isBetaGrandfatheredUser}
+        forceRefreshPrices={forceRefreshPrices}
+        onForceRefreshChange={setForceRefreshPrices}
+        availabilityWarning={availabilityWarning}
+      />
 
       {/* All Runs Drawer */}
       <AllRunsDrawer

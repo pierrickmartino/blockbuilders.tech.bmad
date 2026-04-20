@@ -1,33 +1,27 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useState } from "react";
 import { BacktestSummary } from "@/types/backtest";
 import { formatNumber, formatPercent } from "@/lib/format";
-import {
-  TrendingDown,
-  DollarSign,
-  Zap,
-  Activity,
-  BarChart2,
-  ArrowRight,
-  Minus,
-} from "lucide-react";
-
+import { TrendingDown, ChevronDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface TransactionCostAnalysisProps {
   summary: BacktestSummary;
 }
 
 export function TransactionCostAnalysis({ summary }: TransactionCostAnalysisProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [showBreakdown, setShowBreakdown] = useState(false);
   const hasCostData = summary.total_costs_usd !== undefined && summary.total_costs_usd !== null;
 
   if (!hasCostData) {
     return (
-      <section className="rounded border bg-card p-6">
-        <h2 className="mb-3 text-lg font-semibold tracking-tight text-foreground">
+      <section className="rounded border border-border/60 bg-muted/30 px-5 py-3 dark:bg-card/40">
+        <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
           Transaction cost analysis
         </h2>
-        <p className="text-sm text-muted-foreground">
+        <p className="mt-2 text-xs text-muted-foreground">
           Cost breakdown not available for this backtest run. Run a new backtest to see detailed
           transaction costs.
         </p>
@@ -48,163 +42,125 @@ export function TransactionCostAnalysis({ summary }: TransactionCostAnalysisProp
   const slippagePct = total > 0 ? (slippage / total) * 100 : 0;
   const spreadPct = total > 0 ? (spread / total) * 100 : 0;
 
+  const panelId = "tca-panel";
+  const breakdownId = "tca-breakdown";
+
+  const grossLabel = `${grossReturn >= 0 ? "+" : "-"}${formatNumber(Math.abs(grossReturn), 2)}`;
+  const netLabel = `${netReturn >= 0 ? "+" : "-"}${formatNumber(Math.abs(netReturn), 2)}`;
+
   return (
-    <section className="rounded border border-border bg-card p-6">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-[15px] font-semibold text-foreground">Transaction cost analysis</h2>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            What the strategy pays to trade · {numTrades} fills
-          </p>
-        </div>
+    <section className="rounded border border-border/60 bg-muted/30 dark:bg-card/40">
+      {/* Header — reference tier toggle */}
+      <div className="flex flex-col gap-3 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <button
+          type="button"
+          onClick={() => setIsExpanded((v) => !v)}
+          aria-expanded={isExpanded}
+          aria-controls={panelId}
+          className="-mx-2 flex items-center gap-2 rounded px-2 py-1 text-left transition hover:bg-muted/40"
+        >
+          <ChevronDown
+            aria-hidden="true"
+            className={cn(
+              "h-3.5 w-3.5 text-muted-foreground transition-transform",
+              isExpanded ? "rotate-0" : "-rotate-90"
+            )}
+          />
+          <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Transaction cost analysis
+          </h2>
+          <span className="font-mono text-[11px] text-muted-foreground">{numTrades} fills</span>
+        </button>
         {summary.cost_pct_gross_return != null && (
-          <div className="flex shrink-0 items-center gap-1.5 rounded-full border border-destructive/60 px-2.5 py-1 text-xs font-medium text-destructive">
+          <div className="flex shrink-0 items-center gap-1.5 text-[11px] font-medium text-destructive">
             <TrendingDown className="h-3.5 w-3.5" />
             <span>{formatPercent(summary.cost_pct_gross_return)} cost drag</span>
           </div>
         )}
       </div>
 
-      <div className="my-4 border-t border-border" />
-
-      {/* 4 metric cards */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <MetricCard
-          label="FEES"
-          icon={<DollarSign className="h-3.5 w-3.5 text-muted-foreground/60" />}
-          value={formatNumber(fees, 2)}
-          sub={`${formatNumber(feesPct, 1)}% of costs`}
-        />
-        <MetricCard
-          label="SLIPPAGE"
-          icon={<Zap className="h-3.5 w-3.5 text-muted-foreground/60" />}
-          value={formatNumber(slippage, 2)}
-          sub={`${formatNumber(slippagePct, 1)}% of costs`}
-        />
-        <MetricCard
-          label="SPREAD"
-          icon={<Activity className="h-3.5 w-3.5 text-muted-foreground/60" />}
-          value={formatNumber(spread, 2)}
-          sub={`${formatNumber(spreadPct, 1)}% of costs`}
-        />
-        <MetricCard
-          label="AVG PER TRADE"
-          icon={<BarChart2 className="h-3.5 w-3.5 text-muted-foreground/60" />}
-          value={formatNumber(avgPerTrade, 2)}
-          sub={`across ${numTrades} fills`}
-        />
-      </div>
-
-      {/* Cost breakdown */}
-      <div className="mt-5">
-        <div className="mb-2 flex items-center justify-between">
-          <span className="text-xs font-semibold uppercase tracking-wider text-foreground">
-            Cost breakdown
-          </span>
-          <span className="text-xs text-muted-foreground">
-            Total{" "}
-            <span className="font-semibold text-foreground">{formatNumber(total, 2)} USDT</span>
-          </span>
-        </div>
-
-        {/* Stacked bar */}
-        <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-muted">
-          <div className="bg-destructive transition-all" style={{ width: `${feesPct}%` }} />
-          <div className="bg-warning transition-all" style={{ width: `${slippagePct}%` }} />
-          <div
-            className="bg-slate-400 transition-all dark:bg-slate-500"
-            style={{ width: `${spreadPct}%` }}
-          />
-        </div>
-
-        {/* Legend */}
-        <div className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1">
-          <LegendDot colorClass="bg-destructive" label={`Fees ${formatNumber(feesPct, 1)}%`} />
-          <LegendDot colorClass="bg-warning" label={`Slippage ${formatNumber(slippagePct, 1)}%`} />
-          <LegendDot
-            colorClass="bg-slate-400 dark:bg-slate-500"
-            label={`Spread ${formatNumber(spreadPct, 1)}%`}
-          />
-        </div>
-      </div>
-
-      {/* Bottom summary: Gross → Costs → Net */}
-      <div className="mt-5 grid grid-cols-3 divide-x divide-border rounded-lg border border-border">
-        <div className="px-4 py-3 text-center">
-          <div className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-            Gross return
-          </div>
-          <div className="mt-1.5 flex items-baseline justify-center gap-1">
-            <span
-              className={`text-xl font-bold leading-tight ${grossReturn >= 0 ? "text-success" : "text-destructive"}`}
-            >
-              {grossReturn >= 0 ? "+" : "-"}
-              {formatNumber(Math.abs(grossReturn), 2)}
+      {isExpanded && (
+        <div id={panelId} className="border-t border-border/60 px-5 py-5">
+          {/* Summary bar: Gross − Costs = Net, inline equation */}
+          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 font-mono text-sm tabular-nums">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Gross</span>
+            <span className={cn("text-base font-semibold", grossReturn >= 0 ? "text-success" : "text-destructive")}>
+              {grossLabel}
             </span>
-            <span className="text-xs text-muted-foreground">USDT</span>
-          </div>
-        </div>
-        <div className="flex flex-col items-center justify-center px-4 py-3">
-          <div className="text-[10px] font-semibold uppercase tracking-widest text-destructive">
-            Costs
-          </div>
-          <div className="mt-1.5 flex items-baseline justify-center gap-1">
-            <Minus className="h-3 w-3 text-destructive" />
-            <span className="text-xl font-semibold text-destructive">{formatNumber(total, 2)}</span>
-            <span className="text-xs text-muted-foreground">USDT</span>
-          </div>
-        </div>
-        <div className="px-4 py-3 text-center">
-          <div className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-            Net return
-          </div>
-          <div className="mt-1.5 flex items-baseline justify-center gap-1">
-            <span
-              className={`text-xl font-bold leading-tight ${netReturn >= 0 ? "text-success" : "text-destructive"}`}
-            >
-              {netReturn >= 0 ? "+" : "-"}
-              {formatNumber(Math.abs(netReturn), 2)}
+            <span className="text-muted-foreground">−</span>
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Costs</span>
+            <span className="text-base font-semibold text-destructive">{formatNumber(total, 2)}</span>
+            <span className="text-muted-foreground">=</span>
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Net</span>
+            <span className={cn("text-base font-semibold", netReturn >= 0 ? "text-success" : "text-destructive")}>
+              {netLabel}
             </span>
-            <span className="text-xs text-muted-foreground">USDT</span>
+            <span className="ml-auto text-[11px] text-muted-foreground">USDT</span>
           </div>
+
+          {/* Composition bar */}
+          <div className="mt-4">
+            <div className="flex h-1.5 w-full overflow-hidden rounded-full bg-muted">
+              <div className="bg-destructive" style={{ width: `${feesPct}%` }} />
+              <div className="bg-warning" style={{ width: `${slippagePct}%` }} />
+              <div className="bg-slate-400 dark:bg-slate-500" style={{ width: `${spreadPct}%` }} />
+            </div>
+            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 font-mono text-[11px] text-muted-foreground">
+              <LegendDot colorClass="bg-destructive" label="Fees" pct={feesPct} />
+              <LegendDot colorClass="bg-warning" label="Slippage" pct={slippagePct} />
+              <LegendDot colorClass="bg-slate-400 dark:bg-slate-500" label="Spread" pct={spreadPct} />
+              <span className="ml-auto">{formatNumber(avgPerTrade, 2)} avg/trade</span>
+            </div>
+          </div>
+
+          {/* Drill-in: raw breakdown */}
+          <button
+            type="button"
+            onClick={() => setShowBreakdown((v) => !v)}
+            aria-expanded={showBreakdown}
+            aria-controls={breakdownId}
+            className="mt-4 flex items-center gap-1.5 text-[11px] text-muted-foreground transition hover:text-foreground"
+          >
+            <ChevronDown
+              aria-hidden="true"
+              className={cn("h-3 w-3 transition-transform", showBreakdown ? "rotate-0" : "-rotate-90")}
+            />
+            {showBreakdown ? "Hide breakdown" : "Show breakdown"}
+          </button>
+
+          {showBreakdown && (
+            <dl
+              id={breakdownId}
+              className="mt-3 grid grid-cols-[auto_auto_1fr] gap-x-4 gap-y-1.5 border-t border-border/60 pt-3 font-mono text-xs tabular-nums"
+            >
+              <BreakdownRow label="Fees" value={formatNumber(fees, 2)} hint={`${formatNumber(feesPct, 1)}% of costs`} />
+              <BreakdownRow label="Slippage" value={formatNumber(slippage, 2)} hint={`${formatNumber(slippagePct, 1)}% of costs`} />
+              <BreakdownRow label="Spread" value={formatNumber(spread, 2)} hint={`${formatNumber(spreadPct, 1)}% of costs`} />
+            </dl>
+          )}
         </div>
-      </div>
+      )}
     </section>
   );
 }
 
-function MetricCard({
-  label,
-  icon,
-  value,
-  sub,
-}: {
-  label: string;
-  icon: ReactNode;
-  value: string;
-  sub: string;
-}) {
+function LegendDot({ colorClass, label, pct }: { colorClass: string; label: string; pct: number }) {
   return (
-    <div className="relative rounded-lg border border-border bg-muted/30 p-3">
-      <div className="absolute right-2.5 top-2.5">{icon}</div>
-      <div className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-        {label}
-      </div>
-      <div className="mt-2 flex items-baseline gap-1">
-        <span className="text-xl font-bold leading-tight text-foreground">{value}</span>
-        <span className="text-xs text-muted-foreground">USDT</span>
-      </div>
-      <div className="mt-1 text-[11px] text-muted-foreground">{sub}</div>
-    </div>
+    <span className="flex items-center gap-1.5">
+      <span className={cn("h-1.5 w-1.5 rounded-full", colorClass)} />
+      <span>
+        {label} {formatNumber(pct, 1)}%
+      </span>
+    </span>
   );
 }
 
-function LegendDot({ colorClass, label }: { colorClass: string; label: string }) {
+function BreakdownRow({ label, value, hint }: { label: string; value: string; hint: string }) {
   return (
-    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-      <div className={`h-2 w-2 rounded-full ${colorClass}`} />
-      <span>{label}</span>
-    </div>
+    <>
+      <dt className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</dt>
+      <dd className="text-right font-semibold">{value}</dd>
+      <dd className="text-[11px] text-muted-foreground">{hint}</dd>
+    </>
   );
 }

@@ -79,7 +79,6 @@ interface BacktestPageHeaderProps {
   onShare: () => void;
   onRunBacktest: () => void;
   isSubmitting: boolean;
-  selectedPeriodCount: number;
   runStatus?: BacktestStatus | null;
   runRange?: string | null;
 }
@@ -97,7 +96,6 @@ export function BacktestPageHeader({
   onShare,
   onRunBacktest,
   isSubmitting,
-  selectedPeriodCount,
   runStatus = null,
   runRange = null,
 }: BacktestPageHeaderProps) {
@@ -212,13 +210,12 @@ export function BacktestPageHeader({
           )}
           <Button
             onClick={onRunBacktest}
-            disabled={isSubmitting || selectedPeriodCount === 0}
+            disabled={isSubmitting}
             className="gap-2"
+            aria-label="Open run configuration"
           >
             <Play className="h-3.5 w-3.5" />
-            {isSubmitting
-              ? "Starting..."
-              : "Run backtest"}
+            {isSubmitting ? "Starting…" : "Run backtest"}
           </Button>
         </div>
       </div>
