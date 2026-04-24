@@ -7,24 +7,28 @@ export const STATUS_BADGE: Record<
   { className: string; label: string }
 > = {
   completed: {
-    className: "border-success/30 text-success bg-green-500/5",
+    className: "border-success/30 bg-success/5 text-success",
     label: "Completed",
   },
   running: {
-    className: "border-info/30 text-info bg-blue-500/5",
+    className: "border-info/30 bg-info/5 text-info",
     label: "Running",
   },
   pending: {
-    className: "border-warning/30 text-warning bg-yellow-500/5",
+    className: "border-warning/30 bg-warning/5 text-warning",
     label: "Queued",
   },
   failed: {
-    className: "border-destructive/30 text-destructive bg-destructive/5",
+    className: "border-destructive/30 bg-destructive/5 text-destructive",
     label: "Failed",
   },
   skipped: {
-    className: "border-border text-muted-foreground bg-muted",
+    className: "border-border bg-muted text-muted-foreground",
     label: "Skipped",
+  },
+  cancelled: {
+    className: "border-border bg-muted text-muted-foreground",
+    label: "Cancelled",
   },
 };
 
@@ -42,7 +46,7 @@ export function StatusBadge({ status, className }: StatusBadgeProps) {
     >
       {status === "running" ? (
         <span className="relative flex h-1.5 w-1.5">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-current opacity-75" />
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-current opacity-75 motion-reduce:animate-none" />
           <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-current" />
         </span>
       ) : (

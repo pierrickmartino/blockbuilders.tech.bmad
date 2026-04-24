@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
 import { BacktestStatusResponse, BatchStatusResponse } from "@/types/backtest";
 
-const TERMINAL_STATUSES = new Set(["completed", "failed", "skipped"]);
+const TERMINAL_STATUSES = new Set(["completed", "failed", "skipped", "cancelled"]);
 
 interface UseBatchBacktestResultsReturn {
   runs: BacktestStatusResponse[];

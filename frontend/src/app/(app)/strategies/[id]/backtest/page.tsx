@@ -15,7 +15,6 @@ import { apiFetch, ApiError, fetchDataQuality, fetchDataCompleteness, fetchDataA
 import { trackEvent } from "@/lib/analytics";
 import {
   formatDateTime,
-  formatPercent,
   formatPrice,
   formatChartDate,
 } from "@/lib/format";
@@ -42,7 +41,6 @@ import { StrategyTabs } from "@/components/StrategyTabs";
 import TradeDrawer from "@/components/TradeDrawer";
 import { WhatYouLearnedCard } from "@/components/WhatYouLearnedCard";
 import { NarrativeCard } from "@/components/NarrativeCard";
-import { LowTradeCountWarning } from "@/components/LowTradeCountWarning";
 import { DataAvailabilitySection } from "@/components/DataAvailabilitySection";
 import { ShareBacktestModal } from "@/components/ShareBacktestModal";
 import { TransactionCostAnalysis } from "@/components/TransactionCostAnalysis";
@@ -72,6 +70,7 @@ import {
 import { KeyboardShortcutsModal } from "@/components/KeyboardShortcutsModal";
 import { isInputElement } from "@/lib/keyboard-shortcuts";
 import { AllRunsDrawer } from "@/components/AllRunsDrawer";
+import { PageAlert } from "@/components/ui/page-alert";
 import { BacktestPageHeader } from "@/components/backtest/PageHeader";
 import { RunConfigSheet } from "@/components/backtest/RunConfigSheet";
 import { BacktestRunsBand } from "@/components/backtest/BacktestRunsBand";
@@ -79,6 +78,7 @@ import { BacktestRunsRail } from "@/components/backtest/BacktestRunsRail";
 import { KPIStrip } from "@/components/backtest/KPIStrip";
 import { DrawdownSection } from "@/components/backtest/DrawdownSection";
 import { PositionAnalysisCard } from "@/components/backtest/PositionAnalysisCard";
+import { SectionNav } from "@/components/backtest/SectionNav";
 import { TradesSection } from "@/components/backtest/TradesSection";
 import { DistributionRow } from "@/components/backtest/DistributionRow";
 import { cn } from "@/lib/utils";
@@ -189,6 +189,11 @@ function getSeasonalityGridClass(periodType: PeriodType): string {
   return "grid-cols-7 min-w-[560px]";
 }
 
+// Diagonal stripe overlay used as a colorblind-safe fallback for negative cells.
+// Positive cells stay solid; zero cells stay flat; only losses get the pattern.
+const NEGATIVE_STRIPE_OVERLAY =
+  "repeating-linear-gradient(45deg, rgba(0,0,0,0.18) 0 1.5px, transparent 1.5px 6px)";
+
 function getSeasonalityCellStyle(
   avgReturn: number,
   count: number,
@@ -196,9 +201,9 @@ function getSeasonalityCellStyle(
 ): CSSProperties {
   if (count === 0) {
     return {
-      backgroundColor: "rgba(148, 163, 184, 0.08)",
-      borderColor: "rgba(148, 163, 184, 0.12)",
-      color: "rgba(100, 116, 139, 0.7)",
+      backgroundColor: "hsl(var(--heatmap-empty-bg) / 0.32)",
+      borderColor: "hsl(var(--heatmap-empty-bg) / 0.5)",
+      color: "hsl(var(--heatmap-empty-fg) / 0.9)",
     };
   }
 
@@ -206,12 +211,16 @@ function getSeasonalityCellStyle(
   const easedIntensity = Math.pow(intensity, 0.8);
   const alpha = 0.14 + easedIntensity * 0.78;
   const isPositive = avgReturn >= 0;
-  const base = isPositive ? "22, 163, 74" : "220, 38, 38";
+  const baseVar = isPositive ? "var(--heatmap-pos)" : "var(--heatmap-neg)";
+  const lowFgVar = isPositive ? "var(--heatmap-fg-pos)" : "var(--heatmap-fg-neg)";
 
   return {
-    backgroundColor: `rgba(${base}, ${alpha})`,
-    borderColor: `rgba(${base}, ${Math.min(alpha + 0.08, 1)})`,
-    color: easedIntensity > 0.72 ? "#ffffff" : isPositive ? "#166534" : "#991b1b",
+    backgroundColor: `hsl(${baseVar} / ${alpha})`,
+    // Diagonal stripes layered on negative cells so color-blind users can still
+    // distinguish wins from losses. Positive cells stay solid for contrast.
+    backgroundImage: isPositive ? undefined : NEGATIVE_STRIPE_OVERLAY,
+    borderColor: `hsl(${baseVar} / ${Math.min(alpha + 0.08, 1)})`,
+    color: easedIntensity > 0.72 ? "hsl(var(--heatmap-fg-high))" : `hsl(${lowFgVar})`,
   };
 }
 
@@ -542,7 +551,14 @@ export default function StrategyBacktestPage({ params }: Props) {
   const [batchSkippedRuns, setBatchSkippedRuns] = useState<BatchRunResult[]>([]);
   const batchInitialized = useRef(false);
 
-  const { isAllDone: isBatchDone } = useBatchBacktestResults(activeBatchId);
+  const { runs: batchRuns, isAllDone: isBatchDone } = useBatchBacktestResults(activeBatchId);
+
+  const batchProgress = useMemo(() => {
+    if (!activeBatchId || batchRuns.length === 0) return null;
+    const terminal = new Set(["completed", "failed", "skipped", "cancelled"]);
+    const done = batchRuns.filter((r) => terminal.has(r.status)).length;
+    return { done, total: batchRuns.length };
+  }, [activeBatchId, batchRuns]);
 
   useEffect(() => {
     if (!showSummaryCard) {
@@ -703,6 +719,41 @@ export default function StrategyBacktestPage({ params }: Props) {
     }
   }, [id, runsCurrentPage, selectedRunId]);
 
+  const handleCancelRun = useCallback(
+    async (runId: string) => {
+      try {
+        await apiFetch(`/backtests/${runId}/cancel`, { method: "POST" });
+        trackEvent(
+          "backtest_cancelled",
+          { strategy_id: id, run_id: runId },
+          userIdRef.current,
+        );
+        setStatusMessage("Run cancelled.");
+        await loadBacktests();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to cancel run");
+      }
+    },
+    [id, loadBacktests],
+  );
+
+  const handlePauseBatch = useCallback(async () => {
+    if (!activeBatchId) return;
+    try {
+      await apiFetch(`/backtests/batch/${activeBatchId}/cancel`, { method: "POST" });
+      trackEvent(
+        "batch_backtest_cancelled",
+        { strategy_id: id, batch_id: activeBatchId },
+        userIdRef.current,
+      );
+      setStatusMessage("Batch paused. Pending runs were cancelled.");
+      setActiveBatchId(null);
+      await loadBacktests();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to pause batch");
+    }
+  }, [activeBatchId, id, loadBacktests]);
+
   // Auto-refresh history when batch completes so batch runs appear in the list
   useEffect(() => {
     if (isBatchDone && activeBatchId) {
@@ -726,6 +777,29 @@ export default function StrategyBacktestPage({ params }: Props) {
     loadStrategy();
     loadBacktests();
   }, [loadStrategy, loadBacktests]);
+
+  // `/` focuses the trades search (ignored while typing into another field)
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== "/" || event.metaKey || event.ctrlKey || event.altKey) return;
+      const target = event.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+      const input = document.getElementById("trades-search-input") as HTMLInputElement | null;
+      if (!input) return;
+      event.preventDefault();
+      input.focus();
+      input.select();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   // Track backtest view for recently viewed section
   useEffect(() => {
@@ -1118,24 +1192,26 @@ export default function StrategyBacktestPage({ params }: Props) {
     <div className="flex flex-col overflow-x-hidden">
       {/* Alerts */}
       {error && (
-        <div
-          role="alert"
-          aria-live="assertive"
-          className="flex items-start justify-between gap-2 border-b border-destructive/30 bg-destructive/5 px-4 py-2 text-sm text-destructive sm:px-8"
+        <PageAlert
+          variant="error"
+          mode="banner"
+          icon={false}
+          onDismiss={() => setError(null)}
+          dismissLabel="Dismiss error"
         >
-          <span>{error}</span>
-          <button type="button" onClick={() => setError(null)} aria-label="Dismiss error" className="flex-shrink-0 text-destructive/70 hover:text-destructive">×</button>
-        </div>
+          {error}
+        </PageAlert>
       )}
       {statusMessage && (
-        <div
-          role="status"
-          aria-live="polite"
-          className="flex items-start justify-between gap-2 border-b border-green-200 bg-green-50 px-4 py-2 text-sm text-green-600 dark:border-green-800 dark:bg-green-950 dark:text-green-400 sm:px-8"
+        <PageAlert
+          variant="success"
+          mode="banner"
+          icon={false}
+          onDismiss={() => setStatusMessage(null)}
+          dismissLabel="Dismiss message"
         >
-          <span>{statusMessage}</span>
-          <button type="button" onClick={() => setStatusMessage(null)} aria-label="Dismiss message" className="flex-shrink-0 opacity-70 hover:opacity-100">×</button>
-        </div>
+          {statusMessage}
+        </PageAlert>
       )}
 
       {/* Tab Bar */}
@@ -1177,12 +1253,36 @@ export default function StrategyBacktestPage({ params }: Props) {
           selectedRunIds={selectedRunIds}
           onToggleRunSelection={handleSelectRun}
           onCompare={handleCompareClick}
+          onCancelRun={handleCancelRun}
           timezone={timezone}
           totalCount={totalBacktests}
           runLabelFor={runLabelFor}
         />
 
-        {/* Data Availability */}
+        {/* Active batch banner with pause control */}
+        {activeBatchId && !isBatchDone && (
+          <PageAlert
+            variant="info"
+            mode="inline"
+            title="Batch running"
+            action={
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePauseBatch}
+                className="border-info/40 text-info hover:bg-info/10"
+              >
+                Pause batch
+              </Button>
+            }
+          >
+            {batchProgress
+              ? `${batchProgress.done} of ${batchProgress.total} runs finished. Pause to cancel the rest.`
+              : "Queuing runs. Pause to cancel the rest."}
+          </PageAlert>
+        )}
+
+        {/* Data Availability (also subsumes low-trade-count warning for this run) */}
         <DataAvailabilitySection
           dataAvailability={dataAvailability}
           completeness={completeness}
@@ -1190,6 +1290,9 @@ export default function StrategyBacktestPage({ params }: Props) {
           gapOverlap={gapOverlap}
           dateFrom={dateFrom}
           dateTo={dateTo}
+          numTrades={selectedRun?.summary?.num_trades ?? null}
+          runId={selectedRunId}
+          userId={user?.id}
         />
 
         {/* Run status messages */}
@@ -1204,13 +1307,6 @@ export default function StrategyBacktestPage({ params }: Props) {
                 userId={user?.id}
               />
             )}
-
-            {/* Low trade count */}
-            <LowTradeCountWarning
-              numTrades={selectedRun.summary?.num_trades}
-              runId={selectedRunId!}
-              userId={user?.id}
-            />
 
             {/* Failed run */}
             {selectedRun.status === "failed" && (
@@ -1275,14 +1371,26 @@ export default function StrategyBacktestPage({ params }: Props) {
                 />
               )}
 
+            <SectionNav
+              sections={[
+                { id: "section-equity", label: "Equity" },
+                { id: "section-drawdown", label: "Drawdown" },
+                { id: "section-seasonality", label: "Seasonality" },
+                { id: "section-distribution", label: "Distribution" },
+                { id: "section-trades", label: "Trades" },
+                { id: "section-costs", label: "Costs" },
+              ]}
+            />
+
             {/* Equity Curve — hero tier (card chrome, no full-bleed to accommodate rail) */}
             <section
+              id="section-equity"
               aria-label="Equity curve"
-              className="rounded border border-border bg-card px-4 py-6 sm:px-6 sm:py-7"
+              className="scroll-mt-16 rounded border border-border bg-card px-4 py-6 sm:px-6 sm:py-7"
             >
               <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                 <div className="space-y-2">
-                  <h2 className="text-[17px] font-semibold tracking-tight">Equity curve</h2>
+                  <h2 className="text-[15px] font-semibold">Equity curve</h2>
                   <div className="flex items-center gap-4 text-[11px] text-muted-foreground">
                     <span className="flex items-center gap-1.5">
                       <span className="h-0.5 w-4 rounded bg-primary" />
@@ -1367,28 +1475,37 @@ export default function StrategyBacktestPage({ params }: Props) {
               </div>
             </section>
 
-            {/* Drawdown */}
-            <DrawdownSection
-              drawdownData={drawdownData}
-              summary={selectedRun.summary}
-              isLoading={isLoadingEquityCurve}
-              error={equityCurveError}
-              onRetry={refetchEquityCurve}
-              timezone={timezone}
-              tickConfig={tickConfig}
-            />
+            {/* Drawdown — reference tier */}
+            <section
+              id="section-drawdown"
+              aria-label="Drawdown"
+              className="scroll-mt-16 border-t border-border pt-8"
+            >
+              <DrawdownSection
+                drawdownData={drawdownData}
+                summary={selectedRun.summary}
+                isLoading={isLoadingEquityCurve}
+                error={equityCurveError}
+                onRetry={refetchEquityCurve}
+                timezone={timezone}
+                tickConfig={tickConfig}
+              />
+            </section>
 
-            {/* Position + Seasonality */}
-            <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+            {/* Position + Seasonality — reference tier */}
+            <section
+              id="section-seasonality"
+              aria-label="Position and seasonality"
+              className="scroll-mt-16 grid grid-cols-1 gap-x-10 gap-y-10 border-t border-border pt-10 lg:grid-cols-2"
+            >
               <PositionAnalysisCard trades={trades} timeframe={selectedRun.timeframe} />
 
               {/* Seasonality (inline — kept in page) */}
               <Tabs
                 value={periodType}
                 onValueChange={(value) => setPeriodType(value as PeriodType)}
-                className="overflow-hidden rounded border border-border bg-card"
               >
-                <div className="flex flex-col gap-4 border-b border-border px-4 py-4 sm:px-6 lg:flex-row lg:items-start lg:justify-between">
+                <div className="flex flex-col gap-4 pb-4 lg:flex-row lg:items-start lg:justify-between">
                   <div>
                     <h2 className="text-[15px] font-semibold">Seasonality</h2>
                     <p className="text-xs text-muted-foreground">Returns by calendar period</p>
@@ -1401,45 +1518,92 @@ export default function StrategyBacktestPage({ params }: Props) {
                   </TabsList>
                 </div>
 
-                <div className="px-6 py-6">
+                <div>
                   {trades.length === 0 ? (
                     <p className="py-4 text-center text-sm text-muted-foreground">No trades available.</p>
                   ) : (
                     <div className="space-y-4">
-                      <div className="space-y-5">
+                      <div className="flex flex-col items-start gap-2 pb-4 text-xs text-muted-foreground">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span>{`< -5%`}</span>
+                          {[-1, -0.45, 0, 0.45, 1].map((multiplier, index) => (
+                            <span
+                              key={`${multiplier}-${index}`}
+                              className="inline-block h-4 w-6 rounded border"
+                              style={getSeasonalityCellStyle(multiplier * 5, multiplier === 0 ? 0 : 1, 5)}
+                            />
+                          ))}
+                          <span>{`> +5%`}</span>
+                        </div>
+                        <p className="text-[11px] font-mono">
+                          <span aria-hidden="true">▲</span> gain
+                          <span className="mx-2" aria-hidden="true">·</span>
+                          <span aria-hidden="true">▼</span> loss (striped)
+                        </p>
+                      </div>
+                      <div
+                        role="table"
+                        aria-label={`Seasonality by year and ${periodType}`}
+                        className="space-y-5"
+                      >
+                        <div role="row" className="sr-only">
+                          <span role="columnheader">Year</span>
+                          {getSeasonalityLabels(periodType).map((label) => (
+                            <span key={label} role="columnheader">
+                              {label}
+                            </span>
+                          ))}
+                        </div>
                         {seasonalityRows.map((row) => (
                           <div
                             key={row.year}
+                            role="row"
                             className="grid grid-cols-[40px_minmax(0,1fr)] items-center"
                           >
-                            <div className="text-xs font-semibold text-muted-foreground">
+                            <div
+                              role="rowheader"
+                              className="text-xs font-semibold text-muted-foreground"
+                            >
                               {row.year}
                             </div>
 
-                            <div className="overflow-x-auto pb-1">
-                              <div className={cn("grid gap-1.5", getSeasonalityGridClass(periodType))}>
+                            <div role="presentation" className="overflow-x-auto pb-1">
+                              <div
+                                role="presentation"
+                                className={cn("grid gap-1.5", getSeasonalityGridClass(periodType))}
+                              >
                                 {row.buckets.map((bucket) => {
                                   const cellStyle = getSeasonalityCellStyle(
                                     bucket.avgReturn,
                                     bucket.count,
                                     seasonalityScaleMax
                                   );
+                                  const isPositive = bucket.avgReturn >= 0;
+                                  const shapeGlyph =
+                                    bucket.count === 0 ? null : isPositive ? "▲" : "▼";
+                                  const ariaLabel =
+                                    bucket.count > 0
+                                      ? `${row.year} ${bucket.label}: ${isPositive ? "gain" : "loss"} ${formatSeasonalityPercent(bucket.avgReturn)} across ${bucket.count} trades`
+                                      : `${row.year} ${bucket.label}: no trades`;
 
                                   return (
                                     <div
                                       key={`${row.year}-${bucket.label}`}
                                       className="flex min-h-[52px] flex-col items-center justify-between rounded border py-2"
                                       style={cellStyle}
-                                      title={
-                                        bucket.count > 0
-                                          ? `${row.year} ${bucket.label}: ${formatPercent(bucket.avgReturn)} average across ${bucket.count} trades`
-                                          : `${row.year} ${bucket.label}: no trades`
-                                      }
+                                      role="cell"
+                                      aria-label={ariaLabel}
+                                      title={ariaLabel}
                                     >
                                       {bucket.count > 0 ? (
                                         <>
-                                          <div className="text-[10px] font-medium text-center">{bucket.label}</div>
-                                          <div className="text-xs font-semibold text-center">
+                                          <div className="flex items-center gap-1 text-[10px] font-medium">
+                                            <span aria-hidden="true" className="leading-none">
+                                              {shapeGlyph}
+                                            </span>
+                                            <span>{bucket.label}</span>
+                                          </div>
+                                          <div className="text-xs font-semibold text-center tabular-nums">
                                             {formatSeasonalityPercent(bucket.avgReturn)}
                                           </div>
                                         </>
@@ -1452,37 +1616,32 @@ export default function StrategyBacktestPage({ params }: Props) {
                           </div>
                         ))}
                       </div>
-
-                      <div className="flex flex-wrap items-center justify-end gap-2 text-xs text-muted-foreground">
-                        <span>{`< -5%`}</span>
-                        {[-1, -0.45, 0, 0.45, 1].map((multiplier, index) => (
-                          <span
-                            key={`${multiplier}-${index}`}
-                            className="inline-block h-4 w-6 rounded border"
-                            style={getSeasonalityCellStyle(multiplier * 5, multiplier === 0 ? 0 : 1, 5)}
-                          />
-                        ))}
-                        <span>{`> +5%`}</span>
-                      </div>
                     </div>
                   )}
                 </div>
               </Tabs>
-            </div>
+            </section>
 
-            {/* Distribution charts */}
+            {/* Distribution charts — reference tier */}
             {trades.length >= 3 && (
-              <DistributionRow
-                returnDistribution={returnDistribution}
-                durationDistribution={durationDistribution}
-                totalTrades={trades.length}
-                durationDistributionTotal={durationDistributionTotal}
-                skewCallout={skewCallout}
-                skew={skew}
-              />
+              <section
+                id="section-distribution"
+                aria-label="Distribution"
+                className="scroll-mt-16 border-t border-border pt-12"
+              >
+                <DistributionRow
+                  returnDistribution={returnDistribution}
+                  durationDistribution={durationDistribution}
+                  totalTrades={trades.length}
+                  durationDistributionTotal={durationDistributionTotal}
+                  skewCallout={skewCallout}
+                  skew={skew}
+                />
+              </section>
             )}
 
             {/* Trades table */}
+            <div id="section-trades" aria-label="Trades" className="scroll-mt-16" />
             {!isLoadingTrades && !tradesError && (
               <TradesSection
                 trades={trades}
@@ -1510,6 +1669,7 @@ export default function StrategyBacktestPage({ params }: Props) {
             )}
 
             {/* Transaction Cost Analysis */}
+            <div id="section-costs" aria-label="Transaction costs" className="scroll-mt-16" />
             <TransactionCostAnalysis summary={selectedRun.summary} />
           </>
         )}

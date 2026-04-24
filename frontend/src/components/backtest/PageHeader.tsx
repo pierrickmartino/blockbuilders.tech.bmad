@@ -7,6 +7,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { formatDateTime, formatRelativeTime, type TimezoneMode } from "@/lib/format";
 import { Strategy, StrategyVersion } from "@/types/strategy";
 import { BacktestStatus, BacktestStatusResponse, DataQualityMetrics } from "@/types/backtest";
@@ -55,7 +61,7 @@ function getQualityIndicator(dataQuality: DataQualityMetrics | null) {
 
   if (dataQuality.gap_percent >= GAP_THRESHOLDS.excellent) {
     return {
-      dotClassName: "bg-amber-500",
+      dotClassName: "bg-warning/70",
       label: "Data quality is good",
     };
   }
@@ -118,9 +124,9 @@ export function BacktestPageHeader({
             <span className="font-mono text-[11px] font-medium uppercase tracking-[0.24em]">
               Live Strategy
             </span>
-            <span className="hidden font-mono text-xs sm:inline">&middot;</span>
+            <span className="hidden font-mono text-xs sm:inline">·</span>
             <span className="font-mono text-xs">{versionLabel}</span>
-            <span className="hidden font-mono text-xs sm:inline">&middot;</span>
+            <span className="hidden font-mono text-xs sm:inline">·</span>
             <time
               className="font-mono text-xs"
               dateTime={strategyVersion?.created_at ?? undefined}
@@ -208,15 +214,36 @@ export function BacktestPageHeader({
               </DropdownMenu>
             </>
           )}
-          <Button
-            onClick={onRunBacktest}
-            disabled={isSubmitting}
-            className="gap-2"
-            aria-label="Open run configuration"
-          >
-            <Play className="h-3.5 w-3.5" />
-            {isSubmitting ? "Starting…" : "Run backtest"}
-          </Button>
+          <TooltipProvider delayDuration={150}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                {/* Wrapper span captures hover while the button is disabled */}
+                <span
+                  className={isSubmitting ? "inline-flex cursor-not-allowed" : "inline-flex"}
+                  tabIndex={isSubmitting ? 0 : -1}
+                >
+                  <Button
+                    onClick={onRunBacktest}
+                    disabled={isSubmitting}
+                    className="gap-2"
+                    aria-label={
+                      isSubmitting
+                        ? "Run backtest — starting, please wait"
+                        : "Open run configuration"
+                    }
+                  >
+                    <Play className="h-3.5 w-3.5" />
+                    {isSubmitting ? "Starting…" : "Run backtest"}
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-xs text-xs leading-snug">
+                {isSubmitting
+                  ? "Starting your backtest — usually takes a few seconds. Hang tight."
+                  : "Configure dates, fees, and periods, then run one or several backtests. Shortcut: ⌘/Ctrl + Enter."}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </div>
     </div>

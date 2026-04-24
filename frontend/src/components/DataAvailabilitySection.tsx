@@ -1,19 +1,22 @@
 "use client";
 
-import { useState } from "react";
-import { AlertTriangle, CheckCircle2, ChevronDown, Database } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { AlertTriangle, CheckCircle2, ChevronDown } from "lucide-react";
 import {
   DataAvailabilityResponse,
   DataCompletenessResponse,
   DataQualityMetrics,
 } from "@/types/backtest";
 import { Badge } from "@/components/ui/badge";
+import { PageAlert } from "@/components/ui/page-alert";
 import { cn } from "@/lib/utils";
+import { trackEvent } from "@/lib/analytics";
 import { DataCompletenessTimeline } from "./DataCompletenessTimeline";
 import InfoIcon from "./InfoIcon";
 
 const GAP_THRESHOLDS = { excellent: 2, good: 5 } as const;
 const VOLUME_CONSISTENCY_THRESHOLD = 95;
+const MIN_RELIABLE_TRADES = 10;
 
 const formatLocalDate = (value: string) => {
   // Accept either "YYYY-MM-DD" or a full ISO timestamp; parse as local date to avoid TZ drift.
@@ -109,6 +112,9 @@ interface DataAvailabilitySectionProps {
   gapOverlap: Array<{ start: string; end: string }> | null;
   dateFrom: string;
   dateTo: string;
+  numTrades?: number | null;
+  runId?: string | null;
+  userId?: string;
 }
 
 export function DataAvailabilitySection({
@@ -118,13 +124,42 @@ export function DataAvailabilitySection({
   gapOverlap,
   dateFrom,
   dateTo,
+  numTrades = null,
+  runId = null,
+  userId,
 }: DataAvailabilitySectionProps) {
-  const hasIssues = Boolean(dataQuality?.has_issues || (gapOverlap && gapOverlap.length > 0));
+  const hasLowTradeCount =
+    numTrades != null &&
+    Number.isFinite(numTrades) &&
+    numTrades > 0 &&
+    numTrades < MIN_RELIABLE_TRADES;
+  const hasIssues = Boolean(
+    dataQuality?.has_issues ||
+      (gapOverlap && gapOverlap.length > 0) ||
+      hasLowTradeCount
+  );
   // Auto-expand when issues exist so warnings aren't hidden behind a click.
   const [isExpanded, setIsExpanded] = useState(hasIssues);
   const [showAllGaps, setShowAllGaps] = useState(false);
 
-  if (!completeness && !dataQuality) {
+  const trackedLowTradeRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!hasLowTradeCount || numTrades == null) return;
+    const impressionKey = runId ?? `num_trades:${numTrades}`;
+    if (trackedLowTradeRef.current === impressionKey) return;
+    trackedLowTradeRef.current = impressionKey;
+    trackEvent(
+      "health_warning_shown",
+      {
+        warning_type: "low_trade_count",
+        num_trades: numTrades,
+        run_id: runId ?? undefined,
+      },
+      userId
+    );
+  }, [hasLowTradeCount, numTrades, runId, userId]);
+
+  if (!completeness && !dataQuality && !hasLowTradeCount) {
     return null;
   }
 
@@ -151,18 +186,15 @@ export function DataAvailabilitySection({
         className="flex w-full items-start justify-between gap-2 px-3 py-2 text-left transition hover:bg-muted/50 sm:px-4"
       >
         <div className="flex min-w-0 items-start gap-2">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-secondary text-sky-500">
-            <Database aria-hidden="true" className="h-4 w-4" strokeWidth={1.8} />
-          </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <h2 className="text-[13px] font-semibold">Data availability</h2>
+              <h2 className="text-[15px] font-semibold">Data availability</h2>
             </div>
             {metadataItems.length > 0 && (
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
                 {metadataItems.map((item, index) => (
                   <span key={item} className="flex items-center">
-                    {index > 0 && <span className="mr-2 text-muted-foreground/60">•</span>}
+                    {index > 0 && <span className="mr-2 text-muted-foreground/60">·</span>}
                     <span className="data-text text-muted-foreground">{item}</span>
                   </span>
                 ))}
@@ -174,10 +206,10 @@ export function DataAvailabilitySection({
           <Badge
             variant="outline"
             className={cn(
-              "gap-2 text-[10px] font-semibold uppercase tracking-[0.12em]",
+              "gap-2 font-mono text-[10px] font-semibold uppercase tracking-wider",
               hasIssues
-                ? "border-warning/30 text-warning"
-                : "border-success/30 text-success",
+                ? "border-warning/30 bg-warning/5 text-warning"
+                : "border-success/30 bg-success/5 text-success",
             )}
           >
             <span
@@ -348,7 +380,7 @@ export function DataAvailabilitySection({
                     </span>
                     {(showAllGaps ? gapOverlap : gapOverlap.slice(0, 3)).map((gap, idx) => (
                       <div key={idx} className="data-text ml-4 text-xs text-muted-foreground">
-                        • {new Date(gap.start).toLocaleString()} – {new Date(gap.end).toLocaleString()}
+                        · {new Date(gap.start).toLocaleString()} – {new Date(gap.end).toLocaleString()}
                       </div>
                     ))}
                     {gapOverlap.length > 3 && (
@@ -366,14 +398,41 @@ export function DataAvailabilitySection({
             </div>
           )}
 
+          {/* Sample size — backtest output, included here so all reliability signals are in one place */}
+          {numTrades != null && Number.isFinite(numTrades) && numTrades > 0 && (
+            <div>
+              <div className="mb-2 flex items-center gap-2">
+                <h4 className="text-sm font-medium">Sample size</h4>
+                <InfoIcon
+                  tooltip={{
+                    short: "Number of completed trades in this run.",
+                    long: "Below 10 trades, performance metrics are not statistically reliable. Extend the date range or loosen entry conditions to produce more trades.",
+                    category: "metric",
+                  }}
+                  className="text-muted-foreground"
+                />
+              </div>
+              <div
+                className={cn(
+                  "data-text flex items-center gap-1 text-base font-semibold sm:text-lg",
+                  hasLowTradeCount ? "text-warning" : "text-foreground"
+                )}
+              >
+                {hasLowTradeCount && <AlertTriangle aria-hidden="true" className="h-4 w-4" />}
+                {numTrades} trade{numTrades === 1 ? "" : "s"}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {hasLowTradeCount
+                  ? `Below ${MIN_RELIABLE_TRADES} — metrics not statistically reliable`
+                  : "Sufficient for statistical reliability"}
+              </div>
+            </div>
+          )}
+
           {/* Overall Warning Summary */}
           {hasIssues && (
-            <div className="rounded border border-warning/40 bg-warning/10 px-3 py-2">
-              <div className="mb-1 flex items-center gap-1 text-sm font-medium text-warning">
-                <AlertTriangle aria-hidden="true" className="h-4 w-4" />
-                Data Quality Warning
-              </div>
-              <div className="text-sm text-foreground">
+            <PageAlert variant="warning" title="Data Quality Warning">
+              <div className="text-foreground">
                 {dataQuality?.issues_description && (
                   <div className="mb-1">{dataQuality.issues_description}</div>
                 )}
@@ -383,9 +442,15 @@ export function DataAvailabilitySection({
                     {gapOverlap.length > 1 ? "s" : ""}.
                   </div>
                 )}
+                {hasLowTradeCount && (
+                  <div>
+                    Only {numTrades} trade{numTrades === 1 ? "" : "s"} produced — extend the date
+                    range or loosen entry conditions for more statistical power.
+                  </div>
+                )}
                 <div className="mt-2 font-medium">Backtest results may be less reliable.</div>
               </div>
-            </div>
+            </PageAlert>
           )}
         </div>
       )}

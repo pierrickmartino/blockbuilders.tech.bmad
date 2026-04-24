@@ -217,6 +217,31 @@ export const TOOLTIP_CONTENT: Record<string, TooltipContent> = {
     long: "Cost % of Gross Return shows what portion of your pre-cost profit went to fees, slippage, and spread. N/A when gross return is zero or negative. Lower is better—high cost ratios can eliminate profitability.",
     category: "metric",
   },
+  "metric-sharpe": {
+    short: "Risk-adjusted return. Higher is better; above 1.0 is decent, above 2.0 is strong.",
+    long: "Sharpe ratio = (annualized return − risk-free rate) ÷ annualized standard deviation of returns. Penalizes all volatility — both up and down — so a strategy that jumps around earns a lower score even if it finishes green.",
+    category: "metric",
+  },
+  "metric-sortino": {
+    short: "Risk-adjusted return that only penalizes losing volatility.",
+    long: "Sortino ratio = (annualized return − risk-free rate) ÷ downside deviation. Like Sharpe, but upside volatility doesn't count against you — profitable spikes don't drag the number down.",
+    category: "metric",
+  },
+  "metric-calmar": {
+    short: "Annualized return divided by worst drawdown. Higher is better.",
+    long: "Calmar ratio = annualized return ÷ |max drawdown|. A 30% return with a 10% max drawdown scores 3.0. Rewards strategies that stay shallow during losing streaks.",
+    category: "metric",
+  },
+  "metric-skew": {
+    short: "Shape of the return distribution. Positive = rare big wins; negative = rare big losses hiding in a steady curve.",
+    long: "Skew = (n ÷ ((n−1)(n−2))) · Σ((xᵢ − mean) ÷ std)³. Positive skew means upside outliers dominate. Negative skew means downside outliers — occasional large losses that a flat win rate can mask.",
+    category: "metric",
+  },
+  "metric-avg-hold": {
+    short: "Average time a position stays open across all trades.",
+    long: "Average hold = mean of (exit_time − entry_time) across all trades. Tells you whether the strategy scalps minutes, swings days, or holds for weeks.",
+    category: "metric",
+  },
 
   // Parameters
   "param-period": {

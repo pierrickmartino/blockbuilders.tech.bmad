@@ -18,7 +18,7 @@ export function TransactionCostAnalysis({ summary }: TransactionCostAnalysisProp
   if (!hasCostData) {
     return (
       <section className="rounded border border-border/60 bg-muted/30 px-5 py-3 dark:bg-card/40">
-        <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+        <h2 className="font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
           Transaction cost analysis
         </h2>
         <p className="mt-2 text-xs text-muted-foreground">
@@ -66,7 +66,7 @@ export function TransactionCostAnalysis({ summary }: TransactionCostAnalysisProp
               isExpanded ? "rotate-0" : "-rotate-90"
             )}
           />
-          <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <h2 className="font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
             Transaction cost analysis
           </h2>
           <span className="font-mono text-[11px] text-muted-foreground">{numTrades} fills</span>
@@ -103,12 +103,12 @@ export function TransactionCostAnalysis({ summary }: TransactionCostAnalysisProp
             <div className="flex h-1.5 w-full overflow-hidden rounded-full bg-muted">
               <div className="bg-destructive" style={{ width: `${feesPct}%` }} />
               <div className="bg-warning" style={{ width: `${slippagePct}%` }} />
-              <div className="bg-slate-400 dark:bg-slate-500" style={{ width: `${spreadPct}%` }} />
+              <div className="bg-muted-foreground/50" style={{ width: `${spreadPct}%` }} />
             </div>
             <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 font-mono text-[11px] text-muted-foreground">
               <LegendDot colorClass="bg-destructive" label="Fees" pct={feesPct} />
               <LegendDot colorClass="bg-warning" label="Slippage" pct={slippagePct} />
-              <LegendDot colorClass="bg-slate-400 dark:bg-slate-500" label="Spread" pct={spreadPct} />
+              <LegendDot colorClass="bg-muted-foreground/50" label="Spread" pct={spreadPct} />
               <span className="ml-auto">{formatNumber(avgPerTrade, 2)} avg/trade</span>
             </div>
           </div>

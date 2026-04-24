@@ -98,11 +98,11 @@ export function TradesSection({
               isExpanded ? "rotate-0" : "-rotate-90"
             )}
           />
-          <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <h2 className="font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
             Trades
           </h2>
           <span className="font-mono text-[11px] text-muted-foreground">
-            {trades.length} &middot; {wins}W / {losses}L
+            {trades.length} · {wins}W / {losses}L
           </span>
         </button>
         {isExpanded && (
@@ -110,18 +110,19 @@ export function TradesSection({
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Search trades..."
+                id="trades-search-input"
+                placeholder="Search trades... (press /)"
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
                   onPageChange(1);
                 }}
-                className="h-8 w-[180px] pl-8 text-xs sm:w-[200px]"
+                className="h-10 w-[180px] pl-8 text-xs sm:h-8 sm:w-[200px]"
               />
             </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="h-8 gap-1.5 px-2.5">
+                <Button variant="outline" size="sm" className="h-10 gap-1.5 px-2.5 sm:h-8">
                   <Filter className="h-3.5 w-3.5" />
                   <span className="text-xs">{sideFilterLabel}</span>
                 </Button>
@@ -156,7 +157,7 @@ export function TradesSection({
             {trades.length > 0 && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-8 gap-1.5 px-2.5">
+                  <Button variant="outline" size="sm" className="h-10 gap-1.5 px-2.5 sm:h-8">
                     <Download className="h-3.5 w-3.5" />
                     <span className="text-xs">Export</span>
                   </Button>
@@ -267,14 +268,14 @@ export function TradesSection({
                   <div className="flex-1 space-y-0.5 px-2">
                     <div>
                       <span className="font-mono text-xs font-medium">{formatPrice(trade.entry_price, "")}</span>
-                      <span className="font-mono text-[10px] text-muted-foreground">USDT</span>
+                      <span className="ml-1 font-mono text-[10px] text-muted-foreground">USDT</span>
                     </div>
                     <div className="font-mono text-[10px] text-muted-foreground">{formatDateTime(trade.entry_time, timezone)}</div>
                   </div>
                   <div className="flex-1 space-y-0.5 px-2">
                     <div>
                       <span className="font-mono text-xs font-medium">{formatPrice(trade.exit_price, "")}</span>
-                      <span className="font-mono text-[10px] text-muted-foreground">USDT</span>
+                      <span className="ml-1 font-mono text-[10px] text-muted-foreground">USDT</span>
                     </div>
                     <div className="font-mono text-[10px] text-muted-foreground">{formatDateTime(trade.exit_time, timezone)}</div>
                   </div>
@@ -284,13 +285,11 @@ export function TradesSection({
                   <div className="w-24 px-2 text-right font-mono text-xs text-muted-foreground">
                     {formatQuantity(trade.qty)}
                   </div>
-                  <div className="w-36 px-2 text-right ">
+                  <div className="w-36 px-2 text-right">
                     <span className={cn("font-mono text-xs font-medium", trade.pnl >= 0 ? "text-success" : "text-destructive")}>
                       {formatMoney(trade.pnl, "", true)}
                     </span>
-                    <span
-                      className={cn("font-mono text-[10px] text-muted-foreground", trade.pnl >= 0 ? "text-success" : "text-destructive")}
-                    >
+                    <span className="ml-1 font-mono text-[10px] text-muted-foreground">
                       USDT
                     </span>
                   </div>
@@ -302,7 +301,7 @@ export function TradesSection({
                     <span className="font-mono text-xs text-muted-foreground">
                       {trade.total_cost_usd != null ? formatMoney(trade.total_cost_usd, "", false) : "—"}
                     </span>
-                    <span className="font-mono text-[10px] text-muted-foreground">USDT</span>
+                    <span className="ml-1 font-mono text-[10px] text-muted-foreground">USDT</span>
                   </div>
                 </button>
               );
@@ -327,7 +326,7 @@ export function TradesSection({
                       onPageChange(1);
                     }}
                   >
-                    <SelectTrigger className="h-7 w-[60px] text-xs">
+                    <SelectTrigger className="h-9 w-[60px] text-xs sm:h-7">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -341,7 +340,7 @@ export function TradesSection({
               <div className="flex items-center gap-1">
                 {pageNumbers.map((page, i) =>
                   page === "..." ? (
-                    <span key={`dots-${i}`} className="flex h-7 w-7 items-center justify-center text-xs text-muted-foreground">
+                    <span key={`dots-${i}`} className="flex h-9 w-9 items-center justify-center text-xs text-muted-foreground sm:h-7 sm:w-7">
                       ...
                     </span>
                   ) : (
@@ -349,7 +348,7 @@ export function TradesSection({
                       key={page}
                       onClick={() => onPageChange(page as number)}
                       className={cn(
-                        "flex h-7 w-7 items-center justify-center rounded text-xs font-medium transition-colors",
+                        "flex h-9 w-9 items-center justify-center rounded text-xs font-medium transition-colors sm:h-7 sm:w-7",
                         page === tradesCurrentPage
                           ? "bg-primary text-primary-foreground"
                           : "border border-border bg-card text-foreground hover:bg-muted/50",

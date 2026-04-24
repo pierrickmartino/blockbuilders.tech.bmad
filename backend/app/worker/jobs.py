@@ -243,6 +243,14 @@ def run_backtest_job(
                 trades_key = generate_results_key(run.id, "trades.json")
                 upload_json(trades_key, trades_data)
 
+                # Respect mid-run cancellation requests from the API.
+                # The user may have cancelled while the engine was running; if so,
+                # don't overwrite the cancelled status with completed results.
+                session.refresh(run)
+                if run.status == "cancelled":
+                    logger.info("backtest_cancelled_mid_run")
+                    return
+
                 # Update run with results
                 run.status = "completed"
                 run.total_return = result.total_return_pct

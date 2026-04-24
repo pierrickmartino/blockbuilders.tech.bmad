@@ -2,12 +2,12 @@
 
 import {
   AlertTriangle,
-  BarChart3,
   Info,
   Play,
   RefreshCw,
   TrendingDown,
   TrendingUp,
+  X,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -66,6 +66,7 @@ interface BandCardProps {
   disabledReason: string | null;
   onSelectRun: (runId: string) => void;
   onToggleRunSelection: (runId: string, checked: boolean) => void;
+  onCancelRun?: (runId: string) => void;
   timezone: TimezoneMode;
 }
 
@@ -78,11 +79,14 @@ function BandCard({
   disabledReason,
   onSelectRun,
   onToggleRunSelection,
+  onCancelRun,
   timezone,
 }: BandCardProps) {
   const isPositive = (run.total_return ?? 0) >= 0;
   const periodLabel = compactPeriodLabel(run.period_key);
   const datetimeLabel = formatCompactDateTime(run.created_at, timezone);
+  const isCancellable =
+    Boolean(onCancelRun) && (run.status === "pending" || run.status === "running");
 
   const checkbox = (
     <label
@@ -157,7 +161,7 @@ function BandCard({
           ) : run.status === "running" ? (
             <div className="font-mono text-xl font-semibold tabular-nums leading-none text-info">
               <span className="relative mr-2 inline-flex h-1.5 w-1.5">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-info/70" />
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-info/70 motion-reduce:animate-none" />
                 <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-info" />
               </span>
               Running
@@ -196,26 +200,47 @@ function BandCard({
         </div>
       </button>
 
-      {/* Compare checkbox — top-right corner, shown on hover/focus/when checked */}
-      <div
-        className={cn(
-          "absolute right-2 top-2 transition-opacity",
-          isChecked
-            ? "opacity-100"
-            : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
-        )}
-      >
-        {disabledReason ? (
+      {/* Top-right action — cancel for pending/running, compare checkbox otherwise */}
+      {isCancellable ? (
+        <div className="absolute right-1.5 top-1.5">
           <Tooltip>
             <TooltipTrigger asChild>
-              <div>{checkbox}</div>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onCancelRun?.(run.run_id);
+                }}
+                aria-label={`Cancel ${runLabel}`}
+                className="inline-flex h-5 w-5 items-center justify-center rounded border border-border bg-background/90 text-muted-foreground transition-colors hover:border-destructive/40 hover:text-destructive focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-destructive"
+              >
+                <X className="h-3 w-3" aria-hidden />
+              </button>
             </TooltipTrigger>
-            <TooltipContent>{disabledReason}</TooltipContent>
+            <TooltipContent>Cancel run</TooltipContent>
           </Tooltip>
-        ) : (
-          checkbox
-        )}
-      </div>
+        </div>
+      ) : (
+        <div
+          className={cn(
+            "absolute right-2 top-2 transition-opacity",
+            isChecked
+              ? "opacity-100"
+              : "opacity-40 group-hover:opacity-100 group-focus-within:opacity-100"
+          )}
+        >
+          {disabledReason ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div>{checkbox}</div>
+              </TooltipTrigger>
+              <TooltipContent>{disabledReason}</TooltipContent>
+            </Tooltip>
+          ) : (
+            checkbox
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -232,6 +257,7 @@ interface BacktestRunsBandProps {
   selectedRunIds: Set<string>;
   onToggleRunSelection: (runId: string, checked: boolean) => void;
   onCompare: () => void;
+  onCancelRun?: (runId: string) => void;
   timezone: TimezoneMode;
   totalCount?: number;
   /** Label prefix for runs — computed from totalCount or offsets. */
@@ -252,6 +278,7 @@ export function BacktestRunsBand({
   selectedRunIds,
   onToggleRunSelection,
   onCompare,
+  onCancelRun,
   timezone,
   totalCount,
   runLabelFor,
@@ -280,9 +307,6 @@ export function BacktestRunsBand({
       >
         <div className="flex flex-col items-start gap-3 px-4 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-5">
           <div className="flex items-center gap-3">
-            <div className="rounded bg-secondary p-2">
-              <BarChart3 className="h-5 w-5 text-muted-foreground/70" aria-hidden />
-            </div>
             <div>
               <h2
                 id="runs-band-heading"
@@ -313,7 +337,7 @@ export function BacktestRunsBand({
         {/* Header */}
         <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-2.5 sm:px-5">
           <div className="flex items-baseline gap-3">
-            <h2 id="runs-band-heading" className="text-[13px] font-semibold leading-none">
+            <h2 id="runs-band-heading" className="text-[15px] font-semibold leading-none">
               Recent runs
             </h2>
             <p className="font-mono text-[11px] leading-none text-muted-foreground">
@@ -322,6 +346,18 @@ export function BacktestRunsBand({
             </p>
           </div>
           <div className="flex items-center gap-1.5">
+            {hasMore && (
+              <button
+                type="button"
+                onClick={onViewAll}
+                className="h-7 rounded px-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              >
+                View all{" "}
+                <span className="font-mono text-muted-foreground/70">
+                  ({totalCount != null ? totalCount : `${backtests.length}+`})
+                </span>
+              </button>
+            )}
             {showCompareButton &&
               (canCompare ? (
                 <Button variant="default" size="sm" onClick={onCompare} className="h-7">
@@ -365,6 +401,8 @@ export function BacktestRunsBand({
         {selectionCount > 0 && selectionCount < 2 && (
           <div
             role="status"
+            aria-live="polite"
+            aria-atomic="true"
             className="flex items-center gap-2 border-b border-border bg-info/5 px-4 py-1.5 text-xs text-info"
           >
             <Info className="h-3 w-3 shrink-0" aria-hidden />
@@ -374,10 +412,12 @@ export function BacktestRunsBand({
         {selectionCount > MAX_COMPARE && (
           <div
             role="status"
+            aria-live="polite"
+            aria-atomic="true"
             className="flex items-center gap-2 border-b border-border bg-warning/5 px-4 py-1.5 text-xs text-warning"
           >
             <AlertTriangle className="h-3 w-3 shrink-0" aria-hidden />
-            Maximum {MAX_COMPARE} runs can be compared
+            Limit of {MAX_COMPARE} runs reached
           </div>
         )}
 
@@ -407,32 +447,22 @@ export function BacktestRunsBand({
                   disabledReason={disabledReason}
                   onSelectRun={onSelectRun}
                   onToggleRunSelection={onToggleRunSelection}
+                  onCancelRun={onCancelRun}
                   timezone={timezone}
                 />
               );
             })}
 
-            {hasMore && (
-              <button
-                type="button"
-                onClick={onViewAll}
-                className="flex min-w-[120px] flex-col items-center justify-center gap-1 rounded border border-dashed border-border bg-secondary/40 px-3 py-3 text-center text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:bg-secondary hover:text-foreground"
-              >
-                <span className="text-[11px]">View all</span>
-                <span className="font-mono text-[11px]">
-                  {totalCount != null ? `${totalCount} runs` : `${backtests.length}+ runs`}
-                </span>
-              </button>
-            )}
           </div>
         </div>
 
         {/* Skipped batch runs footer */}
         {batchSkippedRuns.length > 0 && (
-          <div className="border-t border-border bg-muted/20 px-4 py-2 text-[11px] text-muted-foreground sm:px-5">
-            <span className="font-mono uppercase tracking-wider">
-              Skipped this batch:
-            </span>{" "}
+          <div className="border-t border-border bg-muted/20 px-4 py-2 font-mono text-[11px] text-muted-foreground sm:px-5">
+            <span className="text-[10px] font-semibold uppercase tracking-wider">
+              Skipped this batch
+            </span>
+            <span className="mx-1.5 text-muted-foreground/60">·</span>
             {batchSkippedRuns
               .map((r) => compactPeriodLabel(r.period_key) ?? r.period_key)
               .filter(Boolean)

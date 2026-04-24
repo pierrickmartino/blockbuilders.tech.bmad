@@ -191,16 +191,11 @@ export function BacktestRunsRail({
                   className={cn(
                     "relative flex w-full items-center gap-2 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-ring",
                     collapsed ? "justify-center px-1" : "px-2.5",
-                    isSelected ? "bg-primary/5" : "hover:bg-muted/30"
+                    isSelected
+                      ? "bg-primary/[0.06] ring-1 ring-inset ring-primary/40"
+                      : "hover:bg-muted/30"
                   )}
                 >
-                  {isSelected && (
-                    <span
-                      className="absolute left-0 top-0 h-full w-[2px] bg-primary"
-                      aria-hidden
-                    />
-                  )}
-
                   {collapsed ? (
                     <span
                       className={cn(

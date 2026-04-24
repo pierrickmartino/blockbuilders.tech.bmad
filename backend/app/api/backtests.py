@@ -560,6 +560,38 @@ def create_batch_backtest(
     return BatchBacktestCreateResponse(batch_id=batch_id, runs=results)
 
 
+@router.post("/batch/{batch_id}/cancel", response_model=BatchStatusResponse)
+def cancel_batch(
+    batch_id: UUID,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> BatchStatusResponse:
+    """Cancel all pending/running runs in a batch. Completed runs are preserved."""
+    runs = session.exec(
+        select(BacktestRun).where(
+            BacktestRun.batch_id == batch_id,
+            BacktestRun.user_id == user.id,
+        )
+    ).all()
+    if not runs:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Batch not found")
+
+    now = datetime.now(timezone.utc)
+    for r in runs:
+        if r.status in ("pending", "running"):
+            r.status = "cancelled"
+            r.error_message = "Cancelled by user"
+            r.updated_at = now
+            session.add(r)
+    session.commit()
+
+    runs_sorted = sorted(runs, key=lambda r: PERIOD_DAYS.get(r.period_key or "", 0))
+    return BatchStatusResponse(
+        batch_id=batch_id,
+        runs=[_build_status_response(r, session) for r in runs_sorted],
+    )
+
+
 @router.get("/batch/{batch_id}", response_model=BatchStatusResponse)
 def get_batch_status(
     batch_id: UUID,
@@ -604,6 +636,42 @@ def get_backtest_status(
             detail="Backtest run not found",
         )
 
+    return _build_status_response(run, session)
+
+
+@router.post("/{run_id}/cancel", response_model=BacktestStatusResponse)
+def cancel_backtest(
+    run_id: UUID,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> BacktestStatusResponse:
+    """Cancel a pending or running backtest run."""
+    run = session.exec(
+        select(BacktestRun).where(
+            BacktestRun.id == run_id,
+            BacktestRun.user_id == user.id,
+        )
+    ).first()
+    if not run:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Backtest run not found")
+
+    if run.status not in ("pending", "running"):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Only pending or running runs can be cancelled (current: {run.status}).",
+        )
+
+    run.status = "cancelled"
+    run.error_message = "Cancelled by user"
+    run.updated_at = datetime.now(timezone.utc)
+    session.add(run)
+    session.commit()
+    session.refresh(run)
+
+    logger.info(
+        "backtest_cancelled",
+        extra={"run_id": str(run.id), "user_id": str(user.id)},
+    )
     return _build_status_response(run, session)
 
 

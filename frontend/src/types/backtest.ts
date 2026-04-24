@@ -1,4 +1,10 @@
-export type BacktestStatus = "pending" | "running" | "completed" | "failed" | "skipped";
+export type BacktestStatus =
+  | "pending"
+  | "running"
+  | "completed"
+  | "failed"
+  | "skipped"
+  | "cancelled";
 
 export interface BacktestCreateResponse {
   run_id: string;

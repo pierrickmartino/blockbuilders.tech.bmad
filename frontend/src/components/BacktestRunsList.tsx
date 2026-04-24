@@ -7,6 +7,7 @@ import {
   RefreshCw,
   TrendingDown,
   TrendingUp,
+  X,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -35,6 +36,7 @@ interface BacktestRunsListProps {
   selectedRunIds: Set<string>;
   onToggleRunSelection: (runId: string, checked: boolean) => void;
   onCompare: () => void;
+  onCancelRun?: (runId: string) => void;
   timezone: TimezoneMode;
   totalCount?: number;
   className?: string;
@@ -162,6 +164,7 @@ export function RunRow({
   selectedRunIds,
   onSelectRun,
   onToggleRunSelection,
+  onCancelRun,
   timezone,
 }: {
   run: BacktestListItem;
@@ -170,12 +173,15 @@ export function RunRow({
   selectedRunIds: Set<string>;
   onSelectRun: (runId: string) => void;
   onToggleRunSelection: (runId: string, checked: boolean) => void;
+  onCancelRun?: (runId: string) => void;
   timezone: TimezoneMode;
 }) {
   const canSelectForCompare = run.status === "completed";
   const isChecked = selectedRunIds.has(run.run_id);
   const atLimit = !isChecked && selectedRunIds.size >= MAX_COMPARE;
   const isCheckboxDisabled = canSelectForCompare ? atLimit : !isChecked;
+  const isCancellable =
+    Boolean(onCancelRun) && (run.status === "pending" || run.status === "running");
 
   const disabledReason = !canSelectForCompare
     ? "Only completed runs can be compared"
@@ -221,18 +227,12 @@ export function RunRow({
   return (
     <div
       className={cn(
-        "relative flex items-stretch transition-colors",
-        isSelected ? "bg-primary/5" : "hover:bg-muted/30"
+        "group relative flex items-stretch transition-colors",
+        isSelected
+          ? "bg-primary/[0.06] ring-1 ring-inset ring-primary/40"
+          : "hover:bg-muted/30"
       )}
     >
-      {/* Left accent bar */}
-      {isSelected && (
-        <div
-          className="absolute left-0 top-0 h-full w-[3px] bg-primary"
-          aria-hidden
-        />
-      )}
-
       {/* Checkbox */}
       <div className="flex items-center pl-4 pr-2">
         {disabledReason ? (
@@ -271,6 +271,28 @@ export function RunRow({
           <PerfCell run={run} />
         </div>
       </button>
+
+      {/* Hover cancel action for pending/running */}
+      {isCancellable && (
+        <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onCancelRun?.(run.run_id);
+                }}
+                aria-label={`Cancel ${runLabel}`}
+                className="inline-flex h-6 w-6 items-center justify-center rounded border border-border bg-background text-muted-foreground transition-colors hover:border-destructive/40 hover:text-destructive focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-destructive"
+              >
+                <X className="h-3.5 w-3.5" aria-hidden />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>Cancel run</TooltipContent>
+          </Tooltip>
+        </div>
+      )}
     </div>
   );
 }
@@ -286,7 +308,7 @@ function SkippedBatchRunRow({ run }: { run: BatchRunResult }) {
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-sm font-bold leading-tight">Skipped</span>
             {run.period_key && (
-              <span className="rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+              <span className="rounded bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
                 {compactPeriodLabel(run.period_key)}
               </span>
             )}
@@ -315,6 +337,7 @@ export function BacktestRunsList({
   selectedRunIds,
   onToggleRunSelection,
   onCompare,
+  onCancelRun,
   timezone,
   totalCount,
   className,
@@ -408,6 +431,8 @@ export function BacktestRunsList({
         {selectionCount > 0 && selectionCount < 2 && (
           <div
             role="status"
+            aria-live="polite"
+            aria-atomic="true"
             className="flex items-center gap-2 border-b border-border bg-info/5 px-4 py-2 text-sm text-info"
           >
             <Info className="h-3.5 w-3.5 shrink-0" aria-hidden />
@@ -417,17 +442,19 @@ export function BacktestRunsList({
         {selectionCount > MAX_COMPARE && (
           <div
             role="status"
+            aria-live="polite"
+            aria-atomic="true"
             className="flex items-center gap-2 border-b border-border bg-warning/5 px-4 py-2 text-sm text-warning"
           >
             <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden />
-            Maximum {MAX_COMPARE} runs can be compared
+            Limit of {MAX_COMPARE} runs reached
           </div>
         )}
 
         {/* Runs list */}
         {backtests.length === 0 && batchSkippedRuns.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-10 text-center">
-            <div className="mb-3 rounded-full bg-secondary p-3">
+            <div className="mb-3 rounded bg-secondary p-3">
               <BarChart3 className="h-6 w-6 text-muted-foreground/70" aria-hidden />
             </div>
             <p className="text-sm font-medium">No backtests yet</p>
@@ -449,6 +476,7 @@ export function BacktestRunsList({
                   selectedRunIds={selectedRunIds}
                   onSelectRun={onSelectRun}
                   onToggleRunSelection={onToggleRunSelection}
+                  onCancelRun={onCancelRun}
                   timezone={timezone}
                 />
               </li>
@@ -457,7 +485,7 @@ export function BacktestRunsList({
             {batchSkippedRuns.length > 0 && (
               <>
                 <li
-                  className="px-4 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground"
+                  className="px-4 pt-2 pb-1 font-mono text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"
                   aria-hidden
                 >
                   Skipped periods

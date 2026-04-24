@@ -22,4 +22,5 @@ export const statusStyles: Record<BacktestStatus, string> = {
   failed:
     "bg-[hsl(var(--destructive)/0.05)] text-destructive dark:bg-[hsl(var(--destructive)/0.125)] dark:text-destructive",
   skipped: "bg-muted text-muted-foreground",
+  cancelled: "bg-muted text-muted-foreground",
 };

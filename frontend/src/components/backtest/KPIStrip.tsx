@@ -1,8 +1,11 @@
 "use client";
 
+import { ReactNode } from "react";
 import { BacktestSummary, TradeDetail } from "@/types/backtest";
 import { formatPercent, formatDuration } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import InfoIcon from "@/components/InfoIcon";
+import { getTooltip } from "@/lib/tooltip-content";
 
 interface PositionStats {
   avgHoldSeconds: number;
@@ -16,16 +19,21 @@ interface KPIStripProps {
 
 interface PrimaryTileProps {
   label: string;
+  tooltipId?: string;
   value: string;
-  subtitle: string;
+  subtitle: ReactNode;
   valueColor?: string;
 }
 
-function PrimaryTile({ label, value, subtitle, valueColor }: PrimaryTileProps) {
+function PrimaryTile({ label, tooltipId, value, subtitle, valueColor }: PrimaryTileProps) {
+  const tooltip = tooltipId ? getTooltip(tooltipId) : undefined;
   return (
     <div className="min-w-0">
-      <div className="font-mono text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-        {label}
+      <div className="flex items-center gap-1.5">
+        <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          {label}
+        </span>
+        {tooltip && <InfoIcon tooltip={tooltip} className="text-[0.75rem] opacity-70" />}
       </div>
       <div className={cn("mt-3 font-mono text-3xl font-bold leading-none tabular-nums sm:text-[34px]", valueColor)}>
         {value}
@@ -35,17 +43,39 @@ function PrimaryTile({ label, value, subtitle, valueColor }: PrimaryTileProps) {
   );
 }
 
+interface InlineMetricProps {
+  name: string;
+  value: string;
+  tooltipId: string;
+}
+
+function InlineMetric({ name, value, tooltipId }: InlineMetricProps) {
+  const tooltip = getTooltip(tooltipId);
+  return (
+    <span className="inline-flex items-center gap-1">
+      <span>{name}</span>
+      {tooltip && <InfoIcon tooltip={tooltip} className="text-[0.7rem] opacity-70" />}
+      <span className="tabular-nums">{value}</span>
+    </span>
+  );
+}
+
 interface SecondaryTileProps {
   label: string;
+  tooltipId?: string;
   value: string;
   subtitle: string;
 }
 
-function SecondaryTile({ label, value, subtitle }: SecondaryTileProps) {
+function SecondaryTile({ label, tooltipId, value, subtitle }: SecondaryTileProps) {
+  const tooltip = tooltipId ? getTooltip(tooltipId) : undefined;
   return (
     <div className="min-w-0">
-      <div className="font-mono text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-        {label}
+      <div className="flex items-center gap-1.5">
+        <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          {label}
+        </span>
+        {tooltip && <InfoIcon tooltip={tooltip} className="text-[0.7rem] opacity-70" />}
       </div>
       <div className="mt-2 flex items-baseline gap-1.5">
         <span className="font-mono text-lg font-semibold leading-none tabular-nums">{value}</span>
@@ -78,23 +108,37 @@ export function KPIStrip({ summary, trades, positionStats }: KPIStripProps) {
   return (
     <section
       aria-label="Key performance indicators"
-      className="-mx-4 border-y border-border px-4 py-6 sm:-mx-8 sm:px-8 sm:py-7"
+      className="-mx-4 border-t border-border px-4 py-6 sm:-mx-8 sm:px-8 sm:py-7"
     >
       {/* Primary row: the headline triad */}
       <div className="grid grid-cols-1 gap-8 sm:grid-cols-3">
         <PrimaryTile
           label="Total return"
+          tooltipId="metric-total-return"
           value={`${isPositiveReturn ? "+" : ""}${formatPercent(totalReturn)}`}
-          subtitle={`vs B&H ${summary.benchmark_return_pct >= 0 ? "+" : ""}${formatPercent(summary.benchmark_return_pct)}`}
+          subtitle={
+            <span>
+              vs B&amp;H{" "}
+              {`${summary.benchmark_return_pct >= 0 ? "+" : ""}${formatPercent(summary.benchmark_return_pct)}`}
+            </span>
+          }
           valueColor={isPositiveReturn ? "text-success" : "text-destructive"}
         />
         <PrimaryTile
           label="Sharpe ratio"
+          tooltipId="metric-sharpe"
           value={summary.sharpe_ratio.toFixed(2)}
-          subtitle={`Sortino ${summary.sortino_ratio.toFixed(2)} · Calmar ${summary.calmar_ratio.toFixed(2)}`}
+          subtitle={
+            <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
+              <InlineMetric name="Sortino" tooltipId="metric-sortino" value={summary.sortino_ratio.toFixed(2)} />
+              <span aria-hidden="true">·</span>
+              <InlineMetric name="Calmar" tooltipId="metric-calmar" value={summary.calmar_ratio.toFixed(2)} />
+            </span>
+          }
         />
         <PrimaryTile
           label="Max drawdown"
+          tooltipId="metric-max-drawdown"
           value={formatPercent(summary.max_drawdown_pct)}
           subtitle={`${summary.max_consecutive_losses} max consec. losses`}
           valueColor="text-destructive"
@@ -105,16 +149,19 @@ export function KPIStrip({ summary, trades, positionStats }: KPIStripProps) {
       <div className="mt-7 grid grid-cols-3 gap-6 border-t border-border/60 pt-5">
         <SecondaryTile
           label="Win rate"
+          tooltipId="metric-win-rate"
           value={formatPercent(summary.win_rate_pct)}
           subtitle={`${wins}/${summary.num_trades}`}
         />
         <SecondaryTile
           label="Trades"
+          tooltipId="metric-trades"
           value={String(summary.num_trades)}
           subtitle={tradesPerMonth != null ? `${tradesPerMonth}/mo` : "—"}
         />
         <SecondaryTile
           label="Avg hold"
+          tooltipId="metric-avg-hold"
           value={positionStats ? formatDuration(positionStats.avgHoldSeconds) : "—"}
           subtitle={positionStats ? `${(positionStats.avgHoldSeconds / 86400).toFixed(1)}d` : "—"}
         />

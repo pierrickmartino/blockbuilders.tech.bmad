@@ -4,7 +4,7 @@ import { useEffect, useId, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Calendar } from "lucide-react";
+import { Calendar } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
 
 interface NarrativeCardProps {
@@ -56,11 +56,8 @@ export function NarrativeCard({
   const hasNarrative = narrative.trim().length > 0;
 
   return (
-    <Card ref={cardRef} aria-labelledby={titleId}>
+    <Card ref={cardRef} aria-labelledby={titleId} className="rounded">
       <CardContent className="flex items-center gap-3 px-4 py-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-          <BookOpen className="h-4 w-4 text-primary" />
-        </div>
         <div className="flex min-w-0 flex-1 flex-col gap-1">
           <div className="flex items-center gap-2">
             <h2
@@ -71,7 +68,7 @@ export function NarrativeCard({
             </h2>
             {isZeroTradeRun && (
               <span
-                className="rounded-full border border-warning/30 bg-warning/10 px-2 py-0.5 text-xs font-medium text-warning"
+                className="rounded border border-warning/30 bg-warning/10 px-2 py-0.5 text-xs font-medium text-warning"
                 role="status"
               >
                 0 trades
@@ -94,14 +91,14 @@ export function NarrativeCard({
             </p>
           ) : (
             <p className="mt-0.5 text-xs text-muted-foreground">
-              No narrative available for this run.
+              Narrative unavailable for this run.
             </p>
           )}
           {isZeroTradeRun && !isLoading && (
             <>
               <p className="mt-2 text-xs text-muted-foreground">
-                No trades were triggered — adjust entry conditions or indicator
-                thresholds, then re-run the backtest.
+                Entry conditions never matched market data in this range. Loosen
+                thresholds or widen the period, then re-run.
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <Button

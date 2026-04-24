@@ -42,7 +42,15 @@
     --sidebar-accent: 210 13% 94%;
     --sidebar-accent-foreground: 0 0% 4%;
     --sidebar-border: 210 13% 94%;
-    --sidebar-ring: 204 65% 57%
+    --sidebar-ring: 204 65% 57%;
+    --heatmap-empty-bg: 220 13% 80%;
+    --heatmap-empty-fg: 220 9% 46%;
+    --heatmap-pos: 142 76% 36%;
+    --heatmap-neg: 0 72% 51%;
+    --heatmap-fg-pos: 142 55% 22%;
+    --heatmap-fg-neg: 0 70% 35%;
+    --heatmap-fg-high: 0 0% 100%;
+    --chart-duration: 204 65% 45%
   }
   .dark {
     --background: 240 8% 5%;
@@ -82,7 +90,15 @@
     --sidebar-accent: 240 5% 17%;
     --sidebar-accent-foreground: 240 5% 92%;
     --sidebar-border: 240 5% 17%;
-    --sidebar-ring: 204 76% 63%
+    --sidebar-ring: 204 76% 63%;
+    --heatmap-empty-bg: 240 5% 24%;
+    --heatmap-empty-fg: 240 3% 62%;
+    --heatmap-pos: 142 60% 40%;
+    --heatmap-neg: 0 70% 45%;
+    --heatmap-fg-pos: 142 55% 82%;
+    --heatmap-fg-neg: 0 80% 85%;
+    --heatmap-fg-high: 0 0% 100%;
+    --chart-duration: 204 76% 55%
   }
 }
 
@@ -92,14 +108,6 @@
   }
   body {
     @apply bg-background text-foreground;
-    background-image:
-      radial-gradient(ellipse 80% 50% at 50% -20%, hsl(204 65% 57% / 0.04), transparent),
-      radial-gradient(ellipse 60% 40% at 80% 50%, hsl(204 66% 82% / 0.03), transparent);
-  }
-  .dark body {
-    background-image:
-      radial-gradient(ellipse 80% 50% at 50% -20%, hsl(204 76% 63% / 0.06), transparent),
-      radial-gradient(ellipse 60% 40% at 80% 50%, hsl(204 51% 21% / 0.08), transparent);
   }
 }
 

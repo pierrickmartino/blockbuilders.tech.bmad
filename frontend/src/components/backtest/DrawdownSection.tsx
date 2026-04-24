@@ -44,9 +44,9 @@ export function DrawdownSection({
   const isMobile = useIsMobile();
 
   return (
-    <div className="rounded border border-border bg-card">
+    <div>
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-border px-4 py-4 sm:px-5">
+      <div className="flex items-center justify-between pb-4">
         <div className="space-y-1">
           <h2 className="text-[15px] font-semibold">Drawdown</h2>
           <p className="mt-0.5 text-xs text-muted-foreground">
@@ -57,7 +57,7 @@ export function DrawdownSection({
         {summary && (
           <div className="flex items-center gap-3.5">
             <div className="text-right">
-              <div className="font-mono text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+              <div className="font-mono text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                 Max DD
               </div>
               <div className="font-mono text-sm font-semibold text-destructive">
@@ -66,7 +66,7 @@ export function DrawdownSection({
             </div>
             <div className="h-7 w-px bg-border" />
             <div className="text-right">
-              <div className="font-mono text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+              <div className="font-mono text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                 Consec. losses
               </div>
               <div className="font-mono text-sm font-semibold">
@@ -78,7 +78,7 @@ export function DrawdownSection({
       </div>
 
       {/* Body */}
-      <div className="px-4 py-5 sm:px-5">
+      <div>
         {isLoading ? (
           <div className="flex h-56 items-center justify-center">
             <p className="text-sm text-muted-foreground">Loading drawdown data...</p>

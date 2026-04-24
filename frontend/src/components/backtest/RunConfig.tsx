@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
+import { PageAlert } from "@/components/ui/page-alert";
 import { SlidersHorizontal, Check } from "lucide-react";
 import { useState } from "react";
 
@@ -110,7 +111,9 @@ export function RunConfig({
                 {isSelected && <Check className="h-3 w-3" />}
                 {option.label}
                 {option.premiumOnly && !isPremiumUser && (
-                  <span className="text-[9px] opacity-70">PRO</span>
+                  <span className="ml-0.5 rounded-sm border border-current/40 px-1 text-[10px] font-semibold tracking-[0.1em]">
+                    PRO
+                  </span>
                 )}
               </button>
             );
@@ -120,7 +123,7 @@ export function RunConfig({
         {/* Inputs row */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <div>
-            <label className="mb-1 block font-mono text-[10px] font-medium uppercase tracking-wider text-muted-foreground" htmlFor="cfg-date-from">
+            <label className="mb-1 block font-mono text-[10px] font-semibold uppercase tracking-wider text-muted-foreground" htmlFor="cfg-date-from">
               Start date
             </label>
             <Input
@@ -133,7 +136,7 @@ export function RunConfig({
             />
           </div>
           <div>
-            <label className="mb-1 block font-mono text-[10px] font-medium uppercase tracking-wider text-muted-foreground" htmlFor="cfg-date-to">
+            <label className="mb-1 block font-mono text-[10px] font-semibold uppercase tracking-wider text-muted-foreground" htmlFor="cfg-date-to">
               End date
             </label>
             <Input
@@ -146,7 +149,7 @@ export function RunConfig({
             />
           </div>
           <div>
-            <label className="mb-1 block font-mono text-[10px] font-medium uppercase tracking-wider text-muted-foreground" htmlFor="cfg-fee">
+            <label className="mb-1 block font-mono text-[10px] font-semibold uppercase tracking-wider text-muted-foreground" htmlFor="cfg-fee">
               Fee %
             </label>
             <Input
@@ -162,7 +165,7 @@ export function RunConfig({
             />
           </div>
           <div>
-            <label className="mb-1 block font-mono text-[10px] font-medium uppercase tracking-wider text-muted-foreground" htmlFor="cfg-slippage">
+            <label className="mb-1 block font-mono text-[10px] font-semibold uppercase tracking-wider text-muted-foreground" htmlFor="cfg-slippage">
               Slippage %
             </label>
             <Input
@@ -181,9 +184,9 @@ export function RunConfig({
 
         {/* Availability warning */}
         {availabilityWarning && (
-          <div className="rounded border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-300">
+          <PageAlert variant="warning" className="text-xs">
             {availabilityWarning}
-          </div>
+          </PageAlert>
         )}
 
         {/* Inline advanced toggle — shown only in chromeless mode where the header toggle is hidden */}

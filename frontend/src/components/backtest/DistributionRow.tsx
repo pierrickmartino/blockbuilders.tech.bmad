@@ -9,8 +9,11 @@ import {
   Tooltip,
   ResponsiveContainer,
   Cell,
+  Label,
 } from "recharts";
 import { formatPercent } from "@/lib/format";
+import InfoIcon from "@/components/InfoIcon";
+import { getTooltip } from "@/lib/tooltip-content";
 
 interface DistributionBucket {
   label: string;
@@ -39,23 +42,10 @@ function isNegativeBucket(label: string): boolean {
   return label.startsWith("-") || label.startsWith("<-") || label.includes("to -");
 }
 
-// Returns hsl color with intensity based on position in its group (neg or pos)
-function getReturnBarColor(
-  label: string,
-  idxInGroup: number,
-  groupSize: number
-): string {
-  // Gradient: far from zero = lightest, close to zero = darkest (for negatives)
-  // Gradient: close to zero = lightest, far from zero = darkest (for positives)
-  const t = groupSize > 1 ? (idxInGroup + 1) / groupSize : 1;
-  if (isNegativeBucket(label)) {
-    // Light pink (far) → dark red (near 0): lightness 80% → 40%
-    const lightness = Math.round(80 - t * 40);
-    return `hsl(0, 78%, ${lightness}%)`;
-  }
-  // Light green (near 0) → dark green (far): lightness 80% → 33%
-  const lightness = Math.round(80 - t * 47);
-  return `hsl(142, 71%, ${lightness}%)`;
+function getReturnBarColor(label: string): string {
+  return isNegativeBucket(label)
+    ? "hsl(var(--destructive))"
+    : "hsl(var(--success))";
 }
 
 export function DistributionRow({
@@ -68,8 +58,6 @@ export function DistributionRow({
 }: DistributionRowProps) {
   // Display order: most-negative on left → most-positive on right
   const reversedReturn = [...returnDistribution].reverse();
-  const negBuckets = reversedReturn.filter((b) => isNegativeBucket(b.label));
-  const posBuckets = reversedReturn.filter((b) => !isNegativeBucket(b.label));
 
   const maxDurationCount = durationDistribution
     ? Math.max(...durationDistribution.map((b) => b.count), 1)
@@ -120,40 +108,60 @@ export function DistributionRow({
   if (returnDistribution.length === 0) return null;
 
   return (
-    <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+    <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-10">
       {/* Return Distribution */}
-      <div className="rounded border border-border bg-card">
-        <div className="flex items-center justify-between border-b border-border px-4 py-4 sm:px-5">
+      <div>
+        <div className="flex items-center justify-between pb-4">
           <div>
             <h2 className="text-[15px] font-semibold">Return distribution</h2>
             <p className="mt-0.5 text-xs text-muted-foreground">Histogram of trade P&amp;L %</p>
           </div>
           {skew !== undefined ? (
-            <span className="rounded border border-blue-200 bg-blue-50 px-2 py-1 text-[10px] font-mono font-medium uppercase tracking-wide text-blue-700 dark:border-blue-700 dark:bg-blue-950 dark:text-blue-400">
-              SKEW {skew >= 0 ? "+" : ""}
-              {skew.toFixed(2)}
+            <span className="inline-flex items-center gap-1.5 rounded border border-info/30 bg-info/5 px-2 py-1 font-mono text-[10px] font-semibold uppercase tracking-wider text-info">
+              <span>
+                Skew {skew >= 0 ? "+" : ""}
+                {skew.toFixed(2)}
+              </span>
+              <InfoIcon tooltip={getTooltip("metric-skew")} className="text-[0.7rem] opacity-80" />
             </span>
           ) : (
             skewCallout.includes("Review risk") && (
-              <span className="rounded border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] font-medium text-amber-800 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-400">
-                Skewed
+              <span className="inline-flex items-center gap-1.5 rounded border border-warning/30 bg-warning/5 px-2 py-1 font-mono text-[10px] font-semibold uppercase tracking-wider text-warning">
+                <span>Skewed</span>
+                <InfoIcon tooltip={getTooltip("metric-skew")} className="text-[0.7rem] opacity-80" />
               </span>
             )
           )}
         </div>
-        <div className="px-4 py-5 sm:px-5">
+        <div>
+          <p className="mb-1 font-mono text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Trades per bucket
+          </p>
           <div className="h-56 sm:h-64">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={reversedReturn}
-                margin={{ top: 5, right: 5, left: -10, bottom: 5 }}
+                margin={{ top: 5, right: 5, left: -10, bottom: 24 }}
               >
                 <XAxis
                   dataKey="label"
                   tick={{ fontSize: 10, fontFamily: "var(--font-mono)" }}
                   tickLine={false}
                   axisLine={false}
-                />
+                >
+                  <Label
+                    value="Trade return (%)"
+                    position="insideBottom"
+                    offset={-18}
+                    style={{
+                      fontSize: 10,
+                      fill: "hsl(var(--muted-foreground))",
+                      fontFamily: "var(--font-mono)",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.08em",
+                    }}
+                  />
+                </XAxis>
                 <YAxis hide />
                 <Tooltip
                   formatter={(value) => [
@@ -163,21 +171,9 @@ export function DistributionRow({
                   contentStyle={tooltipStyle}
                 />
                 <Bar dataKey="count" radius={[3, 3, 0, 0]}>
-                  {reversedReturn.map((entry, index) => {
-                    const negIdx = negBuckets.indexOf(entry);
-                    const posIdx = posBuckets.indexOf(entry);
-                    const isNeg = negIdx !== -1;
-                    return (
-                      <Cell
-                        key={index}
-                        fill={getReturnBarColor(
-                          entry.label,
-                          isNeg ? negIdx : posIdx,
-                          isNeg ? negBuckets.length : posBuckets.length
-                        )}
-                      />
-                    );
-                  })}
+                  {reversedReturn.map((entry, index) => (
+                    <Cell key={index} fill={getReturnBarColor(entry.label)} />
+                  ))}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
@@ -187,22 +183,25 @@ export function DistributionRow({
 
       {/* Duration Distribution */}
       {durationDistribution && (
-        <div className="rounded border border-border bg-card">
-          <div className="flex items-center justify-between border-b border-border px-4 py-4 sm:px-5">
+        <div>
+          <div className="flex items-center justify-between pb-4">
             <div>
               <h2 className="text-[15px] font-semibold">Duration distribution</h2>
               <p className="mt-0.5 text-xs text-muted-foreground">Trades bucketed by hold time</p>
             </div>
-            <span className="rounded border border-border bg-secondary px-2 py-1 text-[10px] font-mono font-medium uppercase tracking-wide text-muted-foreground">
-              {durationDistributionTotal} TRADES
+            <span className="rounded border border-border bg-secondary px-2 py-1 font-mono text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              {durationDistributionTotal} trades
             </span>
           </div>
-          <div className="px-4 py-5 sm:px-5">
+          <div>
+            <p className="mb-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+              Trades per bucket
+            </p>
             <div className="h-56 sm:h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={durationDistribution}
-                  margin={{ top: 5, right: 5, left: -10, bottom: 10 }}
+                  margin={{ top: 5, right: 5, left: -10, bottom: 28 }}
                 >
                   <XAxis
                     dataKey="label"
@@ -210,8 +209,21 @@ export function DistributionRow({
                     tick={DurationTick as any}
                     tickLine={false}
                     axisLine={false}
-                    height={50}
-                  />
+                    height={68}
+                  >
+                    <Label
+                      value="Hold time"
+                      position="insideBottom"
+                      offset={0}
+                      style={{
+                        fontSize: 10,
+                        fill: "hsl(var(--muted-foreground))",
+                        fontFamily: "var(--font-mono)",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.08em",
+                      }}
+                    />
+                  </XAxis>
                   <YAxis hide />
                   <Tooltip
                     formatter={(value) => [
@@ -226,12 +238,13 @@ export function DistributionRow({
                   />
                   <Bar dataKey="count" radius={[3, 3, 0, 0]}>
                     {durationDistribution.map((entry, index) => {
-                      const intensity = entry.count / maxDurationCount;
-                      const lightness = Math.round(78 - intensity * 43);
+                      const intensity =
+                        maxDurationCount > 0 ? entry.count / maxDurationCount : 0;
                       return (
                         <Cell
                           key={index}
-                          fill={`hsl(210, 65%, ${lightness}%)`}
+                          fill="hsl(var(--chart-duration))"
+                          fillOpacity={0.45 + intensity * 0.5}
                         />
                       );
                     })}
