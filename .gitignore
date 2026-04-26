@@ -60,3 +60,6 @@ docker-compose.override.yml
 
 # Storybook
 storybook-static/
+
+# Claude Code local settings (may contain tokens or personal paths)
+.claude/settings.local.json
