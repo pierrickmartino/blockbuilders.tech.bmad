@@ -2,79 +2,127 @@
 @tailwind components;
 @tailwind utilities;
 
+/* =============================================================
+   Design tokens — single runtime source of truth.
+   See docs/design/tokens.md for naming, intent, and usage rules.
+   ============================================================= */
 @layer base {
   :root {
+    /* — RADIUS — */
+    --radius: 0.5rem;
+
+    /* — SURFACES — */
     --background: 0 0% 100%;
     --foreground: 0 0% 4%;
+    --surface-base: 0 0% 100%;
+    --surface-elevated: 220 14% 96%;
+    --surface-overlay: 0 0% 100%;
     --card: 0 0% 100%;
     --card-foreground: 0 0% 4%;
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 4%;
-    --primary: 204 65% 57%;
+
+    /* — BRAND / ACTION —
+       Light-mode --primary darkened from `204 65% 57%` to `204 75% 40%`
+       to meet WCAG 2.2 AA contrast (≥4.5:1 vs white background and as
+       button bg under white text). Resolves all 47 axe color-contrast
+       nodes flagged in docs/design/audit/phase0-live-slice.md. */
+    --primary: 204 75% 40%;
     --primary-foreground: 0 0% 100%;
+
     --secondary: 220 23% 97%;
     --secondary-foreground: 0 0% 4%;
     --muted: 220 23% 97%;
     --muted-foreground: 0 0% 40%;
+    --text-subtle: 0 0% 45%;
     --accent: 220 23% 97%;
     --accent-foreground: 0 0% 4%;
+
+    /* — STATE — */
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
+    --destructive-soft: 0 84% 96%;
     --success: 142 76% 36%;
     --success-foreground: 0 0% 100%;
+    --success-soft: 142 70% 94%;
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
-    --info: 204 65% 57%;
+    --warning-soft: 38 92% 94%;
+    --info: 204 75% 40%;
     --info-foreground: 0 0% 100%;
+    --info-soft: 204 80% 95%;
+
+    /* — BORDERS / INPUT / FOCUS —
+       --focus-ring is a dedicated alias of --ring so a11y can tune
+       it independently of --primary in future phases. */
     --border: 210 13% 94%;
     --input: 210 13% 94%;
-    --ring: 204 65% 57%;
-    --chart-1: 204 65% 57%;
+    --ring: 204 75% 40%;
+    --focus-ring: 204 75% 40%;
+
+    /* — CHARTS — */
+    --chart-1: 204 75% 40%;
     --chart-2: 142 76% 36%;
     --chart-3: 38 92% 50%;
-    --chart-4: 204 66% 82%;
+    --chart-4: 204 66% 72%;
     --chart-5: 0 72% 51%;
-    --radius: 0.5rem;
+
+    /* — SIDEBAR — */
     --sidebar-background: 220 23% 97%;
     --sidebar-foreground: 0 0% 4%;
-    --sidebar-primary: 204 65% 57%;
+    --sidebar-primary: 204 75% 40%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 210 13% 94%;
     --sidebar-accent-foreground: 0 0% 4%;
     --sidebar-border: 210 13% 94%;
-    --sidebar-ring: 204 65% 57%
+    --sidebar-ring: 204 75% 40%;
   }
+
   .dark {
     --background: 240 8% 5%;
     --foreground: 240 5% 92%;
+    --surface-base: 240 8% 5%;
+    --surface-elevated: 240 6% 9%;
+    --surface-overlay: 240 4% 11%;
     --card: 240 8% 5%;
     --card-foreground: 240 5% 92%;
     --popover: 240 4% 9%;
     --popover-foreground: 240 5% 92%;
+
     --primary: 204 76% 63%;
     --primary-foreground: 240 8% 5%;
     --secondary: 240 4% 9%;
     --secondary-foreground: 240 5% 92%;
     --muted: 240 4% 9%;
     --muted-foreground: 240 3% 62%;
+    --text-subtle: 240 3% 55%;
     --accent: 240 4% 9%;
     --accent-foreground: 240 5% 92%;
+
     --destructive: 0 84% 60%;
     --destructive-foreground: 240 5% 92%;
+    --destructive-soft: 0 55% 14%;
     --success: 142 71% 45%;
     --success-foreground: 240 8% 5%;
+    --success-soft: 142 50% 12%;
     --warning: 43 96% 56%;
     --warning-foreground: 240 8% 5%;
+    --warning-soft: 38 60% 14%;
     --info: 204 76% 63%;
     --info-foreground: 240 8% 5%;
+    --info-soft: 204 60% 14%;
+
     --border: 240 5% 17%;
     --input: 240 5% 17%;
     --ring: 204 76% 63%;
+    --focus-ring: 204 76% 63%;
+
     --chart-1: 204 76% 63%;
     --chart-2: 142 71% 45%;
     --chart-3: 43 96% 56%;
     --chart-4: 204 51% 21%;
     --chart-5: 0 84% 60%;
+
     --sidebar-background: 240 4% 9%;
     --sidebar-foreground: 240 5% 92%;
     --sidebar-primary: 204 76% 63%;
@@ -82,7 +130,7 @@
     --sidebar-accent: 240 5% 17%;
     --sidebar-accent-foreground: 240 5% 92%;
     --sidebar-border: 240 5% 17%;
-    --sidebar-ring: 204 76% 63%
+    --sidebar-ring: 204 76% 63%;
   }
 }
 
@@ -92,21 +140,16 @@
   }
   body {
     @apply bg-background text-foreground;
-    background-image:
-      radial-gradient(ellipse 80% 50% at 50% -20%, hsl(204 65% 57% / 0.04), transparent),
-      radial-gradient(ellipse 60% 40% at 80% 50%, hsl(204 66% 82% / 0.03), transparent);
-  }
-  .dark body {
-    background-image:
-      radial-gradient(ellipse 80% 50% at 50% -20%, hsl(204 76% 63% / 0.06), transparent),
-      radial-gradient(ellipse 60% 40% at 80% 50%, hsl(204 51% 21% / 0.08), transparent);
+    /* Decorative body radial gradients removed (Phase 1):
+       light alphas (3–4%) and dark alphas (6–8%) were below perceptible
+       contrast on their respective backgrounds — paying parse + paint
+       cost for nothing. design_concept.json: "no decorative gradients". */
   }
 }
 
-/* React Flow dark mode overrides */
+/* React Flow dark-mode dot pattern — tracks the border token. */
 .dark .react-flow__background circle {
-  /* Override inline SVG fill for dot pattern in dark mode */
-  fill: #2A2A2E !important;
+  fill: hsl(var(--border)) !important;
 }
 
 @layer utilities {
@@ -126,9 +169,11 @@
     font-variant-numeric: tabular-nums;
   }
 
+  /* Decorative gradient utility — flagged for removal in Phase 2 along
+     with the home hero rewrite. Stops updated to track new --primary. */
   .text-gradient-primary {
     @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(135deg, hsl(204 65% 57%), hsl(204 66% 82%));
+    background-image: linear-gradient(135deg, hsl(204 75% 40%), hsl(204 66% 72%));
   }
   .dark .text-gradient-primary {
     background-image: linear-gradient(135deg, hsl(204 76% 63%), hsl(204 51% 35%));
