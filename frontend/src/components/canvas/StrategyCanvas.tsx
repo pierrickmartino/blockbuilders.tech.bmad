@@ -24,6 +24,7 @@ import { nodeTypes } from "./nodes";
 import DeleteButtonEdge, { DeleteButtonEdgeData } from "./edges/DeleteButtonEdge";
 import { BlockMeta, BlockType, getBlockMeta, ValidationError } from "@/types/canvas";
 import { generateBlockId } from "@/lib/canvas-utils";
+import { useChartTheme } from "@/lib/chart-theme";
 import type { CanvasFlags } from "@/lib/feature-flags";
 import { MobileBottomBar } from "./MobileBottomBar";
 import { CanvasMinimap } from "./CanvasMinimap";
@@ -118,6 +119,7 @@ function CanvasInner({
 
   // ReactFlow instance for zoom/fit controls
   const reactFlow = useReactFlow<Node, CanvasEdge>();
+  const chartTheme = useChartTheme();
 
   // Zoom and fit handlers for mobile bottom bar
   const handleZoomIn = useCallback(() => {
@@ -319,14 +321,14 @@ function CanvasInner({
             animated: true,
             style: {
               strokeWidth: 2.2,
-              stroke: "#6366f1",
+              stroke: chartTheme.primary,
               strokeOpacity: 0.9,
               strokeLinecap: "round",
             },
           }}
           connectionLineStyle={{
             strokeWidth: 2.2,
-            stroke: "#6366f1",
+            stroke: chartTheme.primary,
             strokeDasharray: "3 5",
           }}
         >
@@ -334,7 +336,7 @@ function CanvasInner({
             variant={BackgroundVariant.Dots}
             gap={24}
             size={1.2}
-            color="#d1d5db"
+            color={chartTheme.grid}
           />
           {!isMobileMode && (
             <Controls>

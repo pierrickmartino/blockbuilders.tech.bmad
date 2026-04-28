@@ -195,9 +195,9 @@ function getSeasonalityCellStyle(
 ): CSSProperties {
   if (count === 0) {
     return {
-      backgroundColor: "rgba(148, 163, 184, 0.08)",
-      borderColor: "rgba(148, 163, 184, 0.12)",
-      color: "rgba(100, 116, 139, 0.7)",
+      backgroundColor: "hsl(var(--muted-foreground) / 0.08)",
+      borderColor: "hsl(var(--muted-foreground) / 0.12)",
+      color: "hsl(var(--muted-foreground) / 0.7)",
     };
   }
 
@@ -205,8 +205,14 @@ function getSeasonalityCellStyle(
   const easedIntensity = Math.pow(intensity, 0.8);
   const alpha = 0.14 + easedIntensity * 0.78;
   const isPositive = avgReturn >= 0;
-  const base = isPositive ? "22, 163, 74" : "220, 38, 38";
 
+  // Intensity-mapped heatmap palette. The `base` RGB pairs and the dark
+  // text colors below are deliberately literal: they encode a tuned
+  // success/destructive ramp where the cell's lightness varies with the
+  // data, and the foreground must keep ≥4.5:1 contrast against a known
+  // colored background. Phase 6 (theme hardening) will introduce a
+  // first-class heatmap-token API; until then the literals stay.
+  const base = isPositive ? "22, 163, 74" : "220, 38, 38";
   return {
     backgroundColor: `rgba(${base}, ${alpha})`,
     borderColor: `rgba(${base}, ${Math.min(alpha + 0.08, 1)})`,

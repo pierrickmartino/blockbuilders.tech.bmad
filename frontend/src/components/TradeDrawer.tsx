@@ -19,6 +19,7 @@ import {
   formatNumber,
 } from "@/lib/format";
 import { useDisplay } from "@/context/display";
+import { useChartTheme } from "@/lib/chart-theme";
 import { TradeDetailResponse } from "@/types/backtest";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -40,6 +41,7 @@ export default function TradeDrawer({
   onClose,
 }: TradeDrawerProps) {
   const { timezone, resolvedTheme } = useDisplay();
+  const chartTheme = useChartTheme();
   const [data, setData] = useState<TradeDetailResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -77,38 +79,37 @@ export default function TradeDrawer({
   // Initialize chart
   useEffect(() => {
     if (!data || !chartContainerRef.current || data.candles.length === 0) return;
-    const isDark = resolvedTheme === "dark";
 
     const container = chartContainerRef.current;
     const chart = createChart(container, {
       width: container.clientWidth,
       height: 300,
       layout: {
-        background: { color: isDark ? "#030712" : "#ffffff" },
-        textColor: isDark ? "#e5e7eb" : "#374151",
+        background: { color: chartTheme.background },
+        textColor: chartTheme.text,
       },
       grid: {
-        vertLines: { color: isDark ? "#1f2937" : "#e5e7eb" },
-        horzLines: { color: isDark ? "#1f2937" : "#e5e7eb" },
+        vertLines: { color: chartTheme.grid },
+        horzLines: { color: chartTheme.grid },
       },
       timeScale: {
         timeVisible: true,
         secondsVisible: false,
-        borderColor: isDark ? "#374151" : "#e5e7eb",
+        borderColor: chartTheme.axis,
       },
       rightPriceScale: {
-        borderColor: isDark ? "#374151" : "#e5e7eb",
+        borderColor: chartTheme.axis,
       },
     });
     chartRef.current = chart;
 
     const series = chart.addSeries(CandlestickSeries, {
-      upColor: "#22c55e",
-      downColor: "#ef4444",
-      borderUpColor: "#22c55e",
-      borderDownColor: "#ef4444",
-      wickUpColor: "#22c55e",
-      wickDownColor: "#ef4444",
+      upColor: chartTheme.up,
+      downColor: chartTheme.down,
+      borderUpColor: chartTheme.up,
+      borderDownColor: chartTheme.down,
+      wickUpColor: chartTheme.up,
+      wickDownColor: chartTheme.down,
     });
     seriesRef.current = series;
 
@@ -133,14 +134,14 @@ export default function TradeDrawer({
         {
           time: entryTime,
           position: "belowBar",
-          color: "#22c55e",
+          color: chartTheme.up,
           shape: "arrowUp",
           text: "Entry",
         },
         {
           time: exitTime,
           position: "aboveBar",
-          color: "#ef4444",
+          color: chartTheme.down,
           shape: "arrowDown",
           text: "Exit",
         },
@@ -151,7 +152,7 @@ export default function TradeDrawer({
     if (data.trade.sl_price_at_entry) {
       series.createPriceLine({
         price: data.trade.sl_price_at_entry,
-        color: "#ef4444",
+        color: chartTheme.down,
         lineWidth: 1,
         lineStyle: 2,
         axisLabelVisible: true,
@@ -161,7 +162,7 @@ export default function TradeDrawer({
     if (data.trade.tp_price_at_entry) {
       series.createPriceLine({
         price: data.trade.tp_price_at_entry,
-        color: "#22c55e",
+        color: chartTheme.up,
         lineWidth: 1,
         lineStyle: 2,
         axisLabelVisible: true,
@@ -172,7 +173,7 @@ export default function TradeDrawer({
     // Entry price line
     series.createPriceLine({
       price: data.trade.entry_price,
-      color: "#3b82f6",
+      color: chartTheme.primary,
       lineWidth: 1,
       lineStyle: 1,
       axisLabelVisible: true,
@@ -187,7 +188,7 @@ export default function TradeDrawer({
 
         // Add price pane indicators (SMA, EMA, Bollinger)
         const lineSeries = chart.addSeries(LineSeries, {
-          color: ind.color || "#3b82f6",
+          color: ind.color || chartTheme.primary,
           lineWidth: 2,
           title: ind.label,
         });
@@ -221,7 +222,7 @@ export default function TradeDrawer({
       window.removeEventListener("resize", handleResize);
       chart.remove();
     };
-  }, [data, resolvedTheme]);
+  }, [data, resolvedTheme, chartTheme]);
 
   const trade = data?.trade;
 

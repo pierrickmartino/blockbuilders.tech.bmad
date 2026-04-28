@@ -39,14 +39,17 @@ function isNegativeBucket(label: string): boolean {
   return label.startsWith("-") || label.startsWith("<-") || label.includes("to -");
 }
 
-// Returns hsl color with intensity based on position in its group (neg or pos)
+// Returns hsl color with intensity based on position in its group (neg or pos).
+//
+// The hue + saturation values are deliberately literal: this is a data-driven
+// intensity ramp where lightness varies per bucket, and the hue (red 0° /
+// green 142°) anchors the semantic meaning. Phase 6 (theme hardening) will
+// introduce a heatmap-token API; until then these literals stay.
 function getReturnBarColor(
   label: string,
   idxInGroup: number,
   groupSize: number
 ): string {
-  // Gradient: far from zero = lightest, close to zero = darkest (for negatives)
-  // Gradient: close to zero = lightest, far from zero = darkest (for positives)
   const t = groupSize > 1 ? (idxInGroup + 1) / groupSize : 1;
   if (isNegativeBucket(label)) {
     // Light pink (far) → dark red (near 0): lightness 80% → 40%
