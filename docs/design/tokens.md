@@ -45,7 +45,7 @@
 |---|---|---|---|
 | `--secondary` / `--secondary-foreground` | `220 23% 97%` / `0 0% 4%` | `240 4% 9%` / `240 5% 92%` | Secondary buttons, mild emphasis surfaces. |
 | `--muted` / `--muted-foreground` | `220 23% 97%` / `0 0% 40%` | `240 4% 9%` / `240 3% 62%` | Muted surfaces; secondary body text. |
-| `--text-subtle` (Tailwind: `subtle`) | `0 0% 45%` | `240 3% 55%` | Tertiary metadata that should fade into the background but remain readable. |
+| `--text-subtle` (Tailwind: `subtle`) | `0 0% 38%` | `240 3% 55%` | Tertiary metadata that should fade into the background but remain readable. **Light value tightened in Phase 2** to ≥6:1 vs white after axe flagged the original `45%` gray as borderline. |
 | `--accent` / `--accent-foreground` | `220 23% 97%` / `0 0% 4%` | `240 4% 9%` / `240 5% 92%` | Hover/active surface for interactive elements. |
 
 **Known aliasing — to be addressed in Phase 6:** `--secondary`, `--muted`, and `--accent` resolve to identical values today. Hover-on-secondary states are therefore invisible. Phase 6 will either differentiate or collapse this triple.
