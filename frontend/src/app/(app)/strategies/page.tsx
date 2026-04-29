@@ -654,7 +654,7 @@ export default function StrategiesPage() {
       <button
         type="button"
         onClick={() => handleSort(field)}
-        className="inline-flex items-center gap-0.5 rounded-sm font-medium hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        className="inline-flex items-center gap-0.5 rounded-sm font-medium hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring"
       >
         {children}
         <SortIcon field={field} />
@@ -780,7 +780,7 @@ export default function StrategiesPage() {
             type="button"
             onClick={() => setBulkResult(null)}
             aria-label="Dismiss notification"
-            className="shrink-0 rounded-sm opacity-70 hover:opacity-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            className="shrink-0 rounded-sm opacity-70 hover:opacity-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring"
           >
             <X className="h-4 w-4" />
           </button>

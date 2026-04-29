@@ -129,7 +129,7 @@ export default function MarketPage() {
           <button
             type="button"
             onClick={() => setFilter("")}
-            className="absolute right-2 top-2 rounded p-0.5 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            className="absolute right-2 top-2 rounded p-0.5 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring"
             aria-label="Clear filter"
           >
             <X className="h-4 w-4" />

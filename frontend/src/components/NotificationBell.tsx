@@ -192,7 +192,7 @@ export default function NotificationBell() {
                     <button
                       type="button"
                       onClick={(e) => handleMarkItemRead(e, notification.id)}
-                      className="shrink-0 rounded px-2 py-1 text-xs text-muted-foreground opacity-0 transition-opacity hover:text-foreground focus-visible:opacity-100 focus-visible:ring-1 focus-visible:ring-ring group-hover:opacity-100"
+                      className="shrink-0 rounded px-2 py-1 text-xs text-muted-foreground opacity-0 transition-opacity hover:text-foreground focus-visible:opacity-100 focus-visible:ring-1 focus-visible:ring-focus-ring group-hover:opacity-100"
                       aria-label={`Mark "${notification.title}" as read`}
                     >
                       Mark read

@@ -430,7 +430,7 @@ export default function ProfilePage() {
           <a
             key={item.href}
             href={item.href}
-            className="rounded-md px-2.5 py-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            className="rounded-md px-2.5 py-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring"
           >
             {item.label}
           </a>
@@ -1061,7 +1061,7 @@ function SegmentedGroup({
               tabIndex={active ? 0 : -1}
               onClick={() => onChange(opt.value)}
               className={cn(
-                "rounded-md px-3.5 py-1.5 text-sm font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                "rounded-md px-3.5 py-1.5 text-sm font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring",
                 active
                   ? "bg-background text-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"

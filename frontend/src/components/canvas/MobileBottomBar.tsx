@@ -53,7 +53,7 @@ export function MobileBottomBar({
         <button
           type="button"
           onClick={onZoomIn}
-          className="h-11 w-11 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:ring-1 focus-visible:ring-ring ring-offset-2"
+          className="h-11 w-11 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:ring-1 focus-visible:ring-focus-ring ring-offset-2"
           aria-label="Zoom in"
           title="Zoom in"
         >
@@ -78,7 +78,7 @@ export function MobileBottomBar({
         <button
           type="button"
           onClick={onZoomOut}
-          className="h-11 w-11 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:ring-1 focus-visible:ring-ring ring-offset-2"
+          className="h-11 w-11 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:ring-1 focus-visible:ring-focus-ring ring-offset-2"
           aria-label="Zoom out"
           title="Zoom out"
         >
@@ -102,7 +102,7 @@ export function MobileBottomBar({
         <button
           type="button"
           onClick={onFitView}
-          className="h-11 w-11 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:ring-1 focus-visible:ring-ring ring-offset-2"
+          className="h-11 w-11 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:ring-1 focus-visible:ring-focus-ring ring-offset-2"
           aria-label="Fit to screen"
           title="Fit to screen"
         >
@@ -127,7 +127,7 @@ export function MobileBottomBar({
         <button
           type="button"
           onClick={onAddNote}
-          className="h-11 w-11 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:ring-1 focus-visible:ring-ring ring-offset-2"
+          className="h-11 w-11 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:ring-1 focus-visible:ring-focus-ring ring-offset-2"
           aria-label="Add note"
           title="Add Note"
         >
@@ -150,7 +150,7 @@ export function MobileBottomBar({
         <button
           type="button"
           onClick={onLayoutMenu}
-          className="h-11 w-11 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:ring-1 focus-visible:ring-ring ring-offset-2"
+          className="h-11 w-11 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:ring-1 focus-visible:ring-focus-ring ring-offset-2"
           aria-label="Layout options"
           title="Layout"
         >
@@ -176,7 +176,7 @@ export function MobileBottomBar({
           type="button"
           onClick={onUndo}
           disabled={!canUndo}
-          className="h-11 w-11 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:ring-1 focus-visible:ring-ring ring-offset-2 disabled:opacity-50 disabled:pointer-events-none"
+          className="h-11 w-11 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:ring-1 focus-visible:ring-focus-ring ring-offset-2 disabled:opacity-50 disabled:pointer-events-none"
           aria-label="Undo"
           title="Undo (Cmd/Ctrl+Z)"
         >
@@ -200,7 +200,7 @@ export function MobileBottomBar({
           type="button"
           onClick={onRedo}
           disabled={!canRedo}
-          className="h-11 w-11 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:ring-1 focus-visible:ring-ring ring-offset-2 disabled:opacity-50 disabled:pointer-events-none"
+          className="h-11 w-11 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:ring-1 focus-visible:ring-focus-ring ring-offset-2 disabled:opacity-50 disabled:pointer-events-none"
           aria-label="Redo"
           title="Redo (Cmd/Ctrl+Shift+Z)"
         >

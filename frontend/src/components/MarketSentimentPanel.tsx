@@ -88,7 +88,7 @@ export function MarketSentimentPanel({ asset }: MarketSentimentPanelProps) {
           <button
             type="button"
             onClick={() => refresh()}
-            className="mt-2 text-sm font-medium text-amber-900 underline underline-offset-2 hover:text-amber-950 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring dark:text-amber-100 dark:hover:text-amber-50"
+            className="mt-2 text-sm font-medium text-amber-900 underline underline-offset-2 hover:text-amber-950 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring dark:text-amber-100 dark:hover:text-amber-50"
           >
             Retry
           </button>

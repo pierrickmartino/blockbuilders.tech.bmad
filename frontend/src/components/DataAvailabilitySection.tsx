@@ -355,7 +355,7 @@ export function DataAvailabilitySection({
                       <button
                         type="button"
                         onClick={() => setShowAllGaps(!showAllGaps)}
-                        className="ml-4 text-xs font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                        className="ml-4 text-xs font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring"
                       >
                         {showAllGaps ? "Show fewer" : `Show all ${gapOverlap.length} gaps`}
                       </button>

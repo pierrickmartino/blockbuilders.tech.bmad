@@ -208,7 +208,7 @@ export function RunRow({
         }}
         disabled={isCheckboxDisabled}
         aria-describedby={disabledReason ? `${run.run_id}-disabled-reason` : undefined}
-        className="h-4 w-4 rounded border-border text-primary focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50"
+        className="h-4 w-4 rounded border-border text-primary focus-visible:ring-1 focus-visible:ring-focus-ring focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50"
       />
       {disabledReason && (
         <span id={`${run.run_id}-disabled-reason`} className="sr-only">
@@ -253,7 +253,7 @@ export function RunRow({
         onClick={() => onSelectRun(run.run_id)}
         aria-pressed={isSelected}
         aria-label={rowLabel}
-        className="flex flex-1 items-center gap-3 py-3 pr-4 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-ring"
+        className="flex flex-1 items-center gap-3 py-3 pr-4 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus-ring"
       >
         {/* Title + meta */}
         <div className="min-w-0 flex-1 text-left">
@@ -484,7 +484,7 @@ export function BacktestRunsList({
                 <button
                   type="button"
                   onClick={() => onPageChange(Math.max(1, currentPage - 1))}
-                  className="text-xs font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  className="text-xs font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring"
                 >
                   ← Previous
                 </button>
@@ -495,7 +495,7 @@ export function BacktestRunsList({
                   onClick={() =>
                     onViewAll ? onViewAll() : onPageChange(currentPage + 1)
                   }
-                  className="text-xs font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  className="text-xs font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring"
                 >
                   View all →
                 </button>

@@ -457,7 +457,7 @@ export default function DashboardPage() {
                       <Link
                         href={`/strategies/${strategy.id}`}
                         aria-label={`Open strategy ${strategy.name}`}
-                        className="absolute inset-0 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-ring"
+                        className="absolute inset-0 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus-ring"
                       />
                       {/* Strategy info */}
                       <div className="flex min-w-0 items-center gap-3">

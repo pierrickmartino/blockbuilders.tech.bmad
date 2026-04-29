@@ -185,7 +185,7 @@ export function DataCompletenessTimeline({ data }: Props) {
                           ? `Gap from ${formatDate(segment.gapInfo.start)} to ${formatDate(segment.gapInfo.end)}, ${label}`
                           : "Data gap"
                       }
-                      className="relative flex items-center justify-center bg-destructive bg-[repeating-linear-gradient(45deg,hsl(var(--destructive))_0,hsl(var(--destructive))_4px,hsl(var(--destructive-foreground)/0.25)_4px,hsl(var(--destructive-foreground)/0.25)_8px)] focus:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      className="relative flex items-center justify-center bg-destructive bg-[repeating-linear-gradient(45deg,hsl(var(--destructive))_0,hsl(var(--destructive))_4px,hsl(var(--destructive-foreground)/0.25)_4px,hsl(var(--destructive-foreground)/0.25)_8px)] focus:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring"
                     >
                       {segment.widthPercent >= 6 && (
                         <span className="px-1 text-[10px] font-medium text-destructive-foreground">

@@ -43,10 +43,10 @@
     --destructive-foreground: 0 0% 100%;
     --destructive-soft: 0 84% 96%;
     --success: 142 76% 36%;
-    --success-foreground: 0 0% 100%;
+    --success-foreground: 0 0% 4%;
     --success-soft: 142 70% 94%;
     --warning: 38 92% 50%;
-    --warning-foreground: 0 0% 100%;
+    --warning-foreground: 0 0% 4%;
     --warning-soft: 38 92% 94%;
     --info: 204 75% 40%;
     --info-foreground: 0 0% 100%;
@@ -150,6 +150,23 @@
 /* React Flow dark-mode dot pattern — tracks the border token. */
 .dark .react-flow__background circle {
   fill: hsl(var(--border)) !important;
+}
+
+/* =============================================================
+   Reduced motion — neutralize transitions, animations, and
+   smooth-scroll for users who request it. Per-component
+   `motion-reduce:` overrides remain available for the rare
+   case a transition is essential to comprehension.
+   ============================================================= */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 @layer utilities {

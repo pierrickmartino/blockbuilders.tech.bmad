@@ -35,7 +35,7 @@ export default function HowBacktestsWorkPage() {
     <main className="mx-auto max-w-3xl p-4 md:p-6">
       <Link
         href="/backtests"
-        className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring"
       >
         <ArrowLeft className="h-4 w-4" aria-hidden="true" />
         Back to backtests

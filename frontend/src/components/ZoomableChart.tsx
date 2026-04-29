@@ -42,7 +42,7 @@ function ZoomControls() {
     >
       <button
         onClick={() => zoomIn()}
-        className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring"
         aria-label="Zoom in"
         title="Zoom in (+)"
       >
@@ -50,7 +50,7 @@ function ZoomControls() {
       </button>
       <button
         onClick={() => zoomOut()}
-        className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring"
         aria-label="Zoom out"
         title="Zoom out (-)"
       >
@@ -59,7 +59,7 @@ function ZoomControls() {
       <div className="mx-0.5 h-4 w-px bg-border" />
       <button
         onClick={() => resetTransform()}
-        className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring"
         aria-label="Reset zoom"
         title="Reset view (0)"
       >

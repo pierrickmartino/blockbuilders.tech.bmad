@@ -242,7 +242,7 @@ export default function TemplatesPage() {
                 onClick={() => setDifficulty(chip.key)}
                 aria-pressed={active}
                 className={cn(
-                  "rounded-full border px-3 py-1 text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                  "rounded-full border px-3 py-1 text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring",
                   active
                     ? "border-primary bg-primary text-primary-foreground"
                     : "border-border bg-background text-muted-foreground hover:text-foreground"
@@ -387,7 +387,7 @@ export default function TemplatesPage() {
                     <button
                       type="button"
                       onClick={() => setAsset(template.asset)}
-                      className="focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring rounded-md"
+                      className="focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring rounded-md"
                       aria-label={`Filter by asset ${template.asset}`}
                     >
                       <Badge
@@ -400,7 +400,7 @@ export default function TemplatesPage() {
                     <button
                       type="button"
                       onClick={() => setTimeframe(template.timeframe)}
-                      className="focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring rounded-md"
+                      className="focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring rounded-md"
                       aria-label={`Filter by timeframe ${template.timeframe}`}
                     >
                       <Badge

@@ -58,12 +58,16 @@
 |---|---|---|---|
 | `--destructive` / `-foreground` | `0 72% 51%` / `0 0% 100%` | `0 84% 60%` / `240 5% 92%` | Destructive CTAs, error backgrounds. |
 | `--destructive-soft` (Tailwind: `destructive-soft`) | `0 84% 96%` | `0 55% 14%` | Tinted error banner background. |
-| `--success` / `-foreground` | `142 76% 36%` / `0 0% 100%` | `142 71% 45%` / `240 8% 5%` | Success badges, success CTAs. |
+| `--success` / `-foreground` | `142 76% 36%` / `0 0% 4%` | `142 71% 45%` / `240 8% 5%` | Success badges, success CTAs. **Light-theme foreground darkened in Phase 4** for AA contrast on the green bg. |
 | `--success-soft` (Tailwind: `success-soft`) | `142 70% 94%` | `142 50% 12%` | Tinted success banner background. |
-| `--warning` / `-foreground` | `38 92% 50%` / `0 0% 100%` | `43 96% 56%` / `240 8% 5%` | Warning badges. |
+| `--warning` / `-foreground` | `38 92% 50%` / `0 0% 4%` | `43 96% 56%` / `240 8% 5%` | Warning badges. **Light-theme foreground darkened in Phase 4** — white on amber failed all WCAG thresholds. |
 | `--warning-soft` (Tailwind: `warning-soft`) | `38 92% 94%` | `38 60% 14%` | Tinted warning banner background. |
 
 **Rule:** never `bg-destructive/10` to fake a soft surface — use `bg-destructive-soft` so a future palette change tracks.
+
+**Rule (Phase 4):** for inline body text inside a soft state surface, use `text-foreground`, not `text-{state}`. The state hue communicates intent via the bg + an optional colored heading; the body must keep AA-normal contrast against the soft tint. See `docs/design/audit/phase4-contrast-matrix.md` for the contrast pairs that fail under the old pattern.
+
+**Rule (Phase 4):** solid state buttons/badges (`bg-{state}` + `text-{state}-foreground`) reach AA-large (≥3:1) but not always AA-normal (≥4.5:1). They are appropriate only at button/badge typography (≥14pt bold or ≥18pt regular). Don't use them for body text.
 
 ---
 
@@ -135,9 +139,10 @@ Sidebar tokens mirror the global palette but allow the navigation chrome to evol
 <p className="text-muted-foreground">     // secondary
 <p className="text-subtle">               // tertiary metadata
 
-// Status banners
-<div className="bg-success-soft text-success">     // ✓ correct
+// Status banners (body text uses text-foreground for AA contrast — Phase 4 rule)
+<div className="bg-success-soft text-foreground">  // ✓ correct
 <div className="bg-success/10 text-success">       // ✗ avoid — won't track palette changes
+<div className="bg-success-soft text-success">     // ⚠ AA-large only; OK for headings, not body
 
 // Focus
 <button className="focus-visible:ring-2 focus-visible:ring-focus-ring">  // ✓ correct

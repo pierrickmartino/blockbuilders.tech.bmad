@@ -1174,7 +1174,7 @@ export default function StrategyEditorPage({ params }: Props) {
             <Link
               href="/strategies"
               aria-label="Back to strategies"
-              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring sm:h-8 sm:w-8"
+              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring sm:h-8 sm:w-8"
             >
               <ChevronLeft className="h-5 w-5" aria-hidden="true" />
             </Link>
@@ -1212,7 +1212,7 @@ export default function StrategyEditorPage({ params }: Props) {
               </div>
             ) : (
               <button
-                className="group flex min-w-0 items-center gap-1 truncate rounded-md text-sm font-semibold text-foreground hover:text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                className="group flex min-w-0 items-center gap-1 truncate rounded-md text-sm font-semibold text-foreground hover:text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring"
                 onClick={() => setEditingName(true)}
                 aria-label={`Edit strategy name (current: ${strategy.name})`}
               >
@@ -1303,7 +1303,7 @@ export default function StrategyEditorPage({ params }: Props) {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-9 px-2 focus-visible:ring-1 focus-visible:ring-ring sm:h-8 lg:hidden"
+                  className="h-9 px-2 focus-visible:ring-1 focus-visible:ring-focus-ring sm:h-8 lg:hidden"
                   aria-label="Version history"
                 >
                   <Clock className="h-4 w-4" aria-hidden="true" />
@@ -1363,7 +1363,7 @@ export default function StrategyEditorPage({ params }: Props) {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-9 px-2 focus-visible:ring-1 focus-visible:ring-ring sm:h-8"
+                  className="h-9 px-2 focus-visible:ring-1 focus-visible:ring-focus-ring sm:h-8"
                   aria-label="More actions"
                 >
                   <MoreVertical className="h-4 w-4" aria-hidden="true" />
@@ -1409,7 +1409,7 @@ export default function StrategyEditorPage({ params }: Props) {
             <Button
               variant="outline"
               size="sm"
-              className="hidden h-8 px-2 focus-visible:ring-1 focus-visible:ring-ring lg:inline-flex"
+              className="hidden h-8 px-2 focus-visible:ring-1 focus-visible:ring-focus-ring lg:inline-flex"
               onClick={() => setShowSettings(true)}
               aria-label="Strategy settings"
             >
@@ -1477,7 +1477,7 @@ export default function StrategyEditorPage({ params }: Props) {
             <button
               type="button"
               onClick={() => { setError(null); setValidationErrors([]); }}
-              className="shrink-0 rounded-sm p-0.5 text-destructive/60 hover:text-destructive focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              className="shrink-0 rounded-sm p-0.5 text-destructive/60 hover:text-destructive focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring"
               aria-label="Dismiss error"
             >
               <X className="h-3.5 w-3.5" aria-hidden="true" />
@@ -1495,7 +1495,7 @@ export default function StrategyEditorPage({ params }: Props) {
             <button
               type="button"
               onClick={() => setSaveMessage(null)}
-              className="shrink-0 rounded-sm p-0.5 text-success/60 hover:text-success focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              className="shrink-0 rounded-sm p-0.5 text-success/60 hover:text-success focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring"
               aria-label="Dismiss message"
             >
               <X className="h-3.5 w-3.5" aria-hidden="true" />
@@ -1582,7 +1582,7 @@ export default function StrategyEditorPage({ params }: Props) {
                           onClick={() => handleRemoveTag(tag.id)}
                           disabled={isSavingTags}
                           aria-label={`Remove tag ${tag.name}`}
-                          className="ml-1 text-primary/70 hover:text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
+                          className="ml-1 text-primary/70 hover:text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring disabled:opacity-50"
                         >
                           ×
                         </button>
