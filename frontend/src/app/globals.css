@@ -11,6 +11,15 @@
     /* — RADIUS — */
     --radius: 0.5rem;
 
+    /* — SECTION PADDING (vertical rhythm) —
+       Use these instead of ad-hoc `py-N md:py-M lg:py-K` combos.
+       `--space-section` is the canonical between-major-sections rhythm;
+       `--space-section-tight` is for compact stacks (in-card sections,
+       sub-sections of a feature page). Tailwind utilities exposed as
+       `py-section` / `py-section-tight` via `tailwind.config.ts`. */
+    --space-section: clamp(3rem, 2.4rem + 3vw, 6rem);
+    --space-section-tight: clamp(1.5rem, 1.2rem + 1.5vw, 3rem);
+
     /* — SURFACES — */
     --background: 0 0% 100%;
     --foreground: 0 0% 4%;
@@ -35,7 +44,10 @@
     --muted: 220 23% 97%;
     --muted-foreground: 0 0% 40%;
     --text-subtle: 0 0% 38%;
-    --accent: 220 23% 97%;
+    /* Phase 6.1: --accent differentiated from --secondary/--muted by ~4%
+       lightness so `bg-secondary hover:bg-accent` (shadcn default) produces
+       perceptible hover feedback. Stays in the neutral family. */
+    --accent: 220 14% 93%;
     --accent-foreground: 0 0% 4%;
 
     /* — STATE — */
@@ -96,7 +108,8 @@
     --muted: 240 4% 9%;
     --muted-foreground: 240 3% 62%;
     --text-subtle: 240 3% 55%;
-    --accent: 240 4% 9%;
+    /* Phase 6.1: dark-mode accent lifted ~4% above secondary/muted. */
+    --accent: 240 4% 13%;
     --accent-foreground: 240 5% 92%;
 
     --destructive: 0 84% 60%;
@@ -186,13 +199,8 @@
     font-variant-numeric: tabular-nums;
   }
 
-  /* Decorative gradient utility — flagged for removal in Phase 2 along
-     with the home hero rewrite. Stops updated to track new --primary. */
-  .text-gradient-primary {
-    @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(135deg, hsl(204 75% 40%), hsl(204 66% 72%));
-  }
-  .dark .text-gradient-primary {
-    background-image: linear-gradient(135deg, hsl(204 76% 63%), hsl(204 51% 35%));
-  }
+  /* Phase 6.2: `.text-gradient-primary` utility removed.
+     Phase 2 home-hero rewrite eliminated all consumers (italic emphasis
+     replaces decorative gradient). Verified no remaining call-sites in
+     frontend/src before removal. */
 }

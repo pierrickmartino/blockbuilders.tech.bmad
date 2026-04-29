@@ -118,7 +118,9 @@ export default async function LandingPage({ searchParams }: LandingPageProps) {
             <span className="text-base font-bold tracking-tight">Blockbuilders</span>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" asChild>
+            {/* Hidden < sm to avoid header overflow on 320px viewports.
+                The hero subhead provides a Sign-in affordance below `sm:`. */}
+            <Button variant="ghost" size="sm" asChild className="hidden sm:inline-flex">
               <Link href="/login">Sign in</Link>
             </Button>
             <Button size="sm" asChild>

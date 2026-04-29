@@ -46,9 +46,9 @@
 | `--secondary` / `--secondary-foreground` | `220 23% 97%` / `0 0% 4%` | `240 4% 9%` / `240 5% 92%` | Secondary buttons, mild emphasis surfaces. |
 | `--muted` / `--muted-foreground` | `220 23% 97%` / `0 0% 40%` | `240 4% 9%` / `240 3% 62%` | Muted surfaces; secondary body text. |
 | `--text-subtle` (Tailwind: `subtle`) | `0 0% 38%` | `240 3% 55%` | Tertiary metadata that should fade into the background but remain readable. **Light value tightened in Phase 2** to ≥6:1 vs white after axe flagged the original `45%` gray as borderline. |
-| `--accent` / `--accent-foreground` | `220 23% 97%` / `0 0% 4%` | `240 4% 9%` / `240 5% 92%` | Hover/active surface for interactive elements. |
+| `--accent` / `--accent-foreground` | `220 14% 93%` / `0 0% 4%` | `240 4% 13%` / `240 5% 92%` | Hover/active surface for interactive elements. **Phase 6.1: differentiated from `--secondary`/`--muted` by ~4% lightness so `bg-secondary hover:bg-accent` produces perceptible feedback.** |
 
-**Known aliasing — to be addressed in Phase 6:** `--secondary`, `--muted`, and `--accent` resolve to identical values today. Hover-on-secondary states are therefore invisible. Phase 6 will either differentiate or collapse this triple.
+**Phase 6.1 resolution:** `--accent` is now distinct from `--secondary`/`--muted` (which remain aliased to each other — they serve compatible roles: mild emphasis surface and muted text container). Hover-on-secondary is now visible without diverging from the neutral palette.
 
 ---
 
@@ -92,9 +92,27 @@
 | `--chart-2` | `142 76% 36%` | `142 71% 45%` | Green. |
 | `--chart-3` | `38 92% 50%` | `43 96% 56%` | Amber. |
 | `--chart-4` | `204 66% 72%` | `204 51% 21%` | Light blue (sibling of chart-1). |
-| `--chart-5` | `0 72% 51%` | `0 84% 60%` | Red — **also aliased to `--destructive`**. Phase 6 may split. |
+| `--chart-5` | `0 72% 51%` | `0 84% 60%` | Red — **deliberately aliased to `--destructive`**. See aliasing note below. |
 
-**Color-blind safety**: chart-2 (green) and chart-5 (red) collapse under protanopia/deuteranopia. Phase 6 must add icon/shape encoding for any chart relying on color alone.
+**Phase 6.3 — `--destructive` ↔ `--chart-5` aliasing decision:** the alias is **kept by design**. Rationale:
+
+- Both communicate the same semantic — *negative outcome* (loss in a P/L chart, error in a banner, destructive action on a button). Splitting would let the two drift and create a credibility gap when an "error" red and a "loss" red sit on the same screen.
+- A single token also means Phase 4's contrast tightening propagates to the chart palette without a second migration.
+- If a future need arises (e.g., a "muted loss" series next to a strong "error" red), introduce a new token (e.g., `--chart-loss`) rather than splitting the alias — the alias is the cheap default; deviation should be explicit.
+
+**Color-blind safety (binding rule):** under deuteranopia/protanopia (~8% of male users), `--chart-2` (green) and `--chart-5`/`--destructive` (red) collapse to near-identical yellow-browns. Any chart, badge, or status indicator that uses red/green alone to convey meaning is **inaccessible**.
+
+Required encoding patterns:
+
+| Surface | Required redundancy |
+|---|---|
+| P/L charts (TradeDrawer, equity curve, distribution) | Color **+** sign of value (`+`/`-` prefix) **+** position relative to zero baseline. |
+| Status badges (success/destructive) | Color **+** icon (e.g., `<CheckCircle/>` / `<AlertTriangle/>`) **+** text label. |
+| Trade markers on candles | Color **+** marker shape (▲ buy / ▼ sell). |
+| Heatmap intensity | Color **+** numeric label inside the cell at the values that matter. |
+| Connection edges in canvas | Color (when used) **+** stroke style (solid for valid, dashed for warning). |
+
+Code review must reject any single-channel red/green meaning on a primary surface.
 
 ---
 
@@ -164,9 +182,17 @@ Sidebar tokens mirror the global palette but allow the navigation chrome to evol
 | Removed body radial gradients (light + dark) | Below perceptible contrast; violates `design_concept.json` ("no decorative gradients"). |
 | `react-flow__background circle` `#2A2A2E` → `hsl(var(--border))` | Tracks the border token instead of drifting independently. |
 
+## What changed in Phase 6
+
+| Change | Reason |
+|---|---|
+| `--accent` light: `220 23% 97%` → `220 14% 93%`; dark: `240 4% 9%` → `240 4% 13%` | Differentiates from `--secondary`/`--muted` so `hover:bg-accent` on secondary surfaces is perceptible. |
+| Removed `.text-gradient-primary` utility from `globals.css` | All consumers eliminated in Phase 2; dead code. |
+| Documented `--destructive` ↔ `--chart-5` alias as deliberate | Single token tracks negative-outcome semantics across surfaces; future divergence requires a new token, not a split. |
+| Codified color-blind safety encoding rules (above) | Red/green collapse under deuteranopia/protanopia — single-channel meaning is inaccessible. |
+
 ## What's deferred
 
-- `.text-gradient-primary` utility — kept for Phase 2 home-hero rewrite.
 - Reconciling `docs/design-system.json` with `globals.css` — pick one authoritative source.
-- Aliasing decisions on `--secondary`/`--muted`/`--accent` and `--destructive`/`--chart-5` — Phase 6.
-- Card/Input variant adoption of new surface and soft tokens — Phase 3.
+- Card/Input variant adoption of new surface and soft tokens — Phase 3 shipped the API; per-call-site migration is opportunistic.
+- Canvas wrapper components (`<NodeSocket>`, `<NodeIcon>`) replacing 184 atomic size classes — Phase 3.X (separate PR).

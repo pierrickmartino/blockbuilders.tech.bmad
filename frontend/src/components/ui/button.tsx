@@ -24,7 +24,12 @@ const buttonVariants = cva(
         default: "h-9 px-4 py-2",
         sm: "h-8 rounded-md px-3 text-xs",
         lg: "h-10 rounded-md px-8",
+        // 44×44 mobile touch target (iOS HIG / WCAG 2.2 AAA `target-size`).
+        // Use on mobile-primary CTAs (login submit, mobile bottom action bar).
+        touch: "h-11 rounded-md px-5",
         icon: "h-9 w-9",
+        // Icon-button variant sized for touch surfaces.
+        "icon-touch": "h-11 w-11",
       },
     },
     defaultVariants: {
