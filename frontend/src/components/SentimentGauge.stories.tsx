@@ -10,7 +10,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "Displays a single market sentiment metric as a labeled card with a progress-bar gauge. Used inside MarketSentimentPanel for the Fear & Greed Index. Shows an 'Unavailable' badge when the data source is down.",
+          "Displays a single market sentiment metric as a labeled card with a progress-bar gauge. Used inside MarketSentimentPanel for the Fear & Greed Index. Shows an 'Unavailable' badge when the data source is down and a 'Partial' indicator when data may be incomplete.",
       },
     },
   },
@@ -43,10 +43,18 @@ export const Greedy: Story = {
   args: { value: 78, status: "ok", formatter: (v) => `${v} – Greed` },
 };
 
+export const ExtremeGreed: Story = {
+  args: { value: 92, status: "ok", formatter: (v) => `${v} – Extreme Greed` },
+};
+
 export const PartialData: Story = {
   args: { value: 60, status: "partial", formatter: (v) => `${v}` },
 };
 
 export const Unavailable: Story = {
   args: { value: null, status: "unavailable" },
+};
+
+export const WithUnit: Story = {
+  args: { value: 65, status: "ok", unit: "pts", formatter: (v) => `${v}` },
 };

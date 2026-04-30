@@ -2,75 +2,184 @@
 @tailwind components;
 @tailwind utilities;
 
+/* =============================================================
+   Design tokens — single runtime source of truth.
+   See docs/design/tokens.md for naming, intent, and usage rules.
+   ============================================================= */
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 224 71.4% 4.1%;
-    --card: 0 0% 100%;
-    --card-foreground: 224 71.4% 4.1%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 224 71.4% 4.1%;
-    --primary: 262.1 83.3% 57.8%;
-    --primary-foreground: 210 20% 98%;
-    --secondary: 220 14.3% 95.9%;
-    --secondary-foreground: 220.9 39.3% 11%;
-    --muted: 220 14.3% 95.9%;
-    --muted-foreground: 220 8.9% 46.1%;
-    --accent: 220 14.3% 95.9%;
-    --accent-foreground: 220.9 39.3% 11%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 20% 98%;
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --ring: 262.1 83.3% 57.8%;
-    --chart-1: 262.1 83.3% 57.8%;
-    --chart-2: 273 72% 50%;
-    --chart-3: 291 70% 55%;
-    --chart-4: 250 80% 65%;
-    --chart-5: 230 70% 60%;
+    /* — RADIUS — */
     --radius: 0.5rem;
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 224 71.4% 4.1%;
-    --sidebar-primary: 262.1 83.3% 57.8%;
-    --sidebar-primary-foreground: 210 20% 98%;
-    --sidebar-accent: 220 14.3% 95.9%;
-    --sidebar-accent-foreground: 220.9 39.3% 11%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 262.1 83.3% 57.8%
+
+    /* — SECTION PADDING (vertical rhythm) —
+       Use these instead of ad-hoc `py-N md:py-M lg:py-K` combos.
+       `--space-section` is the canonical between-major-sections rhythm;
+       `--space-section-tight` is for compact stacks (in-card sections,
+       sub-sections of a feature page). Tailwind utilities exposed as
+       `py-section` / `py-section-tight` via `tailwind.config.ts`. */
+    --space-section: clamp(3rem, 2.4rem + 3vw, 6rem);
+    --space-section-tight: clamp(1.5rem, 1.2rem + 1.5vw, 3rem);
+
+    /* — SURFACES — */
+    --background: 0 0% 100%;
+    --foreground: 0 0% 4%;
+    --surface-base: 0 0% 100%;
+    --surface-elevated: 220 14% 96%;
+    --surface-overlay: 0 0% 100%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 4%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 4%;
+
+    /* — BRAND / ACTION —
+       Light-mode --primary darkened from `204 65% 57%` to `204 75% 40%`
+       to meet WCAG 2.2 AA contrast (≥4.5:1 vs white background and as
+       button bg under white text). Resolves all 47 axe color-contrast
+       nodes flagged in docs/design/audit/phase0-live-slice.md. */
+    --primary: 204 75% 40%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 23% 97%;
+    --secondary-foreground: 0 0% 4%;
+    --muted: 220 23% 97%;
+    --muted-foreground: 0 0% 40%;
+    --text-subtle: 0 0% 38%;
+    /* Phase 6.1: --accent differentiated from --secondary/--muted by ~4%
+       lightness so `bg-secondary hover:bg-accent` (shadcn default) produces
+       perceptible hover feedback. Stays in the neutral family. */
+    --accent: 220 14% 93%;
+    --accent-foreground: 0 0% 4%;
+
+    /* — STATE — */
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --destructive-soft: 0 84% 96%;
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 4%;
+    --success-soft: 142 70% 94%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 4%;
+    --warning-soft: 38 92% 94%;
+    /* --info intentionally distinct from --primary (sky-blue vs teal-blue)
+       so informational banners and primary action buttons are visually
+       separable without relying on label text alone. */
+    --info: 210 80% 45%;
+    --info-foreground: 0 0% 100%;
+    --info-soft: 210 80% 95%;
+
+    /* — SHADOWS —
+       Three-stop shadow scale: sm for subtle lift, md for cards/dropdowns,
+       overlay for modals and command palettes. Values use the foreground
+       token so they automatically invert in dark mode via the .dark overrides
+       below (dark mode shadows use a near-black base). */
+    --shadow-sm: 0 1px 2px 0 hsl(var(--foreground) / 0.05);
+    --shadow-md: 0 4px 6px -1px hsl(var(--foreground) / 0.08), 0 2px 4px -2px hsl(var(--foreground) / 0.05);
+    --shadow-overlay: 0 20px 25px -5px hsl(var(--foreground) / 0.12), 0 8px 10px -6px hsl(var(--foreground) / 0.08);
+
+    /* — MOTION TOKENS —
+       `--duration-fast` for clicks/toggles; `--duration-normal` for
+       modals, drawers, and reveals. `--ease-default` is an ease-out-expo
+       curve tuned for UI motion (quick settle, no overshoot). */
+    --duration-fast: 150ms;
+    --duration-normal: 250ms;
+    --ease-default: cubic-bezier(0.16, 1, 0.3, 1);
+
+    /* — BORDERS / INPUT / FOCUS —
+       --focus-ring is a dedicated alias of --ring so a11y can tune
+       it independently of --primary in future phases. */
+    --border: 210 13% 94%;
+    --input: 210 13% 94%;
+    --ring: 204 75% 40%;
+    --focus-ring: 204 75% 40%;
+
+    /* — CHARTS — */
+    --chart-1: 204 75% 40%;
+    --chart-2: 142 76% 36%;
+    --chart-3: 38 92% 50%;
+    --chart-4: 204 66% 72%;
+    --chart-5: 0 72% 51%;
+
+    /* — CANVAS NODE CATEGORIES —
+       Saturated mid-tones chosen for legibility on both light/dark canvas
+       surfaces. Values mirror the static CANVAS_CATEGORIES in chart-theme.ts. */
+    --canvas-node-input: 271 81% 56%;
+    --canvas-node-indicator: 217 91% 60%;
+    --canvas-node-logic: 32 95% 44%;
+    --canvas-node-signal: 142 71% 45%;
+    --canvas-node-risk: 0 72% 51%;
+
+    /* — SIDEBAR — */
+    --sidebar-background: 220 23% 97%;
+    --sidebar-foreground: 0 0% 4%;
+    --sidebar-primary: 204 75% 40%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 210 13% 94%;
+    --sidebar-accent-foreground: 0 0% 4%;
+    --sidebar-border: 210 13% 94%;
+    --sidebar-ring: 204 75% 40%;
   }
+
   .dark {
-    --background: 224 71.4% 4.1%;
-    --foreground: 210 20% 98%;
-    --card: 224 71.4% 4.1%;
-    --card-foreground: 210 20% 98%;
-    --popover: 224 71.4% 4.1%;
-    --popover-foreground: 210 20% 98%;
-    --primary: 263.4 70% 50.4%;
-    --primary-foreground: 210 20% 98%;
-    --secondary: 215 27.9% 16.9%;
-    --secondary-foreground: 210 20% 98%;
-    --muted: 215 27.9% 16.9%;
-    --muted-foreground: 217.9 10.6% 64.9%;
-    --accent: 215 27.9% 16.9%;
-    --accent-foreground: 210 20% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 20% 98%;
-    --border: 215 27.9% 16.9%;
-    --input: 215 27.9% 16.9%;
-    --ring: 263.4 70% 50.4%;
-    --chart-1: 263.4 70% 50.4%;
-    --chart-2: 279 65% 55%;
-    --chart-3: 293 60% 60%;
-    --chart-4: 250 70% 60%;
-    --chart-5: 230 60% 55%;
-    --sidebar-background: 224 71.4% 4.1%;
-    --sidebar-foreground: 210 20% 98%;
-    --sidebar-primary: 263.4 70% 50.4%;
-    --sidebar-primary-foreground: 210 20% 98%;
-    --sidebar-accent: 215 27.9% 16.9%;
-    --sidebar-accent-foreground: 210 20% 98%;
-    --sidebar-border: 215 27.9% 16.9%;
-    --sidebar-ring: 263.4 70% 50.4%
+    --background: 240 8% 5%;
+    --foreground: 240 5% 92%;
+    --surface-base: 240 8% 5%;
+    --surface-elevated: 240 6% 9%;
+    --surface-overlay: 240 4% 11%;
+    --card: 240 8% 5%;
+    --card-foreground: 240 5% 92%;
+    --popover: 240 4% 9%;
+    --popover-foreground: 240 5% 92%;
+
+    --primary: 204 76% 63%;
+    --primary-foreground: 240 8% 5%;
+    --secondary: 240 4% 9%;
+    --secondary-foreground: 240 5% 92%;
+    --muted: 240 4% 9%;
+    --muted-foreground: 240 3% 62%;
+    --text-subtle: 240 3% 55%;
+    /* Phase 6.1: dark-mode accent lifted ~4% above secondary/muted. */
+    --accent: 240 4% 13%;
+    --accent-foreground: 240 5% 92%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 240 5% 92%;
+    --destructive-soft: 0 55% 14%;
+    --success: 142 71% 45%;
+    --success-foreground: 240 8% 5%;
+    --success-soft: 142 50% 12%;
+    --warning: 43 96% 56%;
+    --warning-foreground: 240 8% 5%;
+    --warning-soft: 38 60% 14%;
+    --info: 210 76% 68%;
+    --info-foreground: 240 8% 5%;
+    --info-soft: 210 60% 14%;
+
+    --border: 240 5% 17%;
+    --input: 240 5% 17%;
+    --ring: 204 76% 63%;
+    --focus-ring: 204 76% 63%;
+
+    --chart-1: 204 76% 63%;
+    --chart-2: 142 71% 45%;
+    --chart-3: 43 96% 56%;
+    --chart-4: 204 51% 21%;
+    --chart-5: 0 84% 60%;
+
+    /* — CANVAS NODE CATEGORIES (dark) — */
+    --canvas-node-input: 271 81% 65%;
+    --canvas-node-indicator: 217 91% 68%;
+    --canvas-node-logic: 32 95% 55%;
+    --canvas-node-signal: 142 71% 55%;
+    --canvas-node-risk: 0 84% 60%;
+
+    --sidebar-background: 240 4% 9%;
+    --sidebar-foreground: 240 5% 92%;
+    --sidebar-primary: 204 76% 63%;
+    --sidebar-primary-foreground: 240 8% 5%;
+    --sidebar-accent: 240 5% 17%;
+    --sidebar-accent-foreground: 240 5% 92%;
+    --sidebar-border: 240 5% 17%;
+    --sidebar-ring: 204 76% 63%;
   }
 }
 
@@ -80,29 +189,54 @@
   }
   body {
     @apply bg-background text-foreground;
-    background-image:
-      radial-gradient(ellipse 80% 50% at 50% -20%, hsl(262.1 83.3% 57.8% / 0.04), transparent),
-      radial-gradient(ellipse 60% 40% at 80% 50%, hsl(230 70% 60% / 0.02), transparent);
-  }
-  .dark body {
-    background-image:
-      radial-gradient(ellipse 80% 50% at 50% -20%, hsl(263.4 70% 50.4% / 0.08), transparent),
-      radial-gradient(ellipse 60% 40% at 80% 50%, hsl(230 60% 55% / 0.04), transparent);
+    /* Decorative body radial gradients removed (Phase 1):
+       light alphas (3–4%) and dark alphas (6–8%) were below perceptible
+       contrast on their respective backgrounds — paying parse + paint
+       cost for nothing. design_concept.json: "no decorative gradients". */
   }
 }
 
-/* React Flow dark mode overrides */
+/* React Flow dark-mode dot pattern — tracks the border token. */
 .dark .react-flow__background circle {
-  /* Override inline SVG fill for dot pattern in dark mode */
-  fill: #1e293b !important;
+  fill: hsl(var(--border)) !important;
+}
+
+/* =============================================================
+   Reduced motion — neutralize transitions, animations, and
+   smooth-scroll for users who request it. Per-component
+   `motion-reduce:` overrides remain available for the rare
+   case a transition is essential to comprehension.
+   ============================================================= */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 @layer utilities {
-  .text-gradient-primary {
-    @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(135deg, hsl(262.1 83.3% 57.8%), hsl(230 70% 60%));
+  .tabular-nums {
+    font-family: var(--font-mono), "IBM Plex Mono", ui-monospace, monospace;
   }
-  .dark .text-gradient-primary {
-    background-image: linear-gradient(135deg, hsl(263.4 70% 60%), hsl(230 60% 65%));
+
+  .data-text {
+    @apply font-mono tabular-nums tracking-tight;
   }
+
+  .recharts-cartesian-axis-tick-value,
+  .recharts-default-tooltip,
+  .recharts-tooltip-item-value,
+  .recharts-tooltip-label {
+    font-family: var(--font-mono), "IBM Plex Mono", ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Phase 6.2: `.text-gradient-primary` utility removed.
+     Phase 2 home-hero rewrite eliminated all consumers (italic emphasis
+     replaces decorative gradient). Verified no remaining call-sites in
+     frontend/src before removal. */
 }

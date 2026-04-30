@@ -10,10 +10,16 @@ export const PERIOD_LABEL: Record<string, string> = {
   "3y": "3 years",
 };
 
+// Status badge styling aligned with design-system.pen (Signal variant).
+// Light mode uses a 5% tint; dark mode uses a stronger 12.5% tint.
 export const statusStyles: Record<BacktestStatus, string> = {
-  pending: "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400",
-  running: "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-400",
-  completed: "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400",
-  failed: "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400",
-  skipped: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
+  pending:
+    "bg-[hsl(var(--warning)/0.05)] text-warning dark:bg-[hsl(var(--warning)/0.125)] dark:text-warning",
+  running:
+    "bg-[hsl(var(--info)/0.05)] text-info dark:bg-[hsl(var(--info)/0.125)] dark:text-info",
+  completed:
+    "bg-[hsl(var(--success)/0.05)] text-success dark:bg-[hsl(var(--success)/0.125)] dark:text-success",
+  failed:
+    "bg-[hsl(var(--destructive)/0.05)] text-destructive dark:bg-[hsl(var(--destructive)/0.125)] dark:text-destructive",
+  skipped: "bg-muted text-muted-foreground",
 };

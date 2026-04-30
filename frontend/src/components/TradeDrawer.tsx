@@ -19,7 +19,10 @@ import {
   formatNumber,
 } from "@/lib/format";
 import { useDisplay } from "@/context/display";
+import { useChartTheme } from "@/lib/chart-theme";
 import { TradeDetailResponse } from "@/types/backtest";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import TradeExplanation from "./TradeExplanation";
 
 interface TradeDrawerProps {
@@ -38,6 +41,7 @@ export default function TradeDrawer({
   onClose,
 }: TradeDrawerProps) {
   const { timezone, resolvedTheme } = useDisplay();
+  const chartTheme = useChartTheme();
   const [data, setData] = useState<TradeDetailResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -75,38 +79,37 @@ export default function TradeDrawer({
   // Initialize chart
   useEffect(() => {
     if (!data || !chartContainerRef.current || data.candles.length === 0) return;
-    const isDark = resolvedTheme === "dark";
 
     const container = chartContainerRef.current;
     const chart = createChart(container, {
       width: container.clientWidth,
       height: 300,
       layout: {
-        background: { color: isDark ? "#030712" : "#ffffff" },
-        textColor: isDark ? "#e5e7eb" : "#374151",
+        background: { color: chartTheme.background },
+        textColor: chartTheme.text,
       },
       grid: {
-        vertLines: { color: isDark ? "#1f2937" : "#e5e7eb" },
-        horzLines: { color: isDark ? "#1f2937" : "#e5e7eb" },
+        vertLines: { color: chartTheme.grid },
+        horzLines: { color: chartTheme.grid },
       },
       timeScale: {
         timeVisible: true,
         secondsVisible: false,
-        borderColor: isDark ? "#374151" : "#e5e7eb",
+        borderColor: chartTheme.axis,
       },
       rightPriceScale: {
-        borderColor: isDark ? "#374151" : "#e5e7eb",
+        borderColor: chartTheme.axis,
       },
     });
     chartRef.current = chart;
 
     const series = chart.addSeries(CandlestickSeries, {
-      upColor: "#22c55e",
-      downColor: "#ef4444",
-      borderUpColor: "#22c55e",
-      borderDownColor: "#ef4444",
-      wickUpColor: "#22c55e",
-      wickDownColor: "#ef4444",
+      upColor: chartTheme.up,
+      downColor: chartTheme.down,
+      borderUpColor: chartTheme.up,
+      borderDownColor: chartTheme.down,
+      wickUpColor: chartTheme.up,
+      wickDownColor: chartTheme.down,
     });
     seriesRef.current = series;
 
@@ -131,14 +134,14 @@ export default function TradeDrawer({
         {
           time: entryTime,
           position: "belowBar",
-          color: "#22c55e",
+          color: chartTheme.up,
           shape: "arrowUp",
           text: "Entry",
         },
         {
           time: exitTime,
           position: "aboveBar",
-          color: "#ef4444",
+          color: chartTheme.down,
           shape: "arrowDown",
           text: "Exit",
         },
@@ -149,7 +152,7 @@ export default function TradeDrawer({
     if (data.trade.sl_price_at_entry) {
       series.createPriceLine({
         price: data.trade.sl_price_at_entry,
-        color: "#ef4444",
+        color: chartTheme.down,
         lineWidth: 1,
         lineStyle: 2,
         axisLabelVisible: true,
@@ -159,7 +162,7 @@ export default function TradeDrawer({
     if (data.trade.tp_price_at_entry) {
       series.createPriceLine({
         price: data.trade.tp_price_at_entry,
-        color: "#22c55e",
+        color: chartTheme.up,
         lineWidth: 1,
         lineStyle: 2,
         axisLabelVisible: true,
@@ -170,7 +173,7 @@ export default function TradeDrawer({
     // Entry price line
     series.createPriceLine({
       price: data.trade.entry_price,
-      color: "#3b82f6",
+      color: chartTheme.primary,
       lineWidth: 1,
       lineStyle: 1,
       axisLabelVisible: true,
@@ -185,7 +188,7 @@ export default function TradeDrawer({
 
         // Add price pane indicators (SMA, EMA, Bollinger)
         const lineSeries = chart.addSeries(LineSeries, {
-          color: ind.color || "#3b82f6",
+          color: ind.color || chartTheme.primary,
           lineWidth: 2,
           title: ind.label,
         });
@@ -219,7 +222,7 @@ export default function TradeDrawer({
       window.removeEventListener("resize", handleResize);
       chart.remove();
     };
-  }, [data, resolvedTheme]);
+  }, [data, resolvedTheme, chartTheme]);
 
   const trade = data?.trade;
 
@@ -241,17 +244,19 @@ export default function TradeDrawer({
               Trade #{tradeIdx + 1}
             </h2>
             {trade && (
-              <span
-                className={`rounded-full px-2 py-0.5 text-xs font-medium uppercase ${
+              <Badge
+                variant="outline"
+                className={cn(
+                  "font-medium uppercase",
                   trade.side === "long"
-                    ? "bg-green-100 text-green-700 dark:bg-green-950/30 dark:text-green-300"
-                    : "bg-red-100 text-red-700 dark:bg-red-950/30 dark:text-red-300"
-                }`}
+                    ? "border-success/30 text-success"
+                    : "border-destructive/30 text-destructive",
+                )}
               >
                 {trade.side}
-              </span>
+              </Badge>
             )}
-            <span className="text-sm text-muted-foreground">
+            <span className="data-text text-sm text-muted-foreground">
               {asset} · {timeframe}
             </span>
           </div>
@@ -297,7 +302,7 @@ export default function TradeDrawer({
                 <div className="rounded-lg bg-muted/40 p-3">
                   <div className="text-xs text-muted-foreground">P&L</div>
                   <div
-                    className={`text-lg font-semibold ${
+                    className={`data-text text-lg font-semibold ${
                       trade.pnl >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
                     }`}
                   >
@@ -307,7 +312,7 @@ export default function TradeDrawer({
                 <div className="rounded-lg bg-muted/40 p-3">
                   <div className="text-xs text-muted-foreground">P&L %</div>
                   <div
-                    className={`text-lg font-semibold ${
+                    className={`data-text text-lg font-semibold ${
                       trade.pnl_pct >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
                     }`}
                   >
@@ -316,14 +321,14 @@ export default function TradeDrawer({
                 </div>
                 <div className="rounded-lg bg-muted/40 p-3">
                   <div className="text-xs text-muted-foreground">Duration</div>
-                  <div className="text-lg font-semibold text-foreground">
+                  <div className="data-text text-lg font-semibold text-foreground">
                     {formatDuration(trade.duration_seconds)}
                   </div>
                 </div>
                 <div className="rounded-lg bg-muted/40 p-3">
                   <div className="text-xs text-muted-foreground">R-Multiple</div>
                   <div
-                    className={`text-lg font-semibold ${
+                    className={`data-text text-lg font-semibold ${
                       trade.r_multiple === null
                         ? "text-muted-foreground"
                         : trade.r_multiple >= 0
@@ -353,23 +358,23 @@ export default function TradeDrawer({
                 <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
                   <div>
                     <span className="text-muted-foreground">Entry Time</span>
-                    <div className="font-medium">{formatDateTime(trade.entry_time, timezone)}</div>
+                    <div className="data-text font-medium">{formatDateTime(trade.entry_time, timezone)}</div>
                   </div>
                   <div>
                     <span className="text-muted-foreground">Exit Time</span>
-                    <div className="font-medium">{formatDateTime(trade.exit_time, timezone)}</div>
+                    <div className="data-text font-medium">{formatDateTime(trade.exit_time, timezone)}</div>
                   </div>
                   <div>
                     <span className="text-muted-foreground">Entry Price</span>
-                    <div className="font-medium">{formatNumber(trade.entry_price, 2)}</div>
+                    <div className="data-text font-medium">{formatNumber(trade.entry_price, 2)}</div>
                   </div>
                   <div>
                     <span className="text-muted-foreground">Exit Price</span>
-                    <div className="font-medium">{formatNumber(trade.exit_price, 2)}</div>
+                    <div className="data-text font-medium">{formatNumber(trade.exit_price, 2)}</div>
                   </div>
                   <div>
                     <span className="text-muted-foreground">Quantity</span>
-                    <div className="font-medium">{formatQuantity(trade.qty)}</div>
+                    <div className="data-text font-medium">{formatQuantity(trade.qty)}</div>
                   </div>
                 </div>
               </section>
@@ -381,19 +386,19 @@ export default function TradeDrawer({
                   <div className="space-y-1 text-sm">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Fees:</span>
-                      <span className="font-medium">{formatMoney(trade.fee_cost_usd ?? 0, asset, false)}</span>
+                      <span className="data-text font-medium">{formatMoney(trade.fee_cost_usd ?? 0, asset, false)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Slippage:</span>
-                      <span className="font-medium">{formatMoney(trade.slippage_cost_usd ?? 0, asset, false)}</span>
+                      <span className="data-text font-medium">{formatMoney(trade.slippage_cost_usd ?? 0, asset, false)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Spread:</span>
-                      <span className="font-medium">{formatMoney(trade.spread_cost_usd ?? 0, asset, false)}</span>
+                      <span className="data-text font-medium">{formatMoney(trade.spread_cost_usd ?? 0, asset, false)}</span>
                     </div>
                     <div className="flex justify-between border-t border-border pt-1 font-semibold">
                       <span className="text-foreground">Total:</span>
-                      <span className="text-red-600 dark:text-red-400">{formatMoney(trade.total_cost_usd, asset, false)}</span>
+                      <span className="data-text text-red-600 dark:text-red-400">{formatMoney(trade.total_cost_usd, asset, false)}</span>
                     </div>
                   </div>
                 </section>
@@ -405,7 +410,7 @@ export default function TradeDrawer({
                 <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm sm:grid-cols-3">
                   <div>
                     <span className="text-muted-foreground">Stop Loss</span>
-                    <div className="font-medium">
+                    <div className="data-text font-medium">
                       {trade.sl_price_at_entry !== null
                         ? formatNumber(trade.sl_price_at_entry, 2)
                         : "—"}
@@ -413,7 +418,7 @@ export default function TradeDrawer({
                   </div>
                   <div>
                     <span className="text-muted-foreground">Take Profit</span>
-                    <div className="font-medium">
+                    <div className="data-text font-medium">
                       {trade.tp_price_at_entry !== null
                         ? formatNumber(trade.tp_price_at_entry, 2)
                         : "—"}
@@ -421,7 +426,7 @@ export default function TradeDrawer({
                   </div>
                   <div>
                     <span className="text-muted-foreground">Initial Risk</span>
-                    <div className="font-medium">
+                    <div className="data-text font-medium">
                       {trade.initial_risk_usd !== null
                         ? formatMoney(trade.initial_risk_usd, "USDT")
                         : "—"}
@@ -439,13 +444,13 @@ export default function TradeDrawer({
                     <div className="text-xs font-medium text-red-700 dark:text-red-300">
                       Max Adverse Excursion (MAE)
                     </div>
-                    <div className="mt-1 text-lg font-semibold text-red-600 dark:text-red-400">
+                    <div className="data-text mt-1 text-lg font-semibold text-red-600 dark:text-red-400">
                       {formatPercent(trade.mae_pct)}
                     </div>
-                    <div className="text-sm text-red-600 dark:text-red-400">
+                    <div className="data-text text-sm text-red-600 dark:text-red-400">
                       {formatMoney(trade.mae_usd, "USDT")}
                     </div>
-                    <div className="mt-1 text-xs text-muted-foreground">
+                    <div className="data-text mt-1 text-xs text-muted-foreground">
                       Trough: {formatNumber(trade.trough_price, 2)} @{" "}
                       {formatDateTime(trade.trough_ts, timezone)}
                     </div>
@@ -455,13 +460,13 @@ export default function TradeDrawer({
                     <div className="text-xs font-medium text-green-700 dark:text-green-300">
                       Max Favorable Excursion (MFE)
                     </div>
-                    <div className="mt-1 text-lg font-semibold text-green-600 dark:text-green-400">
+                    <div className="data-text mt-1 text-lg font-semibold text-green-600 dark:text-green-400">
                       +{formatPercent(trade.mfe_pct)}
                     </div>
-                    <div className="text-sm text-green-600 dark:text-green-400">
+                    <div className="data-text text-sm text-green-600 dark:text-green-400">
                       {formatMoney(trade.mfe_usd, "USDT", true)}
                     </div>
-                    <div className="mt-1 text-xs text-muted-foreground">
+                    <div className="data-text mt-1 text-xs text-muted-foreground">
                       Peak: {formatNumber(trade.peak_price, 2)} @{" "}
                       {formatDateTime(trade.peak_ts, timezone)}
                     </div>
@@ -472,7 +477,7 @@ export default function TradeDrawer({
                 {trade.mfe_pct > 0 && trade.pnl_pct < trade.mfe_pct && (
                   <div className="mt-2 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-300">
                     Gave back{" "}
-                    <span className="font-medium">
+                    <span className="data-text font-medium">
                       {formatPercent(trade.mfe_pct - trade.pnl_pct)}
                     </span>{" "}
                     from peak to exit

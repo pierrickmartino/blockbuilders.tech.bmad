@@ -4,6 +4,11 @@ import { RefObject, useMemo } from "react";
 import { Node, ReactFlowInstance, useStore } from "@xyflow/react";
 import type { CanvasEdge } from "@/components/canvas/StrategyCanvas";
 import { getBlockMeta, BlockType } from "@/types/canvas";
+import {
+  CANVAS_CATEGORIES,
+  type CanvasCategory,
+  useChartTheme,
+} from "@/lib/chart-theme";
 
 interface CanvasMinimapProps {
   nodes: Node[];
@@ -56,14 +61,8 @@ function getCanvasBounds(nodes: Node[]): Bounds | null {
 
 function getCategoryColor(blockType: string): string {
   const meta = getBlockMeta(blockType as BlockType);
-  const categoryColors = {
-    input: "#9333ea", // purple-600
-    indicator: "#2563eb", // blue-600
-    logic: "#d97706", // amber-600
-    signal: "#16a34a", // green-600
-    risk: "#dc2626", // red-600
-  };
-  return categoryColors[meta?.category || "input"];
+  const category: CanvasCategory = (meta?.category ?? "input") as CanvasCategory;
+  return CANVAS_CATEGORIES[category];
 }
 
 function getViewportRect(
@@ -125,6 +124,7 @@ export function CanvasMinimap({
   // Calculate all derived values first (hooks must come before early returns)
   const canvasBounds = useMemo(() => getCanvasBounds(nodes), [nodes]);
   const transform = useStore((state) => state.transform);
+  const chartTheme = useChartTheme();
 
   // Section detection
   const entryCenter = useMemo(
@@ -219,8 +219,9 @@ export function CanvasMinimap({
           y={viewportRect.y}
           width={viewportRect.width}
           height={viewportRect.height}
-          fill="rgba(99, 102, 241, 0.1)"
-          stroke="#6366f1"
+          fill={chartTheme.primary}
+          fillOpacity={0.1}
+          stroke={chartTheme.primary}
           strokeWidth={1.5}
           rx={2}
         />

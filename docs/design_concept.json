@@ -1,370 +1,412 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "Blockbuilders Design Concept",
-  "version": "1.1.0",
-  "description": "High-level design concept and creative direction for the Blockbuilders visual strategy builder application",
-
+  "version": "2.0.0",
+  "description": "Design concept derived directly from docs/design/design-system.pen. The Pen file is the golden source and this document describes the visual system represented by its two top-level boards.",
+  "sourceOfTruth": {
+    "penFile": "docs/design/design-system.pen",
+    "topLevelVariants": [
+      {
+        "name": "Variant E — Signal",
+        "frameId": "xZoPg",
+        "theme": "light"
+      },
+      {
+        "name": "Variant E — Signal (Dark)",
+        "frameId": "jcU7n",
+        "theme": "dark"
+      }
+    ],
+    "fileCharacteristics": {
+      "usesVariables": false,
+      "usesReusableComponents": false,
+      "nature": "Static specimen board documenting tokens, typography, and component exemplars"
+    },
+    "syncRule": "If this JSON conflicts with the Pen file, the Pen file wins."
+  },
   "brandIdentity": {
     "name": "Blockbuilders",
     "tagline": "Visual Strategy Lab for Crypto Traders",
+    "variantName": "Signal",
     "personality": [
-      "Approachable",
-      "Professional",
-      "Technical yet accessible",
-      "Modern and clean"
+      "Precise",
+      "Calm",
+      "Technical",
+      "Trustworthy",
+      "Editorial"
     ],
-    "targetAudience": "Non-technical retail crypto traders who want to build and backtest strategies visually"
+    "targetAudience": "Retail crypto traders who want a professional, institution-inspired strategy-building interface without coding.",
+    "positioning": "Blockbuilders should feel closer to a disciplined trading workstation than to a playful no-code canvas."
   },
-
   "designPhilosophy": {
     "corePrinciples": [
       {
-        "name": "Clarity Over Complexity",
-        "description": "Every element should communicate its purpose immediately. Trading is complex enough; the interface should simplify, not add confusion."
+        "name": "Signal Over Decoration",
+        "description": "The Pen boards use flat fills, thin rules, restrained shadows, and no decorative gradients. Information hierarchy comes from scale, spacing, and semantic color instead of ornament."
       },
       {
-        "name": "Visual Hierarchy Through Color",
-        "description": "Use color purposefully to categorize, distinguish, and guide. The canvas node system uses semantic color-coding to help users understand block types at a glance."
+        "name": "Institutional Readability",
+        "description": "IBM Plex Sans and IBM Plex Mono create a more technical, terminal-adjacent tone than the previous system font direction. Numeric data, labels, and metadata should feel crisp and deliberate."
       },
       {
-        "name": "Functional Minimalism",
-        "description": "Include only what's necessary. White space is valued. Every component earns its place by serving a clear function."
+        "name": "Dense But Ordered",
+        "description": "The board carries a lot of information, but every section is separated by generous 64px spacing and repeated divider patterns. The interface should support data density without visual noise."
       },
       {
-        "name": "Progressive Disclosure",
-        "description": "Show essential information first; reveal complexity only when needed. Tooltips, expandable sections, and contextual help support without overwhelming."
+        "name": "Color Means Category",
+        "description": "Blue is the main action and information color. Green, red, and amber are reserved for outcome semantics. Purple appears in canvas input-node accents, not as the primary brand color."
       },
       {
-        "name": "Consistent Patterns",
-        "description": "Reuse established patterns across the application. Familiarity reduces cognitive load and speeds up user workflows."
+        "name": "Stable Light/Dark Parity",
+        "description": "The dark board is not a stylistic remix of the light board. It is a direct counterpart with equivalent spacing, hierarchy, and component structure, using darker surfaces and brighter semantic accents."
       }
     ],
-    "designMood": "Premium fintech with an approachable, modern edge. Think: Linear, Vercel, or high-end trading dashboards — sophisticated yet welcoming to beginners.",
+    "designMood": "Institutional trading interface with editorial restraint. Clean, exact, and engineered rather than glossy or trend-driven.",
     "visualIdentity": {
-      "description": "Subtle depth and refined polish distinguish the UI from generic templates",
+      "description": "Variant E is defined by flat surfaces, thin dividers, compact component geometry, IBM Plex typography, and semantic color used with restraint.",
       "techniques": [
-        "Layered backgrounds with faint radial gradients (not flat white/black)",
-        "Gradient text headings for brand moments (purple-to-indigo via .text-gradient-primary)",
-        "Frosted glass effects (backdrop-blur + semi-transparent backgrounds) for elevated surfaces",
-        "Refined card hover states with smooth shadow transitions (duration-200)",
-        "Gradient borders on persistent chrome (header bottom border fades via-border)",
-        "Tighter letter-spacing (tracking-tight) on headings for premium typography feel",
-        "Tabular-nums on all numeric data for proper alignment in tables and metrics"
+        "Large quiet canvas around content blocks instead of decorative backgrounds",
+        "No gradient headings, glassmorphism, or blurred frosted surfaces in the golden source",
+        "1px divider lines between sections and within compound components",
+        "4px base corner radius for nearly all surfaces, with 3px checkboxes and 6px tabs only where called for",
+        "Two-layer subtle surface shadow for cards and specimen blocks",
+        "IBM Plex Mono for metadata, dates, and performance numbers",
+        "Blue accent used for primary action, active state, and informational feedback"
       ]
     }
   },
-
   "colorStrategy": {
-    "philosophy": "Purple as the primary brand color conveys creativity and innovation. The palette balances professionalism with approachability through careful use of neutrals and semantic colors.",
-
+    "philosophy": "The golden source defines a blue-led signal system, not a purple-led brand. Blue carries the primary brand/action role, while purple is limited to the input node category on the canvas.",
     "brandColors": {
       "primary": {
-        "description": "Vibrant purple - represents creativity, innovation, and the building blocks concept",
-        "lightMode": "HSL(262.1, 83.3%, 57.8%)",
-        "darkMode": "HSL(263.4, 70%, 50.4%)",
-        "usage": "Primary actions, brand elements, active states, focus rings"
+        "lightMode": "#4A9FD8",
+        "darkMode": "#5AAFE8",
+        "usage": "Primary buttons, active selections, informational accents, input focus/select states"
+      },
+      "supportingAccent": {
+        "lightMode": "#B3D9F0",
+        "darkMode": "#1A3A50",
+        "usage": "Tertiary accent swatches and cool supporting surfaces"
       }
     },
-
     "semanticColors": {
-      "categories": {
-        "description": "Five distinct colors for canvas block categories, enabling instant visual recognition",
-        "input": {
-          "color": "Purple",
-          "meaning": "Data inputs - price, asset selection",
-          "psychology": "Creativity, source, origin"
+      "feedback": {
+        "success": {
+          "lightMode": "#16A34A",
+          "darkMode": "#22C55E"
         },
-        "indicator": {
-          "color": "Blue",
-          "meaning": "Technical indicators - MA, RSI, MACD",
-          "psychology": "Trust, analysis, intelligence"
+        "error": {
+          "lightMode": "#DC2626",
+          "darkMode": "#EF4444"
         },
-        "logic": {
-          "color": "Amber/Yellow",
-          "meaning": "Logic operations - comparisons, boolean gates",
-          "psychology": "Caution, decision-making, thought"
+        "warning": {
+          "lightMode": "#F59E0B",
+          "darkMode": "#FBBF24"
         },
-        "signal": {
-          "color": "Green",
-          "meaning": "Trade signals - entry, exit triggers",
-          "psychology": "Action, go, success"
-        },
-        "risk": {
-          "color": "Red",
-          "meaning": "Risk management - stop-loss, take-profit, position sizing",
-          "psychology": "Warning, protection, importance"
+        "info": {
+          "lightMode": "#4A9FD8",
+          "darkMode": "#5AAFE8"
         }
       },
-      "feedback": {
-        "success": "Green - positive outcomes, confirmations",
-        "error": "Red - errors, validation failures, destructive actions",
-        "warning": "Yellow/Amber - cautions, near-limit states",
-        "info": "Blue - informational messages, help content"
+      "canvasCategories": {
+        "input": {
+          "baseAccent": "#7C3AED",
+          "role": "Source/data nodes"
+        },
+        "indicator": {
+          "lightAccent": "#4A9FD8",
+          "darkAccent": "#5AAFE8",
+          "role": "Indicators and analytical blocks"
+        },
+        "logic": {
+          "baseAccent": "#F59E0B",
+          "role": "Comparison and decision logic"
+        },
+        "signal": {
+          "baseAccent": "#16A34A",
+          "role": "Entry and exit signal blocks"
+        },
+        "risk": {
+          "baseAccent": "#DC2626",
+          "role": "Risk-management and protection blocks"
+        }
       }
     },
-
     "neutrals": {
-      "philosophy": "Clean grays with slight cool undertones create a professional backdrop that doesn't compete with semantic colors. Subtle radial gradients add depth without distraction.",
-      "background": {
-        "lightMode": "Pure white (#FFFFFF) with faint purple radial gradient at top (primary/0.04)",
-        "darkMode": "Deep navy-gray (HSL 224, 71.4%, 4.1%) with stronger purple radial gradient at top (primary/0.08)",
-        "gradientPattern": "Two overlapping ellipses — primary-tinted at top center, blue-tinted at right — creating subtle ambient color"
+      "lightTheme": {
+        "background": "#FFFFFF",
+        "foreground": "#1A1A1A",
+        "secondaryText": "#666666",
+        "border": "#EEF0F2",
+        "surface": "#F7F8FA",
+        "deepNeutral": "#0A0A0A"
       },
-      "surfaces": {
-        "lightMode": "Off-white to light gray for elevated surfaces",
-        "darkMode": "Slightly lighter navy-gray for elevated surfaces",
-        "frostedGlass": "backdrop-blur-xl + semi-transparent background (bg-background/80) for floating panels and auth forms"
+      "darkTheme": {
+        "background": "#0C0C0E",
+        "foreground": "#EAEAEC",
+        "secondaryText": "#9B9BA0",
+        "border": "#2A2A2E",
+        "surface": "#161618",
+        "supportingAccent": "#1A3A50"
       },
-      "text": {
-        "primary": "Near-black in light mode, near-white in dark mode",
-        "secondary": "Medium gray for supporting text",
-        "muted": "Light gray for hints and disabled states"
-      }
+      "observations": [
+        "The Pen file does not use ambient radial gradients.",
+        "The Pen file does not use transparent glass layers or backdrop blur.",
+        "Surface contrast is built with solid fills and thin borders."
+      ]
     },
-
     "darkModeStrategy": {
-      "approach": "True dark mode with inverted luminance, maintaining color relationships and semantic meaning. Dark mode should feel equally premium — not an afterthought.",
+      "approach": "Direct thematic inversion with stronger semantic brightness, deeper base surfaces, and equivalent geometry.",
       "principles": [
-        "Background becomes dark, text becomes light",
-        "Accent colors slightly adjust saturation/lightness for proper contrast",
-        "Category colors maintain their hue but adapt brightness for dark backgrounds",
-        "Shadows become more subtle, borders more prominent",
-        "Background gradients use stronger opacity in dark mode (0.08 vs 0.04) for visible depth",
-        "Feedback badges use dark: variants (e.g., dark:bg-purple-950 dark:text-purple-300)"
+        "Swap white and near-black foundations for #0C0C0E and #EAEAEC",
+        "Replace the light border #EEF0F2 with dark divider #2A2A2E",
+        "Promote semantic accents slightly brighter in dark mode",
+        "Keep spacing, typography, and component proportions identical between themes"
       ]
     }
   },
-
   "typographyStrategy": {
-    "philosophy": "System fonts for performance and familiarity. Clear hierarchy through size and weight, with selective gradient text for brand moments.",
-
+    "philosophy": "IBM Plex Sans handles interface copy and headings; IBM Plex Mono handles data, timestamps, and compact metadata. This pairing is a core part of the Signal identity.",
     "fontFamily": {
-      "primary": "System UI font stack (San Francisco, Segoe UI, Roboto)",
-      "monospace": "System monospace for code and numeric values"
+      "primary": "IBM Plex Sans",
+      "monospace": "IBM Plex Mono"
     },
-
     "hierarchy": {
-      "pageTitle": {
-        "size": "2xl (1.5rem / 24px)",
-        "weight": "Bold (700)",
-        "usage": "Main page headings"
+      "eyebrow": {
+        "sizePx": 12,
+        "weight": 600,
+        "letterSpacing": 1,
+        "usage": "Variant labels and small section headings"
+      },
+      "hero": {
+        "sizePx": 56,
+        "weight": 700,
+        "letterSpacing": -1.5,
+        "usage": "Board-level title"
+      },
+      "display": {
+        "sizePx": 48,
+        "weight": 700,
+        "letterSpacing": -1.5,
+        "usage": "Large product/stat heading example"
       },
       "sectionTitle": {
-        "size": "lg (1.125rem / 18px)",
-        "weight": "Semibold (600)",
-        "usage": "Card titles, section headers"
+        "sizePx": 24,
+        "weight": 600,
+        "letterSpacing": -0.5,
+        "usage": "Card titles and major section headers"
       },
-      "subsectionTitle": {
-        "size": "base (1rem / 16px)",
-        "weight": "Medium (500)",
-        "usage": "Subsection headers, form section labels"
+      "cardTitle": {
+        "sizePx": 18,
+        "weight": 600,
+        "letterSpacing": -0.3,
+        "usage": "Default card header title"
+      },
+      "bodyLarge": {
+        "sizePx": 16,
+        "weight": 400,
+        "lineHeight": 1.6,
+        "usage": "Board subtitle and large supporting copy"
       },
       "body": {
-        "size": "sm (0.875rem / 14px)",
-        "weight": "Normal (400)",
-        "usage": "Body text, descriptions, form fields"
+        "sizePx": 15,
+        "weight": 400,
+        "usage": "Narrative/product body copy"
       },
-      "small": {
-        "size": "xs (0.75rem / 12px)",
-        "weight": "Normal (400) or Semibold (600)",
-        "usage": "Badges, timestamps, canvas node labels, help text"
+      "uiBody": {
+        "sizePx": 14,
+        "weight": 400,
+        "usage": "Default UI text, inputs, breadcrumbs, descriptions"
+      },
+      "label": {
+        "sizePx": 13,
+        "weightRange": [
+          500,
+          600
+        ],
+        "usage": "Buttons, labels, tabs, alerts, node titles"
+      },
+      "dataSmall": {
+        "sizePx": 12,
+        "weight": 400,
+        "family": "IBM Plex Mono",
+        "usage": "Dense metadata rows"
+      },
+      "captionMono": {
+        "sizePx": 11,
+        "weight": 400,
+        "family": "IBM Plex Mono",
+        "usage": "Token labels, specimen annotations, parameter metadata"
+      },
+      "metric": {
+        "sizePx": 32,
+        "weight": 700,
+        "family": "IBM Plex Mono",
+        "usage": "Key numeric metrics"
       }
-    },
-
-    "gradientText": {
-      "utility": ".text-gradient-primary",
-      "implementation": "bg-clip-text text-transparent with linear-gradient(135deg, primary, blue-indigo)",
-      "usage": "Hero headings, welcome greetings, brand moments — use sparingly for impact"
     },
     "principles": [
-      "Limit to 2-3 font weights per view to maintain visual calm",
-      "Use size + weight together for hierarchy, not color alone",
-      "Ensure adequate line-height for readability (typically 1.5)",
-      "Use tracking-tight on headings for a premium, refined feel",
-      "Use tabular-nums (font-variant-numeric) for all numeric data in tables and metrics"
+      "Use IBM Plex Mono whenever the value is numeric, date-based, machine-like, or comparative",
+      "Use letter spacing only on high-level headings and specimen labels where the Pen file explicitly shows it",
+      "Do not reintroduce gradient text styles; they are absent from the golden source",
+      "Keep text colors binary and purposeful: primary foreground for key content, muted text for context"
     ]
   },
-
   "spacingStrategy": {
-    "philosophy": "Consistent spacing creates rhythm and reduces visual chaos. Use a base-4 scale for predictable, harmonious layouts.",
-
+    "philosophy": "Spacing is regular, modular, and deliberately repetitive. The board relies on predictable 4px-family increments with a few larger framing values.",
     "scale": {
-      "description": "4px base unit, scaling by factors of 2",
-      "values": {
-        "0.5": "2px - minimal gaps",
-        "1": "4px - tight spacing",
-        "1.5": "6px - small gaps",
-        "2": "8px - default small spacing",
-        "3": "12px - medium spacing",
-        "4": "16px - default component padding",
-        "6": "24px - section padding",
-        "8": "32px - large section gaps"
-      }
+      "documentPadding": 80,
+      "sectionGap": 64,
+      "rowGap": 16,
+      "largeColumnGap": 24,
+      "badgeGap": 12,
+      "inlineGap": 10,
+      "tightInlineGap": 6,
+      "microGap": 3,
+      "tabInset": 2,
+      "navItemStackGap": 1
     },
-
     "componentSpacing": {
-      "cardPadding": "24px (p-6)",
-      "formGap": "16px (space-y-4)",
-      "buttonPadding": "8px vertical, 16px horizontal",
-      "inputPadding": "4px vertical, 12px horizontal"
+      "buttonHorizontalPadding": {
+        "small": 12,
+        "default": 16,
+        "large": 20
+      },
+      "inputHorizontalPadding": 12,
+      "alertPadding": [
+        10,
+        14
+      ],
+      "badgePadding": [
+        3,
+        10
+      ],
+      "canvasNodeHeaderPadding": [
+        10,
+        12
+      ],
+      "canvasNodeBodyPadding": [
+        4,
+        12,
+        10,
+        12
+      ],
+      "cardPadding": 24,
+      "headerHorizontalPadding": 24,
+      "sidebarSectionPadding": 16
     },
-
     "layoutSpacing": {
-      "pageMargin": "16px mobile, 24px desktop",
-      "sectionGap": "24px (space-y-6)",
-      "gridGap": "16px (gap-4)"
+      "typographySpecRowPadding": [
+        20,
+        0
+      ],
+      "tabsContainerPadding": 2,
+      "sidebarNavPadding": [
+        4,
+        8
+      ]
     }
   },
-
   "layoutStrategy": {
-    "philosophy": "Mobile-first responsive design. Layouts gracefully adapt from single-column mobile to multi-column desktop.",
-
-    "containerWidth": {
-      "max": "1152px (max-w-6xl)",
-      "usage": "Main content area, centered with auto margins"
+    "philosophy": "The Pen file is a wide desktop specimen board documenting a single design direction in light and dark themes. It is not a responsive layout blueprint.",
+    "boardStructure": {
+      "boardWidth": 4800,
+      "outerPadding": 80,
+      "flow": "Single vertical stack of labeled sections separated by divider rules",
+      "topLevelThemes": 2
     },
-
-    "responsiveBreakpoints": {
-      "sm": "640px - Small tablets, larger phones",
-      "md": "768px - Tablets, primary mobile/desktop breakpoint",
-      "lg": "1024px - Desktops, laptops"
-    },
-
     "patterns": {
-      "stack": "Vertical stacking for mobile, primary layout pattern",
-      "grid": "2-3 column grids on desktop for related items",
-      "sidebar": "Collapsible sidebar on mobile (off-canvas), fixed on desktop",
-      "splitLayout": "Side-by-side panels on desktop (brand + form), stacked on mobile — used for auth page",
-      "heroSection": "Full-width heading area without card wrapper, using gradient text and subtle description",
-      "statCards": "Compact icon + metric + label cards in a horizontal row for key numbers",
-      "stickyBar": "Sticky positioned bar with backdrop-blur for contextual bulk actions"
+      "titleBlock": "Eyebrow label, large title, then a fixed-width descriptive paragraph",
+      "tokenRows": "Two five-column swatch rows for the core palette",
+      "typographyGrid": "Four vertically stacked rows, each pairing mono annotation at left with live text specimen at right",
+      "buttonRow": "Five side-by-side action variants on one line",
+      "formRow": "Three side-by-side labeled fields for input/select examples",
+      "canvasNodeRow": "Five node specimens across a single row, each using the same structural shell",
+      "metricCardRow": "Four evenly sized metric cards with label, icon, value, and supporting line",
+      "alertColumn": "Four alert specimens stacked vertically",
+      "sidebarSpecimen": "Single 260px sidebar example with header, nav stack, and footer",
+      "stateRow": "Three equal-height panels for loading, empty, and error states",
+      "headerAndBreadcrumb": "Standalone thin-strip exemplars for app chrome"
     },
-
-    "mobileConsiderations": [
-      "Touch targets minimum 44px (h-11)",
-      "Single-column layouts for primary flows",
-      "Larger padding and font sizes for touch interaction",
-      "Canvas nodes scale up handles and padding in mobile mode"
+    "limitationsOfTheGoldenSource": [
+      "No breakpoint behavior is documented in the Pen file",
+      "No mobile-specific layouts are encoded in the Pen file",
+      "No animation timings or motion choreography are encoded in the Pen file"
     ]
   },
-
   "componentDesignLanguage": {
-    "borders": {
-      "style": "Solid, 1px default",
-      "radius": {
-        "none": "0 - rarely used",
-        "sm": "2px - badges, small elements",
-        "md": "6px - buttons, inputs, dropdowns",
-        "lg": "8px - cards, modals",
-        "xl": "12px - primary cards, containers"
-      },
-      "color": "Light gray in light mode, dark gray in dark mode"
-    },
-
-    "shadows": {
-      "philosophy": "Subtle shadows for elevation. Never heavy or dramatic.",
-      "levels": {
-        "sm": "Slight lift - nodes, small cards",
-        "default": "Standard elevation - cards, dropdowns",
-        "lg": "Modal/dialog elevation"
-      }
-    },
-
-    "states": {
-      "hover": "Subtle background change with smooth shadow transition (hover:shadow-md, duration-200), never jarring",
-      "focus": "1px ring in primary color, clear but not overwhelming",
-      "active": "Slightly darker/lighter than hover",
-      "disabled": "50% opacity, no pointer events",
-      "groupHover": "Cards and list items use group/group-hover for coordinated child element transitions (e.g., name color changes on card hover)"
-    },
-
-    "animations": {
-      "philosophy": "Purposeful, brief animations that provide feedback without slowing users down",
-      "duration": {
-        "fast": "150ms - button clicks, toggles",
-        "normal": "200ms - modal open/close, dropdown",
-        "slow": "300-500ms - complex transitions"
-      },
-      "easing": "ease-out for entrances, ease-in for exits",
-      "types": [
-        "Fade - opacity transitions for appearing/disappearing",
-        "Scale - slight zoom for modals and popovers",
-        "Slide - directional movement for sheets and drawers"
-      ]
-    }
-  },
-
-  "iconography": {
-    "library": "Lucide React",
-    "philosophy": "Simple, consistent line icons that complement rather than dominate. Icons are used alongside section titles, in stat cards, and in empty states for visual anchoring.",
-    "sizing": {
-      "default": "16px (size-4, h-4 w-4)",
-      "small": "14px (h-3.5 w-3.5) - inline with buttons and small text",
-      "medium": "20px (size-5, h-5 w-5) - stat card icons, navigation",
-      "large": "28-32px (h-7 w-7) - empty state illustrations, hero elements"
-    },
-    "style": "Stroke-based, 2px stroke width, rounded line caps",
-    "patterns": {
-      "sectionHeaders": "Small muted icon (h-4 w-4 text-muted-foreground) paired with section title text",
-      "statCards": "Icon in colored rounded-lg container (h-10 w-10 bg-{color}/10 text-{color})",
-      "emptyStates": "Large icon in rounded-full container (h-14 w-14 bg-primary/10) above text",
-      "buttonIcons": "Small icon (h-4 w-4) with mr-2 spacing before button label"
-    }
-  },
-
-  "specialDomains": {
-    "strategyCanvas": {
-      "description": "The visual node-based strategy builder is a core differentiator and has its own design subsystem",
-      "principles": [
-        "Nodes are color-coded by category for instant recognition",
-        "Connections use smooth curves, colored to match source node",
-        "Selected state uses stronger border color",
-        "Error state adds red border with glow ring",
-        "Mobile mode increases touch targets and padding"
-      ],
-      "nodeAnatomy": {
-        "header": "Colored background, small text, icon for info",
-        "body": "Light tinted background, parameter inputs",
-        "handles": "Circular connection points, category-colored"
-      }
-    },
-    "dataVisualization": {
-      "description": "Charts and graphs for backtest results",
-      "colorPalette": [
-        "Primary purple for main series",
-        "Purple/violet spectrum for additional series",
-        "Blue tones for secondary data"
-      ],
-      "principles": [
-        "Clear axis labels and legends",
-        "Responsive sizing, touch-friendly tooltips",
-        "Consistent color meaning across views"
-      ]
-    }
-  },
-
-  "accessibilityCommitments": [
-    "WCAG 2.1 AA compliance target",
-    "Visible focus indicators on all interactive elements",
-    "Color is never the only means of conveying information",
-    "Screen reader friendly with proper ARIA labels",
-    "Keyboard navigable interfaces"
-  ],
-
-  "designDecisionGuide": {
-    "whenInDoubt": [
-      "Choose the simpler option",
-      "Match existing patterns before inventing new ones",
-      "Prioritize clarity over cleverness",
-      "Test on mobile first",
-      "Ask: does this serve the user's task?"
+    "surfaces": [
+      "Default component radius is 4px",
+      "Tabs container uses 6px outer radius with 4px inner active tab radius",
+      "Primary surface separation is solid fill plus 1px border",
+      "The same two-layer shadow recipe is reused for cards, nodes, and empty/error/loading state panels"
     ],
-    "antiPatterns": [
-      "Decorative elements that don't serve a purpose",
-      "Color used for emphasis without semantic meaning",
-      "Animations longer than 300ms for UI feedback",
-      "New patterns when existing ones would work",
-      "Desktop-only designs"
+    "interactionHierarchy": [
+      "Primary action is blue-filled",
+      "Secondary emphasis in dark mode can be inverted light fill on dark surface",
+      "Outline actions use only a 1px border and foreground text",
+      "Ghost/cancel actions remove border and background entirely",
+      "Destructive actions use red text with faint tinted background and border"
+    ],
+    "stateTreatment": [
+      "Success, warning, error, and info states combine colored icon, colored text, and low-opacity tinted background",
+      "Loading, empty, and error are represented as centered blocks with restrained supporting copy",
+      "Status badges pair semantic tint backgrounds with a colored dot and medium-weight label"
+    ],
+    "canvasLanguage": [
+      "All node categories share identical structure and geometry",
+      "Category meaning is expressed through icon/tag tint only, not through different shapes",
+      "Node metadata is compact and mono-styled"
+    ]
+  },
+  "iconography": {
+    "library": "Lucide",
+    "principles": [
+      "Use simple line icons only",
+      "Favor 14px icons inside compact controls and 16px icons in alerts and metric cards",
+      "Use 20px icons for chrome actions such as menu and notifications",
+      "Use 24px icons only for large empty/error state symbols"
+    ]
+  },
+  "accessibilityCommitments": [
+    "Semantic status is always paired with readable text, not color alone",
+    "Metrics and metadata use mono typography for scanability and alignment",
+    "Borders remain visible in both themes through explicit 1px contrast rules",
+    "Alert and state specimens keep copy concise and actionable instead of purely decorative"
+  ],
+  "specialDomains": {
+    "tradingAndBacktesting": [
+      "Performance metrics must feel exact and machine-readable",
+      "Positive and negative outcomes should be instantly distinguishable through green and red",
+      "Data-dense UI should remain calm by using muted neutrals around the highlighted signals"
+    ],
+    "canvasEditing": [
+      "Node taxonomy is category-first and color-assisted",
+      "Node shells remain visually consistent so traders learn one mental model",
+      "Parameter text belongs in the supporting mono/body layer, not the display layer"
+    ]
+  },
+  "designDecisionGuide": {
+    "usePrimaryBlueWhen": [
+      "The user is taking the main action on the page",
+      "A tab, selection, or navigation item is active",
+      "Informational status needs emphasis without implying warning or danger"
+    ],
+    "useNeutralSurfacesWhen": [
+      "Displaying dense data",
+      "Creating chrome such as cards, headers, sidebars, and tabs",
+      "You want hierarchy through spacing and typography instead of decoration"
+    ],
+    "useMonoTypographyWhen": [
+      "Showing dates, symbols, timeframes, metrics, counts, or machine-like metadata",
+      "Labelling token values or board annotations",
+      "Rendering large metric numerals"
+    ],
+    "avoid": [
+      "Purple-led branding in primary UI actions",
+      "Gradient headlines and glassmorphism",
+      "Soft oversized radii that dilute the technical character",
+      "Invented mobile behavior not represented by the Pen source"
     ]
   }
 }

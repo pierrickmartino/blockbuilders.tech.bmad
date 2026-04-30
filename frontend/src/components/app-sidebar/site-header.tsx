@@ -7,6 +7,11 @@ import NotificationBell from "@/components/NotificationBell"
 import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import {
   Breadcrumb,
   BreadcrumbItem,
   BreadcrumbLink,
@@ -49,18 +54,24 @@ export function SiteHeader() {
 
   return (
     <header className="relative flex h-14 shrink-0 items-center gap-2 px-4">
-      <SidebarTrigger className="-ml-1" />
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <SidebarTrigger className="-ml-1" />
+        </TooltipTrigger>
+        <TooltipContent side="right">Toggle sidebar (⌘B)</TooltipContent>
+      </Tooltip>
       <Separator orientation="vertical" className="mr-2 h-4" />
       <Breadcrumb>
         <BreadcrumbList>
-          <BreadcrumbItem className="hidden md:block">
+          <BreadcrumbItem>
             <BreadcrumbLink asChild>
               <Link href="/dashboard" className="text-muted-foreground/70 transition-colors hover:text-foreground">
-                Blockbuilders
+                <span className="hidden md:inline">Blockbuilders</span>
+                <span className="md:hidden">Home</span>
               </Link>
             </BreadcrumbLink>
           </BreadcrumbItem>
-          <BreadcrumbSeparator className="hidden md:block" />
+          <BreadcrumbSeparator />
           <BreadcrumbItem>
             <BreadcrumbPage className="font-medium">{pageTitle}</BreadcrumbPage>
           </BreadcrumbItem>

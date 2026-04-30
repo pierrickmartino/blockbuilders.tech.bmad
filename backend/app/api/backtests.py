@@ -34,6 +34,7 @@ from app.schemas.backtest import (
     BacktestCreateRequest,
     BacktestCreateResponse,
     BacktestListItem,
+    BacktestListPage,
     BacktestStatusResponse,
     BacktestSummary,
     BatchBacktestCreateRequest,
@@ -686,6 +687,11 @@ def get_backtest_trades(
                     (t.get("trough_ts") or entry_ts_str).replace("Z", "+00:00")
                 ),
                 duration_seconds=t.get("duration_seconds", 0),
+                fee_cost_usd=t.get("fee_cost_usd"),
+                slippage_cost_usd=t.get("slippage_cost_usd"),
+                spread_cost_usd=t.get("spread_cost_usd"),
+                total_cost_usd=t.get("total_cost_usd"),
+                notional_usd=t.get("notional_usd"),
             )
             normalized.append(trade_detail)
 
@@ -778,42 +784,67 @@ def get_benchmark_equity_curve(
         )
 
 
-@router.get("/", response_model=list[BacktestListItem])
+@router.get("/", response_model=BacktestListPage)
 def list_backtests(
     strategy_id: UUID | None = None,
     limit: int = Query(default=20, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
     user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
-) -> list[BacktestListItem]:
-    """List backtest runs for the current user."""
-    query = select(BacktestRun).where(BacktestRun.user_id == user.id)
-
+) -> BacktestListPage:
+    """List backtest runs for the current user with total count."""
+    base_filter = [BacktestRun.user_id == user.id]
     if strategy_id:
-        query = query.where(BacktestRun.strategy_id == strategy_id)
+        base_filter.append(BacktestRun.strategy_id == strategy_id)
 
-    query = query.order_by(BacktestRun.created_at.desc()).limit(limit).offset(offset)
-    runs = session.exec(query).all()
+    total = session.exec(
+        select(func.count(BacktestRun.id)).where(*base_filter)
+    ).one()
 
-    return [
-        BacktestListItem(
-            run_id=r.id,
-            strategy_id=r.strategy_id,
-            status=r.status,
-            asset=r.asset,
-            timeframe=r.timeframe,
-            date_from=r.date_from,
-            date_to=r.date_to,
-            triggered_by=r.triggered_by,
-            total_return=r.total_return,
-            created_at=r.created_at,
-            period_key=r.period_key,
-            batch_id=r.batch_id,
-            max_drawdown=r.max_drawdown,
-            sharpe_ratio=r.sharpe_ratio,
+    runs = session.exec(
+        select(BacktestRun)
+        .where(*base_filter)
+        .order_by(BacktestRun.created_at.desc())
+        .limit(limit)
+        .offset(offset)
+    ).all()
+
+    def _utc(dt: datetime) -> datetime:
+        return dt if dt.tzinfo is not None else dt.replace(tzinfo=timezone.utc)
+
+    now = datetime.now(timezone.utc)
+    items = []
+    for r in runs:
+        elapsed: float | None = None
+        if r.started_at is not None:
+            started = _utc(r.started_at)
+            if r.status in ("completed", "failed"):
+                updated = _utc(r.updated_at)
+                elapsed = (updated - started).total_seconds() if updated > started else None
+            elif r.status == "running":
+                elapsed = (now - started).total_seconds()
+
+        items.append(
+            BacktestListItem(
+                run_id=r.id,
+                strategy_id=r.strategy_id,
+                status=r.status,
+                asset=r.asset,
+                timeframe=r.timeframe,
+                date_from=r.date_from,
+                date_to=r.date_to,
+                triggered_by=r.triggered_by,
+                total_return=r.total_return,
+                created_at=r.created_at,
+                period_key=r.period_key,
+                batch_id=r.batch_id,
+                max_drawdown=r.max_drawdown,
+                sharpe_ratio=r.sharpe_ratio,
+                elapsed_seconds=elapsed,
+            )
         )
-        for r in runs
-    ]
+
+    return BacktestListPage(items=items, total=total)
 
 
 @router.get("/{run_id}/trades/{trade_idx}", response_model=TradeDetailResponse)
@@ -932,6 +963,11 @@ def get_trade_detail(
             (trade_raw.get("trough_ts") or entry_ts_str).replace("Z", "+00:00")
         ),
         duration_seconds=trade_raw.get("duration_seconds", 0),
+        fee_cost_usd=trade_raw.get("fee_cost_usd"),
+        slippage_cost_usd=trade_raw.get("slippage_cost_usd"),
+        spread_cost_usd=trade_raw.get("spread_cost_usd"),
+        total_cost_usd=trade_raw.get("total_cost_usd"),
+        notional_usd=trade_raw.get("notional_usd"),
     )
 
     # Fetch strategy definition for explanation

@@ -4,8 +4,8 @@
     {
       "type": "frame",
       "id": "xZoPg",
-      "x": -2250,
-      "y": -1977,
+      "x": -2969,
+      "y": -1984,
       "name": "Variant E — Signal",
       "width": 4800,
       "fill": "#FFFFFFFF",
@@ -3899,8 +3899,8 @@
     {
       "type": "frame",
       "id": "jcU7n",
-      "x": -2250,
-      "y": 4062,
+      "x": -2969,
+      "y": 4096,
       "name": "Variant E — Signal (Dark)",
       "width": 4800,
       "fill": "#0C0C0E",

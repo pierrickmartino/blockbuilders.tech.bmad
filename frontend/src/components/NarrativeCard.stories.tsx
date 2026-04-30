@@ -32,3 +32,68 @@ export const ZeroTradeRun: Story = {
     isZeroTradeRun: true,
   },
 };
+
+export const Loading: Story = {
+  args: {
+    narrative: "",
+    strategyId: "demo-strategy-3",
+    isZeroTradeRun: false,
+    isLoading: true,
+  },
+};
+
+export const ZeroTradeRunLoading: Story = {
+  args: {
+    narrative: "",
+    strategyId: "demo-strategy-4",
+    isZeroTradeRun: true,
+    isLoading: true,
+  },
+};
+
+export const EmptyNarrative: Story = {
+  args: {
+    narrative: "",
+    strategyId: "demo-strategy-5",
+    isZeroTradeRun: false,
+    isLoading: false,
+  },
+};
+
+export const Dark: Story = {
+  args: {
+    ...Default.args,
+  },
+  parameters: {
+    backgrounds: { default: "dark" },
+  },
+  decorators: [
+    (Story) => (
+      <div className="dark bg-background p-6">
+        <Story />
+      </div>
+    ),
+  ],
+};
+
+export const DarkZeroTradeRun: Story = {
+  args: {
+    ...ZeroTradeRun.args,
+  },
+  decorators: [
+    (Story) => (
+      <div className="dark bg-background p-6">
+        <Story />
+      </div>
+    ),
+  ],
+};
+
+export const Mobile: Story = {
+  args: {
+    ...ZeroTradeRun.args,
+  },
+  parameters: {
+    viewport: { defaultViewport: "mobile1" },
+  },
+};

@@ -169,13 +169,7 @@ function AuthForm() {
   const submittingText = isLogin ? "Signing in..." : "Creating account...";
 
   return (
-    <div className="relative flex min-h-screen overflow-hidden bg-background">
-      {/* Background gradient effects */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -left-1/4 -top-1/4 h-[600px] w-[600px] rounded-full bg-primary/5 blur-3xl" />
-        <div className="absolute -bottom-1/4 -right-1/4 h-[500px] w-[500px] rounded-full bg-primary/3 blur-3xl" />
-      </div>
-
+    <div className="relative flex min-h-screen bg-background">
       {/* Brand panel — hidden on mobile */}
       <div className="relative hidden w-1/2 items-center justify-center overflow-hidden bg-gradient-to-br from-primary via-primary/90 to-indigo-600 lg:flex">
         {/* Decorative circles */}
@@ -230,15 +224,26 @@ function AuthForm() {
       {/* Auth form panel */}
       <div className="relative flex w-full items-center justify-center px-6 py-12 lg:w-1/2">
         <div className="w-full max-w-[400px]">
-          {/* Mobile logo */}
-          <div className="mb-8 flex items-center gap-3 lg:hidden">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-              <Blocks className="h-5 w-5" />
+          {/* Mobile brand strip — only shown when the gradient brand panel
+              is hidden (<lg). Carries the logo, name, and the same one-line
+              value prop that the desktop brand panel headlines, so users
+              never sign in to an unbranded form. */}
+          <div className="mb-8 lg:hidden">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+                <Blocks className="h-5 w-5" />
+              </div>
+              <div>
+                <h1 className="text-lg font-bold tracking-tight">Blockbuilders</h1>
+                <p className="text-xs text-muted-foreground">Strategy Lab</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-lg font-bold tracking-tight">Blockbuilders</h1>
-              <p className="text-xs text-muted-foreground">Strategy Lab</p>
-            </div>
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              <span className="font-medium text-foreground">
+                Visual Strategy Lab for Crypto Traders.
+              </span>{" "}
+              Build, backtest, and iterate without writing code.
+            </p>
           </div>
 
           <div className="mb-8">
@@ -281,7 +286,10 @@ function AuthForm() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
-              <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+              <div
+                role="alert"
+                className="rounded-lg border border-destructive/30 bg-destructive-soft px-4 py-3 text-sm text-destructive"
+              >
                 {error}
               </div>
             )}
@@ -384,7 +392,7 @@ function AuthForm() {
 function AuthSkeleton() {
   return (
     <div className="flex min-h-screen">
-      <div className="hidden w-1/2 bg-primary/5 lg:block" />
+      <div className="hidden w-1/2 bg-surface-elevated lg:block" />
       <div className="flex w-full items-center justify-center p-6 lg:w-1/2">
         <div className="w-full max-w-[400px]">
           <div className="animate-pulse space-y-6">

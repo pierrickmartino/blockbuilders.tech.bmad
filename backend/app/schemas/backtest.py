@@ -131,6 +131,14 @@ class BacktestListItem(BaseModel):
     batch_id: Optional[UUID] = None
     max_drawdown: Optional[float] = None
     sharpe_ratio: Optional[float] = None
+    elapsed_seconds: Optional[float] = None
+
+
+class BacktestListPage(BaseModel):
+    """Paginated list of backtest runs with total count."""
+
+    items: list[BacktestListItem]
+    total: int
 
 
 class Trade(BaseModel):

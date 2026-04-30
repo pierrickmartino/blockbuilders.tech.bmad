@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { apiFetch } from "@/lib/api";
+import { Check, Copy, Loader2 } from "lucide-react";
 
 interface ShareBacktestModalProps {
   open: boolean;
@@ -87,15 +88,33 @@ export function ShareBacktestModal({
   };
 
   const handleCopy = async () => {
-    if (shareUrl) {
+    if (!shareUrl) return;
+
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000);
+    } catch {
+      // Fallback for non-HTTPS contexts
       try {
-        await navigator.clipboard.writeText(shareUrl);
+        const input = document.getElementById("share-url") as HTMLInputElement;
+        input?.select();
+        document.execCommand("copy");
         setCopySuccess(true);
         setTimeout(() => setCopySuccess(false), 2000);
       } catch {
-        setError("Failed to copy to clipboard");
+        setError("Could not copy automatically. Select the URL and press Ctrl+C (or Cmd+C).");
       }
     }
+  };
+
+  const handleSelectAll = (e: React.MouseEvent<HTMLInputElement>) => {
+    (e.target as HTMLInputElement).select();
+  };
+
+  const handleBack = () => {
+    setShareUrl(null);
+    setError(null);
   };
 
   const handleClose = () => {
@@ -105,6 +124,11 @@ export function ShareBacktestModal({
     setCopySuccess(false);
     onOpenChange(false);
   };
+
+  const expirationLabel =
+    expiration === "never"
+      ? "This link never expires."
+      : `This link expires in ${EXPIRATION_OPTIONS[expiration].label}.`;
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -121,14 +145,17 @@ export function ShareBacktestModal({
           {!shareUrl ? (
             <>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="share-expiration"
+                  className="block text-sm font-medium text-foreground mb-1"
+                >
                   Link expiration
                 </label>
                 <Select
                   value={expiration}
                   onValueChange={(v) => setExpiration(v as ExpirationOption)}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="share-expiration">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -142,7 +169,7 @@ export function ShareBacktestModal({
               </div>
 
               {error && (
-                <div className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+                <div className="rounded border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-destructive">
                   {error}
                 </div>
               )}
@@ -152,27 +179,63 @@ export function ShareBacktestModal({
                 disabled={isGenerating}
                 className="w-full"
               >
-                {isGenerating ? "Generating..." : "Generate Link"}
+                {isGenerating ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  "Generate Link"
+                )}
               </Button>
             </>
           ) : (
             <>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="share-url"
+                  className="block text-sm font-medium text-foreground mb-1"
+                >
                   Share URL
                 </label>
                 <div className="flex gap-2">
-                  <Input value={shareUrl} readOnly className="flex-1" />
+                  <Input
+                    id="share-url"
+                    value={shareUrl}
+                    readOnly
+                    onClick={handleSelectAll}
+                    className="flex-1 bg-muted/50 cursor-text"
+                  />
                   <Button onClick={handleCopy} variant="outline">
-                    {copySuccess ? "Copied!" : "Copy"}
+                    {copySuccess ? (
+                      <>
+                        <Check className="mr-1.5 h-4 w-4 text-success" />
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="mr-1.5 h-4 w-4" />
+                        Copy
+                      </>
+                    )}
                   </Button>
                 </div>
               </div>
 
-              <div className="rounded border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
-                Link created successfully. Anyone with this URL can view your
-                results.
+              <div className="rounded border border-success/20 bg-success/5 px-3 py-2 text-sm text-success">
+                Link created successfully. {expirationLabel} Anyone with this
+                URL can view your results.
               </div>
+
+              {error && (
+                <div className="rounded border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+                  {error}
+                </div>
+              )}
+
+              <Button variant="ghost" size="sm" onClick={handleBack}>
+                Generate a different link
+              </Button>
             </>
           )}
         </div>

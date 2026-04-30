@@ -1,907 +1,1073 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "Blockbuilders Design System",
-  "version": "1.1.0",
-  "description": "Comprehensive design system specification for the Blockbuilders application",
-
+  "version": "3.0.0",
+  "description": "Design system token inventory derived directly from frontend/src/app/globals.css and frontend/tailwind.config.ts — the authoritative runtime sources of truth. All color values are expressed as HSL triplets matching the CSS custom properties verbatim.",
+  "sourceOfTruth": {
+    "runtimeFiles": [
+      "frontend/src/app/globals.css",
+      "frontend/tailwind.config.ts"
+    ],
+    "documentCharacteristics": {
+      "usesVariables": true,
+      "format": "HSL triplets matching CSS custom property declarations",
+      "purpose": "Documentation mirror of the runtime token set; keep in sync with globals.css"
+    },
+    "syncRule": "globals.css is the golden source. Update this JSON to mirror it — never the reverse. When globals.css changes, regenerate or manually sync this file."
+  },
+  "themeConfiguration": {
+    "supportedThemes": [
+      "light",
+      "dark"
+    ],
+    "defaultTheme": "light",
+    "themeParity": "Both themes share the same structure, spacing, and component geometry with different fills, text colors, and semantic brightness. CSS class `.dark` applied to the `<html>` element activates the dark variant.",
+    "documentedResponsiveBehavior": true
+  },
   "tokens": {
     "colors": {
-      "semantic": {
+      "note": "All values are HSL triplets as declared in globals.css :root / .dark. Use hsl(var(--token-name)) in Tailwind / CSS.",
+      "surfaces": {
         "background": {
-          "light": "hsl(0 0% 100%)",
-          "dark": "hsl(224 71.4% 4.1%)",
-          "cssVariable": "--background"
+          "cssVar": "--background",
+          "light": "0 0% 100%",
+          "dark": "240 8% 5%"
         },
         "foreground": {
-          "light": "hsl(224 71.4% 4.1%)",
-          "dark": "hsl(210 20% 98%)",
-          "cssVariable": "--foreground"
+          "cssVar": "--foreground",
+          "light": "0 0% 4%",
+          "dark": "240 5% 92%"
+        },
+        "surfaceBase": {
+          "cssVar": "--surface-base",
+          "light": "0 0% 100%",
+          "dark": "240 8% 5%"
+        },
+        "surfaceElevated": {
+          "cssVar": "--surface-elevated",
+          "light": "220 14% 96%",
+          "dark": "240 6% 9%"
+        },
+        "surfaceOverlay": {
+          "cssVar": "--surface-overlay",
+          "light": "0 0% 100%",
+          "dark": "240 4% 11%"
         },
         "card": {
-          "light": "hsl(0 0% 100%)",
-          "dark": "hsl(224 71.4% 4.1%)",
-          "cssVariable": "--card"
+          "cssVar": "--card",
+          "light": "0 0% 100%",
+          "dark": "240 8% 5%"
         },
         "cardForeground": {
-          "light": "hsl(224 71.4% 4.1%)",
-          "dark": "hsl(210 20% 98%)",
-          "cssVariable": "--card-foreground"
+          "cssVar": "--card-foreground",
+          "light": "0 0% 4%",
+          "dark": "240 5% 92%"
         },
         "popover": {
-          "light": "hsl(0 0% 100%)",
-          "dark": "hsl(224 71.4% 4.1%)",
-          "cssVariable": "--popover"
+          "cssVar": "--popover",
+          "light": "0 0% 100%",
+          "dark": "240 4% 9%"
         },
         "popoverForeground": {
-          "light": "hsl(224 71.4% 4.1%)",
-          "dark": "hsl(210 20% 98%)",
-          "cssVariable": "--popover-foreground"
-        },
-        "primary": {
-          "light": "hsl(262.1 83.3% 57.8%)",
-          "dark": "hsl(263.4 70% 50.4%)",
-          "cssVariable": "--primary"
-        },
-        "primaryForeground": {
-          "light": "hsl(210 20% 98%)",
-          "dark": "hsl(210 20% 98%)",
-          "cssVariable": "--primary-foreground"
-        },
-        "secondary": {
-          "light": "hsl(220 14.3% 95.9%)",
-          "dark": "hsl(215 27.9% 16.9%)",
-          "cssVariable": "--secondary"
-        },
-        "secondaryForeground": {
-          "light": "hsl(220.9 39.3% 11%)",
-          "dark": "hsl(210 20% 98%)",
-          "cssVariable": "--secondary-foreground"
-        },
-        "muted": {
-          "light": "hsl(220 14.3% 95.9%)",
-          "dark": "hsl(215 27.9% 16.9%)",
-          "cssVariable": "--muted"
-        },
-        "mutedForeground": {
-          "light": "hsl(220 8.9% 46.1%)",
-          "dark": "hsl(217.9 10.6% 64.9%)",
-          "cssVariable": "--muted-foreground"
-        },
-        "accent": {
-          "light": "hsl(220 14.3% 95.9%)",
-          "dark": "hsl(215 27.9% 16.9%)",
-          "cssVariable": "--accent"
-        },
-        "accentForeground": {
-          "light": "hsl(220.9 39.3% 11%)",
-          "dark": "hsl(210 20% 98%)",
-          "cssVariable": "--accent-foreground"
-        },
-        "destructive": {
-          "light": "hsl(0 84.2% 60.2%)",
-          "dark": "hsl(0 62.8% 30.6%)",
-          "cssVariable": "--destructive"
-        },
-        "destructiveForeground": {
-          "light": "hsl(210 20% 98%)",
-          "dark": "hsl(210 20% 98%)",
-          "cssVariable": "--destructive-foreground"
-        },
-        "border": {
-          "light": "hsl(0 0% 89.8%)",
-          "dark": "hsl(215 27.9% 16.9%)",
-          "cssVariable": "--border"
-        },
-        "input": {
-          "light": "hsl(0 0% 89.8%)",
-          "dark": "hsl(215 27.9% 16.9%)",
-          "cssVariable": "--input"
-        },
-        "ring": {
-          "light": "hsl(262.1 83.3% 57.8%)",
-          "dark": "hsl(263.4 70% 50.4%)",
-          "cssVariable": "--ring"
+          "cssVar": "--popover-foreground",
+          "light": "0 0% 4%",
+          "dark": "240 5% 92%"
         }
       },
-      "chart": {
+      "brand": {
+        "primary": {
+          "cssVar": "--primary",
+          "note": "Darkened from 204 65% 57% to 204 75% 40% in light mode to meet WCAG 2.2 AA contrast (≥4.5:1 vs white).",
+          "light": "204 75% 40%",
+          "dark": "204 76% 63%"
+        },
+        "primaryForeground": {
+          "cssVar": "--primary-foreground",
+          "light": "0 0% 100%",
+          "dark": "240 8% 5%"
+        },
+        "secondary": {
+          "cssVar": "--secondary",
+          "light": "220 23% 97%",
+          "dark": "240 4% 9%"
+        },
+        "secondaryForeground": {
+          "cssVar": "--secondary-foreground",
+          "light": "0 0% 4%",
+          "dark": "240 5% 92%"
+        },
+        "muted": {
+          "cssVar": "--muted",
+          "light": "220 23% 97%",
+          "dark": "240 4% 9%"
+        },
+        "mutedForeground": {
+          "cssVar": "--muted-foreground",
+          "light": "0 0% 40%",
+          "dark": "240 3% 62%"
+        },
+        "textSubtle": {
+          "cssVar": "--text-subtle",
+          "light": "0 0% 38%",
+          "dark": "240 3% 55%"
+        },
+        "accent": {
+          "cssVar": "--accent",
+          "note": "Intentionally ~4% lighter than secondary/muted so bg-secondary hover:bg-accent produces perceptible hover feedback.",
+          "light": "220 14% 93%",
+          "dark": "240 4% 13%"
+        },
+        "accentForeground": {
+          "cssVar": "--accent-foreground",
+          "light": "0 0% 4%",
+          "dark": "240 5% 92%"
+        }
+      },
+      "state": {
+        "destructive": {
+          "cssVar": "--destructive",
+          "light": "0 72% 51%",
+          "dark": "0 84% 60%"
+        },
+        "destructiveForeground": {
+          "cssVar": "--destructive-foreground",
+          "light": "0 0% 100%",
+          "dark": "240 5% 92%"
+        },
+        "destructiveSoft": {
+          "cssVar": "--destructive-soft",
+          "light": "0 84% 96%",
+          "dark": "0 55% 14%"
+        },
+        "success": {
+          "cssVar": "--success",
+          "light": "142 76% 36%",
+          "dark": "142 71% 45%"
+        },
+        "successForeground": {
+          "cssVar": "--success-foreground",
+          "light": "0 0% 4%",
+          "dark": "240 8% 5%"
+        },
+        "successSoft": {
+          "cssVar": "--success-soft",
+          "light": "142 70% 94%",
+          "dark": "142 50% 12%"
+        },
+        "warning": {
+          "cssVar": "--warning",
+          "light": "38 92% 50%",
+          "dark": "43 96% 56%"
+        },
+        "warningForeground": {
+          "cssVar": "--warning-foreground",
+          "light": "0 0% 4%",
+          "dark": "240 8% 5%"
+        },
+        "warningSoft": {
+          "cssVar": "--warning-soft",
+          "light": "38 92% 94%",
+          "dark": "38 60% 14%"
+        },
+        "info": {
+          "cssVar": "--info",
+          "note": "Intentionally distinct from --primary (sky-blue vs teal-blue) so informational banners and primary action buttons are visually separable.",
+          "light": "210 80% 45%",
+          "dark": "210 76% 68%"
+        },
+        "infoForeground": {
+          "cssVar": "--info-foreground",
+          "light": "0 0% 100%",
+          "dark": "240 8% 5%"
+        },
+        "infoSoft": {
+          "cssVar": "--info-soft",
+          "light": "210 80% 95%",
+          "dark": "210 60% 14%"
+        }
+      },
+      "borders": {
+        "border": {
+          "cssVar": "--border",
+          "light": "210 13% 94%",
+          "dark": "240 5% 17%"
+        },
+        "input": {
+          "cssVar": "--input",
+          "light": "210 13% 94%",
+          "dark": "240 5% 17%"
+        },
+        "ring": {
+          "cssVar": "--ring",
+          "light": "204 75% 40%",
+          "dark": "204 76% 63%"
+        },
+        "focusRing": {
+          "cssVar": "--focus-ring",
+          "note": "Dedicated alias of --ring so a11y can tune it independently of --primary.",
+          "light": "204 75% 40%",
+          "dark": "204 76% 63%"
+        }
+      },
+      "charts": {
         "chart1": {
-          "light": "hsl(262.1 83.3% 57.8%)",
-          "dark": "hsl(263.4 70% 50.4%)",
-          "cssVariable": "--chart-1"
+          "cssVar": "--chart-1",
+          "light": "204 75% 40%",
+          "dark": "204 76% 63%"
         },
         "chart2": {
-          "light": "hsl(273 72% 50%)",
-          "dark": "hsl(279 65% 55%)",
-          "cssVariable": "--chart-2"
+          "cssVar": "--chart-2",
+          "light": "142 76% 36%",
+          "dark": "142 71% 45%"
         },
         "chart3": {
-          "light": "hsl(291 70% 55%)",
-          "dark": "hsl(293 60% 60%)",
-          "cssVariable": "--chart-3"
+          "cssVar": "--chart-3",
+          "light": "38 92% 50%",
+          "dark": "43 96% 56%"
         },
         "chart4": {
-          "light": "hsl(250 80% 65%)",
-          "dark": "hsl(250 70% 60%)",
-          "cssVariable": "--chart-4"
+          "cssVar": "--chart-4",
+          "light": "204 66% 72%",
+          "dark": "204 51% 21%"
         },
         "chart5": {
-          "light": "hsl(230 70% 60%)",
-          "dark": "hsl(230 60% 55%)",
-          "cssVariable": "--chart-5"
+          "cssVar": "--chart-5",
+          "light": "0 72% 51%",
+          "dark": "0 84% 60%"
+        }
+      },
+      "canvasNodes": {
+        "note": "CSS vars promoted in Phase 3 so canvas node colors track the token system. Tint variants are derived at 10%/20% alpha via Tailwind opacity modifiers (bg-[hsl(var(--canvas-node-input)/0.1)]).",
+        "input": {
+          "cssVar": "--canvas-node-input",
+          "light": "271 81% 56%",
+          "dark": "271 81% 65%"
+        },
+        "indicator": {
+          "cssVar": "--canvas-node-indicator",
+          "light": "217 91% 60%",
+          "dark": "217 91% 68%"
+        },
+        "logic": {
+          "cssVar": "--canvas-node-logic",
+          "light": "32 95% 44%",
+          "dark": "32 95% 55%"
+        },
+        "signal": {
+          "cssVar": "--canvas-node-signal",
+          "light": "142 71% 45%",
+          "dark": "142 71% 55%"
+        },
+        "risk": {
+          "cssVar": "--canvas-node-risk",
+          "light": "0 72% 51%",
+          "dark": "0 84% 60%"
         }
       },
       "sidebar": {
-        "background": {
-          "light": "hsl(0 0% 98%)",
-          "dark": "hsl(224 71.4% 4.1%)",
-          "cssVariable": "--sidebar-background"
+        "sidebarBackground": {
+          "cssVar": "--sidebar-background",
+          "light": "220 23% 97%",
+          "dark": "240 4% 9%"
         },
-        "foreground": {
-          "light": "hsl(224 71.4% 4.1%)",
-          "dark": "hsl(210 20% 98%)",
-          "cssVariable": "--sidebar-foreground"
+        "sidebarForeground": {
+          "cssVar": "--sidebar-foreground",
+          "light": "0 0% 4%",
+          "dark": "240 5% 92%"
         },
-        "primary": {
-          "light": "hsl(262.1 83.3% 57.8%)",
-          "dark": "hsl(263.4 70% 50.4%)",
-          "cssVariable": "--sidebar-primary"
+        "sidebarPrimary": {
+          "cssVar": "--sidebar-primary",
+          "light": "204 75% 40%",
+          "dark": "204 76% 63%"
         },
-        "primaryForeground": {
-          "light": "hsl(210 20% 98%)",
-          "dark": "hsl(210 20% 98%)",
-          "cssVariable": "--sidebar-primary-foreground"
+        "sidebarPrimaryForeground": {
+          "cssVar": "--sidebar-primary-foreground",
+          "light": "0 0% 100%",
+          "dark": "240 8% 5%"
         },
-        "accent": {
-          "light": "hsl(220 14.3% 95.9%)",
-          "dark": "hsl(215 27.9% 16.9%)",
-          "cssVariable": "--sidebar-accent"
+        "sidebarAccent": {
+          "cssVar": "--sidebar-accent",
+          "light": "210 13% 94%",
+          "dark": "240 5% 17%"
         },
-        "accentForeground": {
-          "light": "hsl(220.9 39.3% 11%)",
-          "dark": "hsl(210 20% 98%)",
-          "cssVariable": "--sidebar-accent-foreground"
+        "sidebarAccentForeground": {
+          "cssVar": "--sidebar-accent-foreground",
+          "light": "0 0% 4%",
+          "dark": "240 5% 92%"
         },
-        "border": {
-          "light": "hsl(220 13% 91%)",
-          "dark": "hsl(215 27.9% 16.9%)",
-          "cssVariable": "--sidebar-border"
+        "sidebarBorder": {
+          "cssVar": "--sidebar-border",
+          "light": "210 13% 94%",
+          "dark": "240 5% 17%"
         },
-        "ring": {
-          "light": "hsl(262.1 83.3% 57.8%)",
-          "dark": "hsl(263.4 70% 50.4%)",
-          "cssVariable": "--sidebar-ring"
-        }
-      },
-      "canvas": {
-        "description": "Canvas and palette nodes share the same card design with full dark mode support. Light: white card background. Dark: slate-800 node background, slate-900 canvas background. Category colors use the violet/sky/amber/emerald/rose palette with muted 900/40 dark variants.",
-        "background": {
-          "light": "bg-gray-50",
-          "dark": "dark:bg-slate-900",
-          "border": { "light": "border-gray-200", "dark": "dark:border-slate-700" }
-        },
-        "nodeCard": {
-          "light": "bg-white",
-          "dark": "dark:bg-slate-800"
-        },
-        "palette": {
-          "light": "bg-white",
-          "dark": "dark:bg-slate-900"
-        },
-        "categories": {
-          "input": {
-            "border": {
-              "default": "border-gray-200 dark:border-slate-700",
-              "selected": "border-violet-400 dark:border-violet-500",
-              "ring": "ring-1 ring-violet-200 dark:ring-violet-800"
-            },
-            "iconBg": "bg-violet-100 dark:bg-violet-900/40",
-            "iconColor": "text-violet-600 dark:text-violet-400",
-            "badgeBg": "bg-violet-50 dark:bg-violet-900/30",
-            "badgeText": "text-violet-700 dark:text-violet-300",
-            "selectedShadow": "shadow-[0_4px_16px_rgba(109,40,217,0.12)]",
-            "handle": "!bg-violet-500"
-          },
-          "indicator": {
-            "border": {
-              "default": "border-gray-200 dark:border-slate-700",
-              "selected": "border-sky-400 dark:border-sky-500",
-              "ring": "ring-1 ring-sky-200 dark:ring-sky-800"
-            },
-            "iconBg": "bg-sky-100 dark:bg-sky-900/40",
-            "iconColor": "text-sky-600 dark:text-sky-400",
-            "badgeBg": "bg-sky-50 dark:bg-sky-900/30",
-            "badgeText": "text-sky-700 dark:text-sky-300",
-            "selectedShadow": "shadow-[0_4px_16px_rgba(2,132,199,0.12)]",
-            "handle": "!bg-sky-500"
-          },
-          "logic": {
-            "border": {
-              "default": "border-gray-200 dark:border-slate-700",
-              "selected": "border-amber-400 dark:border-amber-500",
-              "ring": "ring-1 ring-amber-200 dark:ring-amber-800"
-            },
-            "iconBg": "bg-amber-100 dark:bg-amber-900/40",
-            "iconColor": "text-amber-600 dark:text-amber-400",
-            "badgeBg": "bg-amber-50 dark:bg-amber-900/30",
-            "badgeText": "text-amber-700 dark:text-amber-300",
-            "selectedShadow": "shadow-[0_4px_16px_rgba(217,119,6,0.12)]",
-            "handle": "!bg-amber-500"
-          },
-          "signal": {
-            "border": {
-              "default": "border-gray-200 dark:border-slate-700",
-              "selected": "border-emerald-400 dark:border-emerald-500",
-              "ring": "ring-1 ring-emerald-200 dark:ring-emerald-800"
-            },
-            "iconBg": "bg-emerald-100 dark:bg-emerald-900/40",
-            "iconColor": "text-emerald-600 dark:text-emerald-400",
-            "badgeBg": "bg-emerald-50 dark:bg-emerald-900/30",
-            "badgeText": "text-emerald-700 dark:text-emerald-300",
-            "selectedShadow": "shadow-[0_4px_16px_rgba(5,150,105,0.12)]",
-            "handle": "!bg-emerald-500"
-          },
-          "risk": {
-            "border": {
-              "default": "border-gray-200 dark:border-slate-700",
-              "selected": "border-rose-400 dark:border-rose-500",
-              "ring": "ring-1 ring-rose-200 dark:ring-rose-800"
-            },
-            "iconBg": "bg-rose-100 dark:bg-rose-900/40",
-            "iconColor": "text-rose-600 dark:text-rose-400",
-            "badgeBg": "bg-rose-50 dark:bg-rose-900/30",
-            "badgeText": "text-rose-700 dark:text-rose-300",
-            "selectedShadow": "shadow-[0_4px_16px_rgba(225,29,72,0.12)]",
-            "handle": "!bg-rose-500"
-          }
-        },
-        "error": {
-          "border": "border-rose-400",
-          "ring": "ring-1 ring-rose-200 dark:ring-rose-900",
-          "iconBg": "bg-rose-100 dark:bg-rose-900/40",
-          "iconColor": "text-rose-600 dark:text-rose-400"
-        }
-      },
-      "feedback": {
-        "success": {
-          "background": "bg-green-50",
-          "border": "border-green-200",
-          "text": "text-green-600 dark:text-green-400"
-        },
-        "error": {
-          "background": "bg-red-50",
-          "border": "border-red-200",
-          "text": "text-red-600 dark:text-red-400"
-        },
-        "warning": {
-          "background": "bg-yellow-50",
-          "border": "border-yellow-200",
-          "text": "text-yellow-800 dark:text-yellow-400"
-        },
-        "info": {
-          "background": "bg-blue-50",
-          "border": "border-blue-200",
-          "text": "text-blue-900 dark:text-blue-400"
+        "sidebarRing": {
+          "cssVar": "--sidebar-ring",
+          "light": "204 75% 40%",
+          "dark": "204 76% 63%"
         }
       }
     },
     "typography": {
       "fontFamily": {
-        "sans": "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
-        "mono": "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace"
-      },
-      "fontSize": {
-        "xs": { "size": "0.75rem", "lineHeight": "1rem" },
-        "sm": { "size": "0.875rem", "lineHeight": "1.25rem" },
-        "base": { "size": "1rem", "lineHeight": "1.5rem" },
-        "lg": { "size": "1.125rem", "lineHeight": "1.75rem" },
-        "xl": { "size": "1.25rem", "lineHeight": "1.75rem" },
-        "2xl": { "size": "1.5rem", "lineHeight": "2rem" },
-        "3xl": { "size": "1.875rem", "lineHeight": "2.25rem" }
+        "sans": "IBM Plex Sans",
+        "mono": "IBM Plex Mono"
       },
       "fontWeight": {
-        "normal": "400",
-        "medium": "500",
-        "semibold": "600",
-        "bold": "700"
+        "normal": 400,
+        "medium": 500,
+        "semibold": 600,
+        "bold": 700
+      },
+      "typeScale": {
+        "eyebrow12": {
+          "fontFamily": "IBM Plex Sans",
+          "fontSize": 12,
+          "fontWeight": 600,
+          "letterSpacing": 1
+        },
+        "hero56": {
+          "fontFamily": "IBM Plex Sans",
+          "fontSize": 56,
+          "fontWeight": 700,
+          "letterSpacing": -1.5
+        },
+        "display48": {
+          "fontFamily": "IBM Plex Sans",
+          "fontSize": 48,
+          "fontWeight": 700,
+          "letterSpacing": -1.5
+        },
+        "section24": {
+          "fontFamily": "IBM Plex Sans",
+          "fontSize": 24,
+          "fontWeight": 600,
+          "letterSpacing": -0.5
+        },
+        "cardTitle18": {
+          "fontFamily": "IBM Plex Sans",
+          "fontSize": 18,
+          "fontWeight": 600,
+          "letterSpacing": -0.3
+        },
+        "body16": {
+          "fontFamily": "IBM Plex Sans",
+          "fontSize": 16,
+          "fontWeight": 400,
+          "lineHeight": 1.6
+        },
+        "body15": {
+          "fontFamily": "IBM Plex Sans",
+          "fontSize": 15,
+          "fontWeight": 400
+        },
+        "ui14": {
+          "fontFamily": "IBM Plex Sans",
+          "fontSize": 14,
+          "fontWeight": 400
+        },
+        "label13Medium": {
+          "fontFamily": "IBM Plex Sans",
+          "fontSize": 13,
+          "fontWeight": 500
+        },
+        "label13Semibold": {
+          "fontFamily": "IBM Plex Sans",
+          "fontSize": 13,
+          "fontWeight": 600
+        },
+        "badge12Medium": {
+          "fontFamily": "IBM Plex Sans",
+          "fontSize": 12,
+          "fontWeight": 500
+        },
+        "badge12Semibold": {
+          "fontFamily": "IBM Plex Sans",
+          "fontSize": 12,
+          "fontWeight": 600
+        },
+        "data12Mono": {
+          "fontFamily": "IBM Plex Mono",
+          "fontSize": 12,
+          "fontWeight": 400
+        },
+        "caption11Mono": {
+          "fontFamily": "IBM Plex Mono",
+          "fontSize": 11,
+          "fontWeight": 400
+        },
+        "metric32Mono": {
+          "fontFamily": "IBM Plex Mono",
+          "fontSize": 32,
+          "fontWeight": 700
+        }
       }
     },
     "spacing": {
-      "0": "0",
-      "0.5": "0.125rem",
-      "1": "0.25rem",
-      "1.5": "0.375rem",
-      "2": "0.5rem",
-      "2.5": "0.625rem",
-      "3": "0.75rem",
-      "4": "1rem",
-      "5": "1.25rem",
-      "6": "1.5rem",
-      "8": "2rem",
-      "10": "2.5rem",
-      "12": "3rem",
-      "16": "4rem"
-    },
-    "borderRadius": {
-      "none": "0",
-      "sm": "calc(var(--radius) - 4px)",
-      "md": "calc(var(--radius) - 2px)",
-      "lg": "var(--radius)",
-      "xl": "0.75rem",
-      "full": "9999px",
-      "baseValue": "0.5rem"
-    },
-    "shadows": {
-      "sm": "0 1px 2px 0 rgb(0 0 0 / 0.05)",
-      "DEFAULT": "0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)",
-      "md": "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
-      "lg": "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)"
-    },
-    "animation": {
-      "duration": {
-        "fast": "150ms",
-        "normal": "200ms",
-        "slow": "300ms",
-        "slower": "500ms"
+      "note": "4px base grid. Values in pixels unless flagged as clamp().",
+      "0": 0,
+      "1": 4,
+      "2": 8,
+      "3": 12,
+      "4": 16,
+      "6": 24,
+      "8": 32,
+      "10": 40,
+      "12": 48,
+      "14": 56,
+      "16": 64,
+      "20": 80,
+      "24": 96,
+      "32": 128,
+      "section": {
+        "cssVar": "--space-section",
+        "value": "clamp(3rem, 2.4rem + 3vw, 6rem)",
+        "tailwindUtility": "py-section",
+        "note": "Canonical between-major-sections vertical rhythm"
       },
-      "easing": {
-        "default": "cubic-bezier(0.4, 0, 0.2, 1)",
-        "in": "cubic-bezier(0.4, 0, 1, 1)",
-        "out": "cubic-bezier(0, 0, 0.2, 1)",
-        "inOut": "cubic-bezier(0.4, 0, 0.2, 1)"
+      "sectionTight": {
+        "cssVar": "--space-section-tight",
+        "value": "clamp(1.5rem, 1.2rem + 1.5vw, 3rem)",
+        "tailwindUtility": "py-section-tight",
+        "note": "Compact stacks: in-card sections, sub-sections"
       }
     },
-    "breakpoints": {
-      "sm": "640px",
-      "md": "768px",
-      "lg": "1024px",
-      "xl": "1280px",
-      "2xl": "1536px"
+    "radius": {
+      "cssVar": "--radius",
+      "note": "--radius is 0.5rem (8px). Tailwind config extends radius.default to var(--radius). Derived sizes: sm = calc(var(--radius) - 4px), md = calc(var(--radius) - 2px), lg = var(--radius), xl = calc(var(--radius) + 4px).",
+      "checkbox": 3,
+      "default": 8,
+      "md": 6,
+      "lg": 8,
+      "xl": 12,
+      "full": 9999
+    },
+    "borders": {
+      "default": 1,
+      "emphasis": 2
+    },
+    "shadows": {
+      "note": "Three-stop shadow scale backed by CSS vars. Values use --foreground so they automatically invert in dark mode.",
+      "sm": {
+        "cssVar": "--shadow-sm",
+        "value": "0 1px 2px 0 hsl(var(--foreground) / 0.05)",
+        "tailwindClass": "shadow-sm",
+        "usage": "Subtle lift for inline elements, small pills"
+      },
+      "md": {
+        "cssVar": "--shadow-md",
+        "value": "0 4px 6px -1px hsl(var(--foreground) / 0.08), 0 2px 4px -2px hsl(var(--foreground) / 0.05)",
+        "tailwindClass": "shadow-md",
+        "usage": "Cards, dropdowns, popovers"
+      },
+      "overlay": {
+        "cssVar": "--shadow-overlay",
+        "value": "0 20px 25px -5px hsl(var(--foreground) / 0.12), 0 8px 10px -6px hsl(var(--foreground) / 0.08)",
+        "tailwindClass": "shadow-overlay",
+        "usage": "Modals, command palettes, sheets"
+      }
+    },
+    "motion": {
+      "note": "Motion tokens replace inline duration-150/200/300 classes. Use Tailwind utilities duration-fast, duration-normal, ease-default defined in tailwind.config.ts.",
+      "durationFast": {
+        "cssVar": "--duration-fast",
+        "value": "150ms",
+        "tailwindClass": "duration-fast",
+        "usage": "Clicks, toggles, hover reveals"
+      },
+      "durationNormal": {
+        "cssVar": "--duration-normal",
+        "value": "250ms",
+        "tailwindClass": "duration-normal",
+        "usage": "Modals, drawers, page-level reveals"
+      },
+      "easeDefault": {
+        "cssVar": "--ease-default",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "tailwindClass": "ease-default",
+        "note": "Ease-out-expo curve: quick settle, no overshoot"
+      }
+    },
+    "iconSizes": {
+      "sm": 14,
+      "md": 16,
+      "lg": 20,
+      "xl": 24
+    },
+    "sizing": {
+      "button": {
+        "smallHeight": 32,
+        "defaultHeight": 36,
+        "largeHeight": 40,
+        "iconSize": 36
+      },
+      "input": {
+        "height": 36
+      },
+      "header": {
+        "height": 56
+      },
+      "checkbox": {
+        "box": 16
+      },
+      "sidebar": {
+        "width": 260
+      },
+      "statePanel": {
+        "height": 200
+      },
+      "spinner": {
+        "size": 32,
+        "stroke": 2
+      }
     }
   },
-
   "components": {
     "button": {
-      "base": "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+      "base": {
+        "radius": 8,
+        "height": 36,
+        "gap": 8,
+        "horizontalPadding": 16,
+        "font": "label13Semibold or label13Medium depending on emphasis"
+      },
       "variants": {
-        "default": {
-          "classes": "bg-primary text-primary-foreground shadow hover:bg-primary/90",
-          "description": "Primary action button"
-        },
-        "destructive": {
-          "classes": "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
-          "description": "Destructive/danger action"
-        },
-        "outline": {
-          "classes": "border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground",
-          "description": "Secondary action with border"
+        "primary": {
+          "light": {
+            "fill": "hsl(var(--primary))",
+            "text": "hsl(var(--primary-foreground))"
+          },
+          "dark": {
+            "fill": "hsl(var(--primary))",
+            "text": "hsl(var(--primary-foreground))"
+          }
         },
         "secondary": {
-          "classes": "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80",
-          "description": "Secondary action"
+          "light": {
+            "fill": "hsl(var(--secondary))",
+            "text": "hsl(var(--secondary-foreground))"
+          },
+          "dark": {
+            "fill": "hsl(var(--secondary))",
+            "text": "hsl(var(--secondary-foreground))"
+          }
+        },
+        "outline": {
+          "light": {
+            "border": "hsl(var(--border))",
+            "text": "hsl(var(--foreground))"
+          },
+          "dark": {
+            "border": "hsl(var(--border))",
+            "text": "hsl(var(--foreground))"
+          }
         },
         "ghost": {
-          "classes": "hover:bg-accent hover:text-accent-foreground",
-          "description": "Tertiary action, no background"
+          "light": {
+            "text": "hsl(var(--muted-foreground))"
+          },
+          "dark": {
+            "text": "hsl(var(--muted-foreground))"
+          }
         },
-        "link": {
-          "classes": "text-primary underline-offset-4 hover:underline",
-          "description": "Text link style"
+        "destructive": {
+          "light": {
+            "fill": "hsl(var(--destructive-soft))",
+            "border": "hsl(var(--destructive) / 0.2)",
+            "text": "hsl(var(--destructive))"
+          },
+          "dark": {
+            "fill": "hsl(var(--destructive-soft))",
+            "border": "hsl(var(--destructive) / 0.3)",
+            "text": "hsl(var(--destructive))"
+          }
         }
       },
       "sizes": {
+        "small": {
+          "height": 32,
+          "horizontalPadding": 12,
+          "textSize": 12
+        },
         "default": {
-          "classes": "h-9 px-4 py-2",
-          "description": "Standard button size"
+          "height": 36,
+          "horizontalPadding": 16,
+          "textSize": 13
         },
-        "sm": {
-          "classes": "h-8 rounded-md px-3 text-xs",
-          "description": "Small button"
-        },
-        "lg": {
-          "classes": "h-10 rounded-md px-8",
-          "description": "Large button"
+        "large": {
+          "height": 40,
+          "horizontalPadding": 20,
+          "textSize": 14
         },
         "icon": {
-          "classes": "h-9 w-9",
-          "description": "Icon-only button"
+          "width": 36,
+          "height": 36,
+          "iconSize": 16
         }
       }
     },
     "input": {
-      "base": "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
-      "large": "h-11",
-      "withIcon": "pl-10",
-      "description": "Standard text input field. Use 'large' (h-11) for auth forms. Use 'withIcon' when pairing with a positioned icon."
+      "stack": {
+        "labelGap": 6
+      },
+      "label": {
+        "font": "label13Medium",
+        "light": {
+          "text": "hsl(var(--foreground))"
+        },
+        "dark": {
+          "text": "hsl(var(--foreground))"
+        }
+      },
+      "field": {
+        "height": 36,
+        "radius": 8,
+        "horizontalPadding": 12,
+        "light": {
+          "defaultBorder": "hsl(var(--border))",
+          "activeBorder": "hsl(var(--focus-ring))",
+          "surface": "hsl(var(--background))",
+          "placeholder": "hsl(var(--muted-foreground) / 0.53)"
+        },
+        "dark": {
+          "defaultBorder": "hsl(var(--border))",
+          "activeBorder": "hsl(var(--focus-ring))",
+          "surface": "hsl(var(--surface-elevated))",
+          "placeholder": "hsl(var(--muted-foreground) / 0.53)"
+        }
+      }
+    },
+    "tabs": {
+      "container": {
+        "height": 36,
+        "radius": 8,
+        "padding": 2,
+        "light": {
+          "fill": "hsl(var(--surface-elevated))"
+        },
+        "dark": {
+          "fill": "hsl(var(--surface-elevated))"
+        }
+      },
+      "tab": {
+        "radius": 6,
+        "horizontalPadding": 14,
+        "font": "label13Medium"
+      },
+      "active": {
+        "light": {
+          "fill": "hsl(var(--background))",
+          "text": "hsl(var(--foreground))",
+          "shadow": "sm"
+        },
+        "dark": {
+          "fill": "hsl(var(--surface-overlay))",
+          "text": "hsl(var(--foreground))",
+          "shadow": "sm"
+        }
+      },
+      "inactive": {
+        "light": {
+          "text": "hsl(var(--muted-foreground))"
+        },
+        "dark": {
+          "text": "hsl(var(--muted-foreground))"
+        }
+      }
     },
     "card": {
-      "container": {
-        "classes": "rounded-xl border bg-card text-card-foreground shadow",
-        "hoverSubtle": "transition-shadow duration-200 hover:shadow-md",
-        "hoverInteractive": "transition-all duration-200 hover:border-primary/20 hover:shadow-md",
-        "description": "Main card container. Add hover classes for interactive cards."
+      "default": {
+        "radius": 8,
+        "border": {
+          "light": "hsl(var(--border))",
+          "dark": "hsl(var(--border))"
+        },
+        "surface": {
+          "light": "hsl(var(--card))",
+          "dark": "hsl(var(--card))"
+        },
+        "shadow": "sm",
+        "headerPadding": 24,
+        "bodyPadding": [0, 24, 24, 24],
+        "footerPadding": [16, 24],
+        "footerGap": 12
       },
-      "header": {
-        "classes": "flex flex-col space-y-1.5 p-6",
-        "description": "Card header section"
+      "headerText": {
+        "title": "cardTitle18",
+        "description": "ui14"
       },
-      "title": {
-        "classes": "font-semibold leading-none tracking-tight",
-        "description": "Card title text"
-      },
-      "description": {
-        "classes": "text-sm text-muted-foreground",
-        "description": "Card description text"
-      },
-      "content": {
-        "classes": "p-6 pt-0",
-        "description": "Card content area"
-      },
-      "footer": {
-        "classes": "flex items-center p-6 pt-0",
-        "description": "Card footer section"
+      "contentText": {
+        "body": "ui14",
+        "bodyColor": {
+          "light": "hsl(var(--muted-foreground))",
+          "dark": "hsl(var(--muted-foreground))"
+        }
       }
     },
     "badge": {
-      "base": "inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
       "variants": {
         "default": {
-          "classes": "border-transparent bg-primary text-primary-foreground shadow hover:bg-primary/80",
-          "description": "Primary badge"
+          "light": {
+            "fill": "hsl(var(--primary))",
+            "text": "hsl(var(--primary-foreground))"
+          },
+          "dark": {
+            "fill": "hsl(var(--primary))",
+            "text": "hsl(var(--primary-foreground))"
+          }
         },
         "secondary": {
-          "classes": "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
-          "description": "Secondary badge"
+          "light": {
+            "fill": "hsl(var(--secondary))",
+            "text": "hsl(var(--secondary-foreground))"
+          },
+          "dark": {
+            "fill": "hsl(var(--secondary))",
+            "text": "hsl(var(--secondary-foreground))"
+          }
         },
         "destructive": {
-          "classes": "border-transparent bg-destructive text-destructive-foreground shadow hover:bg-destructive/80",
-          "description": "Destructive/error badge"
+          "light": {
+            "fill": "hsl(var(--destructive))",
+            "text": "hsl(var(--destructive-foreground))"
+          },
+          "dark": {
+            "fill": "hsl(var(--destructive))",
+            "text": "hsl(var(--destructive-foreground))"
+          }
         },
         "outline": {
-          "classes": "text-foreground",
-          "description": "Outline badge"
-        }
-      }
-    },
-    "dialog": {
-      "overlay": {
-        "classes": "fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-        "description": "Modal overlay/backdrop"
-      },
-      "content": {
-        "classes": "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg",
-        "description": "Modal content container"
-      },
-      "header": {
-        "classes": "flex flex-col space-y-1.5 text-center sm:text-left",
-        "description": "Dialog header section"
-      },
-      "footer": {
-        "classes": "flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2",
-        "description": "Dialog footer with actions"
-      },
-      "title": {
-        "classes": "text-lg font-semibold leading-none tracking-tight",
-        "description": "Dialog title"
-      },
-      "description": {
-        "classes": "text-sm text-muted-foreground",
-        "description": "Dialog description"
-      },
-      "closeButton": {
-        "classes": "absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground",
-        "description": "Close button in top right"
-      }
-    },
-    "table": {
-      "wrapper": {
-        "classes": "relative w-full overflow-auto",
-        "description": "Table container with scroll"
-      },
-      "table": {
-        "classes": "w-full caption-bottom text-sm",
-        "description": "Base table element"
-      },
-      "header": {
-        "classes": "[&_tr]:border-b",
-        "description": "Table header section"
-      },
-      "body": {
-        "classes": "[&_tr:last-child]:border-0",
-        "description": "Table body section"
-      },
-      "row": {
-        "classes": "border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted",
-        "description": "Table row with hover"
-      },
-      "head": {
-        "classes": "h-10 px-2 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
-        "description": "Table header cell"
-      },
-      "cell": {
-        "classes": "p-2 align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
-        "description": "Table data cell"
-      }
-    },
-    "canvasNode": {
-      "description": "White-card node design shared by both canvas nodes and palette items. Icon container + label + badge in header; params/description in a bordered section below.",
-      "container": {
-        "base": "rounded-xl border border-gray-200 bg-white shadow-[0_1px_4px_rgba(0,0,0,0.08)] transition-all duration-150",
-        "minWidth": {
-          "default": "min-w-[150px]",
-          "mobile": "min-w-[170px]"
-        },
-        "description": "Base node container — white background, rounded-xl"
-      },
-      "header": {
-        "base": "flex items-center gap-2",
-        "padding": {
-          "default": "px-3 pt-2.5 pb-2",
-          "mobile": "px-3.5 pt-3 pb-2.5"
-        },
-        "description": "Icon + label + info icon + category badge row"
-      },
-      "iconContainer": {
-        "base": "flex flex-shrink-0 items-center justify-center rounded-lg",
-        "size": {
-          "default": "h-7 w-7",
-          "mobile": "h-8 w-8"
-        },
-        "description": "Colored icon wrapper — uses category iconBg + iconColor tokens"
-      },
-      "label": {
-        "classes": "flex-1 font-semibold leading-tight text-gray-900",
-        "fontSize": {
-          "default": "text-[12px]",
-          "mobile": "text-[13px]"
+          "light": {
+            "border": "hsl(var(--border))",
+            "text": "hsl(var(--foreground))"
+          },
+          "dark": {
+            "border": "hsl(var(--border))",
+            "text": "hsl(var(--foreground))"
+          }
         }
       },
-      "badge": {
-        "classes": "flex-shrink-0 rounded px-1.5 py-0.5 font-medium",
-        "fontSize": {
-          "canvas": "text-[10px]",
-          "palette": "text-[9.5px]"
-        },
-        "description": "Category label badge — uses category badgeBg + badgeText tokens"
-      },
-      "content": {
-        "base": "border-t border-gray-100 text-[11.5px] leading-[1.5] text-gray-500",
-        "padding": {
-          "default": "px-3 py-1.5",
-          "mobile": "px-3.5 py-2"
-        },
-        "description": "Parameters / description area below header"
-      },
-      "handle": {
-        "size": {
-          "default": "11px",
-          "mobile": "18px"
-        },
-        "description": "Connection handle circle — uses category handle token"
-      },
-      "error": {
-        "border": "border-rose-400 ring-1 ring-rose-200",
-        "iconBg": "bg-rose-100 text-rose-600",
-        "message": "text-[11px] font-medium text-rose-600",
-        "helpLink": "ml-1 underline decoration-rose-300 underline-offset-2 hover:text-rose-800"
-      }
-    },
-    "sidebar": {
-      "width": {
-        "expanded": "16rem",
-        "mobile": "18rem",
-        "collapsed": "3rem"
-      },
-      "menuButton": {
-        "classes": "flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-none ring-sidebar-ring transition-colors duration-150 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50",
-        "description": "Sidebar navigation button"
-      },
-      "activeIndicator": {
-        "classes": "absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-primary",
-        "description": "Purple left bar on active nav item"
-      },
-      "sectionLabel": {
-        "classes": "text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70",
-        "description": "Uppercase section divider labels"
-      },
-      "logoIcon": {
-        "classes": "flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-sm",
-        "description": "Gradient brand icon in sidebar header"
-      },
-      "userAvatar": {
-        "classes": "flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-medium text-primary",
-        "description": "Initials avatar circle in sidebar footer"
-      }
-    },
-    "tooltip": {
-      "content": {
-        "classes": "z-50 overflow-hidden rounded-md bg-primary px-3 py-1.5 text-xs text-primary-foreground animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
-        "description": "Tooltip popup content"
-      }
-    },
-    "skeleton": {
-      "base": "animate-pulse rounded-md bg-primary/10",
-      "description": "Loading skeleton placeholder"
-    },
-    "separator": {
-      "base": "shrink-0 bg-border",
-      "orientations": {
-        "horizontal": "h-[1px] w-full",
-        "vertical": "h-full w-[1px]"
-      }
-    },
-    "progressBar": {
-      "container": "h-2 w-full overflow-hidden rounded-full bg-muted",
-      "fill": "h-2 rounded-full transition-all",
-      "colors": {
-        "default": "bg-gradient-to-r from-primary to-primary/80",
-        "warning": "bg-yellow-500",
-        "danger": "bg-red-500"
-      }
-    },
-    "segmentedControl": {
-      "container": {
-        "classes": "inline-flex rounded-lg border bg-muted/50 p-0.5",
-        "description": "Connected button group with shared border for toggle/selection UI"
-      },
-      "button": {
-        "base": "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-        "active": "bg-background text-foreground shadow-sm",
-        "inactive": "text-muted-foreground hover:text-foreground",
-        "description": "Individual segment button within the control"
-      }
-    },
-    "statCard": {
-      "container": {
-        "classes": "group transition-shadow duration-200 hover:shadow-md",
-        "description": "Compact metric card for dashboard stat rows"
-      },
-      "iconContainer": {
-        "classes": "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg",
-        "colorPattern": "bg-{color}/10 text-{color} group-hover:bg-{color}/15",
-        "description": "Rounded icon holder with category-colored tint"
-      },
-      "metric": {
-        "classes": "text-2xl font-bold tabular-nums tracking-tight",
-        "description": "Large numeric value display"
-      },
-      "label": {
-        "classes": "text-sm text-muted-foreground",
-        "description": "Metric description text"
+      "statusStyle": {
+        "radius": 4,
+        "padding": [3, 10],
+        "gap": 6,
+        "dot": 6
       }
     },
     "alert": {
-      "base": "rounded border p-3 text-sm",
+      "base": {
+        "radius": 8,
+        "padding": [10, 14],
+        "gap": 10,
+        "icon": 16,
+        "font": "label13Medium"
+      },
       "variants": {
         "success": {
-          "classes": "border-green-200 bg-green-50 text-green-600",
-          "darkClasses": "dark:border-green-800 dark:bg-green-950 dark:text-green-400"
+          "light": {
+            "fill": "hsl(var(--success-soft))",
+            "border": "hsl(var(--success) / 0.2)",
+            "text": "hsl(var(--success))"
+          },
+          "dark": {
+            "fill": "hsl(var(--success-soft))",
+            "border": "hsl(var(--success) / 0.3)",
+            "text": "hsl(var(--success))"
+          }
         },
-        "error": {
-          "classes": "border-red-200 bg-red-50 text-red-600",
-          "darkClasses": "dark:border-red-800 dark:bg-red-950 dark:text-red-400"
+        "destructive": {
+          "light": {
+            "fill": "hsl(var(--destructive-soft))",
+            "border": "hsl(var(--destructive) / 0.2)",
+            "text": "hsl(var(--destructive))"
+          },
+          "dark": {
+            "fill": "hsl(var(--destructive-soft))",
+            "border": "hsl(var(--destructive) / 0.3)",
+            "text": "hsl(var(--destructive))"
+          }
         },
         "warning": {
-          "classes": "border-yellow-200 bg-yellow-50 text-yellow-800",
-          "darkClasses": "dark:border-yellow-800 dark:bg-yellow-950 dark:text-yellow-400"
+          "light": {
+            "fill": "hsl(var(--warning-soft))",
+            "border": "hsl(var(--warning) / 0.2)",
+            "text": "hsl(var(--warning))"
+          },
+          "dark": {
+            "fill": "hsl(var(--warning-soft))",
+            "border": "hsl(var(--warning) / 0.3)",
+            "text": "hsl(var(--warning))"
+          }
         },
         "info": {
-          "classes": "border-blue-200 bg-blue-50 text-blue-900",
-          "darkClasses": "dark:border-blue-800 dark:bg-blue-950 dark:text-blue-400"
+          "light": {
+            "fill": "hsl(var(--info-soft))",
+            "border": "hsl(var(--info) / 0.2)",
+            "text": "hsl(var(--info))"
+          },
+          "dark": {
+            "fill": "hsl(var(--info-soft))",
+            "border": "hsl(var(--info) / 0.3)",
+            "text": "hsl(var(--info))"
+          }
         }
       }
-    }
-  },
-
-  "patterns": {
-    "layout": {
-      "page": {
-        "container": "container mx-auto max-w-6xl p-4 md:p-6",
-        "narrowContainer": "container mx-auto max-w-4xl p-4 md:p-6",
-        "heading": "text-2xl font-bold tracking-tight",
-        "heroHeading": "text-3xl font-bold tracking-tight",
-        "subheading": "text-muted-foreground",
-        "sections": "space-y-8"
+    },
+    "canvasNode": {
+      "structure": {
+        "radius": 8,
+        "borderWidth": 1,
+        "headerPadding": [10, 12],
+        "bodyPadding": [4, 12, 10, 12],
+        "headerGap": 10,
+        "bodyGap": 3,
+        "iconFrame": 24,
+        "tagPadding": [2, 6],
+        "shadow": "sm"
       },
-      "grid": {
-        "responsive2col": "grid gap-4 sm:grid-cols-2",
-        "responsive3col": "grid gap-3 sm:grid-cols-2 lg:grid-cols-3",
-        "statRow": "grid gap-4 sm:grid-cols-3",
-        "mobileStack": "flex flex-col gap-4 md:flex-row"
+      "surface": {
+        "light": {
+          "fill": "hsl(var(--card))",
+          "border": "hsl(var(--border))"
+        },
+        "dark": {
+          "fill": "hsl(var(--surface-elevated))",
+          "border": "hsl(var(--border))"
+        }
       },
-      "splitLayout": {
-        "container": "flex min-h-screen",
-        "brandPanel": "hidden lg:flex lg:w-1/2 flex-col justify-center bg-gradient-to-br from-primary via-primary/90 to-indigo-600 text-primary-foreground p-12",
-        "formPanel": "flex w-full items-center justify-center p-4 lg:w-1/2 lg:p-8",
-        "description": "Side-by-side layout for auth pages — brand panel left, form right. Stacks vertically on mobile."
+      "text": {
+        "title": "label13Semibold",
+        "meta": "caption11Mono"
       },
-      "sectionHeader": {
-        "container": "mb-4 flex items-center justify-between",
-        "titleGroup": "flex items-center gap-2",
-        "icon": "h-4 w-4 text-muted-foreground",
-        "title": "font-semibold tracking-tight",
-        "viewAllLink": "text-sm text-muted-foreground transition-colors hover:text-foreground"
+      "categories": {
+        "note": "Solid accent from --canvas-node-{category}. Tint via Tailwind opacity: bg-[hsl(var(--canvas-node-input)/0.08)].",
+        "input": {
+          "cssVar": "--canvas-node-input",
+          "accent": { "light": "hsl(271 81% 56%)", "dark": "hsl(271 81% 65%)" }
+        },
+        "indicator": {
+          "cssVar": "--canvas-node-indicator",
+          "accent": { "light": "hsl(217 91% 60%)", "dark": "hsl(217 91% 68%)" }
+        },
+        "logic": {
+          "cssVar": "--canvas-node-logic",
+          "accent": { "light": "hsl(32 95% 44%)", "dark": "hsl(32 95% 55%)" }
+        },
+        "signal": {
+          "cssVar": "--canvas-node-signal",
+          "accent": { "light": "hsl(142 71% 45%)", "dark": "hsl(142 71% 55%)" }
+        },
+        "risk": {
+          "cssVar": "--canvas-node-risk",
+          "accent": { "light": "hsl(0 72% 51%)", "dark": "hsl(0 84% 60%)" }
+        }
       }
     },
-    "forms": {
-      "field": {
-        "container": "space-y-2",
-        "label": "mb-2 block text-sm font-medium",
-        "helpText": "mt-1 text-xs text-muted-foreground"
+    "metricCard": {
+      "container": {
+        "radius": 8,
+        "padding": 24,
+        "gap": 8,
+        "shadow": "sm"
       },
-      "section": {
-        "container": "max-w-md space-y-4",
-        "description": "Form section with constrained width"
+      "topRow": {
+        "justify": "space-between",
+        "labelFont": "label13Medium",
+        "icon": 16
+      },
+      "value": {
+        "font": "metric32Mono"
+      },
+      "supportingText": {
+        "font": "badge12Medium"
       }
     },
-    "lists": {
-      "stack": {
-        "container": "space-y-2",
-        "item": "rounded-lg border p-4 hover:bg-muted/50"
+    "sidebar": {
+      "width": 260,
+      "radius": 8,
+      "borderWidth": 1,
+      "navStackGap": 1,
+      "sectionPadding": 16,
+      "itemHeight": 36,
+      "itemRadius": 6,
+      "light": {
+        "surface": "hsl(var(--sidebar-background))",
+        "border": "hsl(var(--sidebar-border))",
+        "activeFill": "hsl(var(--sidebar-accent))",
+        "text": "hsl(var(--sidebar-foreground))"
       },
-      "inline": {
-        "container": "flex flex-wrap gap-2",
-        "item": "inline-flex items-center"
+      "dark": {
+        "surface": "hsl(var(--sidebar-background))",
+        "border": "hsl(var(--sidebar-border))",
+        "activeFill": "hsl(var(--sidebar-accent))",
+        "text": "hsl(var(--sidebar-foreground))"
       }
+    },
+    "checkbox": {
+      "boxSize": 16,
+      "radius": 3,
+      "gap": 10,
+      "checked": {
+        "light": {
+          "fill": "hsl(var(--primary))",
+          "icon": "hsl(var(--primary-foreground))"
+        },
+        "dark": {
+          "fill": "hsl(var(--primary))",
+          "icon": "hsl(var(--primary-foreground))"
+        }
+      },
+      "unchecked": {
+        "light": {
+          "border": "hsl(var(--border))"
+        },
+        "dark": {
+          "border": "hsl(var(--border))"
+        }
+      }
+    },
+    "header": {
+      "height": 56,
+      "radius": 8,
+      "horizontalPadding": 24,
+      "light": {
+        "surface": "hsl(var(--background))",
+        "border": "hsl(var(--border))"
+      },
+      "dark": {
+        "surface": "hsl(var(--background))",
+        "border": "hsl(var(--border))"
+      },
+      "iconSize": 20
+    },
+    "breadcrumb": {
+      "gap": 6,
+      "textSize": 14,
+      "separatorSize": 14,
+      "activeWeight": 500,
+      "inactiveWeight": 400
     },
     "states": {
-      "loading": {
-        "container": "flex min-h-[200px] items-center justify-center",
-        "spinner": "h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent",
-        "text": "text-sm text-muted-foreground"
+      "emptyState": {
+        "componentRef": "src/components/ui/empty-state.tsx",
+        "panel": {
+          "radius": 8,
+          "gap": 12,
+          "shadow": "sm"
+        },
+        "iconCircle": {
+          "size": 56,
+          "radius": 28
+        }
       },
-      "empty": {
-        "container": "flex flex-col items-center justify-center py-16 text-center",
-        "iconCircle": "mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10",
-        "icon": "h-7 w-7 text-primary",
-        "heading": "mb-1 font-semibold",
-        "text": "mb-4 text-sm text-muted-foreground"
+      "errorFallback": {
+        "componentRef": "src/components/ui/error-fallback.tsx"
       },
-      "error": {
-        "container": "rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive",
-        "retryLink": "ml-2 h-auto p-0 text-destructive underline"
+      "loadingCard": {
+        "componentRef": "src/components/ui/loading-card.tsx"
+      },
+      "spinner": {
+        "size": 32,
+        "stroke": 2
       }
     },
-    "links": {
-      "primary": "text-primary/80 transition-colors hover:text-primary hover:underline",
-      "muted": "text-muted-foreground transition-colors hover:text-foreground",
-      "destructive": "text-red-600 hover:text-red-800"
-    },
-    "cardHover": {
-      "subtle": "group transition-shadow duration-200 hover:shadow-md",
-      "interactive": "group transition-all duration-200 hover:border-primary/20 hover:shadow-md",
-      "description": "Standard card hover patterns — use 'subtle' for info cards, 'interactive' for clickable/navigable cards"
-    },
-    "stickyBar": {
-      "classes": "sticky top-0 z-10 rounded-lg border bg-background/80 px-4 py-2 backdrop-blur-sm",
-      "description": "Sticky action bar for bulk operations — frosted glass effect, shown contextually"
-    },
-    "filterBar": {
-      "classes": "rounded-lg border bg-muted/30 p-2 dark:bg-muted/10",
-      "description": "Subtle tinted container for filter/search controls"
+    "insightCard": {
+      "componentRef": "src/components/ui/insight-card.tsx",
+      "note": "Shared base for NarrativeCard and WhatYouLearnedCard. Provides icon well + title/badge + children + aside + dismiss animation.",
+      "iconWell": {
+        "size": 36,
+        "radius": 8,
+        "defaultBg": "hsl(var(--primary) / 0.1)",
+        "defaultColor": "hsl(var(--primary))"
+      },
+      "dismiss": {
+        "transition": "scale-95 opacity-0",
+        "duration": "var(--duration-fast)",
+        "easing": "var(--ease-default)"
+      }
     }
   },
-
   "icons": {
-    "library": "lucide-react",
-    "defaultSize": "h-4 w-4",
+    "library": "Lucide",
     "sizes": {
-      "sm": "h-3 w-3",
-      "md": "h-4 w-4",
-      "lg": "h-5 w-5",
-      "xl": "h-6 w-6",
-      "2xl": "h-8 w-8"
+      "compact": 14,
+      "default": 16,
+      "chrome": 20,
+      "state": 24
     },
-    "commonIcons": {
-      "close": "X",
-      "check": "Check",
-      "chevronDown": "ChevronDown",
-      "chevronRight": "ChevronRight",
-      "plus": "Plus",
-      "trash": "Trash2",
-      "edit": "Pencil",
-      "copy": "Copy",
-      "settings": "Settings",
-      "user": "User",
-      "menu": "Menu",
-      "search": "Search",
-      "info": "Info",
-      "warning": "AlertTriangle",
-      "error": "AlertCircle",
-      "strategies": "Layers",
-      "backtests": "TrendingUp",
-      "recentlyViewed": "Clock",
-      "arrowRight": "ArrowRight",
-      "positive": "ArrowUpRight",
-      "negative": "ArrowDownRight",
-      "actions": "MoreVertical",
-      "upload": "Upload",
-      "book": "BookOpen",
-      "palette": "Palette",
-      "globe": "Globe",
-      "creditCard": "CreditCard",
-      "chart": "BarChart3",
-      "sparkles": "Sparkles",
-      "blocks": "Blocks",
-      "shield": "Shield",
-      "zap": "Zap"
-    }
+    "guidance": [
+      "Icons remain monochrome or semantic-color only",
+      "Use aria-hidden on decorative icons; provide aria-label or visually-hidden text for meaningful icons",
+      "Prefer SVG icons over emoji in UI components"
+    ]
   },
-
+  "accessibility": {
+    "wcag": "2.2 AA",
+    "colorContrast": {
+      "normalText": "≥4.5:1",
+      "largeText": "≥3:1",
+      "uiComponents": "≥3:1"
+    },
+    "landmarks": {
+      "main": "<main id=\"main-content\">",
+      "nav": "<nav aria-label=\"Main navigation\">",
+      "sidebar": "<aside>"
+    },
+    "focusRing": "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
+    "reducedMotion": "Handled globally in globals.css via prefers-reduced-motion; per-component motion-reduce: overrides available."
+  },
   "utilities": {
-    "cn": {
-      "import": "import { cn } from '@/lib/utils'",
-      "description": "Utility function combining clsx and tailwind-merge for conditional class names",
-      "usage": "cn('base-classes', condition && 'conditional-classes', className)"
+    "surfaceRecipes": {
+      "card": {
+        "fill": "hsl(var(--card))",
+        "border": "hsl(var(--border))",
+        "shadow": "shadow-sm"
+      },
+      "elevated": {
+        "fill": "hsl(var(--surface-elevated))",
+        "border": "hsl(var(--border))"
+      },
+      "overlay": {
+        "fill": "hsl(var(--surface-overlay))",
+        "shadow": "shadow-overlay"
+      }
     },
-    "cva": {
-      "import": "import { cva, type VariantProps } from 'class-variance-authority'",
-      "description": "Class Variance Authority for component variants",
-      "usage": "Create variant definitions with base styles and variant options"
+    "textRecipes": {
+      "primary": "hsl(var(--foreground))",
+      "muted": "hsl(var(--muted-foreground))",
+      "subtle": "hsl(var(--text-subtle))",
+      "monoData": "font-mono tabular-nums tracking-tight (via .data-text utility)"
     },
-    "textGradientPrimary": {
-      "class": ".text-gradient-primary",
-      "implementation": "bg-clip-text text-transparent + linear-gradient(135deg, primary purple, blue-indigo)",
-      "location": "frontend/src/app/globals.css",
-      "description": "Gradient text utility for brand moments — hero headings, welcome greetings. Use sparingly.",
-      "usage": "<span className=\"text-gradient-primary\">Display Name</span>"
-    },
-    "backgroundGradient": {
-      "description": "Subtle ambient radial gradients applied to body for depth. Two overlapping ellipses: primary-tinted at top center, blue-tinted at right edge.",
-      "location": "frontend/src/app/globals.css",
-      "lightMode": "primary/0.04 opacity, blue/0.02 opacity",
-      "darkMode": "primary/0.08 opacity, blue/0.04 opacity"
+    "divider": {
+      "light": "hsl(var(--border))",
+      "dark": "hsl(var(--border))",
+      "thickness": 1
     }
   },
-
-  "siteHeader": {
-    "height": "h-14",
-    "gradientBorder": {
-      "classes": "h-px bg-gradient-to-r from-transparent via-border to-transparent",
-      "description": "Gradient bottom border that fades at edges — replaces solid border for premium feel"
-    }
-  },
-
-  "themeConfiguration": {
-    "darkMode": {
-      "strategy": "class",
-      "className": "dark",
-      "appliedTo": "document.documentElement"
-    },
-    "cssVariables": {
-      "location": "frontend/src/app/globals.css",
-      "rootSelector": ":root",
-      "darkSelector": ".dark"
-    },
-    "tailwindConfig": {
-      "location": "frontend/tailwind.config.ts",
-      "colorFormat": "hsl(var(--color-name))"
-    }
-  },
-
   "guidelines": {
-    "newComponents": [
-      "Use existing tokens and patterns before creating new ones",
-      "Prefer shadcn/ui base components for common UI elements",
-      "Canvas nodes use custom Tailwind - do NOT use shadcn/ui there",
-      "Include dark mode support using Tailwind's dark: prefix",
-      "Use CVA for components with multiple variants",
-      "Always use the cn() utility for className composition",
-      "Test on mobile (768px) and desktop viewports"
+    "do": [
+      "Use IBM Plex Sans and IBM Plex Mono as the type system",
+      "Use --primary (teal-blue) for primary actions and interactive chrome",
+      "Use --info (sky-blue, 210°) for informational banners — it is intentionally distinct from --primary (204°)",
+      "Reserve --success, --destructive, and --warning for outcome and risk semantics",
+      "Reference CSS custom properties (hsl(var(--token-name))) rather than hardcoding hex or HSL literals in component code",
+      "Use shadow-sm for cards/dropdowns, shadow-md for elevated panels, shadow-overlay for modals",
+      "Use duration-fast (150ms) for clicks/toggles and duration-normal (250ms) for modals and drawers",
+      "Keep --radius-based corners: default 8px, checkbox 3px, full = pill/circle",
+      "Use solid fills and thin 1px borders; avoid gradient-heavy surfaces",
+      "Follow WCAG 2.2 AA: focus-visible rings, landmark elements, aria-label on interactive icons"
     ],
-    "doNot": [
-      "Create new color values outside the token system",
-      "Use arbitrary values when a token exists",
-      "Ignore mobile responsiveness",
-      "Skip dark mode support",
-      "Add animations longer than 300ms for UI feedback",
-      "Use !important except for react-flow handle overrides"
+    "dont": [
+      "Do not hardcode hex or raw HSL values in component code — reference the CSS var instead",
+      "Do not introduce glassmorphism, blur-heavy panels, or gradient headlines",
+      "Do not skip aria-label on icon-only buttons or interactive elements",
+      "Do not use --primary color for informational banners — use --info to keep action and information visually separable",
+      "Do not use inline duration-150/200/300 Tailwind classes — use duration-fast / duration-normal tokens instead"
     ],
-    "accessibility": [
-      "Maintain minimum 4.5:1 contrast ratio for text",
-      "Include visible focus indicators (ring)",
-      "Use semantic HTML elements",
-      "Add ARIA labels where needed",
-      "Ensure keyboard navigability"
+    "implementationNotes": [
+      "globals.css is the single runtime source of truth. This JSON is a documentation mirror.",
+      "tailwind.config.ts extends Tailwind with shadow-sm/md/overlay, duration-fast/normal, ease-default, and py-section/section-tight utilities.",
+      "Canvas nodes use --canvas-node-{category} CSS vars for their accent colors. Tints are derived at runtime via Tailwind opacity modifiers.",
+      "Dark mode is activated by the .dark class on <html>. Both themes must maintain WCAG 2.2 AA contrast."
     ]
   }
 }

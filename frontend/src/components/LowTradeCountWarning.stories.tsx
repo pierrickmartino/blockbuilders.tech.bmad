@@ -26,3 +26,25 @@ export const Hidden: Story = {
   name: "Hidden (>= 10 trades)",
   args: { numTrades: 10 },
 };
+
+export const HiddenNull: Story = {
+  name: "Hidden (null)",
+  args: { numTrades: null },
+};
+
+export const HiddenZero: Story = {
+  name: "Hidden (0 trades)",
+  args: { numTrades: 0 },
+};
+
+export const Dark: Story = {
+  name: "Dark mode",
+  args: { numTrades: 3 },
+  decorators: [
+    (Story) => (
+      <div className="dark bg-background p-4">
+        <Story />
+      </div>
+    ),
+  ],
+};

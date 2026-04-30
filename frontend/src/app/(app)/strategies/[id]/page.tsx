@@ -10,7 +10,7 @@ import {
   ANALYTICS_CONSENT_CHANGED_EVENT,
   ANALYTICS_POSTHOG_INITIALIZED_EVENT,
 } from "@/lib/analytics";
-import { formatDateTime, formatRelativeTime } from "@/lib/format";
+import { formatRelativeTime } from "@/lib/format";
 import { useDisplay } from "@/context/display";
 import { useAuth } from "@/context/auth";
 import { Strategy, StrategyTag, StrategyVersion, StrategyVersionDetail, StrategyExportFile } from "@/types/strategy";
@@ -50,36 +50,24 @@ import BlockPalette from "@/components/canvas/BlockPalette";
 import BlockLibrarySheet from "@/components/canvas/BlockLibrarySheet";
 import { useIndicatorMode } from "@/hooks/useIndicatorMode";
 import InspectorPanel from "@/components/canvas/InspectorPanel";
-import { StrategyTabs } from "@/components/StrategyTabs";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Sheet,
   SheetContent,
   SheetDescription,
   SheetHeader,
   SheetTitle,
-  SheetTrigger,
 } from "@/components/ui/sheet";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  Settings as SettingsIcon,
+  Loader2,
+  Plus,
+} from "lucide-react";
 import { KeyboardShortcutsModal } from "@/components/KeyboardShortcutsModal";
 import { isInputElement } from "@/lib/keyboard-shortcuts";
-import { cn } from "@/lib/utils";
 import { getFeatureFlag, CANVAS_FLAGS } from "@/lib/feature-flags";
+import { StrategyHeader } from "./_components/StrategyHeader";
+import { StrategySettingsSheet } from "./_components/StrategySettingsSheet";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -213,6 +201,8 @@ export default function StrategyEditorPage({ params }: Props) {
           setNodes(newNodes);
           setEdges(newEdges);
           setHistory(resetHistory(newNodes, newEdges));
+          setLastSavedNodesSnapshot(JSON.stringify(newNodes));
+          setLastSavedEdgesSnapshot(JSON.stringify(newEdges));
 
           // Generate explanation
           const result = generateExplanation(definition);
@@ -224,14 +214,16 @@ export default function StrategyEditorPage({ params }: Props) {
           setNodes(newNodes);
           setEdges(newEdges);
           setHistory(resetHistory(newNodes, newEdges));
+          setLastSavedNodesSnapshot(JSON.stringify(newNodes));
+          setLastSavedEdgesSnapshot(JSON.stringify(newEdges));
 
           // Generate explanation for default definition
           const result = generateExplanation(defaultDef);
           setExplanation(result);
         }
         setValidationErrors([]);
-      } catch {
-        // Failed to load version detail
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load version detail");
       }
     },
     [id]
@@ -272,8 +264,9 @@ export default function StrategyEditorPage({ params }: Props) {
         setEdges(newEdges);
         setHistory(resetHistory(newNodes, newEdges));
       }
-    } catch {
+    } catch (err) {
       if (!shouldLoadDetail) {
+        console.error("Failed to load versions:", err);
         return;
       }
       // Versions are optional, create default canvas
@@ -381,6 +374,29 @@ export default function StrategyEditorPage({ params }: Props) {
     [validationErrors]
   );
 
+  const hasUnsavedChanges = useMemo(() => {
+    if (!lastSavedNodesSnapshot && !lastSavedEdgesSnapshot) return false;
+    return JSON.stringify(nodes) !== lastSavedNodesSnapshot ||
+           JSON.stringify(edges) !== lastSavedEdgesSnapshot;
+  }, [nodes, edges, lastSavedNodesSnapshot, lastSavedEdgesSnapshot]);
+
+  // Warn before closing/navigating away with unsaved changes
+  useEffect(() => {
+    if (!hasUnsavedChanges) return;
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [hasUnsavedChanges]);
+
+  const confirmLoadVersion = useCallback((versionNumber: number) => {
+    if (hasUnsavedChanges && !window.confirm("You have unsaved changes. Loading a different version will replace your current canvas. Continue?")) {
+      return;
+    }
+    loadVersionDetail(versionNumber);
+  }, [hasUnsavedChanges, loadVersionDetail]);
+
   useEffect(() => {
     if (selectedNodeId && !nodes.some((node) => node.id === selectedNodeId)) {
       setSelectedNodeId(null);
@@ -428,7 +444,11 @@ export default function StrategyEditorPage({ params }: Props) {
   }, [validationErrors, setNodes]);
 
   const handleNameSave = async () => {
-    if (!nameInput.trim() || nameInput === strategy?.name) {
+    if (!nameInput.trim()) {
+      setError("Strategy name is required.");
+      return;
+    }
+    if (nameInput === strategy?.name) {
       setEditingName(false);
       setNameInput(strategy?.name || "");
       return;
@@ -560,7 +580,6 @@ export default function StrategyEditorPage({ params }: Props) {
       loadStrategy();
     } catch (err) {
       setAutosaveState('error');
-      setError(err instanceof Error ? err.message : "Autosave failed");
     }
   }, [lastSavedNodesSnapshot, lastSavedEdgesSnapshot, id, loadVersions, loadStrategy]);
 
@@ -738,20 +757,13 @@ export default function StrategyEditorPage({ params }: Props) {
 
   // Handle node deletion from properties panel
   const handleDeleteNode = (nodeId: string) => {
-    let updatedNodes: Node[] = [];
-    let updatedEdges: Edge[] = [];
+    const updatedNodes = nodes.filter((node) => node.id !== nodeId);
+    const updatedEdges = edges.filter(
+      (edge) => edge.source !== nodeId && edge.target !== nodeId
+    );
 
-    setNodes((currentNodes) => {
-      updatedNodes = currentNodes.filter((node) => node.id !== nodeId);
-      return updatedNodes;
-    });
-    setEdges((currentEdges) => {
-      updatedEdges = currentEdges.filter(
-        (edge) => edge.source !== nodeId && edge.target !== nodeId
-      );
-      return updatedEdges;
-    });
-
+    setNodes(updatedNodes);
+    setEdges(updatedEdges);
     scheduleSnapshot(updatedNodes, updatedEdges);
     setSelectedNodeId(null);
     setValidationErrors([]);
@@ -789,16 +801,22 @@ export default function StrategyEditorPage({ params }: Props) {
     setSelectedNodeId(noteId);
   };
 
+  // Refs for latest state to avoid stale closures in change handlers
+  const nodesRef = useRef(nodes);
+  nodesRef.current = nodes;
+  const edgesRef = useRef(edges);
+  edgesRef.current = edges;
+
   // Handle nodes change
   const handleNodesChange = (newNodes: Node[]) => {
     setNodes(newNodes);
-    scheduleSnapshot(newNodes, edges);
+    scheduleSnapshot(newNodes, edgesRef.current);
   };
 
   // Handle edges change
   const handleEdgesChange = (newEdges: Edge[]) => {
     setEdges(newEdges);
-    scheduleSnapshot(nodes, newEdges);
+    scheduleSnapshot(nodesRef.current, newEdges);
   };
 
   // Handle undo
@@ -879,8 +897,9 @@ export default function StrategyEditorPage({ params }: Props) {
     setNodes(updatedNodes);
     scheduleSnapshot(updatedNodes, edges);
 
-    // Fit view with animation
-    reactFlowRef.current?.fitView({ padding: 0.2, duration: 300 });
+    // Fit view with animation (respect reduced-motion preference)
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    reactFlowRef.current?.fitView({ padding: 0.2, duration: reduceMotion ? 0 : 300 });
 
     // Close mobile sheet if open
     setShowLayoutMenu(false);
@@ -931,8 +950,9 @@ export default function StrategyEditorPage({ params }: Props) {
         return;
       }
 
-      // Run backtest: Cmd/Ctrl+R (navigate to backtest tab)
-      if (isMod && key === "r" && !e.shiftKey) {
+      // Run backtest: Cmd/Ctrl+Enter (navigate to backtest tab).
+      // We deliberately do NOT override Cmd/Ctrl+R, which is the universal browser refresh shortcut.
+      if (isMod && key === "enter" && !e.shiftKey) {
         e.preventDefault();
         router.push(`/strategies/${id}/backtest`);
         return;
@@ -952,15 +972,18 @@ export default function StrategyEditorPage({ params }: Props) {
         return;
       }
 
+      // Don't hijack copy/paste when the user has text selected on the page.
+      const hasTextSelection = !!window.getSelection()?.toString();
+
       // Copy: Cmd/Ctrl+C
-      if (isMod && key === "c") {
+      if (isMod && key === "c" && !hasTextSelection) {
         e.preventDefault();
         copyToClipboard(selectedNodeIds, nodes, edges);
         return;
       }
 
       // Paste: Cmd/Ctrl+V
-      if (isMod && key === "v") {
+      if (isMod && key === "v" && !hasTextSelection) {
         e.preventDefault();
         const result = pasteFromClipboard(nodes, edges);
         if (result) {
@@ -1017,14 +1040,18 @@ export default function StrategyEditorPage({ params }: Props) {
     }
   };
 
-  const handleCopyExplanation = () => {
+  const handleCopyExplanation = async () => {
     if (!explanation) return;
     const text = [explanation.entry, explanation.exit, explanation.risk]
       .filter(Boolean)
       .join(" ");
-    navigator.clipboard.writeText(text);
-    setSaveMessage("Explanation copied to clipboard");
-    setTimeout(() => setSaveMessage(null), 2000);
+    try {
+      await navigator.clipboard.writeText(text);
+      setSaveMessage("Explanation copied to clipboard");
+      setTimeout(() => setSaveMessage(null), 2000);
+    } catch {
+      setError("Could not access clipboard. Try selecting and copying the text manually.");
+    }
   };
 
   const handleExport = async () => {
@@ -1077,8 +1104,20 @@ export default function StrategyEditorPage({ params }: Props) {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="text-muted-foreground">Loading strategy...</div>
+      <div className="flex h-screen flex-col" aria-busy="true" aria-live="polite">
+        <div className="flex-shrink-0 border-b bg-background px-3 py-2">
+          <div className="flex items-center gap-2">
+            <div className="h-5 w-5 animate-pulse rounded bg-muted" />
+            <div className="h-5 w-40 animate-pulse rounded bg-muted" />
+            <div className="ml-auto h-8 w-20 animate-pulse rounded bg-muted" />
+          </div>
+        </div>
+        <div className="flex flex-1 items-center justify-center bg-muted/20">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+            <span>Loading strategy…</span>
+          </div>
+        </div>
       </div>
     );
   }
@@ -1088,7 +1127,10 @@ export default function StrategyEditorPage({ params }: Props) {
       <div className="flex h-screen items-center justify-center">
         <div className="text-center">
           <p className="text-muted-foreground">Strategy not found</p>
-          <Link href="/strategies" className="mt-4 text-blue-600 hover:text-blue-800">
+          <Link
+            href="/strategies"
+            className="mt-4 inline-block text-primary underline-offset-4 hover:underline"
+          >
             Back to strategies
           </Link>
         </div>
@@ -1098,540 +1140,79 @@ export default function StrategyEditorPage({ params }: Props) {
 
   return (
     <div className="flex h-screen flex-col">
-      {/* Compact Top Bar */}
-      <div className="flex-shrink-0 border-b bg-background px-3 py-2">
-        <div className="flex items-center justify-between gap-2">
-          {/* Left: Back + Name + Badges */}
-          <div className="flex min-w-0 items-center gap-2">
-            <Link href="/strategies" className="flex-shrink-0 text-muted-foreground hover:text-foreground">
-              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </Link>
+      <StrategyHeader
+        strategy={strategy}
+        strategyId={id}
+        versions={versions}
+        selectedVersion={selectedVersion}
+        timezone={timezone}
+        editingName={editingName}
+        nameInput={nameInput}
+        isSavingName={isSavingName}
+        onEditingNameChange={setEditingName}
+        onNameChange={setNameInput}
+        onNameSave={handleNameSave}
+        autosaveState={autosaveState}
+        lastSavedAt={lastSavedAt}
+        relativeTimestamp={relativeTimestamp}
+        isSavingVersion={isSavingVersion}
+        onSaveVersion={handleSaveVersion}
+        onLoadVersion={confirmLoadVersion}
+        isUpdatingAutoUpdate={isUpdatingAutoUpdate}
+        onExport={handleExport}
+        onAutoUpdateToggle={handleAutoUpdateToggle}
+        onLookbackChange={handleLookbackChange}
+        onSettingsOpen={() => setShowSettings(true)}
+        error={error}
+        validationErrors={validationErrors}
+        saveMessage={saveMessage}
+        onErrorDismiss={() => { setError(null); setValidationErrors([]); }}
+        onMessageDismiss={() => setSaveMessage(null)}
+        onJumpToError={(blockId) => {
+          setSelectedNodeId(blockId);
+          const node = nodes.find((n) => n.id === blockId);
+          if (node) {
+            const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+            reactFlowRef.current?.setCenter(node.position.x, node.position.y, {
+              zoom: 1.2,
+              duration: reduceMotion ? 0 : 300,
+            });
+          }
+        }}
+      />
 
-            {editingName ? (
-              <div className="flex items-center gap-1">
-                <Input
-                  type="text"
-                  value={nameInput}
-                  onChange={(e) => setNameInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleNameSave();
-                    if (e.key === "Escape") {
-                      setEditingName(false);
-                      setNameInput(strategy.name);
-                    }
-                  }}
-                  className="h-7 w-32 text-sm font-semibold sm:w-40"
-                  autoFocus
-                />
-                <Button size="sm" className="h-7 px-2" onClick={handleNameSave} disabled={isSavingName}>
-                  {isSavingName ? "..." : "OK"}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-7 px-2"
-                  onClick={() => {
-                    setEditingName(false);
-                    setNameInput(strategy.name);
-                  }}
-                >
-                  Cancel
-                </Button>
-              </div>
-            ) : (
-              <button
-                className="min-w-0 truncate text-sm font-semibold text-foreground hover:text-primary"
-                onClick={() => setEditingName(true)}
-                title="Click to edit name"
-              >
-                {strategy.name}
-              </button>
-            )}
-
-            <Badge variant="secondary" className="hidden flex-shrink-0 sm:inline-flex">
-              {strategy.asset}
-            </Badge>
-            <Badge variant="secondary" className="hidden flex-shrink-0 sm:inline-flex">
-              {strategy.timeframe}
-            </Badge>
-
-            {/* Tags preview (compact) */}
-            {strategy.tags && strategy.tags.length > 0 && (
-              <div className="hidden items-center gap-1 lg:flex">
-                {strategy.tags.slice(0, 2).map((tag) => (
-                  <Badge key={tag.id} variant="outline" className="bg-primary/10 text-primary dark:bg-primary/20 text-xs">
-                    {tag.name}
-                  </Badge>
-                ))}
-                {strategy.tags.length > 2 && (
-                  <span className="text-xs text-muted-foreground">+{strategy.tags.length - 2}</span>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Right: Actions */}
-          <div className="flex flex-shrink-0 items-center gap-2">
-            {/* Autosave status (mobile only) */}
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground lg:hidden">
-              {autosaveState === 'saving' && (
-                <>
-                  <svg className="h-3 w-3 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                  <span>Saving...</span>
-                </>
-              )}
-              {autosaveState === 'saved' && lastSavedAt && (
-                <>
-                  <svg className="h-3 w-3 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span>Saved • {relativeTimestamp}</span>
-                </>
-              )}
-              {autosaveState === 'error' && (
-                <>
-                  <svg className="h-3 w-3 text-destructive" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span className="text-destructive">Save failed</span>
-                </>
-              )}
-            </div>
-
-            {/* Save button (desktop only) */}
-            <Button
-              size="sm"
-              className="hidden h-8 lg:inline-flex"
-              onClick={handleSaveVersion}
-              disabled={isSavingVersion}
-            >
-              {isSavingVersion ? "..." : "Save"}
-            </Button>
-
-            {/* History Sheet (mobile only) */}
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="outline" size="sm" className="h-8 px-2 lg:hidden" aria-label="Version history">
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="right" className="w-full overflow-y-auto sm:w-[400px] sm:max-w-[400px]">
-                <SheetHeader>
-                  <SheetTitle>Version History</SheetTitle>
-                  <SheetDescription>Load previous strategy versions.</SheetDescription>
-                </SheetHeader>
-
-                <div className="mt-6 space-y-2">
-                  {versions.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No saved versions yet.</p>
-                  ) : (
-                    versions.map((v) => (
-                      <div
-                        key={v.id}
-                        className={cn(
-                          "flex items-center justify-between rounded-lg border p-3",
-                          v.version_number === selectedVersion?.version_number &&
-                            "border-primary bg-primary/5"
-                        )}
-                      >
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium">
-                            Version {v.version_number}
-                            {v.version_number === selectedVersion?.version_number && (
-                              <Badge variant="outline" className="ml-2 text-xs">Current</Badge>
-                            )}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {formatDateTime(v.created_at, timezone)}
-                          </div>
-                        </div>
-                        {v.version_number !== selectedVersion?.version_number && (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-8"
-                            onClick={() => loadVersionDetail(v.version_number)}
-                          >
-                            Load
-                          </Button>
-                        )}
-                      </div>
-                    ))
-                  )}
-                </div>
-              </SheetContent>
-            </Sheet>
-
-            {/* More actions dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="h-8 px-2">
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-                  </svg>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={handleExport}>
-                  Export JSON
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={() => handleAutoUpdateToggle(!strategy.auto_update_enabled)}
-                  disabled={isUpdatingAutoUpdate}
-                >
-                  {strategy.auto_update_enabled ? "Disable" : "Enable"} Strategy Monitor
-                </DropdownMenuItem>
-                {strategy.auto_update_enabled && (
-                  <>
-                    <DropdownMenuItem onClick={() => handleLookbackChange(90)} disabled={isUpdatingAutoUpdate}>
-                      Lookback: 90 days {strategy.auto_update_lookback_days === 90 && "✓"}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleLookbackChange(180)} disabled={isUpdatingAutoUpdate}>
-                      Lookback: 180 days {strategy.auto_update_lookback_days === 180 && "✓"}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleLookbackChange(365)} disabled={isUpdatingAutoUpdate}>
-                      Lookback: 365 days {strategy.auto_update_lookback_days === 365 && "✓"}
-                    </DropdownMenuItem>
-                  </>
-                )}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => setShowSettings(true)}>
-                  Settings...
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            {/* Settings gear icon (desktop only) */}
-            <Button
-              variant="outline"
-              size="sm"
-              className="hidden h-8 px-2 lg:inline-flex"
-              onClick={() => setShowSettings(true)}
-            >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-            </Button>
-          </div>
-        </div>
-
-        {/* Tabs row */}
-        <div className="mt-1 flex items-center justify-between gap-2">
-          <StrategyTabs strategyId={id} activeTab="build" />
-          {versions.length > 0 && (
-            <Select
-              value={String(selectedVersion?.version_number || "")}
-              onValueChange={(v) => loadVersionDetail(Number(v))}
-            >
-              <SelectTrigger className="hidden h-8 w-[110px] text-xs sm:w-[140px] lg:flex">
-                <SelectValue placeholder="Version" />
-              </SelectTrigger>
-              <SelectContent>
-                {versions.map((v) => (
-                  <SelectItem key={v.id} value={String(v.version_number)}>
-                    v{v.version_number} - {formatDateTime(v.created_at, timezone).split(" ")[0]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        </div>
-
-        {/* Compact error/success messages */}
-        {error && (
-          <div className="mt-1 rounded-lg border border-destructive/30 bg-destructive/5 px-2 py-1.5 text-xs text-destructive">
-            {error}
-            {validationErrors.length > 0 && (
-              <span className="ml-1 text-muted-foreground">
-                ({validationErrors.length} error{validationErrors.length > 1 ? "s" : ""})
-              </span>
-            )}
-          </div>
-        )}
-        {saveMessage && (
-          <div className="mt-1 rounded-lg border border-green-200 bg-green-50 px-2 py-1.5 text-xs text-green-600 dark:border-green-800 dark:bg-green-950 dark:text-green-400">
-            {saveMessage}
-          </div>
-        )}
-      </div>
-
-      {/* Settings Sheet - controlled by showSettings state */}
-      <Sheet open={showSettings} onOpenChange={setShowSettings}>
-        <SheetContent className="w-full overflow-y-auto sm:w-[400px] sm:max-w-[400px]">
-          <SheetHeader>
-            <SheetTitle>Strategy Settings</SheetTitle>
-            <SheetDescription>
-              Configure tags, alerts, and view strategy summary.
-            </SheetDescription>
-          </SheetHeader>
-
-          <div className="mt-6 space-y-6">
-            {/* Strategy Summary */}
-            {explanation && explanation.status === "valid" && (
-              <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-950">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-blue-700">Strategy Summary</span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 px-2 text-xs text-blue-600"
-                    onClick={handleCopyExplanation}
-                  >
-                    Copy
-                  </Button>
-                </div>
-                <div className="mt-2 space-y-1 text-sm text-muted-foreground">
-                  <p>{explanation.entry}</p>
-                  <p>{explanation.exit}</p>
-                  {explanation.risk && <p>{explanation.risk}</p>}
-                </div>
-              </div>
-            )}
-            {explanation && explanation.status === "fallback" && (
-              <div className="rounded-lg border bg-muted p-3 text-sm text-muted-foreground">
-                {explanation.entry}
-              </div>
-            )}
-
-            {/* Tags Section */}
-            <div>
-              <h4 className="text-sm font-semibold">Tags</h4>
-              <p className="text-xs text-muted-foreground">
-                Organize strategies with custom tags for filtering.
-              </p>
-
-              <div className="mt-3 space-y-3">
-                {strategy.tags && strategy.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {strategy.tags.map((tag) => (
-                      <Badge key={tag.id} variant="outline" className="bg-primary/10 text-primary dark:bg-primary/20">
-                        {tag.name}
-                        <button
-                          onClick={() => handleRemoveTag(tag.id)}
-                          disabled={isSavingTags}
-                          className="ml-1 text-primary/70 hover:text-primary disabled:opacity-50"
-                        >
-                          ×
-                        </button>
-                      </Badge>
-                    ))}
-                  </div>
-                )}
-
-                <div className="flex gap-2">
-                  <Input
-                    type="text"
-                    placeholder="Add tag..."
-                    value={tagInput}
-                    onChange={(e) => setTagInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && tagInput.trim()) {
-                        handleAddTag(tagInput);
-                      }
-                    }}
-                    disabled={isSavingTags || (strategy?.tags?.length || 0) >= 20}
-                    className="h-8 flex-1"
-                    list="available-tags"
-                  />
-                  <Button
-                    size="sm"
-                    className="h-8 bg-primary hover:bg-primary/90"
-                    onClick={() => handleAddTag(tagInput)}
-                    disabled={!tagInput.trim() || isSavingTags || (strategy?.tags?.length || 0) >= 20}
-                  >
-                    Add
-                  </Button>
-                </div>
-
-                <datalist id="available-tags">
-                  {availableTags.map((tag) => (
-                    <option key={tag.id} value={tag.name} />
-                  ))}
-                </datalist>
-
-                {(strategy?.tags?.length || 0) >= 20 && (
-                  <p className="text-xs text-muted-foreground">Maximum 20 tags per strategy.</p>
-                )}
-              </div>
-            </div>
-
-            {/* Performance Alerts Section */}
-            <div>
-              <h4 className="text-sm font-semibold">Performance Alerts</h4>
-              <p className="text-xs text-muted-foreground">
-                Get notified when your strategy performance changes significantly.
-              </p>
-
-              {isEditingAlert ? (
-                <div className="mt-3 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <label htmlFor="alert-enabled" className="text-sm">Enable Alerts</label>
-                    <input
-                      type="checkbox"
-                      id="alert-enabled"
-                      checked={alertEnabled}
-                      onChange={(e) => setAlertEnabled(e.target.checked)}
-                      className="h-4 w-4"
-                    />
-                  </div>
-
-                  {alertEnabled && (
-                    <>
-                      <div>
-                        <label className="text-sm">Performance Drop Threshold (%)</label>
-                        <Input
-                          type="number"
-                          value={alertThreshold ?? ""}
-                          onChange={(e) => setAlertThreshold(e.target.value ? parseFloat(e.target.value) : null)}
-                          placeholder="e.g., 5 for 5% drop"
-                          min="0.1"
-                          max="100"
-                          step="0.1"
-                          className="mt-1 h-8"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="text-sm">Alert Triggers</label>
-                        <div className="mt-1 space-y-2">
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="checkbox"
-                              id="alert-entry"
-                              checked={alertOnEntry}
-                              onChange={(e) => setAlertOnEntry(e.target.checked)}
-                              className="h-4 w-4"
-                            />
-                            <label htmlFor="alert-entry" className="text-sm">Entry signal detected</label>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="checkbox"
-                              id="alert-exit"
-                              checked={alertOnExit}
-                              onChange={(e) => setAlertOnExit(e.target.checked)}
-                              className="h-4 w-4"
-                            />
-                            <label htmlFor="alert-exit" className="text-sm">Exit signal detected</label>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <label htmlFor="notify-email" className="text-sm">Email notifications</label>
-                        <input
-                          type="checkbox"
-                          id="notify-email"
-                          checked={notifyEmail}
-                          onChange={(e) => setNotifyEmail(e.target.checked)}
-                          className="h-4 w-4"
-                        />
-                      </div>
-                    </>
-                  )}
-
-                  {alertError && (
-                    <p className="text-xs text-destructive">{alertError}</p>
-                  )}
-
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      className="h-8"
-                      onClick={handleAlertSave}
-                      disabled={isSavingAlert}
-                    >
-                      {isSavingAlert ? "Saving..." : "Save Alerts"}
-                    </Button>
-                    {alertRule && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-8"
-                        onClick={() => {
-                          setIsEditingAlert(false);
-                          resetAlertForm(alertRule);
-                        }}
-                      >
-                        Cancel
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <div className="mt-3 space-y-2">
-                  <div className="text-sm">
-                    <strong>Status:</strong> {alertRule?.is_active ? "Enabled" : "Disabled"}
-                  </div>
-                  {alertRule?.is_active && (
-                    <>
-                      {alertRule.threshold_pct !== null && (
-                        <div className="text-sm">
-                          <strong>Threshold:</strong> {alertRule.threshold_pct}% drop
-                        </div>
-                      )}
-                      <div className="text-sm">
-                        <strong>Triggers:</strong>{" "}
-                        {alertRule.alert_on_entry && "Entry signal"}
-                        {alertRule.alert_on_entry && alertRule.alert_on_exit && ", "}
-                        {alertRule.alert_on_exit && "Exit signal"}
-                      </div>
-                      <div className="text-sm">
-                        <strong>Email:</strong> {alertRule.notify_email ? "Yes" : "No"}
-                      </div>
-                    </>
-                  )}
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8"
-                    onClick={() => setIsEditingAlert(true)}
-                  >
-                    Edit Alerts
-                  </Button>
-                </div>
-              )}
-            </div>
-
-            {/* Canvas Mode Section */}
-            <div>
-              <h4 className="text-sm font-semibold">Canvas Mode</h4>
-              <p className="text-xs text-muted-foreground">
-                Choose how nodes are displayed on the canvas.
-              </p>
-              <div className="mt-3">
-                <select
-                  value={nodeDisplayMode}
-                  onChange={(e) => setNodeDisplayMode(e.target.value as "expanded" | "compact")}
-                  className="h-8 w-full rounded border px-2 text-sm"
-                >
-                  <option value="expanded">Standard (Expanded by default)</option>
-                  <option value="compact">Compact (Click to expand)</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Strategy Monitor Status */}
-            <div>
-              <h4 className="text-sm font-semibold">Strategy Monitor</h4>
-              <p className="text-xs text-muted-foreground mb-1">Automated daily re-testing of your strategy against the latest market data</p>
-              <p className="text-sm text-muted-foreground">
-                {strategy.auto_update_enabled
-                  ? `Enabled (${strategy.auto_update_lookback_days} days lookback)`
-                  : "Disabled"}
-              </p>
-            </div>
-          </div>
-        </SheetContent>
-      </Sheet>
+      <StrategySettingsSheet
+        open={showSettings}
+        strategy={strategy}
+        explanation={explanation}
+        nodeDisplayMode={nodeDisplayMode}
+        availableTags={availableTags}
+        tagInput={tagInput}
+        isSavingTags={isSavingTags}
+        alertRule={alertRule}
+        alertEnabled={alertEnabled}
+        alertThreshold={alertThreshold}
+        alertOnEntry={alertOnEntry}
+        alertOnExit={alertOnExit}
+        notifyEmail={notifyEmail}
+        alertError={alertError}
+        isSavingAlert={isSavingAlert}
+        isEditingAlert={isEditingAlert}
+        onOpenChange={setShowSettings}
+        onNodeDisplayModeChange={setNodeDisplayMode}
+        onCopyExplanation={handleCopyExplanation}
+        onTagInputChange={setTagInput}
+        onAddTag={handleAddTag}
+        onRemoveTag={handleRemoveTag}
+        onAlertSave={handleAlertSave}
+        onAlertEditStart={() => setIsEditingAlert(true)}
+        onAlertEditCancel={() => { setIsEditingAlert(false); resetAlertForm(alertRule); }}
+        onAlertEnabledChange={setAlertEnabled}
+        onAlertThresholdChange={setAlertThreshold}
+        onAlertOnEntryChange={setAlertOnEntry}
+        onAlertOnExitChange={setAlertOnExit}
+        onNotifyEmailChange={setNotifyEmail}
+      />
 
       {/* Main Content - Three Panel Layout */}
       <div className="flex flex-1 overflow-hidden">
@@ -1656,14 +1237,7 @@ export default function StrategyEditorPage({ params }: Props) {
               title={isLeftPanelOpen ? "Collapse block palette" : "Expand block palette"}
               aria-pressed={isLeftPanelOpen}
             >
-              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                />
-              </svg>
+              <Plus className="h-5 w-5" aria-hidden="true" />
             </Button>
             {!inlinePopoverEnabled && (
               <Button
@@ -1676,26 +1250,13 @@ export default function StrategyEditorPage({ params }: Props) {
                 title={isRightPanelOpen ? "Collapse inspector panel" : "Expand inspector panel"}
                 aria-pressed={isRightPanelOpen}
               >
-                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                  />
-                </svg>
+                <SettingsIcon className="h-5 w-5" aria-hidden="true" />
               </Button>
             )}
           </div>
 
           {/* Mobile floating buttons */}
-          <div className="absolute left-4 top-16 z-10 flex flex-col gap-2">
+          <div className="absolute left-4 top-16 z-10 flex flex-col gap-2 lg:hidden">
             <BlockLibrarySheet
               onDragStart={handlePaletteDragStart}
               onAddNode={handleAddNode}
@@ -1705,16 +1266,17 @@ export default function StrategyEditorPage({ params }: Props) {
               onToggleIndicatorMode={toggleIndicatorMode}
             />
             {!inlinePopoverEnabled && (
-              <button
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
                 onClick={() => setShowProperties(true)}
-                className="rounded-full border bg-background p-2 shadow-md lg:hidden"
+                className="rounded-full bg-background shadow-md lg:hidden"
                 disabled={!selectedNode}
+                aria-label="Edit block properties"
               >
-                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-              </button>
+                <SettingsIcon className="h-5 w-5" aria-hidden="true" />
+              </Button>
             )}
           </div>
 
@@ -1762,6 +1324,10 @@ export default function StrategyEditorPage({ params }: Props) {
         {!inlinePopoverEnabled && (
           <Sheet open={showProperties} onOpenChange={setShowProperties}>
             <SheetContent side="bottom" className="max-h-[70vh] p-0 lg:hidden">
+              <SheetHeader className="sr-only">
+                <SheetTitle>Block Properties</SheetTitle>
+                <SheetDescription>Edit parameters for the selected block.</SheetDescription>
+              </SheetHeader>
               <InspectorPanel
                 selectedNode={selectedNode}
                 onParamsChange={handleParamsChange}
@@ -1778,6 +1344,7 @@ export default function StrategyEditorPage({ params }: Props) {
           <SheetContent side="bottom" className="lg:hidden">
             <SheetHeader>
               <SheetTitle>Layout Options</SheetTitle>
+              <SheetDescription>Rearrange and tidy your canvas layout.</SheetDescription>
             </SheetHeader>
             <div className="mt-4 space-y-2">
               <Button
