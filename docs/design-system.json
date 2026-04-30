@@ -1,25 +1,19 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "Blockbuilders Design System",
-  "version": "2.0.0",
-  "description": "Design system inventory derived directly from docs/design/design-system.pen. This document captures the exact token, typography, spacing, and component specimens visible in the Pen file.",
+  "version": "3.0.0",
+  "description": "Design system token inventory derived directly from frontend/src/app/globals.css and frontend/tailwind.config.ts — the authoritative runtime sources of truth. All color values are expressed as HSL triplets matching the CSS custom properties verbatim.",
   "sourceOfTruth": {
-    "penFile": "docs/design/design-system.pen",
-    "lightVariant": {
-      "name": "Variant E — Signal",
-      "frameId": "xZoPg"
-    },
-    "darkVariant": {
-      "name": "Variant E — Signal (Dark)",
-      "frameId": "jcU7n"
-    },
+    "runtimeFiles": [
+      "frontend/src/app/globals.css",
+      "frontend/tailwind.config.ts"
+    ],
     "documentCharacteristics": {
-      "usesVariables": false,
-      "usesReusableComponents": false,
-      "topLevelBoards": 2,
-      "purpose": "Static design reference board"
+      "usesVariables": true,
+      "format": "HSL triplets matching CSS custom property declarations",
+      "purpose": "Documentation mirror of the runtime token set; keep in sync with globals.css"
     },
-    "syncRule": "The Pen file is the golden source. Update this JSON only to mirror it."
+    "syncRule": "globals.css is the golden source. Update this JSON to mirror it — never the reverse. When globals.css changes, regenerate or manually sync this file."
   },
   "themeConfiguration": {
     "supportedThemes": [
@@ -27,127 +21,289 @@
       "dark"
     ],
     "defaultTheme": "light",
-    "themeParity": "Both themes share the same structure, spacing, and component geometry with different fills, text colors, and semantic brightness.",
-    "documentedResponsiveBehavior": false
+    "themeParity": "Both themes share the same structure, spacing, and component geometry with different fills, text colors, and semantic brightness. CSS class `.dark` applied to the `<html>` element activates the dark variant.",
+    "documentedResponsiveBehavior": true
   },
   "tokens": {
     "colors": {
-      "brand": {
-        "primary": {
-          "light": "#4A9FD8",
-          "dark": "#5AAFE8"
-        },
-        "tertiaryAccent": {
-          "light": "#B3D9F0",
-          "dark": "#1A3A50"
-        }
-      },
-      "semantic": {
+      "note": "All values are HSL triplets as declared in globals.css :root / .dark. Use hsl(var(--token-name)) in Tailwind / CSS.",
+      "surfaces": {
         "background": {
-          "light": "#FFFFFF",
-          "dark": "#0C0C0E"
+          "cssVar": "--background",
+          "light": "0 0% 100%",
+          "dark": "240 8% 5%"
         },
         "foreground": {
-          "light": "#1A1A1A",
-          "dark": "#EAEAEC"
+          "cssVar": "--foreground",
+          "light": "0 0% 4%",
+          "dark": "240 5% 92%"
+        },
+        "surfaceBase": {
+          "cssVar": "--surface-base",
+          "light": "0 0% 100%",
+          "dark": "240 8% 5%"
+        },
+        "surfaceElevated": {
+          "cssVar": "--surface-elevated",
+          "light": "220 14% 96%",
+          "dark": "240 6% 9%"
+        },
+        "surfaceOverlay": {
+          "cssVar": "--surface-overlay",
+          "light": "0 0% 100%",
+          "dark": "240 4% 11%"
+        },
+        "card": {
+          "cssVar": "--card",
+          "light": "0 0% 100%",
+          "dark": "240 8% 5%"
+        },
+        "cardForeground": {
+          "cssVar": "--card-foreground",
+          "light": "0 0% 4%",
+          "dark": "240 5% 92%"
+        },
+        "popover": {
+          "cssVar": "--popover",
+          "light": "0 0% 100%",
+          "dark": "240 4% 9%"
+        },
+        "popoverForeground": {
+          "cssVar": "--popover-foreground",
+          "light": "0 0% 4%",
+          "dark": "240 5% 92%"
+        }
+      },
+      "brand": {
+        "primary": {
+          "cssVar": "--primary",
+          "note": "Darkened from 204 65% 57% to 204 75% 40% in light mode to meet WCAG 2.2 AA contrast (≥4.5:1 vs white).",
+          "light": "204 75% 40%",
+          "dark": "204 76% 63%"
+        },
+        "primaryForeground": {
+          "cssVar": "--primary-foreground",
+          "light": "0 0% 100%",
+          "dark": "240 8% 5%"
+        },
+        "secondary": {
+          "cssVar": "--secondary",
+          "light": "220 23% 97%",
+          "dark": "240 4% 9%"
+        },
+        "secondaryForeground": {
+          "cssVar": "--secondary-foreground",
+          "light": "0 0% 4%",
+          "dark": "240 5% 92%"
+        },
+        "muted": {
+          "cssVar": "--muted",
+          "light": "220 23% 97%",
+          "dark": "240 4% 9%"
         },
         "mutedForeground": {
-          "light": "#666666",
-          "dark": "#9B9BA0"
+          "cssVar": "--muted-foreground",
+          "light": "0 0% 40%",
+          "dark": "240 3% 62%"
         },
-        "border": {
-          "light": "#EEF0F2",
-          "dark": "#2A2A2E"
+        "textSubtle": {
+          "cssVar": "--text-subtle",
+          "light": "0 0% 38%",
+          "dark": "240 3% 55%"
         },
-        "surface": {
-          "light": "#F7F8FA",
-          "dark": "#161618"
+        "accent": {
+          "cssVar": "--accent",
+          "note": "Intentionally ~4% lighter than secondary/muted so bg-secondary hover:bg-accent produces perceptible hover feedback.",
+          "light": "220 14% 93%",
+          "dark": "240 4% 13%"
         },
-        "deepNeutral": {
-          "light": "#0A0A0A",
-          "dark": "#0C0C0E"
-        },
-        "inverseForeground": {
-          "light": "#FFFFFF",
-          "dark": "#0C0C0E"
+        "accentForeground": {
+          "cssVar": "--accent-foreground",
+          "light": "0 0% 4%",
+          "dark": "240 5% 92%"
         }
       },
-      "feedback": {
-        "success": {
-          "light": {
-            "solid": "#16A34A",
-            "tint": "#16A34A08",
-            "border": "#16A34A22"
-          },
-          "dark": {
-            "solid": "#22C55E",
-            "tint": "#16A34A18",
-            "border": "#22C55E33"
-          }
+      "state": {
+        "destructive": {
+          "cssVar": "--destructive",
+          "light": "0 72% 51%",
+          "dark": "0 84% 60%"
         },
-        "error": {
-          "light": {
-            "solid": "#DC2626",
-            "tint": "#DC262608",
-            "border": "#DC262622"
-          },
-          "dark": {
-            "solid": "#EF4444",
-            "tint": "#DC262618",
-            "border": "#EF444433"
-          }
+        "destructiveForeground": {
+          "cssVar": "--destructive-foreground",
+          "light": "0 0% 100%",
+          "dark": "240 5% 92%"
+        },
+        "destructiveSoft": {
+          "cssVar": "--destructive-soft",
+          "light": "0 84% 96%",
+          "dark": "0 55% 14%"
+        },
+        "success": {
+          "cssVar": "--success",
+          "light": "142 76% 36%",
+          "dark": "142 71% 45%"
+        },
+        "successForeground": {
+          "cssVar": "--success-foreground",
+          "light": "0 0% 4%",
+          "dark": "240 8% 5%"
+        },
+        "successSoft": {
+          "cssVar": "--success-soft",
+          "light": "142 70% 94%",
+          "dark": "142 50% 12%"
         },
         "warning": {
-          "light": {
-            "solid": "#F59E0B",
-            "tint": "#F59E0B08",
-            "border": "#F59E0B22"
-          },
-          "dark": {
-            "solid": "#FBBF24",
-            "tint": "#F59E0B18",
-            "border": "#FBBF2433"
-          }
+          "cssVar": "--warning",
+          "light": "38 92% 50%",
+          "dark": "43 96% 56%"
+        },
+        "warningForeground": {
+          "cssVar": "--warning-foreground",
+          "light": "0 0% 4%",
+          "dark": "240 8% 5%"
+        },
+        "warningSoft": {
+          "cssVar": "--warning-soft",
+          "light": "38 92% 94%",
+          "dark": "38 60% 14%"
         },
         "info": {
-          "light": {
-            "solid": "#4A9FD8",
-            "tint": "#4A9FD808",
-            "border": "#4A9FD822"
-          },
-          "dark": {
-            "solid": "#5AAFE8",
-            "tint": "#5AAFE818",
-            "border": "#5AAFE833"
-          }
+          "cssVar": "--info",
+          "note": "Intentionally distinct from --primary (sky-blue vs teal-blue) so informational banners and primary action buttons are visually separable.",
+          "light": "210 80% 45%",
+          "dark": "210 76% 68%"
+        },
+        "infoForeground": {
+          "cssVar": "--info-foreground",
+          "light": "0 0% 100%",
+          "dark": "240 8% 5%"
+        },
+        "infoSoft": {
+          "cssVar": "--info-soft",
+          "light": "210 80% 95%",
+          "dark": "210 60% 14%"
         }
       },
-      "canvas": {
+      "borders": {
+        "border": {
+          "cssVar": "--border",
+          "light": "210 13% 94%",
+          "dark": "240 5% 17%"
+        },
         "input": {
-          "lightTint": "#7C3AED14",
-          "darkTint": "#7C3AED28",
-          "baseAccent": "#7C3AED"
+          "cssVar": "--input",
+          "light": "210 13% 94%",
+          "dark": "240 5% 17%"
+        },
+        "ring": {
+          "cssVar": "--ring",
+          "light": "204 75% 40%",
+          "dark": "204 76% 63%"
+        },
+        "focusRing": {
+          "cssVar": "--focus-ring",
+          "note": "Dedicated alias of --ring so a11y can tune it independently of --primary.",
+          "light": "204 75% 40%",
+          "dark": "204 76% 63%"
+        }
+      },
+      "charts": {
+        "chart1": {
+          "cssVar": "--chart-1",
+          "light": "204 75% 40%",
+          "dark": "204 76% 63%"
+        },
+        "chart2": {
+          "cssVar": "--chart-2",
+          "light": "142 76% 36%",
+          "dark": "142 71% 45%"
+        },
+        "chart3": {
+          "cssVar": "--chart-3",
+          "light": "38 92% 50%",
+          "dark": "43 96% 56%"
+        },
+        "chart4": {
+          "cssVar": "--chart-4",
+          "light": "204 66% 72%",
+          "dark": "204 51% 21%"
+        },
+        "chart5": {
+          "cssVar": "--chart-5",
+          "light": "0 72% 51%",
+          "dark": "0 84% 60%"
+        }
+      },
+      "canvasNodes": {
+        "note": "CSS vars promoted in Phase 3 so canvas node colors track the token system. Tint variants are derived at 10%/20% alpha via Tailwind opacity modifiers (bg-[hsl(var(--canvas-node-input)/0.1)]).",
+        "input": {
+          "cssVar": "--canvas-node-input",
+          "light": "271 81% 56%",
+          "dark": "271 81% 65%"
         },
         "indicator": {
-          "lightTint": "#4A9FD814",
-          "darkTint": "#5AAFE828",
-          "lightAccent": "#4A9FD8",
-          "darkAccent": "#5AAFE8"
+          "cssVar": "--canvas-node-indicator",
+          "light": "217 91% 60%",
+          "dark": "217 91% 68%"
         },
         "logic": {
-          "lightTint": "#F59E0B14",
-          "darkTint": "#F59E0B28",
-          "baseAccent": "#F59E0B"
+          "cssVar": "--canvas-node-logic",
+          "light": "32 95% 44%",
+          "dark": "32 95% 55%"
         },
         "signal": {
-          "lightTint": "#16A34A14",
-          "darkTint": "#16A34A28",
-          "baseAccent": "#16A34A"
+          "cssVar": "--canvas-node-signal",
+          "light": "142 71% 45%",
+          "dark": "142 71% 55%"
         },
         "risk": {
-          "lightTint": "#DC262614",
-          "darkTint": "#DC262628",
-          "baseAccent": "#DC2626"
+          "cssVar": "--canvas-node-risk",
+          "light": "0 72% 51%",
+          "dark": "0 84% 60%"
+        }
+      },
+      "sidebar": {
+        "sidebarBackground": {
+          "cssVar": "--sidebar-background",
+          "light": "220 23% 97%",
+          "dark": "240 4% 9%"
+        },
+        "sidebarForeground": {
+          "cssVar": "--sidebar-foreground",
+          "light": "0 0% 4%",
+          "dark": "240 5% 92%"
+        },
+        "sidebarPrimary": {
+          "cssVar": "--sidebar-primary",
+          "light": "204 75% 40%",
+          "dark": "204 76% 63%"
+        },
+        "sidebarPrimaryForeground": {
+          "cssVar": "--sidebar-primary-foreground",
+          "light": "0 0% 100%",
+          "dark": "240 8% 5%"
+        },
+        "sidebarAccent": {
+          "cssVar": "--sidebar-accent",
+          "light": "210 13% 94%",
+          "dark": "240 5% 17%"
+        },
+        "sidebarAccentForeground": {
+          "cssVar": "--sidebar-accent-foreground",
+          "light": "0 0% 4%",
+          "dark": "240 5% 92%"
+        },
+        "sidebarBorder": {
+          "cssVar": "--sidebar-border",
+          "light": "210 13% 94%",
+          "dark": "240 5% 17%"
+        },
+        "sidebarRing": {
+          "cssVar": "--sidebar-ring",
+          "light": "204 75% 40%",
+          "dark": "204 76% 63%"
         }
       }
     },
@@ -247,53 +403,88 @@
       }
     },
     "spacing": {
+      "note": "4px base grid. Values in pixels unless flagged as clamp().",
       "0": 0,
-      "1": 1,
-      "2": 2,
-      "3": 3,
-      "4": 4,
-      "6": 6,
-      "8": 8,
-      "10": 10,
-      "12": 12,
-      "14": 14,
-      "16": 16,
-      "20": 20,
-      "24": 24,
-      "32": 32,
-      "64": 64,
-      "80": 80
+      "1": 4,
+      "2": 8,
+      "3": 12,
+      "4": 16,
+      "6": 24,
+      "8": 32,
+      "10": 40,
+      "12": 48,
+      "14": 56,
+      "16": 64,
+      "20": 80,
+      "24": 96,
+      "32": 128,
+      "section": {
+        "cssVar": "--space-section",
+        "value": "clamp(3rem, 2.4rem + 3vw, 6rem)",
+        "tailwindUtility": "py-section",
+        "note": "Canonical between-major-sections vertical rhythm"
+      },
+      "sectionTight": {
+        "cssVar": "--space-section-tight",
+        "value": "clamp(1.5rem, 1.2rem + 1.5vw, 3rem)",
+        "tailwindUtility": "py-section-tight",
+        "note": "Compact stacks: in-card sections, sub-sections"
+      }
     },
     "radius": {
+      "cssVar": "--radius",
+      "note": "--radius is 0.5rem (8px). Tailwind config extends radius.default to var(--radius). Derived sizes: sm = calc(var(--radius) - 4px), md = calc(var(--radius) - 2px), lg = var(--radius), xl = calc(var(--radius) + 4px).",
       "checkbox": 3,
-      "default": 4,
-      "tabsContainer": 6,
-      "stateCircle": 28
+      "default": 8,
+      "md": 6,
+      "lg": 8,
+      "xl": 12,
+      "full": 9999
     },
     "borders": {
       "default": 1,
       "emphasis": 2
     },
     "shadows": {
-      "surface": [
-        {
-          "offsetX": 0,
-          "offsetY": 2,
-          "blur": 4,
-          "color": "#00000008"
-        },
-        {
-          "offsetX": 0,
-          "offsetY": 6,
-          "blur": 16,
-          "color": "#0000000D"
-        }
-      ],
-      "activeTab": {
-        "offsetX": 0,
-        "offsetY": 1,
-        "blur": 2,
-        "color": "#00000010"
+      "note": "Three-stop shadow scale backed by CSS vars. Values use --foreground so they automatically invert in dark mode.",
+      "sm": {
+        "cssVar": "--shadow-sm",
+        "value": "0 1px 2px 0 hsl(var(--foreground) / 0.05)",
+        "tailwindClass": "shadow-sm",
+        "usage": "Subtle lift for inline elements, small pills"
+      },
+      "md": {
+        "cssVar": "--shadow-md",
+        "value": "0 4px 6px -1px hsl(var(--foreground) / 0.08), 0 2px 4px -2px hsl(var(--foreground) / 0.05)",
+        "tailwindClass": "shadow-md",
+        "usage": "Cards, dropdowns, popovers"
+      },
+      "overlay": {
+        "cssVar": "--shadow-overlay",
+        "value": "0 20px 25px -5px hsl(var(--foreground) / 0.12), 0 8px 10px -6px hsl(var(--foreground) / 0.08)",
+        "tailwindClass": "shadow-overlay",
+        "usage": "Modals, command palettes, sheets"
+      }
+    },
+    "motion": {
+      "note": "Motion tokens replace inline duration-150/200/300 classes. Use Tailwind utilities duration-fast, duration-normal, ease-default defined in tailwind.config.ts.",
+      "durationFast": {
+        "cssVar": "--duration-fast",
+        "value": "150ms",
+        "tailwindClass": "duration-fast",
+        "usage": "Clicks, toggles, hover reveals"
+      },
+      "durationNormal": {
+        "cssVar": "--duration-normal",
+        "value": "250ms",
+        "tailwindClass": "duration-normal",
+        "usage": "Modals, drawers, page-level reveals"
+      },
+      "easeDefault": {
+        "cssVar": "--ease-default",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "tailwindClass": "ease-default",
+        "note": "Ease-out-expo curve: quick settle, no overshoot"
       }
     },
     "iconSizes": {
@@ -333,7 +524,7 @@
   "components": {
     "button": {
       "base": {
-        "radius": 4,
+        "radius": 8,
         "height": 36,
         "gap": 8,
         "horizontalPadding": 16,
@@ -342,54 +533,52 @@
       "variants": {
         "primary": {
           "light": {
-            "fill": "#4A9FD8",
-            "text": "#FFFFFF",
-            "icon": "#FFFFFF"
+            "fill": "hsl(var(--primary))",
+            "text": "hsl(var(--primary-foreground))"
           },
           "dark": {
-            "fill": "#5AAFE8",
-            "text": "#EAEAEC",
-            "icon": "#0C0C0E"
+            "fill": "hsl(var(--primary))",
+            "text": "hsl(var(--primary-foreground))"
           }
         },
-        "secondaryFilled": {
+        "secondary": {
           "light": {
-            "fill": "#0A0A0A",
-            "text": "#FFFFFF"
+            "fill": "hsl(var(--secondary))",
+            "text": "hsl(var(--secondary-foreground))"
           },
           "dark": {
-            "fill": "#EAEAEC",
-            "text": "#0C0C0E"
+            "fill": "hsl(var(--secondary))",
+            "text": "hsl(var(--secondary-foreground))"
           }
         },
         "outline": {
           "light": {
-            "border": "#EEF0F2",
-            "text": "#1A1A1A"
+            "border": "hsl(var(--border))",
+            "text": "hsl(var(--foreground))"
           },
           "dark": {
-            "border": "#2A2A2E",
-            "text": "#EAEAEC"
+            "border": "hsl(var(--border))",
+            "text": "hsl(var(--foreground))"
           }
         },
         "ghost": {
           "light": {
-            "text": "#666666"
+            "text": "hsl(var(--muted-foreground))"
           },
           "dark": {
-            "text": "#9B9BA0"
+            "text": "hsl(var(--muted-foreground))"
           }
         },
         "destructive": {
           "light": {
-            "fill": "#DC262611",
-            "border": "#DC262633",
-            "text": "#DC2626"
+            "fill": "hsl(var(--destructive-soft))",
+            "border": "hsl(var(--destructive) / 0.2)",
+            "text": "hsl(var(--destructive))"
           },
           "dark": {
-            "fill": "#DC262622",
-            "border": "#EF444444",
-            "text": "#EF4444"
+            "fill": "hsl(var(--destructive-soft))",
+            "border": "hsl(var(--destructive) / 0.3)",
+            "text": "hsl(var(--destructive))"
           }
         }
       },
@@ -423,92 +612,83 @@
       "label": {
         "font": "label13Medium",
         "light": {
-          "text": "#1A1A1A"
+          "text": "hsl(var(--foreground))"
         },
         "dark": {
-          "text": "#EAEAEC"
+          "text": "hsl(var(--foreground))"
         }
       },
       "field": {
         "height": 36,
-        "radius": 4,
+        "radius": 8,
         "horizontalPadding": 12,
-        "justify": "space_between for select fields",
         "light": {
-          "defaultBorder": "#EEF0F2",
-          "activeBorder": "#4A9FD8",
-          "surface": "implicit white board surface",
-          "placeholder": "#66666688"
+          "defaultBorder": "hsl(var(--border))",
+          "activeBorder": "hsl(var(--focus-ring))",
+          "surface": "hsl(var(--background))",
+          "placeholder": "hsl(var(--muted-foreground) / 0.53)"
         },
         "dark": {
-          "defaultBorder": "#2A2A2E",
-          "activeBorder": "#5AAFE8",
-          "surface": "#161618",
-          "placeholder": "#9B9BA088"
+          "defaultBorder": "hsl(var(--border))",
+          "activeBorder": "hsl(var(--focus-ring))",
+          "surface": "hsl(var(--surface-elevated))",
+          "placeholder": "hsl(var(--muted-foreground) / 0.53)"
         }
       }
     },
     "tabs": {
       "container": {
         "height": 36,
-        "radius": 6,
+        "radius": 8,
         "padding": 2,
         "light": {
-          "fill": "#F7F8FA"
+          "fill": "hsl(var(--surface-elevated))"
         },
         "dark": {
-          "fill": "#161618"
+          "fill": "hsl(var(--surface-elevated))"
         }
       },
       "tab": {
-        "radius": 4,
+        "radius": 6,
         "horizontalPadding": 14,
         "font": "label13Medium"
       },
       "active": {
         "light": {
-          "fill": "#FFFFFF",
-          "text": "#1A1A1A",
-          "shadow": "activeTab"
+          "fill": "hsl(var(--background))",
+          "text": "hsl(var(--foreground))",
+          "shadow": "sm"
         },
         "dark": {
-          "fill": "#0C0C0E",
-          "text": "#EAEAEC",
-          "shadow": "activeTab"
+          "fill": "hsl(var(--surface-overlay))",
+          "text": "hsl(var(--foreground))",
+          "shadow": "sm"
         }
       },
       "inactive": {
         "light": {
-          "text": "#666666"
+          "text": "hsl(var(--muted-foreground))"
         },
         "dark": {
-          "text": "#9B9BA0"
+          "text": "hsl(var(--muted-foreground))"
         }
       }
     },
     "card": {
       "default": {
-        "radius": 4,
+        "radius": 8,
         "border": {
-          "light": "#EEF0F2",
-          "dark": "#2A2A2E"
+          "light": "hsl(var(--border))",
+          "dark": "hsl(var(--border))"
         },
         "surface": {
-          "light": "#FFFFFF",
-          "dark": "#0C0C0E"
+          "light": "hsl(var(--card))",
+          "dark": "hsl(var(--card))"
         },
-        "shadow": "surface",
+        "shadow": "sm",
         "headerPadding": 24,
-        "bodyPadding": [
-          0,
-          24,
-          24,
-          24
-        ],
-        "footerPadding": [
-          16,
-          24
-        ],
+        "bodyPadding": [0, 24, 24, 24],
+        "footerPadding": [16, 24],
         "footerGap": 12
       },
       "headerText": {
@@ -518,8 +698,8 @@
       "contentText": {
         "body": "ui14",
         "bodyColor": {
-          "light": "#666666",
-          "dark": "#9B9BA0"
+          "light": "hsl(var(--muted-foreground))",
+          "dark": "hsl(var(--muted-foreground))"
         }
       }
     },
@@ -527,148 +707,131 @@
       "variants": {
         "default": {
           "light": {
-            "fill": "#4A9FD8",
-            "text": "#FFFFFF"
+            "fill": "hsl(var(--primary))",
+            "text": "hsl(var(--primary-foreground))"
           },
           "dark": {
-            "fill": "#5AAFE8",
-            "text": "#EAEAEC"
+            "fill": "hsl(var(--primary))",
+            "text": "hsl(var(--primary-foreground))"
           }
         },
         "secondary": {
           "light": {
-            "fill": "#F7F8FA",
-            "text": "#1A1A1A"
+            "fill": "hsl(var(--secondary))",
+            "text": "hsl(var(--secondary-foreground))"
           },
           "dark": {
-            "fill": "#161618",
-            "text": "#EAEAEC"
+            "fill": "hsl(var(--secondary))",
+            "text": "hsl(var(--secondary-foreground))"
           }
         },
         "destructive": {
           "light": {
-            "fill": "#DC2626",
-            "text": "#FFFFFF"
+            "fill": "hsl(var(--destructive))",
+            "text": "hsl(var(--destructive-foreground))"
           },
           "dark": {
-            "fill": "#EF4444",
-            "text": "#EAEAEC"
+            "fill": "hsl(var(--destructive))",
+            "text": "hsl(var(--destructive-foreground))"
           }
         },
         "outline": {
           "light": {
-            "border": "#EEF0F2",
-            "text": "#1A1A1A"
+            "border": "hsl(var(--border))",
+            "text": "hsl(var(--foreground))"
           },
           "dark": {
-            "border": "#2A2A2E",
-            "text": "#EAEAEC"
+            "border": "hsl(var(--border))",
+            "text": "hsl(var(--foreground))"
           }
         }
       },
       "statusStyle": {
         "radius": 4,
-        "padding": [
-          3,
-          10
-        ],
+        "padding": [3, 10],
         "gap": 6,
         "dot": 6
       }
     },
     "alert": {
       "base": {
-        "radius": 4,
-        "padding": [
-          10,
-          14
-        ],
+        "radius": 8,
+        "padding": [10, 14],
         "gap": 10,
         "icon": 16,
-        "font": "label13Medium / ui13"
+        "font": "label13Medium"
       },
       "variants": {
         "success": {
           "light": {
-            "fill": "#16A34A08",
-            "border": "#16A34A22",
-            "text": "#16A34A"
+            "fill": "hsl(var(--success-soft))",
+            "border": "hsl(var(--success) / 0.2)",
+            "text": "hsl(var(--success))"
           },
           "dark": {
-            "fill": "#16A34A18",
-            "border": "#22C55E33",
-            "text": "#22C55E"
+            "fill": "hsl(var(--success-soft))",
+            "border": "hsl(var(--success) / 0.3)",
+            "text": "hsl(var(--success))"
           }
         },
-        "error": {
+        "destructive": {
           "light": {
-            "fill": "#DC262608",
-            "border": "#DC262622",
-            "text": "#DC2626"
+            "fill": "hsl(var(--destructive-soft))",
+            "border": "hsl(var(--destructive) / 0.2)",
+            "text": "hsl(var(--destructive))"
           },
           "dark": {
-            "fill": "#DC262618",
-            "border": "#EF444433",
-            "text": "#EF4444"
+            "fill": "hsl(var(--destructive-soft))",
+            "border": "hsl(var(--destructive) / 0.3)",
+            "text": "hsl(var(--destructive))"
           }
         },
         "warning": {
           "light": {
-            "fill": "#F59E0B08",
-            "border": "#F59E0B22",
-            "text": "#F59E0B"
+            "fill": "hsl(var(--warning-soft))",
+            "border": "hsl(var(--warning) / 0.2)",
+            "text": "hsl(var(--warning))"
           },
           "dark": {
-            "fill": "#F59E0B18",
-            "border": "#FBBF2433",
-            "text": "#FBBF24"
+            "fill": "hsl(var(--warning-soft))",
+            "border": "hsl(var(--warning) / 0.3)",
+            "text": "hsl(var(--warning))"
           }
         },
         "info": {
           "light": {
-            "fill": "#4A9FD808",
-            "border": "#4A9FD822",
-            "text": "#4A9FD8"
+            "fill": "hsl(var(--info-soft))",
+            "border": "hsl(var(--info) / 0.2)",
+            "text": "hsl(var(--info))"
           },
           "dark": {
-            "fill": "#5AAFE818",
-            "border": "#5AAFE833",
-            "text": "#5AAFE8"
+            "fill": "hsl(var(--info-soft))",
+            "border": "hsl(var(--info) / 0.3)",
+            "text": "hsl(var(--info))"
           }
         }
       }
     },
     "canvasNode": {
       "structure": {
-        "radius": 4,
+        "radius": 8,
         "borderWidth": 1,
-        "headerPadding": [
-          10,
-          12
-        ],
-        "bodyPadding": [
-          4,
-          12,
-          10,
-          12
-        ],
+        "headerPadding": [10, 12],
+        "bodyPadding": [4, 12, 10, 12],
         "headerGap": 10,
         "bodyGap": 3,
         "iconFrame": 24,
-        "tagPadding": [
-          2,
-          6
-        ],
-        "shadow": "surface"
+        "tagPadding": [2, 6],
+        "shadow": "sm"
       },
       "surface": {
         "light": {
-          "effectiveFill": "#FFFFFF",
-          "border": "#EEF0F2"
+          "fill": "hsl(var(--card))",
+          "border": "hsl(var(--border))"
         },
         "dark": {
-          "fill": "#161618",
-          "border": "#2A2A2E"
+          "fill": "hsl(var(--surface-elevated))",
+          "border": "hsl(var(--border))"
         }
       },
       "text": {
@@ -676,37 +839,38 @@
         "meta": "caption11Mono"
       },
       "categories": {
+        "note": "Solid accent from --canvas-node-{category}. Tint via Tailwind opacity: bg-[hsl(var(--canvas-node-input)/0.08)].",
         "input": {
-          "lightTint": "#7C3AED14",
-          "darkTint": "#7C3AED28"
+          "cssVar": "--canvas-node-input",
+          "accent": { "light": "hsl(271 81% 56%)", "dark": "hsl(271 81% 65%)" }
         },
         "indicator": {
-          "lightTint": "#4A9FD814",
-          "darkTint": "#5AAFE828"
+          "cssVar": "--canvas-node-indicator",
+          "accent": { "light": "hsl(217 91% 60%)", "dark": "hsl(217 91% 68%)" }
         },
         "logic": {
-          "lightTint": "#F59E0B14",
-          "darkTint": "#F59E0B28"
+          "cssVar": "--canvas-node-logic",
+          "accent": { "light": "hsl(32 95% 44%)", "dark": "hsl(32 95% 55%)" }
         },
         "signal": {
-          "lightTint": "#16A34A14",
-          "darkTint": "#16A34A28"
+          "cssVar": "--canvas-node-signal",
+          "accent": { "light": "hsl(142 71% 45%)", "dark": "hsl(142 71% 55%)" }
         },
         "risk": {
-          "lightTint": "#DC262614",
-          "darkTint": "#DC262628"
+          "cssVar": "--canvas-node-risk",
+          "accent": { "light": "hsl(0 72% 51%)", "dark": "hsl(0 84% 60%)" }
         }
       }
     },
     "metricCard": {
       "container": {
-        "radius": 4,
+        "radius": 8,
         "padding": 24,
         "gap": 8,
-        "shadow": "surface"
+        "shadow": "sm"
       },
       "topRow": {
-        "justify": "space_between",
+        "justify": "space-between",
         "labelFont": "label13Medium",
         "icon": 16
       },
@@ -714,29 +878,28 @@
         "font": "metric32Mono"
       },
       "supportingText": {
-        "font": "badge12Medium / badge12Semibold"
+        "font": "badge12Medium"
       }
     },
     "sidebar": {
       "width": 260,
-      "radius": 4,
+      "radius": 8,
       "borderWidth": 1,
       "navStackGap": 1,
       "sectionPadding": 16,
       "itemHeight": 36,
-      "itemRadius": 4,
+      "itemRadius": 6,
       "light": {
-        "border": "#EEF0F2",
-        "activeFill": "#4A9FD80D",
-        "logoFill": "#0A0A0A",
-        "text": "#1A1A1A"
+        "surface": "hsl(var(--sidebar-background))",
+        "border": "hsl(var(--sidebar-border))",
+        "activeFill": "hsl(var(--sidebar-accent))",
+        "text": "hsl(var(--sidebar-foreground))"
       },
       "dark": {
-        "surface": "#161618",
-        "border": "#2A2A2E",
-        "activeFill": "#5AAFE820",
-        "logoFill": "#EAEAEC",
-        "text": "#EAEAEC"
+        "surface": "hsl(var(--sidebar-background))",
+        "border": "hsl(var(--sidebar-border))",
+        "activeFill": "hsl(var(--sidebar-accent))",
+        "text": "hsl(var(--sidebar-foreground))"
       }
     },
     "checkbox": {
@@ -745,34 +908,34 @@
       "gap": 10,
       "checked": {
         "light": {
-          "fill": "#4A9FD8",
-          "icon": "#FFFFFF"
+          "fill": "hsl(var(--primary))",
+          "icon": "hsl(var(--primary-foreground))"
         },
         "dark": {
-          "fill": "#5AAFE8",
-          "icon": "#0C0C0E"
+          "fill": "hsl(var(--primary))",
+          "icon": "hsl(var(--primary-foreground))"
         }
       },
       "unchecked": {
         "light": {
-          "border": "#EEF0F2"
+          "border": "hsl(var(--border))"
         },
         "dark": {
-          "border": "#2A2A2E"
+          "border": "hsl(var(--border))"
         }
       }
     },
     "header": {
       "height": 56,
-      "radius": 4,
+      "radius": 8,
       "horizontalPadding": 24,
       "light": {
-        "surface": "#FFFFFF",
-        "border": "#EEF0F2"
+        "surface": "hsl(var(--background))",
+        "border": "hsl(var(--border))"
       },
       "dark": {
-        "surface": "#0C0C0E",
-        "border": "#2A2A2E"
+        "surface": "hsl(var(--background))",
+        "border": "hsl(var(--border))"
       },
       "iconSize": 20
     },
@@ -784,70 +947,44 @@
       "inactiveWeight": 400
     },
     "states": {
-      "panel": {
-        "height": 200,
-        "radius": 4,
-        "gap": 12,
-        "shadow": "surface"
+      "emptyState": {
+        "componentRef": "src/components/ui/empty-state.tsx",
+        "panel": {
+          "radius": 8,
+          "gap": 12,
+          "shadow": "sm"
+        },
+        "iconCircle": {
+          "size": 56,
+          "radius": 28
+        }
       },
-      "iconCircle": {
-        "size": 56,
-        "radius": 28
+      "errorFallback": {
+        "componentRef": "src/components/ui/error-fallback.tsx"
+      },
+      "loadingCard": {
+        "componentRef": "src/components/ui/loading-card.tsx"
       },
       "spinner": {
         "size": 32,
         "stroke": 2
       }
+    },
+    "insightCard": {
+      "componentRef": "src/components/ui/insight-card.tsx",
+      "note": "Shared base for NarrativeCard and WhatYouLearnedCard. Provides icon well + title/badge + children + aside + dismiss animation.",
+      "iconWell": {
+        "size": 36,
+        "radius": 8,
+        "defaultBg": "hsl(var(--primary) / 0.1)",
+        "defaultColor": "hsl(var(--primary))"
+      },
+      "dismiss": {
+        "transition": "scale-95 opacity-0",
+        "duration": "var(--duration-fast)",
+        "easing": "var(--ease-default)"
+      }
     }
-  },
-  "patterns": {
-    "specimenBoard": {
-      "boardWidth": 4800,
-      "outerPadding": 80,
-      "sectionGap": 64,
-      "dividerThickness": 1
-    },
-    "titleBlock": {
-      "stackGap": 8,
-      "subtitleWidth": 900
-    },
-    "tokenGrid": {
-      "columns": 5,
-      "rowGap": 16,
-      "swatchHeight": 80,
-      "swatchRadius": 4
-    },
-    "typographyGrid": {
-      "rows": 4,
-      "rowPadding": [
-        20,
-        0
-      ],
-      "annotationWidth": 160
-    },
-    "metricGrid": {
-      "columns": 4,
-      "gap": 16
-    },
-    "nodeGrid": {
-      "columns": 5,
-      "gap": 16
-    },
-    "formGrid": {
-      "columns": 3,
-      "gap": 24
-    },
-    "stateGrid": {
-      "columns": 3,
-      "gap": 16
-    }
-  },
-  "siteHeader": {
-    "componentRef": "components.header",
-    "notes": [
-      "Header is documented both as a standalone strip and as part of the breadcrumb/navigation language.",
-      "Notification affordance uses a neutral bell icon with a red unread dot."
-    ]
   },
   "icons": {
     "library": "Lucide",
@@ -859,63 +996,78 @@
     },
     "guidance": [
       "Icons remain monochrome or semantic-color only",
-      "No custom illustration style is documented in the Pen file"
+      "Use aria-hidden on decorative icons; provide aria-label or visually-hidden text for meaningful icons",
+      "Prefer SVG icons over emoji in UI components"
     ]
+  },
+  "accessibility": {
+    "wcag": "2.2 AA",
+    "colorContrast": {
+      "normalText": "≥4.5:1",
+      "largeText": "≥3:1",
+      "uiComponents": "≥3:1"
+    },
+    "landmarks": {
+      "main": "<main id=\"main-content\">",
+      "nav": "<nav aria-label=\"Main navigation\">",
+      "sidebar": "<aside>"
+    },
+    "focusRing": "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
+    "reducedMotion": "Handled globally in globals.css via prefers-reduced-motion; per-component motion-reduce: overrides available."
   },
   "utilities": {
     "surfaceRecipes": {
-      "lightCard": {
-        "fill": "#FFFFFF",
-        "border": "#EEF0F2",
-        "shadow": "surface"
+      "card": {
+        "fill": "hsl(var(--card))",
+        "border": "hsl(var(--border))",
+        "shadow": "shadow-sm"
       },
-      "darkCard": {
-        "fill": "#0C0C0E",
-        "border": "#2A2A2E",
-        "shadow": "surface"
+      "elevated": {
+        "fill": "hsl(var(--surface-elevated))",
+        "border": "hsl(var(--border))"
       },
-      "darkInsetSurface": {
-        "fill": "#161618",
-        "border": "#2A2A2E"
+      "overlay": {
+        "fill": "hsl(var(--surface-overlay))",
+        "shadow": "shadow-overlay"
       }
     },
     "textRecipes": {
-      "primary": {
-        "light": "#1A1A1A",
-        "dark": "#EAEAEC"
-      },
-      "muted": {
-        "light": "#666666",
-        "dark": "#9B9BA0"
-      },
-      "monoData": {
-        "family": "IBM Plex Mono"
-      }
+      "primary": "hsl(var(--foreground))",
+      "muted": "hsl(var(--muted-foreground))",
+      "subtle": "hsl(var(--text-subtle))",
+      "monoData": "font-mono tabular-nums tracking-tight (via .data-text utility)"
     },
     "divider": {
-      "light": "#EEF0F2",
-      "dark": "#2A2A2E",
+      "light": "hsl(var(--border))",
+      "dark": "hsl(var(--border))",
       "thickness": 1
     }
   },
   "guidelines": {
     "do": [
-      "Use IBM Plex Sans and IBM Plex Mono exactly as the specimen shows",
-      "Use blue as the primary action color and informational accent",
-      "Reserve green, red, and amber for outcomes and risk semantics",
-      "Keep corners compact at 4px unless the specimen explicitly uses 3px, 6px, or 28px",
-      "Use solid fills and thin borders instead of gradient-heavy surfaces"
+      "Use IBM Plex Sans and IBM Plex Mono as the type system",
+      "Use --primary (teal-blue) for primary actions and interactive chrome",
+      "Use --info (sky-blue, 210°) for informational banners — it is intentionally distinct from --primary (204°)",
+      "Reserve --success, --destructive, and --warning for outcome and risk semantics",
+      "Reference CSS custom properties (hsl(var(--token-name))) rather than hardcoding hex or HSL literals in component code",
+      "Use shadow-sm for cards/dropdowns, shadow-md for elevated panels, shadow-overlay for modals",
+      "Use duration-fast (150ms) for clicks/toggles and duration-normal (250ms) for modals and drawers",
+      "Keep --radius-based corners: default 8px, checkbox 3px, full = pill/circle",
+      "Use solid fills and thin 1px borders; avoid gradient-heavy surfaces",
+      "Follow WCAG 2.2 AA: focus-visible rings, landmark elements, aria-label on interactive icons"
     ],
     "dont": [
-      "Do not document purple as the primary brand color",
-      "Do not introduce glassmorphism, blur-heavy panels, or gradient headlines into this design system",
-      "Do not infer responsive rules from the Pen file; they are not documented there",
-      "Do not describe this file as a variable-driven token source; it contains no variables"
+      "Do not hardcode hex or raw HSL values in component code — reference the CSS var instead",
+      "Do not introduce glassmorphism, blur-heavy panels, or gradient headlines",
+      "Do not skip aria-label on icon-only buttons or interactive elements",
+      "Do not use --primary color for informational banners — use --info to keep action and information visually separable",
+      "Do not use inline duration-150/200/300 Tailwind classes — use duration-fast / duration-normal tokens instead"
     ],
     "implementationNotes": [
-      "The Pen file documents exemplars rather than reusable component symbols.",
-      "Where a light specimen omits a fill and visually reads as white, treat white as the effective surface color in implementation.",
-      "Dark-mode specimens usually switch from #FFFFFF to #0C0C0E or #161618 depending on component depth."
+      "globals.css is the single runtime source of truth. This JSON is a documentation mirror.",
+      "tailwind.config.ts extends Tailwind with shadow-sm/md/overlay, duration-fast/normal, ease-default, and py-section/section-tight utilities.",
+      "Canvas nodes use --canvas-node-{category} CSS vars for their accent colors. Tints are derived at runtime via Tailwind opacity modifiers.",
+      "Dark mode is activated by the .dark class on <html>. Both themes must maintain WCAG 2.2 AA contrast."
     ]
   }
 }
