@@ -43,6 +43,21 @@ def _is_same_date(dt1: datetime | None, dt2: datetime | None) -> bool:
     return dt1.date() == dt2.date()
 
 
+def _format_exit_reason(reason: Any) -> str:
+    """Convert internal exit reason code to user-friendly label."""
+    reason_map = {
+        "signal": "signal",
+        "tp": "take profit",
+        "sl": "stop loss",
+        "trailing_stop": "trailing stop",
+        "time_exit": "time exit",
+        "max_dd": "max drawdown",
+    }
+    if not isinstance(reason, str):
+        return "unknown"
+    return reason_map.get(reason, reason.replace("_", " "))
+
+
 def evaluate_alerts_for_run(run: BacktestRun, session: Session) -> None:
     """
     Evaluate alert conditions for a completed backtest run.
@@ -116,11 +131,17 @@ def evaluate_alerts_for_run(run: BacktestRun, session: Session) -> None:
                 break
 
     # Exit alert: check if any trade was exited TODAY (on the last day of backtest)
+    # Exclude end_of_data exits to avoid misleading alerts when a backtest simply ended.
     if rule.alert_on_exit:
         for t in trades:
             exit_time = _parse_timestamp(t.get("exit_time"))
-            if _is_same_date(exit_time, last_backtest_date):
-                reasons.append("exit signal today")
+            exit_reason = t.get("exit_reason")
+            if (
+                _is_same_date(exit_time, last_backtest_date)
+                and exit_reason != "end_of_data"
+            ):
+                reason_label = _format_exit_reason(exit_reason)
+                reasons.append(f"exit today ({reason_label})")
                 break
 
     # If no conditions triggered, return early
