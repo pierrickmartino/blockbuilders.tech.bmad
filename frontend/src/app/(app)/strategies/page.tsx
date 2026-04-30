@@ -1142,7 +1142,7 @@ export default function StrategiesPage() {
             {filteredAndSortedStrategies.map((strategy) => (
               <Card
                 key={strategy.id}
-                className={`relative transition-shadow duration-200 hover:shadow-md ${strategy.is_archived ? "opacity-60" : ""}`}
+                className={`relative transition-shadow duration-normal hover:shadow-md ${strategy.is_archived ? "opacity-60" : ""}`}
               >
                 <div className="absolute left-3 top-3 z-10">
                   <Checkbox

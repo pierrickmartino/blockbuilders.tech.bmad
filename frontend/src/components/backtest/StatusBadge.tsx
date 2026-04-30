@@ -38,17 +38,18 @@ export function StatusBadge({ status, className }: StatusBadgeProps) {
   return (
     <Badge
       variant="outline"
+      aria-label={style.label}
       className={cn("gap-1.5 px-2 py-0.5 text-xs font-medium", style.className, className)}
     >
       {status === "running" ? (
-        <span className="relative flex h-1.5 w-1.5">
+        <span className="relative flex h-1.5 w-1.5" aria-hidden>
           <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-current opacity-75" />
           <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-current" />
         </span>
       ) : (
         <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden />
       )}
-      {style.label}
+      <span aria-hidden>{style.label}</span>
     </Badge>
   );
 }

@@ -123,7 +123,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                         isActive={isActive}
                         tooltip={item.title}
                         className={cn(
-                          "relative transition-colors duration-150",
+                          "relative transition-colors duration-fast",
                           isActive && "border-l-2 border-primary"
                         )}
                       >
@@ -152,7 +152,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                       asChild
                       isActive={pathname === item.url}
                       tooltip={item.title}
-                      className="transition-colors duration-150"
+                      className="transition-colors duration-fast"
                     >
                       <Link href={item.url}>
                         <item.icon className="size-4" />

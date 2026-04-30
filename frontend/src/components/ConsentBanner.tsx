@@ -100,7 +100,7 @@ export function ConsentBanner() {
       onTransitionEnd={() => {
         if (state === "exiting") setState("hidden");
       }}
-      className={`fixed inset-x-0 bottom-0 z-50 border-t border-border bg-info-soft px-4 py-3 outline-none transition-transform duration-200 ease-out sm:py-4 motion-reduce:transition-none ${
+      className={`fixed inset-x-0 bottom-0 z-50 border-t border-border bg-info-soft px-4 py-3 outline-none transition-transform duration-normal ease-default sm:py-4 motion-reduce:transition-none ${
         state === "entering" || state === "exiting"
           ? "translate-y-full"
           : "translate-y-0"

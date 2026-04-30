@@ -12,6 +12,10 @@ interface BlockPaletteProps {
     event: React.DragEvent,
     blockMeta: BlockMeta
   ) => void;
+  /** Keyboard alternative to drag-and-drop (WCAG 2.5.7). Called when the user
+   *  presses Enter or Space on a focused block item. Optional: when omitted,
+   *  keyboard users can still focus blocks but cannot add them without mouse. */
+  onBlockAdd?: (blockMeta: BlockMeta) => void;
   isMobileMode?: boolean;
   indicatorMode: IndicatorMode;
   onToggleIndicatorMode: () => void;
@@ -142,7 +146,7 @@ function CategoryIcon({ category }: { category: BlockCategory }) {
   return null;
 }
 
-export default function BlockPalette({ onDragStart, isMobileMode = false, indicatorMode, onToggleIndicatorMode }: BlockPaletteProps) {
+export default function BlockPalette({ onDragStart, onBlockAdd, isMobileMode = false, indicatorMode, onToggleIndicatorMode }: BlockPaletteProps) {
   const [expandedCategories, setExpandedCategories] = useState<Set<BlockCategory>>(
     new Set(categories.map((c) => c.key))
   );
@@ -179,15 +183,22 @@ export default function BlockPalette({ onDragStart, isMobileMode = false, indica
           <div key={key}>
             <button
               onClick={() => toggleCategory(key)}
+              aria-expanded={expandedCategories.has(key)}
+              aria-controls={`palette-category-${key}`}
               className="flex w-full items-center justify-between rounded px-2 py-1.5 text-left text-sm font-medium text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800"
             >
               <span>{label}</span>
-              <span className="text-gray-400 dark:text-slate-500">
+              <span className="text-gray-400 dark:text-slate-500" aria-hidden>
                 {expandedCategories.has(key) ? "−" : "+"}
               </span>
             </button>
             {expandedCategories.has(key) && (
-              <div className="mt-1 space-y-1.5 pl-1">
+              <div
+                id={`palette-category-${key}`}
+                role="listbox"
+                aria-label={`${label} blocks`}
+                className="mt-1 space-y-1.5 pl-1"
+              >
                 {blocks.map((block) => {
                   const tooltip = getTooltip(blockToGlossaryId(block.type));
                   const plainLabel = indicatorMode === "essentials"
@@ -200,11 +211,22 @@ export default function BlockPalette({ onDragStart, isMobileMode = false, indica
                   return (
                     <div
                       key={block.type}
+                      role="option"
+                      aria-selected={false}
+                      tabIndex={0}
                       draggable
                       onDragStart={(e) => onDragStart(e, block)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          onBlockAdd?.(block);
+                        }
+                      }}
+                      aria-label={`Add ${displayLabel} block${tooltip?.short ? ` — ${tooltip.short}` : ""}`}
                       title={tooltip?.short || block.description}
                       className={cn(
                         "group cursor-grab rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-[0_1px_4px_rgba(0,0,0,0.06)] transition-all duration-150",
+                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
                         styles.borderHover,
                         "hover:shadow-[0_2px_8px_rgba(0,0,0,0.10)]"
                       )}

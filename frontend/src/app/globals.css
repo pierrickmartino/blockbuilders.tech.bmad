@@ -60,9 +60,29 @@
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 4%;
     --warning-soft: 38 92% 94%;
-    --info: 204 75% 40%;
+    /* --info intentionally distinct from --primary (sky-blue vs teal-blue)
+       so informational banners and primary action buttons are visually
+       separable without relying on label text alone. */
+    --info: 210 80% 45%;
     --info-foreground: 0 0% 100%;
-    --info-soft: 204 80% 95%;
+    --info-soft: 210 80% 95%;
+
+    /* — SHADOWS —
+       Three-stop shadow scale: sm for subtle lift, md for cards/dropdowns,
+       overlay for modals and command palettes. Values use the foreground
+       token so they automatically invert in dark mode via the .dark overrides
+       below (dark mode shadows use a near-black base). */
+    --shadow-sm: 0 1px 2px 0 hsl(var(--foreground) / 0.05);
+    --shadow-md: 0 4px 6px -1px hsl(var(--foreground) / 0.08), 0 2px 4px -2px hsl(var(--foreground) / 0.05);
+    --shadow-overlay: 0 20px 25px -5px hsl(var(--foreground) / 0.12), 0 8px 10px -6px hsl(var(--foreground) / 0.08);
+
+    /* — MOTION TOKENS —
+       `--duration-fast` for clicks/toggles; `--duration-normal` for
+       modals, drawers, and reveals. `--ease-default` is an ease-out-expo
+       curve tuned for UI motion (quick settle, no overshoot). */
+    --duration-fast: 150ms;
+    --duration-normal: 250ms;
+    --ease-default: cubic-bezier(0.16, 1, 0.3, 1);
 
     /* — BORDERS / INPUT / FOCUS —
        --focus-ring is a dedicated alias of --ring so a11y can tune
@@ -78,6 +98,15 @@
     --chart-3: 38 92% 50%;
     --chart-4: 204 66% 72%;
     --chart-5: 0 72% 51%;
+
+    /* — CANVAS NODE CATEGORIES —
+       Saturated mid-tones chosen for legibility on both light/dark canvas
+       surfaces. Values mirror the static CANVAS_CATEGORIES in chart-theme.ts. */
+    --canvas-node-input: 271 81% 56%;
+    --canvas-node-indicator: 217 91% 60%;
+    --canvas-node-logic: 32 95% 44%;
+    --canvas-node-signal: 142 71% 45%;
+    --canvas-node-risk: 0 72% 51%;
 
     /* — SIDEBAR — */
     --sidebar-background: 220 23% 97%;
@@ -121,9 +150,9 @@
     --warning: 43 96% 56%;
     --warning-foreground: 240 8% 5%;
     --warning-soft: 38 60% 14%;
-    --info: 204 76% 63%;
+    --info: 210 76% 68%;
     --info-foreground: 240 8% 5%;
-    --info-soft: 204 60% 14%;
+    --info-soft: 210 60% 14%;
 
     --border: 240 5% 17%;
     --input: 240 5% 17%;
@@ -135,6 +164,13 @@
     --chart-3: 43 96% 56%;
     --chart-4: 204 51% 21%;
     --chart-5: 0 84% 60%;
+
+    /* — CANVAS NODE CATEGORIES (dark) — */
+    --canvas-node-input: 271 81% 65%;
+    --canvas-node-indicator: 217 91% 68%;
+    --canvas-node-logic: 32 95% 55%;
+    --canvas-node-signal: 142 71% 55%;
+    --canvas-node-risk: 0 84% 60%;
 
     --sidebar-background: 240 4% 9%;
     --sidebar-foreground: 240 5% 92%;

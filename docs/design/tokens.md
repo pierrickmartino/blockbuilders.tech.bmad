@@ -3,7 +3,7 @@
 **Runtime source of truth:** `frontend/src/app/globals.css`
 **Tailwind exposure:** `frontend/tailwind.config.ts`
 **Brand philosophy:** `docs/design_concept.json`
-**Machine-readable mirror:** `docs/design-system.json` (TODO: reconcile with `globals.css` — Phase 1 left this open).
+**Machine-readable mirror:** `docs/design-system.json` — **`globals.css` is the authoritative runtime source. `design-system.json` is a generated reference artifact and must never be edited directly.** Any token change goes into `globals.css` first; `design-system.json` is regenerated from it.
 
 > **Rule of thumb:** every color decision goes through a token. If you find yourself reaching for `bg-[#…]`, `text-[…]`, `hsl(N N% N%)`, or any literal hex/rgb in a component, it's a violation. The only legitimate place to define a literal color value is `globals.css`.
 
@@ -31,9 +31,9 @@
 |---|---|---|---|
 | `--primary` | `204 75% 40%` | `204 76% 63%` | Primary CTA backgrounds, primary links. **Light value chosen for ≥4.5:1 contrast vs white** (WCAG 2.2 AA). |
 | `--primary-foreground` | `0 0% 100%` | `240 8% 5%` | Text on primary backgrounds. |
-| `--info` | `204 75% 40%` | `204 76% 63%` | Informational accents. Currently aliased to `--primary` — Phase 6 may diverge. |
+| `--info` | `210 80% 45%` | `210 76% 68%` | Informational accents. **Diverged from `--primary` in Phase 7** — sky-blue hue (210°) vs teal-blue (204°) so informational banners and primary action buttons are visually separable without relying on label text alone. |
 | `--info-foreground` | `0 0% 100%` | `240 8% 5%` | Text on info backgrounds. |
-| `--info-soft` | `204 80% 95%` | `204 60% 14%` | Tinted background for info banners/chips. |
+| `--info-soft` | `210 80% 95%` | `210 60% 14%` | Tinted background for info banners/chips. |
 
 **Rule:** never use `--primary` for non-interactive surfaces (e.g., decorative tints). For status banners, use the `*-soft` family.
 
@@ -133,6 +133,38 @@ Sidebar tokens mirror the global palette but allow the navigation chrome to evol
 
 ---
 
+## Shadows
+
+| Token | Value | Use |
+|---|---|---|
+| `--shadow-sm` | `0 1px 2px 0 hsl(var(--foreground) / 0.05)` | Subtle lift (inline chips, focused inputs). |
+| `--shadow-md` | `0 4px 6px … / 0.08, 0 2px 4px … / 0.05` | Cards, dropdowns. Tailwind: `shadow-md`. |
+| `--shadow-overlay` | `0 20px 25px … / 0.12, 0 8px 10px … / 0.08` | Modals, command palettes. Tailwind: `shadow-overlay`. |
+
+**Rule:** always use the token-backed utilities (`shadow-sm / shadow-md / shadow-overlay`) — never Tailwind's built-in `shadow / shadow-lg / shadow-xl`, which use hard-coded black rgba values that break in dark mode.
+
+---
+
+## Motion
+
+| Token | Value | Use |
+|---|---|---|
+| `--duration-fast` | `150ms` | Clicks, toggles, small reveals. Tailwind: `duration-fast`. |
+| `--duration-normal` | `250ms` | Modals, drawers, page transitions. Tailwind: `duration-normal`. |
+| `--ease-default` | `cubic-bezier(0.16, 1, 0.3, 1)` | Default easing (ease-out-expo). Tailwind: `ease-default`. |
+
+**Rule:** use `duration-fast` / `duration-normal` + `ease-default` instead of raw `duration-150 / duration-200 / duration-300`. The motion tokens respect `prefers-reduced-motion` via the global rule in `globals.css`.
+
+```tsx
+// ✓ correct
+<div className="transition-colors duration-fast ease-default ...">
+
+// ✗ avoid — bypasses motion token system
+<div className="transition-colors duration-150 ...">
+```
+
+---
+
 ## Radius & shape
 
 | Token | Value |
@@ -162,9 +194,9 @@ Sidebar tokens mirror the global palette but allow the navigation chrome to evol
 <div className="bg-success/10 text-success">       // ✗ avoid — won't track palette changes
 <div className="bg-success-soft text-success">     // ⚠ AA-large only; OK for headings, not body
 
-// Focus
-<button className="focus-visible:ring-2 focus-visible:ring-focus-ring">  // ✓ correct
-<button className="focus-visible:ring-2 focus-visible:ring-ring">        // ⚠ legacy — works but blocks future a11y tuning
+// Focus (ring-1, no ring-offset — Phase 7 standard)
+<button className="focus-visible:ring-1 focus-visible:ring-focus-ring">  // ✓ correct
+<button className="focus-visible:ring-2 focus-visible:ring-ring">        // ✗ legacy — ring-offset creates gap that breaks on non-white bg
 ```
 
 ---
@@ -191,8 +223,18 @@ Sidebar tokens mirror the global palette but allow the navigation chrome to evol
 | Documented `--destructive` ↔ `--chart-5` alias as deliberate | Single token tracks negative-outcome semantics across surfaces; future divergence requires a new token, not a split. |
 | Codified color-blind safety encoding rules (above) | Red/green collapse under deuteranopia/protanopia — single-channel meaning is inaccessible. |
 
+## What changed in Phase 7
+
+| Change | Reason |
+|---|---|
+| `--info` light: `204 75% 40%` → `210 80% 45%`; dark: `204 76% 63%` → `210 76% 68%` | Differentiates informational vs primary affordance — distinct hue (sky-blue 210° vs teal-blue 204°) prevents accidental visual equivalence between info banners and primary CTAs. |
+| Added `--shadow-sm / --shadow-md / --shadow-overlay` | Canonical three-stop shadow scale. Expressed as `hsl(var(--foreground) / alpha)` so they invert correctly in dark mode. Exposed in Tailwind as `shadow-sm / shadow-md / shadow-overlay`. |
+| Added `--duration-fast: 150ms`, `--duration-normal: 250ms`, `--ease-default` | Motion tokens replacing ~25 inline `duration-150/200/300` classes. Exposed in Tailwind as `duration-fast / duration-normal` and `ease-default`. |
+| `globals.css` declared authoritative | `design-system.json` is a generated artifact — never edit it directly. |
+
 ## What's deferred
 
-- Reconciling `docs/design-system.json` with `globals.css` — pick one authoritative source.
+- `design-system.json` regeneration script — token values must be extracted from `globals.css` programmatically (product sign-off required before automating).
 - Card/Input variant adoption of new surface and soft tokens — Phase 3 shipped the API; per-call-site migration is opportunistic.
+- Motion token sweep: replace remaining ~25 inline `transition-*` classes with `duration-fast` / `duration-normal` utilities now exposed via Tailwind.
 - Canvas wrapper components (`<NodeSocket>`, `<NodeIcon>`) replacing 184 atomic size classes — Phase 3.X (separate PR).

@@ -24,7 +24,7 @@ export default function InfoIcon({ tooltip, className = "" }: InfoIconProps) {
           <button
             type="button"
             aria-label={label}
-            className={`inline-flex items-center justify-center rounded-full text-[1rem] text-muted-foreground transition-colors duration-150 hover:text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring ${className}`}
+            className={`inline-flex items-center justify-center rounded-full text-[1rem] text-muted-foreground transition-colors duration-fast hover:text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring ${className}`}
           >
             <svg
               aria-hidden="true"

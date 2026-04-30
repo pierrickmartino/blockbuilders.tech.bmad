@@ -854,7 +854,7 @@ export default function ProfilePage() {
             )}
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <Card className="transition-shadow duration-200 hover:shadow-md">
+              <Card className="transition-shadow duration-normal hover:shadow-md">
                 <CardContent className="p-4">
                   <div className="mb-3 flex items-center justify-between">
                     <h3 className="font-semibold">Backtest Credits</h3>
@@ -878,7 +878,7 @@ export default function ProfilePage() {
                 </CardContent>
               </Card>
 
-              <Card className="transition-shadow duration-200 hover:shadow-md">
+              <Card className="transition-shadow duration-normal hover:shadow-md">
                 <CardContent className="p-4">
                   <div className="mb-3 flex items-center justify-between">
                     <h3 className="font-semibold">Extra Strategy Slots</h3>
@@ -1061,7 +1061,7 @@ function SegmentedGroup({
               tabIndex={active ? 0 : -1}
               onClick={() => onChange(opt.value)}
               className={cn(
-                "rounded-md px-3.5 py-1.5 text-sm font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring",
+                "rounded-md px-3.5 py-1.5 text-sm font-medium transition-all duration-fast focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring",
                 active
                   ? "bg-background text-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
@@ -1109,7 +1109,7 @@ function UsageCard({
 
   return (
     <Card className={cn(
-      "transition-shadow duration-200",
+      "transition-shadow duration-normal",
       state === "reached" && "border-destructive/30"
     )}>
       <CardContent className="p-4">
@@ -1174,7 +1174,7 @@ function PlanCard({
 }) {
   return (
     <Card className={cn(
-      "relative transition-shadow duration-200",
+      "relative transition-shadow duration-normal",
       current && "border-primary/30",
       recommended && "border-primary shadow-md shadow-primary/5"
     )}>

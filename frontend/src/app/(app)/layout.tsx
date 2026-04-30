@@ -107,7 +107,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <AppSidebar />
       <SidebarInset>
         <SiteHeader />
-        <div id="main-content" className="flex flex-1 flex-col gap-4 md:gap-6">{children}</div>
+        <main id="main-content" className="flex flex-1 flex-col gap-4 md:gap-6">{children}</main>
       </SidebarInset>
     </SidebarProvider>
   );

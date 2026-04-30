@@ -5,6 +5,7 @@ import { apiFetch, ApiError } from "@/lib/api";
 import { ProfileSettings, ProfileUpdateRequest } from "@/types/profile";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 
 export function ProfileSettingsSection() {
@@ -164,7 +165,7 @@ export function ProfileSettingsSection() {
           placeholder="A short bio about your trading approach..."
           maxLength={160}
           rows={3}
-          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2"
+          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring"
         />
         <p className="mt-1 text-xs text-muted-foreground">
           {bio.length}/160 characters
@@ -175,30 +176,27 @@ export function ProfileSettingsSection() {
       <div className="space-y-2">
         <p className="text-sm font-medium">Show on public profile:</p>
         <div className="flex flex-col gap-2">
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
+          <label className="flex cursor-pointer items-center gap-2 text-sm">
+            <Checkbox
+              id="show-strategies"
               checked={showStrategies}
-              onChange={(e) => setShowStrategies(e.target.checked)}
-              className="h-4 w-4 rounded border-gray-300"
+              onCheckedChange={(checked) => setShowStrategies(checked === true)}
             />
             Published strategies
           </label>
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
+          <label className="flex cursor-pointer items-center gap-2 text-sm">
+            <Checkbox
+              id="show-contributions"
               checked={showContributions}
-              onChange={(e) => setShowContributions(e.target.checked)}
-              className="h-4 w-4 rounded border-gray-300"
+              onCheckedChange={(checked) => setShowContributions(checked === true)}
             />
             Contribution stats
           </label>
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
+          <label className="flex cursor-pointer items-center gap-2 text-sm">
+            <Checkbox
+              id="show-badges"
               checked={showBadges}
-              onChange={(e) => setShowBadges(e.target.checked)}
-              className="h-4 w-4 rounded border-gray-300"
+              onCheckedChange={(checked) => setShowBadges(checked === true)}
             />
             Badges
           </label>

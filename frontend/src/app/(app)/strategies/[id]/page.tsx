@@ -10,7 +10,7 @@ import {
   ANALYTICS_CONSENT_CHANGED_EVENT,
   ANALYTICS_POSTHOG_INITIALIZED_EVENT,
 } from "@/lib/analytics";
-import { formatDateTime, formatRelativeTime } from "@/lib/format";
+import { formatRelativeTime } from "@/lib/format";
 import { useDisplay } from "@/context/display";
 import { useAuth } from "@/context/auth";
 import { Strategy, StrategyTag, StrategyVersion, StrategyVersionDetail, StrategyExportFile } from "@/types/strategy";
@@ -50,50 +50,24 @@ import BlockPalette from "@/components/canvas/BlockPalette";
 import BlockLibrarySheet from "@/components/canvas/BlockLibrarySheet";
 import { useIndicatorMode } from "@/hooks/useIndicatorMode";
 import InspectorPanel from "@/components/canvas/InspectorPanel";
-import { StrategyTabs } from "@/components/StrategyTabs";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Sheet,
   SheetContent,
   SheetDescription,
   SheetHeader,
   SheetTitle,
-  SheetTrigger,
 } from "@/components/ui/sheet";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-  ChevronLeft,
-  MoreVertical,
   Settings as SettingsIcon,
-  Clock,
-  Check as CheckIcon,
-  AlertCircle,
-  CheckCircle2,
   Loader2,
-  Pencil,
   Plus,
-  X,
 } from "lucide-react";
 import { KeyboardShortcutsModal } from "@/components/KeyboardShortcutsModal";
 import { isInputElement } from "@/lib/keyboard-shortcuts";
-import { cn } from "@/lib/utils";
 import { getFeatureFlag, CANVAS_FLAGS } from "@/lib/feature-flags";
+import { StrategyHeader } from "./_components/StrategyHeader";
+import { StrategySettingsSheet } from "./_components/StrategySettingsSheet";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -1166,612 +1140,79 @@ export default function StrategyEditorPage({ params }: Props) {
 
   return (
     <div className="flex h-screen flex-col">
-      {/* Compact Top Bar */}
-      <div className="flex-shrink-0 border-b bg-background px-3 py-2">
-        <div className="flex items-center justify-between gap-2">
-          {/* Left: Back + Name + Badges */}
-          <div className="flex min-w-0 items-center gap-2">
-            <Link
-              href="/strategies"
-              aria-label="Back to strategies"
-              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring sm:h-8 sm:w-8"
-            >
-              <ChevronLeft className="h-5 w-5" aria-hidden="true" />
-            </Link>
+      <StrategyHeader
+        strategy={strategy}
+        strategyId={id}
+        versions={versions}
+        selectedVersion={selectedVersion}
+        timezone={timezone}
+        editingName={editingName}
+        nameInput={nameInput}
+        isSavingName={isSavingName}
+        onEditingNameChange={setEditingName}
+        onNameChange={setNameInput}
+        onNameSave={handleNameSave}
+        autosaveState={autosaveState}
+        lastSavedAt={lastSavedAt}
+        relativeTimestamp={relativeTimestamp}
+        isSavingVersion={isSavingVersion}
+        onSaveVersion={handleSaveVersion}
+        onLoadVersion={confirmLoadVersion}
+        isUpdatingAutoUpdate={isUpdatingAutoUpdate}
+        onExport={handleExport}
+        onAutoUpdateToggle={handleAutoUpdateToggle}
+        onLookbackChange={handleLookbackChange}
+        onSettingsOpen={() => setShowSettings(true)}
+        error={error}
+        validationErrors={validationErrors}
+        saveMessage={saveMessage}
+        onErrorDismiss={() => { setError(null); setValidationErrors([]); }}
+        onMessageDismiss={() => setSaveMessage(null)}
+        onJumpToError={(blockId) => {
+          setSelectedNodeId(blockId);
+          const node = nodes.find((n) => n.id === blockId);
+          if (node) {
+            const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+            reactFlowRef.current?.setCenter(node.position.x, node.position.y, {
+              zoom: 1.2,
+              duration: reduceMotion ? 0 : 300,
+            });
+          }
+        }}
+      />
 
-            {editingName ? (
-              <div className="flex items-center gap-1">
-                <Input
-                  type="text"
-                  value={nameInput}
-                  onChange={(e) => setNameInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleNameSave();
-                    if (e.key === "Escape") {
-                      setEditingName(false);
-                      setNameInput(strategy.name);
-                    }
-                  }}
-                  className="h-9 min-w-[8rem] flex-1 text-sm font-semibold sm:h-8 sm:max-w-xs"
-                  autoFocus
-                />
-                <Button size="sm" className="h-9 px-3 sm:h-8" onClick={handleNameSave} disabled={isSavingName}>
-                  {isSavingName ? "Saving…" : "Save"}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-9 px-3 sm:h-8"
-                  onClick={() => {
-                    setEditingName(false);
-                    setNameInput(strategy.name);
-                  }}
-                >
-                  Cancel
-                </Button>
-              </div>
-            ) : (
-              <button
-                className="group flex min-w-0 items-center gap-1 truncate rounded-md text-sm font-semibold text-foreground hover:text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring"
-                onClick={() => setEditingName(true)}
-                aria-label={`Edit strategy name (current: ${strategy.name})`}
-              >
-                <span className="truncate">{strategy.name}</span>
-                <Pencil
-                  className="h-3 w-3 opacity-0 transition-opacity group-hover:opacity-60 group-focus-visible:opacity-60"
-                  aria-hidden="true"
-                />
-              </button>
-            )}
-
-            <Badge variant="secondary" className="hidden flex-shrink-0 sm:inline-flex">
-              {strategy.asset}
-            </Badge>
-            <Badge variant="secondary" className="hidden flex-shrink-0 sm:inline-flex">
-              {strategy.timeframe}
-            </Badge>
-
-            {/* Tags preview (compact) */}
-            {strategy.tags && strategy.tags.length > 0 && (
-              <div className="hidden items-center gap-1 lg:flex">
-                {strategy.tags.slice(0, 2).map((tag) => (
-                  <Badge key={tag.id} variant="outline" className="bg-primary/10 text-primary dark:bg-primary/20 text-xs">
-                    {tag.name}
-                  </Badge>
-                ))}
-                {strategy.tags.length > 2 && (
-                  <span className="text-xs text-muted-foreground">+{strategy.tags.length - 2}</span>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Right: Actions */}
-          <div className="flex flex-shrink-0 items-center gap-2">
-            {/* Autosave status */}
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              {autosaveState === 'saving' && (
-                <>
-                  <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />
-                  <span>Saving…</span>
-                </>
-              )}
-              {autosaveState === 'saved' && lastSavedAt && (
-                <>
-                  <CheckIcon className="h-3 w-3 text-primary" aria-hidden="true" />
-                  <span className="hidden sm:inline">
-                    Saved • <span className="data-text">{relativeTimestamp}</span>
-                  </span>
-                  <span className="sm:hidden">Saved</span>
-                </>
-              )}
-              {autosaveState === 'error' && (
-                <>
-                  <AlertCircle className="h-3 w-3 text-destructive" aria-hidden="true" />
-                  <span className="text-destructive">Save failed</span>
-                  <button
-                    type="button"
-                    onClick={handleSaveVersion}
-                    className="text-destructive underline underline-offset-2 hover:text-destructive/80"
-                  >
-                    Retry
-                  </button>
-                </>
-              )}
-            </div>
-
-            {/* Save button */}
-            <Button
-              size="sm"
-              className="h-9 sm:h-8"
-              onClick={handleSaveVersion}
-              disabled={isSavingVersion}
-            >
-              {isSavingVersion ? (
-                <>
-                  <Loader2 className="mr-1 h-3 w-3 animate-spin" aria-hidden="true" />
-                  Saving…
-                </>
-              ) : (
-                "Save"
-              )}
-            </Button>
-
-            {/* History Sheet (mobile only) */}
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-9 px-2 focus-visible:ring-1 focus-visible:ring-focus-ring sm:h-8 lg:hidden"
-                  aria-label="Version history"
-                >
-                  <Clock className="h-4 w-4" aria-hidden="true" />
-                  <span className="hidden sm:inline">History</span>
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="right" className="w-full overflow-y-auto sm:w-[400px] sm:max-w-[400px]">
-                <SheetHeader>
-                  <SheetTitle>Version History</SheetTitle>
-                  <SheetDescription>Load previous strategy versions.</SheetDescription>
-                </SheetHeader>
-
-                <div className="mt-6 space-y-2">
-                  {versions.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No saved versions yet.</p>
-                  ) : (
-                    versions.map((v) => (
-                      <div
-                        key={v.id}
-                        className={cn(
-                          "flex items-center justify-between rounded-lg border p-3",
-                          v.version_number === selectedVersion?.version_number &&
-                            "border-primary bg-primary/5"
-                        )}
-                      >
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium">
-                            Version <span className="data-text">{v.version_number}</span>
-                            {v.version_number === selectedVersion?.version_number && (
-                              <Badge variant="outline" className="ml-2 text-xs">Current</Badge>
-                            )}
-                          </div>
-                          <div className="data-text text-xs text-muted-foreground">
-                            {formatDateTime(v.created_at, timezone)}
-                          </div>
-                        </div>
-                        {v.version_number !== selectedVersion?.version_number && (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-8"
-                            onClick={() => confirmLoadVersion(v.version_number)}
-                          >
-                            Load
-                          </Button>
-                        )}
-                      </div>
-                    ))
-                  )}
-                </div>
-              </SheetContent>
-            </Sheet>
-
-            {/* More actions dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-9 px-2 focus-visible:ring-1 focus-visible:ring-focus-ring sm:h-8"
-                  aria-label="More actions"
-                >
-                  <MoreVertical className="h-4 w-4" aria-hidden="true" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={handleExport}>
-                  Export JSON
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={() => handleAutoUpdateToggle(!strategy.auto_update_enabled)}
-                  disabled={isUpdatingAutoUpdate}
-                >
-                  {strategy.auto_update_enabled
-                    ? `Disable Strategy Monitor (${strategy.auto_update_lookback_days}d)`
-                    : "Enable Strategy Monitor"}
-                </DropdownMenuItem>
-                {strategy.auto_update_enabled && (
-                  <>
-                    <DropdownMenuItem onClick={() => handleLookbackChange(90)} disabled={isUpdatingAutoUpdate}>
-                      <span className="flex-1">Lookback: 90 days</span>
-                      {strategy.auto_update_lookback_days === 90 && <CheckIcon className="ml-2 h-4 w-4 text-primary" aria-label="Selected" />}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleLookbackChange(180)} disabled={isUpdatingAutoUpdate}>
-                      <span className="flex-1">Lookback: 180 days</span>
-                      {strategy.auto_update_lookback_days === 180 && <CheckIcon className="ml-2 h-4 w-4 text-primary" aria-label="Selected" />}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleLookbackChange(365)} disabled={isUpdatingAutoUpdate}>
-                      <span className="flex-1">Lookback: 365 days</span>
-                      {strategy.auto_update_lookback_days === 365 && <CheckIcon className="ml-2 h-4 w-4 text-primary" aria-label="Selected" />}
-                    </DropdownMenuItem>
-                  </>
-                )}
-                <DropdownMenuSeparator className="lg:hidden" />
-                <DropdownMenuItem onClick={() => setShowSettings(true)} className="lg:hidden">
-                  Settings...
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            {/* Settings gear icon (desktop only) */}
-            <Button
-              variant="outline"
-              size="sm"
-              className="hidden h-8 px-2 focus-visible:ring-1 focus-visible:ring-focus-ring lg:inline-flex"
-              onClick={() => setShowSettings(true)}
-              aria-label="Strategy settings"
-            >
-              <SettingsIcon className="h-4 w-4" aria-hidden="true" />
-            </Button>
-          </div>
-        </div>
-
-        {/* Tabs row */}
-        <div className="mt-1 flex items-center justify-between gap-2">
-          <StrategyTabs strategyId={id} activeTab="build" />
-          {versions.length > 0 && (
-            <Select
-              value={String(selectedVersion?.version_number || "")}
-              onValueChange={(v) => confirmLoadVersion(Number(v))}
-            >
-              <SelectTrigger className="hidden h-8 w-[110px] text-xs sm:w-[140px] lg:flex">
-                <SelectValue placeholder="Version" />
-              </SelectTrigger>
-              <SelectContent>
-                {versions.map((v) => (
-                  <SelectItem key={v.id} value={String(v.version_number)}>
-                    <span className="data-text">
-                      v{v.version_number} - {formatDateTime(v.created_at, timezone)}
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        </div>
-
-        {/* Compact error/success messages — Signal design system `alert` spec */}
-        {error && (
-          <div
-            role="alert"
-            className="mt-1 flex items-center gap-2.5 rounded border border-destructive/20 bg-destructive/[0.03] px-3.5 py-2.5 text-[13px] font-medium text-destructive dark:border-destructive/30 dark:bg-destructive/10"
-          >
-            <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
-            <span className="flex-1">{error}</span>
-            {validationErrors.length > 0 && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="h-6 shrink-0 px-2 text-xs text-destructive hover:text-destructive/80"
-                onClick={() => {
-                  const firstErrorBlockId = validationErrors.find((e) => e.block_id)?.block_id;
-                  if (firstErrorBlockId) {
-                    setSelectedNodeId(firstErrorBlockId);
-                    const node = nodes.find((n) => n.id === firstErrorBlockId);
-                    if (node) {
-                      const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-                      reactFlowRef.current?.setCenter(node.position.x, node.position.y, {
-                        zoom: 1.2,
-                        duration: reduceMotion ? 0 : 300,
-                      });
-                    }
-                  }
-                }}
-              >
-                Jump to error ({validationErrors.length})
-              </Button>
-            )}
-            <button
-              type="button"
-              onClick={() => { setError(null); setValidationErrors([]); }}
-              className="shrink-0 rounded-sm p-0.5 text-destructive/60 hover:text-destructive focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring"
-              aria-label="Dismiss error"
-            >
-              <X className="h-3.5 w-3.5" aria-hidden="true" />
-            </button>
-          </div>
-        )}
-        {saveMessage && (
-          <div
-            role="status"
-            aria-live="polite"
-            className="mt-1 flex items-center gap-2.5 rounded border border-success/20 bg-success/[0.03] px-3.5 py-2.5 text-[13px] font-medium text-success dark:border-success/30 dark:bg-success/10"
-          >
-            <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
-            <span className="flex-1">{saveMessage}</span>
-            <button
-              type="button"
-              onClick={() => setSaveMessage(null)}
-              className="shrink-0 rounded-sm p-0.5 text-success/60 hover:text-success focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring"
-              aria-label="Dismiss message"
-            >
-              <X className="h-3.5 w-3.5" aria-hidden="true" />
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Settings Sheet - controlled by showSettings state */}
-      <Sheet open={showSettings} onOpenChange={setShowSettings}>
-        <SheetContent className="w-full overflow-y-auto sm:w-[400px] sm:max-w-[400px]">
-          <SheetHeader>
-            <SheetTitle>Strategy Settings</SheetTitle>
-            <SheetDescription>
-              Configure tags, alerts, and view strategy summary.
-            </SheetDescription>
-          </SheetHeader>
-
-          <div className="mt-6 space-y-6">
-            {/* Canvas Mode Section */}
-            <div>
-              <h4 className="text-sm font-semibold">Canvas Mode</h4>
-              <p className="text-xs text-muted-foreground">
-                Choose how nodes are displayed on the canvas.
-              </p>
-              <div className="mt-3">
-                <label htmlFor="canvas-mode" className="sr-only">Canvas display mode</label>
-                <Select
-                  value={nodeDisplayMode}
-                  onValueChange={(v) => setNodeDisplayMode(v as "expanded" | "compact")}
-                >
-                  <SelectTrigger id="canvas-mode" className="h-8 w-full text-sm">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="expanded">Standard (Expanded by default)</SelectItem>
-                    <SelectItem value="compact">Compact (Click to expand)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Strategy Summary */}
-            {explanation && explanation.status === "valid" && (
-              <div className="rounded-lg border border-primary/30 bg-primary/5 p-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-primary">Strategy Summary</span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 px-2 text-xs text-primary"
-                    onClick={handleCopyExplanation}
-                  >
-                    Copy
-                  </Button>
-                </div>
-                <div className="mt-2 space-y-1 text-sm text-muted-foreground">
-                  <p>{explanation.entry}</p>
-                  <p>{explanation.exit}</p>
-                  {explanation.risk && <p>{explanation.risk}</p>}
-                </div>
-              </div>
-            )}
-            {explanation && explanation.status === "fallback" && (
-              <div className="rounded-lg border bg-muted p-3 text-sm text-muted-foreground">
-                {explanation.entry}
-              </div>
-            )}
-
-            {/* Tags Section */}
-            <div>
-              <h4 className="text-sm font-semibold">Tags</h4>
-              <p className="text-xs text-muted-foreground">
-                Organize strategies with custom tags for filtering.
-              </p>
-
-              <div className="mt-3 space-y-3">
-                {strategy.tags && strategy.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {strategy.tags.map((tag) => (
-                      <Badge key={tag.id} variant="outline" className="bg-primary/10 text-primary dark:bg-primary/20">
-                        {tag.name}
-                        <button
-                          onClick={() => handleRemoveTag(tag.id)}
-                          disabled={isSavingTags}
-                          aria-label={`Remove tag ${tag.name}`}
-                          className="ml-1 text-primary/70 hover:text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring disabled:opacity-50"
-                        >
-                          ×
-                        </button>
-                      </Badge>
-                    ))}
-                  </div>
-                )}
-
-                <div className="flex gap-2">
-                  <Input
-                    type="text"
-                    placeholder="Add tag..."
-                    value={tagInput}
-                    onChange={(e) => setTagInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && tagInput.trim()) {
-                        handleAddTag(tagInput);
-                      }
-                    }}
-                    disabled={isSavingTags || (strategy?.tags?.length || 0) >= 20}
-                    className="h-8 flex-1"
-                    list="available-tags"
-                  />
-                  <Button
-                    size="sm"
-                    className="h-8 bg-primary hover:bg-primary/90"
-                    onClick={() => handleAddTag(tagInput)}
-                    disabled={!tagInput.trim() || isSavingTags || (strategy?.tags?.length || 0) >= 20}
-                  >
-                    Add
-                  </Button>
-                </div>
-
-                <datalist id="available-tags">
-                  {availableTags.map((tag) => (
-                    <option key={tag.id} value={tag.name} />
-                  ))}
-                </datalist>
-
-                {(strategy?.tags?.length || 0) >= 20 && (
-                  <p className="text-xs text-muted-foreground">Maximum 20 tags per strategy.</p>
-                )}
-              </div>
-            </div>
-
-            {/* Performance Alerts Section */}
-            <div>
-              <h4 className="text-sm font-semibold">Performance Alerts</h4>
-              <p className="text-xs text-muted-foreground">
-                Get notified when your strategy performance changes significantly.
-              </p>
-
-              {isEditingAlert ? (
-                <div className="mt-3 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <label htmlFor="alert-enabled" className="text-sm">Enable Alerts</label>
-                    <Checkbox
-                      id="alert-enabled"
-                      checked={alertEnabled}
-                      onCheckedChange={(checked) => setAlertEnabled(checked === true)}
-                    />
-                  </div>
-
-                  {alertEnabled && (
-                    <>
-                      <div>
-                        <label htmlFor="alert-threshold" className="text-sm">Performance Drop Threshold (%)</label>
-                        <Input
-                          id="alert-threshold"
-                          type="number"
-                          value={alertThreshold ?? ""}
-                          onChange={(e) => setAlertThreshold(e.target.value ? parseFloat(e.target.value) : null)}
-                          placeholder="e.g., 5 for 5% drop"
-                          min="0.1"
-                          max="100"
-                          step="0.1"
-                          className="mt-1 h-8"
-                        />
-                      </div>
-
-                      <fieldset>
-                        <legend className="text-sm">Alert Triggers</legend>
-                        <div className="mt-1 space-y-2">
-                          <div className="flex items-center gap-2">
-                            <Checkbox
-                              id="alert-entry"
-                              checked={alertOnEntry}
-                              onCheckedChange={(checked) => setAlertOnEntry(checked === true)}
-                            />
-                            <label htmlFor="alert-entry" className="text-sm">Entry signal detected</label>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Checkbox
-                              id="alert-exit"
-                              checked={alertOnExit}
-                              onCheckedChange={(checked) => setAlertOnExit(checked === true)}
-                            />
-                            <label htmlFor="alert-exit" className="text-sm">Exit signal detected</label>
-                          </div>
-                        </div>
-                      </fieldset>
-
-                      <div className="flex items-center justify-between">
-                        <label htmlFor="notify-email" className="text-sm">Email notifications</label>
-                        <Checkbox
-                          id="notify-email"
-                          checked={notifyEmail}
-                          onCheckedChange={(checked) => setNotifyEmail(checked === true)}
-                        />
-                      </div>
-                    </>
-                  )}
-
-                  {alertError && (
-                    <p className="text-xs text-destructive">{alertError}</p>
-                  )}
-
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      className="h-9 sm:h-8"
-                      onClick={handleAlertSave}
-                      disabled={isSavingAlert}
-                    >
-                      {isSavingAlert ? "Saving..." : "Save Alerts"}
-                    </Button>
-                    {alertRule && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-9 sm:h-8"
-                        onClick={() => {
-                          setIsEditingAlert(false);
-                          resetAlertForm(alertRule);
-                        }}
-                      >
-                        Cancel
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <div className="mt-3 space-y-2">
-                  <div className="text-sm">
-                    <strong>Status:</strong> {alertRule?.is_active ? "Enabled" : "Disabled"}
-                  </div>
-                  {alertRule?.is_active && (
-                    <>
-                      {alertRule.threshold_pct !== null && (
-                        <div className="text-sm">
-                          <strong>Threshold:</strong> {alertRule.threshold_pct}% drop
-                        </div>
-                      )}
-                      <div className="text-sm">
-                        <strong>Triggers:</strong>{" "}
-                        {alertRule.alert_on_entry && "Entry signal"}
-                        {alertRule.alert_on_entry && alertRule.alert_on_exit && ", "}
-                        {alertRule.alert_on_exit && "Exit signal"}
-                      </div>
-                      <div className="text-sm">
-                        <strong>Email:</strong> {alertRule.notify_email ? "Yes" : "No"}
-                      </div>
-                    </>
-                  )}
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-9 sm:h-8"
-                    onClick={() => setIsEditingAlert(true)}
-                  >
-                    Edit Alerts
-                  </Button>
-                </div>
-              )}
-            </div>
-
-            {/* Strategy Monitor Status */}
-            <div>
-              <h4 className="text-sm font-semibold">Strategy Monitor</h4>
-              <p className="text-xs text-muted-foreground mb-1">Automated daily re-testing of your strategy against the latest market data</p>
-              <p className="text-sm text-muted-foreground">
-                {strategy.auto_update_enabled
-                  ? `Enabled (${strategy.auto_update_lookback_days} days lookback)`
-                  : "Disabled"}
-              </p>
-            </div>
-          </div>
-        </SheetContent>
-      </Sheet>
+      <StrategySettingsSheet
+        open={showSettings}
+        strategy={strategy}
+        explanation={explanation}
+        nodeDisplayMode={nodeDisplayMode}
+        availableTags={availableTags}
+        tagInput={tagInput}
+        isSavingTags={isSavingTags}
+        alertRule={alertRule}
+        alertEnabled={alertEnabled}
+        alertThreshold={alertThreshold}
+        alertOnEntry={alertOnEntry}
+        alertOnExit={alertOnExit}
+        notifyEmail={notifyEmail}
+        alertError={alertError}
+        isSavingAlert={isSavingAlert}
+        isEditingAlert={isEditingAlert}
+        onOpenChange={setShowSettings}
+        onNodeDisplayModeChange={setNodeDisplayMode}
+        onCopyExplanation={handleCopyExplanation}
+        onTagInputChange={setTagInput}
+        onAddTag={handleAddTag}
+        onRemoveTag={handleRemoveTag}
+        onAlertSave={handleAlertSave}
+        onAlertEditStart={() => setIsEditingAlert(true)}
+        onAlertEditCancel={() => { setIsEditingAlert(false); resetAlertForm(alertRule); }}
+        onAlertEnabledChange={setAlertEnabled}
+        onAlertThresholdChange={setAlertThreshold}
+        onAlertOnEntryChange={setAlertOnEntry}
+        onAlertOnExitChange={setAlertOnExit}
+        onNotifyEmailChange={setNotifyEmail}
+      />
 
       {/* Main Content - Three Panel Layout */}
       <div className="flex flex-1 overflow-hidden">

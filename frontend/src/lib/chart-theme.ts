@@ -119,23 +119,44 @@ export function readChartTheme(): ChartTheme {
  * Canvas-node category palette. Used by `BaseNode`, `CanvasMinimap`, and
  * any future canvas-related visualization to color nodes by category.
  *
- * These don't theme-switch today: the saturated mid-tones (Tailwind 600
- * shades) work on both light and dark canvas backgrounds. If a future
- * a11y review demands per-theme variants, promote these to CSS custom
- * properties in `globals.css`.
+ * The static object below is an SSR-safe fallback (used during server render
+ * and anywhere CSS properties are unavailable). At runtime, prefer
+ * `readCanvasCategories()` which reads from the `--canvas-node-*` tokens
+ * defined in `globals.css` so colors participate in the design-token system
+ * and respond to theme changes.
  *
  * Keep in sync with `frontend/CLAUDE.md` § Colors → "Canvas node
  * categories" and the canonical mapping in `docs/design_concept.json`.
  */
 export const CANVAS_CATEGORIES = Object.freeze({
-  input: "hsl(271 81% 56%)",      // purple
-  indicator: "hsl(217 91% 60%)",  // blue
-  logic: "hsl(32 95% 44%)",       // amber
-  signal: "hsl(142 71% 45%)",     // green
-  risk: "hsl(0 72% 51%)",         // red
+  input: "hsl(271 81% 56%)",      // purple  — matches --canvas-node-input (light)
+  indicator: "hsl(217 91% 60%)",  // blue    — matches --canvas-node-indicator (light)
+  logic: "hsl(32 95% 44%)",       // amber   — matches --canvas-node-logic (light)
+  signal: "hsl(142 71% 45%)",     // green   — matches --canvas-node-signal (light)
+  risk: "hsl(0 72% 51%)",         // red     — matches --canvas-node-risk (light)
 } as const);
 
 export type CanvasCategory = keyof typeof CANVAS_CATEGORIES;
+
+/**
+ * Read the canvas-node category palette from CSS custom properties.
+ * Returns the same shape as `CANVAS_CATEGORIES` but reflects the active
+ * theme (light / dark). Falls back to `CANVAS_CATEGORIES` during SSR.
+ *
+ * Usage in effects / event handlers:
+ *   const colors = readCanvasCategories();
+ *   node.style.borderColor = colors[block.category];
+ */
+export function readCanvasCategories(): Readonly<Record<CanvasCategory, string>> {
+  if (typeof document === "undefined") return CANVAS_CATEGORIES;
+  return Object.freeze({
+    input:     hsl(readVar("--canvas-node-input"))     || CANVAS_CATEGORIES.input,
+    indicator: hsl(readVar("--canvas-node-indicator")) || CANVAS_CATEGORIES.indicator,
+    logic:     hsl(readVar("--canvas-node-logic"))     || CANVAS_CATEGORIES.logic,
+    signal:    hsl(readVar("--canvas-node-signal"))    || CANVAS_CATEGORIES.signal,
+    risk:      hsl(readVar("--canvas-node-risk"))      || CANVAS_CATEGORIES.risk,
+  });
+}
 
 /**
  * Reactive chart theme. Re-emits whenever the `dark` class on

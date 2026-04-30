@@ -188,6 +188,9 @@ function getSeasonalityGridClass(periodType: PeriodType): string {
   return "grid-cols-7 min-w-[560px]";
 }
 
+/** Map a single heatmap cell's return value to CSS colour properties.
+ *  Uses design-system tokens (`--success` / `--destructive`) for both
+ *  background and text so dark-mode is handled automatically. */
 function getSeasonalityCellStyle(
   avgReturn: number,
   count: number,
@@ -205,19 +208,22 @@ function getSeasonalityCellStyle(
   const easedIntensity = Math.pow(intensity, 0.8);
   const alpha = 0.14 + easedIntensity * 0.78;
   const isPositive = avgReturn >= 0;
+  const token = isPositive ? "--success" : "--destructive";
 
-  // Intensity-mapped heatmap palette. The `base` RGB pairs and the dark
-  // text colors below are deliberately literal: they encode a tuned
-  // success/destructive ramp where the cell's lightness varies with the
-  // data, and the foreground must keep ≥4.5:1 contrast against a known
-  // colored background. Phase 6 (theme hardening) will introduce a
-  // first-class heatmap-token API; until then the literals stay.
-  const base = isPositive ? "22, 163, 74" : "220, 38, 38";
   return {
-    backgroundColor: `rgba(${base}, ${alpha})`,
-    borderColor: `rgba(${base}, ${Math.min(alpha + 0.08, 1)})`,
-    color: easedIntensity > 0.72 ? "#ffffff" : isPositive ? "#166534" : "#991b1b",
+    backgroundColor: `hsl(var(${token}) / ${alpha})`,
+    borderColor: `hsl(var(${token}) / ${Math.min(alpha + 0.08, 1)})`,
+    color: getCellColor(easedIntensity, isPositive),
   };
+}
+
+/** Returns an appropriate foreground colour for a heatmap cell based on
+ *  intensity (high-intensity cells get a contrast-safe foreground from the
+ *  design token; low-intensity cells echo the semantic success/destructive
+ *  colour so the text stays readable against the lightly-tinted background). */
+function getCellColor(easedIntensity: number, isPositive: boolean): string {
+  if (easedIntensity > 0.72) return "hsl(var(--primary-foreground))";
+  return isPositive ? "hsl(var(--success))" : "hsl(var(--destructive))";
 }
 
 function computeSeasonality(

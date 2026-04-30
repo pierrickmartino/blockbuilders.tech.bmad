@@ -20,6 +20,18 @@ const config: Config = {
   			md: 'calc(var(--radius) - 2px)',
   			sm: 'calc(var(--radius) - 4px)'
   		},
+  		boxShadow: {
+  			sm: 'var(--shadow-sm)',
+  			md: 'var(--shadow-md)',
+  			overlay: 'var(--shadow-overlay)',
+  		},
+  		transitionDuration: {
+  			fast: 'var(--duration-fast)',
+  			normal: 'var(--duration-normal)',
+  		},
+  		transitionTimingFunction: {
+  			default: 'var(--ease-default)',
+  		},
   		spacing: {
   			section: 'var(--space-section)',
   			'section-tight': 'var(--space-section-tight)'
