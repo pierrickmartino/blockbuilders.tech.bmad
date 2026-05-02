@@ -44,3 +44,6 @@ docker-compose.override.yml
 
 # Git
 .git/
+
+# Codex
+.codex/

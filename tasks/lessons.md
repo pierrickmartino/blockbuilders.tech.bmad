@@ -1,0 +1,1 @@
+- 2026-05-02: Before committing local agent setup, check `git diff --cached --name-status` for tool state such as `.codex/`, auth files, sessions, and logs. Keep those paths ignored and out of repository history.
