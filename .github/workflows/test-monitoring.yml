@@ -4,8 +4,8 @@ on:
   # Run on PRs that touch test checklists, PRDs, or backend tests
   pull_request:
     paths:
-      - 'docs/tst-*.md'
-      - 'docs/prd-*.md'
+      - 'docs/testing/FEAT-*.md'
+      - 'docs/features/FEAT-*.md'
       - 'backend/tests/**'
       - 'backend/app/**'
 
