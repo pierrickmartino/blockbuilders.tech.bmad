@@ -955,8 +955,8 @@ export default function StrategyBacktestPage({ params }: Props) {
 
       // Run backtest: Cmd/Ctrl+Enter (standard "submit" shortcut)
       if (isMod && key === "enter") {
-        if (isSubmitting) return;
         e.preventDefault();
+        if (e.repeat || isSubmitting) return;
         const form = customFormRef.current;
         if (form) {
           form.dispatchEvent(
