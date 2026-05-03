@@ -3,6 +3,23 @@
 ## Scope
 Validate that users can open a Market chart side panel, inspect stored OHLCV candles, select available indicators, and verify EMA(20) and RSI(14) values aligned to the same candle timestamps.
 
+## Coverage Status
+
+| Test Case | Type | Runner | Status |
+|---|---|---|---|
+| TC-01 | Frontend / E2E | none (no `npm test` script) | Manual only |
+| TC-02 | Frontend / E2E | none | Manual only |
+| TC-03 | Frontend / E2E | none | Manual only |
+| TC-04 | Frontend / E2E | none | Manual only |
+| TC-05 | Backend (pytest) | `pytest -q -k "feat_100 and ema_20"` | ✅ Auto |
+| TC-06 | Backend (pytest) | `pytest -q -k "feat_100 and rsi_14"` | ✅ Auto |
+| TC-07 | Frontend / E2E | none | Manual only |
+| TC-08 | Backend (pytest) | `pytest -q -k "feat_100 and warmup_values"` | ✅ Auto |
+| TC-09 | Frontend / E2E | none | Manual only |
+| TC-10 | Frontend / E2E | none | Manual only |
+
+**Known gap:** This repo has no frontend test runner (no Vitest/RTL, no Playwright setup). TC-01/02/03/04/07/09/10 require manual verification or a future Playwright E2E suite.
+
 ## Test Cases
 
 ### TC-01 Opens chart side panel from Market asset list

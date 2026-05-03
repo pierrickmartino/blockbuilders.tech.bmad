@@ -109,3 +109,27 @@ Returns stored OHLCV candles and selected indicator series for one asset and tim
 - Selected indicators display with labels that include their configured parameters, such as `EMA(20)` and `RSI(14)`.
 - Price-based overlays such as EMA display on the price chart; oscillator indicators such as RSI display in a separate indicator pane.
 - Empty, loading, and error states are visible inside the side panel without disrupting the underlying Market page.
+
+## Implementation Notes
+
+**Rendering library:** The chart uses `lightweight-charts` (TradingView) for the candlestick, volume histogram, and line series. This is a separate dependency from `recharts` used elsewhere in the app.
+
+**Default indicator selection:** The panel opens with EMA(20) and RSI(14) pre-selected. Users can remove them like any other indicator.
+
+**Indicator limit:** A maximum of 8 indicators can be selected simultaneously (enforced on the backend with a `400 Bad Request` error beyond that limit).
+
+**Multi-output indicators:** MACD (3 series), Bollinger Bands (3 series), Stochastic (2 series), ADX (3 series), Ichimoku (4 series), and Fibonacci (5 series) each produce multiple output series from a single selection. These count as one selection against the 8-indicator limit but render multiple lines.
+
+**Indicator catalog source:** The selector is built from `BLOCK_REGISTRY` in `src/types/canvas.ts` filtered to `category === "indicator"`, ensuring the chart panel always lists exactly the same indicators available to strategy blocks.
+
+**Timeframe:** The timeframe is passed as a prop from the Market page (default `1d`). There is no in-panel timeframe switcher in this implementation.
+
+**Files changed:**
+- `backend/app/api/chart.py` — `GET /market/chart-data` endpoint
+- `backend/app/schemas/market.py` — Pydantic schemas
+- `backend/tests/test_chart_data.py` — 10 backend test cases
+- `frontend/src/types/chart.ts` — TypeScript types
+- `frontend/src/lib/chart-indicators.ts` — Indicator catalog builder
+- `frontend/src/hooks/useChartData.ts` — Data-fetch hook
+- `frontend/src/components/MarketChartPanel.tsx` — Side panel component
+- `frontend/src/app/(app)/market/page.tsx` — Wired into Market page via clickable pair labels

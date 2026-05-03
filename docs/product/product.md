@@ -1610,6 +1610,39 @@ Plain-Language Error Messages
 - Read-only UI; no trading actions
 - WebSocket updates are optional for future enhancement
 
+### 9.9.1. Market Indicator Inspection Chart
+
+**Purpose:** Let users verify stored OHLCV data and visually compare indicator values against the candles that drive strategy backtests, without leaving the Market page.
+
+**UI Placement:**
+- Each asset row/card on the Market page (`/market`) has a clickable pair label that opens the chart panel.
+- The panel slides in from the right as a shadcn/ui `Sheet`, covering ~80% of the desktop viewport width (`md:w-[80vw]`); on smaller screens it uses the full available width.
+
+**Panel Contents:**
+- **Header:** Asset symbol, timeframe, data availability date range (earliest → latest candle), and a close control.
+- **Indicator selector:** Chip strip above the chart listing all 11 strategy indicators (SMA, EMA, RSI, MACD, Bollinger Bands, ATR, Stochastic, ADX, Ichimoku Cloud, OBV, Fibonacci). Up to 8 indicators can be active simultaneously. EMA(20) and RSI(14) are pre-selected.
+- **Price pane:** Candlestick chart with volume histogram (powered by `lightweight-charts`). Price-overlay indicators (SMA, EMA, Bollinger Bands, Ichimoku) render here.
+- **Oscillator pane:** Separate pane beneath the price chart for RSI, MACD, ATR, Stochastic, ADX, OBV.
+- **Candle readout:** Focused candle tooltip shows timestamp + OHLCV values.
+- **Series legend:** Labels including indicator name and configured period (e.g. `EMA(20)`, `RSI(14)`).
+- **Empty / loading / error states:** Displayed inside the panel; the underlying Market asset list remains unaffected.
+
+**Data Source:**
+- Endpoint: `GET /market/chart-data` (protected, requires auth)
+- Query parameters: `asset`, `timeframe`, `start`, `end`, `indicators` (comma-separated, e.g. `ema:20,rsi:14`)
+- Indicator values are computed on read from stored candles; warm-up periods return `null` (not zero).
+- No new tables; reads existing `candles` rows; indicator series are not persisted.
+
+**Indicator Behavior:**
+- Single-series: SMA, EMA, RSI, ATR, OBV
+- Multi-series: MACD (line + signal + histogram), Bollinger Bands (upper/middle/lower), Stochastic (%K + %D), ADX (ADX + +DI + −DI), Ichimoku (Tenkan + Kijun + Span A + Span B), Fibonacci (5 retracement levels)
+
+**Frontend Implementation:**
+- Component: `frontend/src/components/MarketChartPanel.tsx`
+- Hook: `useChartData` (`frontend/src/hooks/useChartData.ts`)
+- Indicator catalog: `buildChartIndicatorCatalog()` in `frontend/src/lib/chart-indicators.ts` — sourced from `BLOCK_REGISTRY`, keeps chart selector in sync with strategy canvas blocks
+- Types: `frontend/src/types/chart.ts`
+
 ### 9.10. Performance Alerts (Simple)
 
 **Purpose:** Let users monitor auto-updated strategies without checking manually.
@@ -2272,6 +2305,7 @@ Plain-Language Error Messages
 | **Grandfathered Beta User Benefits** | ✅ Complete | Permanent perks (higher limits + discounted pricing) for early beta users |
 | **In-App Notifications** | ✅ Complete | Bell icon with unread count, notifications for key events |
 | **Real-Time Price Tickers** | ✅ Complete | Market overview with live price, 24h change, volume, trend; 4s polling, 3s Redis cache |
+| **Market Indicator Inspection Chart** | ✅ Complete | Read-only OHLCV candlestick chart side panel from Market page; all 11 strategy indicators selectable (up to 8 active); EMA(20) + RSI(14) pre-selected; warm-up nulls; empty/error/loading states; lightweight-charts rendering |
 | **Volatility Metrics (Market Overview)** | ✅ Complete | Show current + historical volatility with percentile rank per pair |
 | **Market Sentiment Indicators (Market Overview)** | ✅ Complete | Fear & Greed Index (Alternative.me), Long/Short Ratio (Binance), Funding Rates (Binance); 15min cache, partial failure support, market overview only (no backtest results sentiment context) |
 | **Top-50 Token Coverage Expansion** | ✅ Done | Expanded supported assets to 50 tokens using the existing ingestion/validation architecture, with market page text filtering; single-asset/single-timeframe constraints preserved |
