@@ -887,6 +887,12 @@ Plain-Language Error Messages
 - Clicking **Run All** enqueues one backtest per selected period; each queued run counts toward daily backtest limits.
 - Results fill in progressively and remain grouped by period for side-by-side comparison.
 
+**Start Confirmation Feedback:**
+- When a single backtest is accepted, a transient toast notification confirms the backtest started and that results will update automatically.
+- When a batch backtest is queued, a transient toast notification confirms the number of queued runs and that results will appear as runs complete.
+- Notifications appear top-right and do not alter page layout or reserve vertical space in the content area.
+- The `Cmd/Ctrl+Enter` shortcut, when no custom date form is active, shows an informational toast guiding the user to open custom dates or use Run All.
+
 **Get Backtest** (`GET /backtests/{run_id}`)
 - Returns status and summary metrics
 - Statuses: pending, running, completed, failed
@@ -2306,6 +2312,7 @@ Plain-Language Error Messages
 | **In-App Notifications** | ✅ Complete | Bell icon with unread count, notifications for key events |
 | **Real-Time Price Tickers** | ✅ Complete | Market overview with live price, 24h change, volume, trend; 4s polling, 3s Redis cache |
 | **Market Indicator Inspection Chart** | ✅ Complete | Read-only OHLCV candlestick chart side panel from Market page; all 11 strategy indicators selectable (up to 8 active); EMA(20) + RSI(14) pre-selected; warm-up nulls; empty/error/loading states; lightweight-charts rendering |
+| **Backtest Toast Notifications** | ✅ Complete | Transient Sonner toast notifications replace the inline status banner on the strategy backtest page; single-run and batch-run start confirmations appear top-right without pushing page layout; shortcut guidance shown as informational toast; existing red error banner preserved |
 | **Volatility Metrics (Market Overview)** | ✅ Complete | Show current + historical volatility with percentile rank per pair |
 | **Market Sentiment Indicators (Market Overview)** | ✅ Complete | Fear & Greed Index (Alternative.me), Long/Short Ratio (Binance), Funding Rates (Binance); 15min cache, partial failure support, market overview only (no backtest results sentiment context) |
 | **Top-50 Token Coverage Expansion** | ✅ Done | Expanded supported assets to 50 tokens using the existing ingestion/validation architecture, with market page text filtering; single-asset/single-timeframe constraints preserved |
@@ -2707,6 +2714,7 @@ npm run type-check    # TypeScript validation
 - **2026-03-01:** Added PRD/TST planning for plain-English indicator labels in Essentials mode, including technical subtitles, tooltip retention, All-mode naming rules, and WCAG 2.1 AA contrast requirements.
 - **2026-02-24:** Added PRD/TST planning for an Onboarding Funnel Dashboard in PostHog with required steps (`signup_completed` → `second_session`), conversion visibility, and date-range/cohort filters.
 - **2026-02-24:** Added PRD/TST planning for backend PostHog worker lifecycle tracking (`backtest_job_started`, `backtest_job_completed`, `backtest_job_failed`) with async fire-and-forget dispatch guidance.
+- **2026-05-03:** Replaced inline status banner on the strategy backtest page with Sonner toast notifications (FEAT-101): single-run and batch-run start confirmations are now transient `toast.success` overlays positioned top-right; shortcut guidance uses `toast.info`; the `statusMessage` React state and its JSX block were removed, eliminating layout disruption when notifications appear.
 - **2026-02-23:** Added PRD/TST planning for PostHog analytics with GDPR consent and documented planned product analytics coverage.
 - **2026-01-03:** Enhanced trade explanation view documentation
 - **2026-01-03:** Added planned backtest trade explanation view details (condition breakdowns, indicator overlays, condition-candle highlights)

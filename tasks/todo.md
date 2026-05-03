@@ -1,5 +1,23 @@
 # Tasks — in flight
 
+## FEAT-101 — Backtest Toast Notifications (done)
+
+Frontend
+- [x] Install `sonner ^2.0.7` (`package.json` + `package-lock.json`)
+- [x] Mount `<Toaster position="top-right" richColors />` in `src/app/layout.tsx`
+- [x] Replace single-backtest inline banner with `toast.success(…)` in backtest page
+- [x] Replace batch-backtest inline banner with `toast.success(…)` in backtest page
+- [x] Replace shortcut guidance inline banner with `toast.info(…)` in backtest page
+- [x] Remove `statusMessage` state declaration and `{statusMessage && (…)}` JSX block
+
+Verification
+- [x] `npm run lint` → 0 errors
+- [x] `npx tsc --noEmit` → clean
+- [x] `npm run build` → clean
+- [ ] Manual smoke: single-run toast, batch-run toast, shortcut toast, failure (no toast) — requires running dev server
+
+---
+
 ## FEAT-100 — Market Indicator Inspection Chart (done)
 
 Backend

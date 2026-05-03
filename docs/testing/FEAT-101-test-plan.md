@@ -61,3 +61,16 @@ Validate that transient backtest start and guidance messages on the strategy bac
 
 ## Known test runner gap
 The frontend package currently does not define an `npm test` script. The commands above document the intended focused test entrypoint once the frontend test runner is available; until then, these cases require manual verification or a future frontend test harness.
+
+## Verification status (2026-05-03)
+
+| TC | Automated | Status |
+|----|-----------|--------|
+| TC-01 | No — no test runner | Manual verification required |
+| TC-02 | No — no test runner | Manual verification required |
+| TC-03 | No — no test runner | Manual verification required |
+| TC-04 | No — no test runner | Manual verification required |
+| TC-05 | No — no test runner | Manual verification required |
+| TC-06 | No — no test runner | Manual verification required |
+
+Build gates passed: `npm run lint` (0 errors), `npx tsc --noEmit` (clean), `npm run build` (clean).

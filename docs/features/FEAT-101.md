@@ -40,12 +40,12 @@ No SQLModel fields, tables, or persisted values are added or changed.
 - Existing error alerts and failed-run messages remain visible where users already expect them.
 
 ## Implementation Plan
-_Produced by Opus. Approved: [reviewed]_
+_Produced by Opus. Approved: [reviewed]. Implemented: 2026-05-03._
 
-- **Add Sonner dependency** — `frontend/package.json` (+ `package-lock.json`): add `sonner` (latest stable). Frontend. No migration. Must complete before bullet 2.
-- **Mount global `<Toaster />`** — `frontend/src/app/layout.tsx`: import `Toaster` from `sonner` and render it once inside `<body>` (after `ConsentBanner`), with `position="top-right"` and `richColors`/theme matching design tokens (uses CSS variables from `globals.css`, no new tokens). Frontend. No migration. Must complete before bullets 3–5.
-- **Replace single-backtest success banner with toast** — `frontend/src/app/(app)/strategies/[id]/backtest/page.tsx` (~line 885): swap `setStatusMessage("Backtest started…")` for `toast.success("Backtest started", { description: "It will update automatically when finished." })`. Frontend. No migration. Satisfies TC-01.
-- **Replace batch-backtest success banner with toast** — same file (~line 935): swap `setStatusMessage(\`Batch started: …\`)` for `toast.success(\`Batch started: ${queuedCount} backtest${queuedCount !== 1 ? "s" : ""} queued\`, { description: "Results will appear below as runs complete." })`. Frontend. No migration. Satisfies TC-02.
-- **Replace shortcut guidance banner with informational toast** — same file (~line 967, inside the Cmd/Ctrl+Enter handler): swap `setStatusMessage("Open custom dates…")` for `toast.info("Open custom dates to run a single backtest, or use Run All.")`. Frontend. No migration. Satisfies TC-03.
-- **Remove inline status banner JSX and dead state** — same file: delete the `{statusMessage && (…)}` block (lines 1122–1131) and the `const [statusMessage, setStatusMessage] = useState…` declaration (line 490); leave the red `error` banner block (lines ~1115–1121) untouched. Frontend. No migration. Satisfies AC4/AC5/AC6 and TC-04/TC-05/TC-06. Must complete after bullets 3–5.
-- **Lint + type-check + manual smoke** — run `npm run lint` and `npx tsc --noEmit` in `frontend/`; manually verify in dev that single-run, batch-run, shortcut-without-custom-dates, and a forced failure each behave per acceptance criteria; document the manual verification in tasks/lessons.md given the noted `npm test` gap.
+- [x] **Add Sonner dependency** — `frontend/package.json` + `package-lock.json`: `sonner ^2.0.7` added.
+- [x] **Mount global `<Toaster />`** — `frontend/src/app/layout.tsx`: `<Toaster position="top-right" richColors />` mounted after `<ConsentBanner />` inside `<body>`.
+- [x] **Replace single-backtest success banner with toast** — `toast.success("Backtest started", { description: "It will update automatically when finished." })`. Satisfies TC-01.
+- [x] **Replace batch-backtest success banner with toast** — `toast.success(\`Batch started: ${queuedCount} backtest${…} queued\`, { description: "Results will appear below as runs complete." })`. Satisfies TC-02.
+- [x] **Replace shortcut guidance banner with informational toast** — `toast.info("Open custom dates to run a single backtest, or use Run All.")`. Satisfies TC-03.
+- [x] **Remove inline status banner JSX and dead state** — `statusMessage` state and `{statusMessage && (…)}` JSX block deleted; red `error` banner left intact. Satisfies AC4/AC5/AC6 and TC-04/TC-05/TC-06.
+- [x] **Lint + type-check** — `npm run lint` (0 errors) and `npx tsc --noEmit` (clean) and `npm run build` (passes). Manual smoke verification required; see tasks/lessons.md for the noted `npm test` gap.
