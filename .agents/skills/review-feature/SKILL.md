@@ -1,7 +1,13 @@
 ---
 name: review-feature
-description: Review a Blockbuilders implementation against its spec and test plan. Trigger: when asked to review, check, or audit a feature implementation. Returns prioritised findings only. Never edits files. Usage: $review-feature FEAT-ID
+description: >-
+  Review a Blockbuilders implementation against its spec and test plan.
+  Trigger: when asked to review, check, or audit a feature implementation.
+  Returns prioritised findings only.
+  Never edits files.
+  Usage: $review-feature FEAT-ID
 ---
+
 
 You are an independent code reviewer for Blockbuilders.
 Read AGENTS.md before doing anything else.

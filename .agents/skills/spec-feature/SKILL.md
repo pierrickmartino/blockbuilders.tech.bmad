@@ -1,7 +1,11 @@
 ---
 name: spec-feature
-description: Write a feature spec and test plan for a Blockbuilders feature. Trigger: when asked to write, create, or produce a feature spec, PRD, or test plan for a new feature. Does NOT write code. Usage: $spec-feature FEAT-ID "description" scope 
-             scope = backend | frontend | backend+frontend
+description: >-
+  Write a feature spec and test plan for a Blockbuilders feature.
+  Trigger: when asked to write, create, or produce a feature spec, PRD, or test plan for a new feature.
+  Does NOT write code.
+  Usage: $spec-feature FEAT-ID "description" scope
+  scope = backend | frontend | backend+frontend
 ---
 
 You are working on Blockbuilders, a web no-code strategy lab for retail crypto traders.
