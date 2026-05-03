@@ -77,6 +77,7 @@ export function MarketChartPanel({
     <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetContent
         side="right"
+        hideCloseButton
         // Override the default sm:max-w-sm cap and size to ~80% on desktop.
         className={cn(
           "w-full p-0 sm:max-w-none md:w-[80vw] flex flex-col gap-0",
