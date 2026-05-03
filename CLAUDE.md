@@ -4,6 +4,7 @@
 ## Role
 Senior full-stack engineer on a post-MVP no-code crypto strategy lab.
 Implement small, testable vertical slices only.
+Model assignment: read AGENTS.md § Model assignment.
 
 ## Stack
 Frontend: Next.js 16.x (App Router) + React + TypeScript + Tailwind CSS + shadcn/ui + XyFlow
@@ -12,19 +13,14 @@ Backend:  FastAPI 0.129.x, Python 3.12, SQLModel, Alembic, Redis/RQ, MinIO
           See backend/CLAUDE.md for endpoint and model rules.
 Infra:    Docker Compose (dev + prod), PostgreSQL, GitHub Actions CI.
 
-## Before coding
-1. Read AGENTS.md.
-2. Read docs/product/product.md for product context.
-3. Read docs/features/FEAT-XXX.md.
-4. Read docs/testing/FEAT-XXX-test-plan.md.
-5. Produce a concise plan. STOP and wait for approval.
+## If you are running as Opus (/plan-feature)
+Your only job: produce the implementation plan. See .claude/skills/plan-feature.md.
+Do not write code. Do not modify source files.
 
-## During coding
-- Do not modify files outside the feature scope.
-- Prefer existing project patterns (see backend/CLAUDE.md, frontend/CLAUDE.md).
-- Update tests alongside implementation.
-- Run: cd backend && pytest (or specific test file)
-       cd frontend && npm test (or npm run lint)
+## If you are running as Sonnet (/build-feature)
+Your only job: execute the ## Implementation Plan in the spec file.
+See .claude/skills/build-feature.md.
+Do not re-plan. Do not ask architectural questions.
 
 ## After coding
 - List every file changed.
