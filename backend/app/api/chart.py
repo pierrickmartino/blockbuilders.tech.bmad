@@ -262,7 +262,7 @@ def get_chart_data(
     all_timestamps = session.exec(avail_stmt).all()
 
     data_status = ChartDataStatus(
-        has_candles=len(all_timestamps) > 0,
+        has_candles=len(rows) > 0,
         earliest_candle=all_timestamps[0] if all_timestamps else None,
         latest_candle=all_timestamps[-1] if all_timestamps else None,
     )

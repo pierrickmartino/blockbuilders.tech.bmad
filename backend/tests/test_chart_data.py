@@ -150,6 +150,30 @@ def test_feat_100_chart_data_empty_state(client: TestClient, session: Session):
     assert body["data_status"]["has_candles"] is False
 
 
+def test_feat_100_chart_data_empty_state_date_range(client: TestClient, session: Session):
+    """Candles exist for the asset/timeframe but fall outside the requested range."""
+    user = _seed_user(session)
+    _seed_candles(session, count=10)  # seeds 2026-01-01 through 2026-01-10
+    token = _login(client, user.email)
+    r = client.get(
+        "/market/chart-data",
+        params={
+            "asset": "BTC/USDT",
+            "timeframe": "1d",
+            "start": "2025-01-01T00:00:00Z",
+            "end": "2025-12-31T23:59:59Z",
+        },
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["candles"] == []
+    assert body["data_status"]["has_candles"] is False
+    # Global availability bounds are still populated so the header can guide the user.
+    assert body["data_status"]["earliest_candle"] is not None
+    assert body["data_status"]["latest_candle"] is not None
+
+
 # --- TC-05 EMA(20) on price pane, timestamps aligned ----------------------
 
 
