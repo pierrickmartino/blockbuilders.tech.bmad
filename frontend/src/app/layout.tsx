@@ -5,6 +5,7 @@ import { AuthProvider } from "@/context/auth";
 import { DisplayProvider } from "@/context/display";
 import { PostHogBootstrap } from "@/components/PostHogBootstrap";
 import { ConsentBanner } from "@/components/ConsentBanner";
+import { Toaster } from "sonner";
 
 const plexSans = IBM_Plex_Sans({
   subsets: ["latin"],
@@ -52,6 +53,7 @@ export default function RootLayout({
         </AuthProvider>
         <PostHogBootstrap />
         <ConsentBanner />
+        <Toaster position="top-right" richColors />
       </body>
     </html>
   );

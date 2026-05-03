@@ -81,6 +81,7 @@ import { PositionAnalysisCard } from "@/components/backtest/PositionAnalysisCard
 import { TradesSection } from "@/components/backtest/TradesSection";
 import { DistributionRow } from "@/components/backtest/DistributionRow";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -487,7 +488,6 @@ export default function StrategyBacktestPage({ params }: Props) {
   const [strategyVersion, setStrategyVersion] = useState<StrategyVersion | null>(null);
   const [isLoadingStrategy, setIsLoadingStrategy] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   const [dateFrom, setDateFrom] = useState(defaultRange.from);
   const [dateTo, setDateTo] = useState(defaultRange.to);
@@ -882,7 +882,7 @@ export default function StrategyBacktestPage({ params }: Props) {
         date_from: dateFrom,
         date_to: dateTo,
       }, user?.id);
-      setStatusMessage("Backtest started. It will update automatically when finished.");
+      toast.success("Backtest started", { description: "It will update automatically when finished." });
       setSelectedRunId(res.run_id);
       await loadBacktests();
       runDetailsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -907,7 +907,6 @@ export default function StrategyBacktestPage({ params }: Props) {
     if (selectedPeriods.size === 0) return;
     setIsSubmitting(true);
     setError(null);
-    setStatusMessage(null);
     setActiveBatchId(null);
     setBatchSkippedRuns([]);
 
@@ -932,7 +931,7 @@ export default function StrategyBacktestPage({ params }: Props) {
       setActiveBatchId(res.batch_id);
       setBatchSkippedRuns(res.runs.filter((r) => r.status === "skipped"));
       const queuedCount = res.runs.filter((r) => r.status === "pending").length;
-      setStatusMessage(`Batch started: ${queuedCount} backtest${queuedCount !== 1 ? "s" : ""} queued. Results will appear below as they complete.`);
+      toast.success(`Batch started: ${queuedCount} backtest${queuedCount !== 1 ? "s" : ""} queued`, { description: "Results will appear below as runs complete." });
       await loadBacktests();
       runDetailsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     } catch (err) {
@@ -956,15 +955,15 @@ export default function StrategyBacktestPage({ params }: Props) {
 
       // Run backtest: Cmd/Ctrl+Enter (standard "submit" shortcut)
       if (isMod && key === "enter") {
-        if (isSubmitting) return;
         e.preventDefault();
+        if (e.repeat || isSubmitting) return;
         const form = customFormRef.current;
         if (form) {
           form.dispatchEvent(
             new Event("submit", { cancelable: true, bubbles: true })
           );
         } else {
-          setStatusMessage("Open custom dates to run a single backtest, or use Run All.");
+          toast.info("Open custom dates to run a single backtest, or use Run All.");
         }
         return;
       }
@@ -1119,17 +1118,6 @@ export default function StrategyBacktestPage({ params }: Props) {
           <button type="button" onClick={() => setError(null)} aria-label="Dismiss error" className="flex-shrink-0 text-destructive/70 hover:text-destructive">×</button>
         </div>
       )}
-      {statusMessage && (
-        <div
-          role="status"
-          aria-live="polite"
-          className="flex items-start justify-between gap-2 border-b border-green-200 bg-green-50 px-4 py-2 text-sm text-green-600 dark:border-green-800 dark:bg-green-950 dark:text-green-400 sm:px-8"
-        >
-          <span>{statusMessage}</span>
-          <button type="button" onClick={() => setStatusMessage(null)} aria-label="Dismiss message" className="flex-shrink-0 opacity-70 hover:opacity-100">×</button>
-        </div>
-      )}
-
       {/* Tab Bar */}
       <StrategyTabs strategyId={id} activeTab="backtest" />
 
