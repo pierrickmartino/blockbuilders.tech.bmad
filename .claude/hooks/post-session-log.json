@@ -1,0 +1,11 @@
+{
+  "hooks": {
+    "PostSession": [{
+      "matcher": "",
+      "hooks": [{
+        "type": "command",
+        "command": "bash .claude/hooks/log-tokens.sh"
+      }]
+    }]
+  }
+}

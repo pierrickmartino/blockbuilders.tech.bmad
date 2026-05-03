@@ -67,3 +67,51 @@ class DataAvailabilityResponse(BaseModel):
     source: str  # "metadata" or "candle_fallback"
 
 
+class ChartCandle(BaseModel):
+    """Single OHLCV candle for chart inspection."""
+
+    timestamp: datetime
+    open: float
+    high: float
+    low: float
+    close: float
+    volume: float
+
+
+class IndicatorPoint(BaseModel):
+    """One indicator value aligned to a candle timestamp."""
+
+    timestamp: datetime
+    value: Optional[float] = None
+
+
+class IndicatorSeries(BaseModel):
+    """A single indicator output series for the chart panel."""
+
+    key: str
+    label: str
+    parameters: dict
+    pane: Literal["price", "oscillator"]
+    points: list[IndicatorPoint]
+
+
+class ChartDataStatus(BaseModel):
+    """Availability summary for the requested asset/timeframe."""
+
+    has_candles: bool
+    earliest_candle: Optional[datetime] = None
+    latest_candle: Optional[datetime] = None
+
+
+class ChartDataResponse(BaseModel):
+    """Response for GET /market/chart-data."""
+
+    asset: str
+    timeframe: str
+    start: Optional[datetime] = None
+    end: Optional[datetime] = None
+    candles: list[ChartCandle]
+    indicators: list[IndicatorSeries]
+    data_status: ChartDataStatus
+
+

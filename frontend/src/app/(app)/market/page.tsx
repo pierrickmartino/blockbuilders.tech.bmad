@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/tooltip";
 import { TrendingUp, TrendingDown, Info, Search, X, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { MarketSentimentPanel } from "@/components/MarketSentimentPanel";
+import { MarketChartPanel } from "@/components/MarketChartPanel";
 import type { TickerItem } from "@/types/market";
 
 type SortKey = "pair" | "price" | "change_24h_pct" | "volume_24h" | "volatility_percentile_1y";
@@ -73,6 +74,7 @@ export default function MarketPage() {
   const [filter, setFilter] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("volume_24h");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [inspectedAsset, setInspectedAsset] = useState<string | null>(null);
   const { tickers, asOf, isLoading, error, refresh } = useMarketTickers();
   const { timezone } = useDisplay();
 
@@ -269,7 +271,16 @@ export default function MarketPage() {
                     const positive = ticker.change_24h_pct >= 0;
                     return (
                       <TableRow key={ticker.pair}>
-                        <TableCell className="data-text font-medium">{ticker.pair}</TableCell>
+                        <TableCell className="data-text font-medium">
+                          <button
+                            type="button"
+                            onClick={() => setInspectedAsset(ticker.pair)}
+                            className="hover:text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring rounded"
+                            aria-label={`Inspect chart for ${ticker.pair}`}
+                          >
+                            {ticker.pair}
+                          </button>
+                        </TableCell>
                         <TableCell className="data-text text-right">
                           {formatPrice(ticker.price, "USDT")}
                         </TableCell>
@@ -312,7 +323,14 @@ export default function MarketPage() {
                   <Card key={ticker.pair}>
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between mb-3">
-                        <span className="data-text text-lg font-medium">{ticker.pair}</span>
+                        <button
+                          type="button"
+                          onClick={() => setInspectedAsset(ticker.pair)}
+                          className="data-text text-lg font-medium hover:text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring rounded"
+                          aria-label={`Inspect chart for ${ticker.pair}`}
+                        >
+                          {ticker.pair}
+                        </button>
                         <span
                           className={`data-text inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm font-medium ${
                             positive
@@ -371,6 +389,11 @@ export default function MarketPage() {
             </div>
           </>
         )}
+
+        <MarketChartPanel
+          asset={inspectedAsset}
+          onClose={() => setInspectedAsset(null)}
+        />
       </main>
     </TooltipProvider>
   );
