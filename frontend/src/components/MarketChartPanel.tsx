@@ -32,8 +32,27 @@ const DEFAULT_TIMEFRAME = "1d";
 const PRICE_PANE_HEIGHT = 360;
 const OSCILLATOR_PANE_HEIGHT = 140;
 
-function toUnixSeconds(ts: string): Time {
-  return Math.floor(new Date(ts).getTime() / 1000) as Time;
+function hasTimezoneOffset(ts: string): boolean {
+  return /(?:Z|[+-]\d{2}:\d{2})$/.test(ts);
+}
+
+function parseUtcTimestamp(ts: string): number {
+  const normalized = hasTimezoneOffset(ts) ? ts : `${ts}Z`;
+  return Math.floor(new Date(normalized).getTime() / 1000);
+}
+
+function toChartTime(ts: string, timeframe: string): Time {
+  if (timeframe === "1d") {
+    return ts.slice(0, 10) as Time;
+  }
+  return parseUtcTimestamp(ts) as Time;
+}
+
+function chartTimeKey(time: Time): string {
+  if (typeof time === "string" || typeof time === "number") {
+    return String(time);
+  }
+  return `${time.year}-${String(time.month).padStart(2, "0")}-${String(time.day).padStart(2, "0")}`;
 }
 
 interface FocusedCandle {
@@ -153,6 +172,7 @@ function ChartPanelBody({
         <ChartEmptyState asset={asset ?? ""} timeframe={timeframe} />
       ) : data ? (
         <ChartCanvas
+          timeframe={timeframe}
           candles={data.candles}
           priceSeries={priceSeries}
           oscillatorSeries={oscillatorSeries}
@@ -276,11 +296,13 @@ function IndicatorSelector({
 // --- chart canvas ---------------------------------------------------------
 
 function ChartCanvas({
+  timeframe,
   candles,
   priceSeries,
   oscillatorSeries,
   onFocus,
 }: {
+  timeframe: string;
   candles: ChartCandle[];
   priceSeries: IndicatorSeries[];
   oscillatorSeries: IndicatorSeries[];
@@ -294,10 +316,12 @@ function ChartCanvas({
 
   // Build a timestamp -> candle index for crosshair lookups.
   const candleByTime = useMemo(() => {
-    const map = new Map<number, ChartCandle>();
-    for (const c of candles) map.set(toUnixSeconds(c.timestamp) as unknown as number, c);
+    const map = new Map<string, ChartCandle>();
+    for (const c of candles) {
+      map.set(chartTimeKey(toChartTime(c.timestamp, timeframe)), c);
+    }
     return map;
-  }, [candles]);
+  }, [candles, timeframe]);
 
   // Price pane (candles + volume + price-pane indicators)
   useEffect(() => {
@@ -335,7 +359,7 @@ function ChartCanvas({
     });
     candleSeries.setData(
       candles.map((c) => ({
-        time: toUnixSeconds(c.timestamp),
+        time: toChartTime(c.timestamp, timeframe),
         open: c.open,
         high: c.high,
         low: c.low,
@@ -353,7 +377,7 @@ function ChartCanvas({
     });
     volumeSeries.setData(
       candles.map((c) => ({
-        time: toUnixSeconds(c.timestamp),
+        time: toChartTime(c.timestamp, timeframe),
         value: c.volume,
         color: c.close >= c.open ? theme.up : theme.down,
       })),
@@ -369,7 +393,7 @@ function ChartCanvas({
         s.points
           .filter((p) => p.value !== null)
           .map((p) => ({
-            time: toUnixSeconds(p.timestamp),
+            time: toChartTime(p.timestamp, timeframe),
             value: p.value as number,
           })),
       );
@@ -385,7 +409,7 @@ function ChartCanvas({
         onFocus(null);
         return;
       }
-      const c = candleByTime.get(Number(param.time));
+      const c = candleByTime.get(chartTimeKey(param.time));
       if (c) onFocus(c);
     });
 
@@ -395,7 +419,7 @@ function ChartCanvas({
       priceChartRef.current = null;
     };
     // theme intentionally included so we rebuild on dark-mode toggle
-  }, [candles, priceSeries, theme, candleByTime, onFocus]);
+  }, [candles, priceSeries, theme, candleByTime, onFocus, timeframe]);
 
   // Oscillator pane (separate chart instance)
   useEffect(() => {
@@ -438,7 +462,7 @@ function ChartCanvas({
       const points = s.points
         .filter((p) => p.value !== null)
         .map((p) => ({
-          time: toUnixSeconds(p.timestamp),
+          time: toChartTime(p.timestamp, timeframe),
           value: p.value as number,
         }));
       (series as ISeriesApi<"Line"> | ISeriesApi<"Histogram">).setData(points);
@@ -454,7 +478,7 @@ function ChartCanvas({
       chart.remove();
       oscChartRef.current = null;
     };
-  }, [oscillatorSeries, theme]);
+  }, [oscillatorSeries, theme, timeframe]);
 
   return (
     <div className="space-y-2">
