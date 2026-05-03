@@ -43,7 +43,7 @@ export function MarketChartPanel({
   asset,
   timeframe = DEFAULT_TIMEFRAME,
   onClose,
-}: MarketChartPanelProps) {
+}: MarketChartPanelProps): JSX.Element {
   const catalog = useMemo(() => buildChartIndicatorCatalog(), []);
   const [selection, setSelection] = useState<ChartIndicatorSelection[]>([
     { key: "ema", period: 20 },

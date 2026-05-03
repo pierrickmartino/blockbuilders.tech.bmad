@@ -194,17 +194,31 @@ def _compute_series(
     )
 
 
+def _parse_timestamp(value: str, param_name: str) -> datetime:
+    """Parse an ISO 8601 timestamp string, raising 400 on failure."""
+    try:
+        return datetime.fromisoformat(value)
+    except (ValueError, TypeError):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid {param_name} timestamp: '{value}' is not a valid ISO 8601 date",
+        )
+
+
 @router.get("/market/chart-data", response_model=ChartDataResponse)
 def get_chart_data(
     asset: str = Query(..., description="Asset pair, e.g. BTC/USDT"),
     timeframe: str = Query(..., description="Candle timeframe, e.g. 1d"),
-    start: Optional[datetime] = Query(None, description="Inclusive start timestamp (ISO 8601)"),
-    end: Optional[datetime] = Query(None, description="Inclusive end timestamp (ISO 8601)"),
+    start: Optional[str] = Query(None, description="Inclusive start timestamp (ISO 8601)"),
+    end: Optional[str] = Query(None, description="Inclusive end timestamp (ISO 8601)"),
     indicators: Optional[str] = Query(None, description="Comma-separated, e.g. ema:20,rsi:14"),
     user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
 ) -> ChartDataResponse:
     """Return stored OHLCV candles + selected indicator series for inspection."""
+    start_dt: Optional[datetime] = _parse_timestamp(start, "start") if start else None
+    end_dt: Optional[datetime] = _parse_timestamp(end, "end") if end else None
+
     if asset not in ALLOWED_ASSETS:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -215,7 +229,7 @@ def get_chart_data(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Timeframe {timeframe} not supported",
         )
-    if start and end and start > end:
+    if start_dt and end_dt and start_dt > end_dt:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="start must be <= end",
@@ -224,10 +238,10 @@ def get_chart_data(
     requests = _parse_indicators(indicators)
 
     stmt = select(Candle).where(Candle.asset == asset, Candle.timeframe == timeframe)
-    if start:
-        stmt = stmt.where(Candle.timestamp >= start)
-    if end:
-        stmt = stmt.where(Candle.timestamp <= end)
+    if start_dt:
+        stmt = stmt.where(Candle.timestamp >= start_dt)
+    if end_dt:
+        stmt = stmt.where(Candle.timestamp <= end_dt)
     stmt = stmt.order_by(Candle.timestamp.asc())
     rows = session.exec(stmt).all()
 
@@ -270,8 +284,8 @@ def get_chart_data(
     return ChartDataResponse(
         asset=asset,
         timeframe=timeframe,
-        start=start,
-        end=end,
+        start=start_dt,
+        end=end_dt,
         candles=candles,
         indicators=series,
         data_status=data_status,
