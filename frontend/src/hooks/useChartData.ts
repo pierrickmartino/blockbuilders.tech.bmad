@@ -30,11 +30,22 @@ export function useChartData({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const isMountedRef = useRef(true);
+  const requestIdRef = useRef(0);
 
   const indicatorParam = serializeIndicators(indicators);
 
   const fetchChart = useCallback(async () => {
-    if (!asset) return;
+    const requestId = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
+
+    if (!asset) {
+      setIsLoading(false);
+      return;
+    }
+
+    const isCurrentRequest = () =>
+      isMountedRef.current && requestId === requestIdRef.current;
+
     setIsLoading(true);
     try {
       const params = new URLSearchParams({ asset, timeframe });
@@ -42,16 +53,16 @@ export function useChartData({
       const response = await apiFetch<ChartDataResponse>(
         `/market/chart-data?${params.toString()}`,
       );
-      if (isMountedRef.current) {
+      if (isCurrentRequest()) {
         setData(response);
         setError(null);
       }
     } catch (err) {
-      if (isMountedRef.current) {
+      if (isCurrentRequest()) {
         setError(err instanceof Error ? err.message : "Failed to fetch chart data");
       }
     } finally {
-      if (isMountedRef.current) setIsLoading(false);
+      if (isCurrentRequest()) setIsLoading(false);
     }
   }, [asset, timeframe, indicatorParam]);
 

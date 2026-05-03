@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { JSX } from "react";
 import {
   CandlestickSeries,
   HistogramSeries,
@@ -17,7 +18,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useChartTheme } from "@/lib/chart-theme";
 import { useChartData, type ChartIndicatorSelection } from "@/hooks/useChartData";
 import { buildChartIndicatorCatalog } from "@/lib/chart-indicators";
-import type { ChartCandle, IndicatorSeries } from "@/types/chart";
+import type { ChartCandle, ChartDataResponse, IndicatorSeries } from "@/types/chart";
 import { cn } from "@/lib/utils";
 
 interface MarketChartPanelProps {
@@ -49,8 +50,6 @@ export function MarketChartPanel({
     { key: "ema", period: 20 },
     { key: "rsi", period: 14 },
   ]);
-  const [focused, setFocused] = useState<FocusedCandle | null>(null);
-
   const { data, isLoading, error, refresh } = useChartData({
     asset,
     timeframe,
@@ -103,30 +102,69 @@ export function MarketChartPanel({
           }
         />
 
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {isLoading && !data ? (
-            <Skeleton className="h-[480px] w-full" />
-          ) : error ? (
-            <ChartErrorState message={error} onRetry={refresh} />
-          ) : data && !data.data_status.has_candles ? (
-            <ChartEmptyState asset={asset ?? ""} timeframe={timeframe} />
-          ) : data ? (
-            <ChartCanvas
-              candles={data.candles}
-              priceSeries={priceSeries}
-              oscillatorSeries={oscillatorSeries}
-              onFocus={setFocused}
-            />
-          ) : null}
-
-          {focused && <CandleReadout candle={focused.candle} />}
-
-          {data && (
-            <SeriesLegend price={priceSeries} oscillator={oscillatorSeries} />
-          )}
-        </div>
+        <ChartPanelBody
+          key={`${asset ?? ""}:${timeframe}`}
+          asset={asset}
+          timeframe={timeframe}
+          data={data}
+          isLoading={isLoading}
+          error={error}
+          priceSeries={priceSeries}
+          oscillatorSeries={oscillatorSeries}
+          onRetry={refresh}
+        />
       </SheetContent>
     </Sheet>
+  );
+}
+
+function ChartPanelBody({
+  asset,
+  timeframe,
+  data,
+  isLoading,
+  error,
+  priceSeries,
+  oscillatorSeries,
+  onRetry,
+}: {
+  asset: string | null;
+  timeframe: string;
+  data: ChartDataResponse | null;
+  isLoading: boolean;
+  error: string | null;
+  priceSeries: IndicatorSeries[];
+  oscillatorSeries: IndicatorSeries[];
+  onRetry: () => void;
+}) {
+  const [focused, setFocused] = useState<FocusedCandle | null>(null);
+  const handleFocus = useCallback((next: ChartCandle | null) => {
+    setFocused(next ? { candle: next } : null);
+  }, []);
+
+  return (
+    <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      {isLoading && !data ? (
+        <Skeleton className="h-[480px] w-full" />
+      ) : error ? (
+        <ChartErrorState message={error} onRetry={onRetry} />
+      ) : data && !data.data_status.has_candles ? (
+        <ChartEmptyState asset={asset ?? ""} timeframe={timeframe} />
+      ) : data ? (
+        <ChartCanvas
+          candles={data.candles}
+          priceSeries={priceSeries}
+          oscillatorSeries={oscillatorSeries}
+          onFocus={handleFocus}
+        />
+      ) : null}
+
+      {focused && <CandleReadout candle={focused.candle} />}
+
+      {data && (
+        <SeriesLegend price={priceSeries} oscillator={oscillatorSeries} />
+      )}
+    </div>
   );
 }
 
@@ -245,7 +283,7 @@ function ChartCanvas({
   candles: ChartCandle[];
   priceSeries: IndicatorSeries[];
   oscillatorSeries: IndicatorSeries[];
-  onFocus: (focus: FocusedCandle | null) => void;
+  onFocus: (focus: ChartCandle | null) => void;
 }) {
   const theme = useChartTheme();
   const priceContainerRef = useRef<HTMLDivElement>(null);
@@ -347,7 +385,7 @@ function ChartCanvas({
         return;
       }
       const c = candleByTime.get(Number(param.time));
-      if (c) onFocus({ candle: c });
+      if (c) onFocus(c);
     });
 
     return () => {
