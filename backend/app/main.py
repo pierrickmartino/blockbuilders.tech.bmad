@@ -16,6 +16,7 @@ from app.api.auth import router as auth_router
 from app.api.backtests import router as backtests_router
 from app.api.billing import router as billing_router
 from app.api.health import router as health_router
+from app.api.chart import router as chart_router
 from app.api.market import router as market_router
 from app.api.notifications import router as notifications_router
 from app.api.profiles import router as profiles_router
@@ -85,3 +86,4 @@ app.include_router(backtests_router)
 app.include_router(notifications_router)
 app.include_router(alerts_router)
 app.include_router(market_router)
+app.include_router(chart_router)
