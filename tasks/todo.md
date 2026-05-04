@@ -1,5 +1,40 @@
 # Tasks — in flight
 
+## FEAT-102 — Pandas TA Indicator Calculation Parity (done)
+
+Backend
+- [x] Add `pandas==3.0.2`, `numpy==2.4.4`, `pandas-ta-classic==0.5.44` to `requirements.txt`
+- [x] New `app/backtest/_ta_adapter.py` — `to_series` / `from_series` adapter (list ↔ pandas Series, None ↔ NaN)
+- [x] Rewrite `app/backtest/indicators.py` — 10 indicator functions replaced with thin pandas-ta-classic wrappers; `fibonacci_retracements` and `price_variation_pct` retained as-is
+- [x] Update `tests/test_indicators.py` — 5 tests adjusted to match pandas-ta behavior (OBV index-0, ATR init, stochastic flat price, Ichimoku ISB displacement)
+- [x] Add `synthetic_ohlcv_candles` fixture to `tests/conftest.py` (seeded GBM, 252 candles)
+- [x] New `tests/test_pandas_ta_indicators.py` — 32 parity/regression tests (TC-01 through TC-08)
+- [x] Fix warmup boundary in `tests/test_chart_data.py` — RSI(14) first valid at index 13, not 14
+
+Verification
+- [x] `pytest tests/test_pandas_ta_indicators.py -v` → 29 passed (post C1-C4 fix rewrite)
+- [x] `pytest tests/test_indicators.py -v` → 51 passed
+- [x] `pytest tests/ --ignore=tests/test_billing.py -v` → 226 passed, 3 pre-existing auth failures (unrelated)
+
+C1–C4 structural fixes (2026-05-04)
+- [x] C1: moved `os.environ` + `app.main` import to module level; added `engine`/`session`/`client` fixtures — TC-06 no longer lazy-imports app inside test body
+- [x] C2: TC-01 rewritten to use `interpret_strategy()` + `run_backtest()` + signal parity loop (AC-1 backtest path now exercised)
+- [x] C3: TC-02 calls `GET /market/chart-data` for MACD/Bollinger/Stochastic/ADX/Ichimoku; TC-03 Fibonacci via HTTP (AC-2/AC-3 HTTP path now exercised)
+- [x] C4: TC-07 calls `run_backtest()` twice and compares `num_trades`, `total_return_pct`, `final_balance`, `win_rate_pct`, trade `pnl`/`entry_price`/`exit_price` (AC-7 now exercised)
+- [x] TC-08 upgraded to call `GET /market/chart-data` twice and compare responses
+
+Code-review findings fixed (2026-05-04)
+- [x] C1-fix: `indicators.py` Bollinger column lookup uses prefix search (`startswith`) instead of `:.1f` format — prevents KeyError for std_dev like 2.25
+- [x] M1-fix: TC-01 (12 tests) now uses `from_series(ta.*, n)` raw reference for all indicators — no longer self-referential against `ind.*`
+- [x] M2-fix: TC-02 restructured as `TestTC02SingleSeriesChartDataParity` with 5 HTTP tests (SMA/EMA/RSI/ATR/OBV) against raw `ta.*` reference
+- [x] M3-fix: TC-03 restructured as `TestTC03MultiSeriesChartDataParity` (MACD/Bollinger/Stochastic/ADX/Ichimoku/Fibonacci) against raw `ta.*`/`_fib_ref()` pure-math — no longer self-referential
+
+Verification (post code-review fixes)
+- [x] `pytest tests/test_pandas_ta_indicators.py -v` → 40 passed
+- [x] `pytest tests/ --ignore=tests/test_billing.py -v` → 237 passed, 3 pre-existing auth failures (unrelated)
+
+---
+
 ## FEAT-101 — Backtest Toast Notifications (done)
 
 Frontend

@@ -1,9 +1,10 @@
 """Shared test fixtures and configuration."""
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Generator
 from uuid import uuid4
 
+import numpy as np
 import pytest
 from sqlmodel import Session, SQLModel, create_engine
 from sqlalchemy.pool import StaticPool
@@ -129,6 +130,48 @@ def uptrend_candles() -> list[Candle]:
         )
         candles.append(candle)
 
+    return candles
+
+
+@pytest.fixture
+def synthetic_ohlcv_candles(session: Session) -> list[Candle]:
+    """~250 deterministic daily candles via seeded GBM, persisted to the test DB."""
+    rng = np.random.default_rng(seed=42)
+    n = 252
+    dt = 1 / 252
+    mu = 0.05
+    sigma = 0.20
+    s0 = 100.0
+
+    log_returns = (mu - 0.5 * sigma**2) * dt + sigma * np.sqrt(dt) * rng.standard_normal(n)
+    close_prices = s0 * np.exp(np.cumsum(log_returns))
+
+    noise = rng.uniform(0.005, 0.015, n)
+    high_prices = close_prices * (1 + noise)
+    low_prices = close_prices * (1 - noise)
+    open_prices = np.roll(close_prices, 1)
+    open_prices[0] = s0
+    volumes = rng.uniform(500_000, 2_000_000, n)
+
+    base_time = datetime(2023, 1, 1, tzinfo=timezone.utc)
+    candles: list[Candle] = []
+    for i in range(n):
+        candle = Candle(
+            id=uuid4(),
+            asset="BTC/USDT",
+            timeframe="1d",
+            timestamp=base_time + timedelta(days=i),
+            open=float(open_prices[i]),
+            high=float(high_prices[i]),
+            low=float(low_prices[i]),
+            close=float(close_prices[i]),
+            volume=float(volumes[i]),
+        )
+        session.add(candle)
+        candles.append(candle)
+    session.commit()
+    for c in candles:
+        session.refresh(c)
     return candles
 
 
