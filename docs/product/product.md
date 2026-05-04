@@ -912,7 +912,7 @@ Plain-Language Error Messages
 
 3. **Interpret Strategy**
    - Parse block definition
-   - Compute indicator arrays
+   - Compute indicator arrays (via `pandas-ta-classic` wrappers; warm-up periods yield `None`)
    - Generate entry/exit signal arrays
 
 4. **Run Simulation**
@@ -2313,6 +2313,7 @@ Plain-Language Error Messages
 | **Real-Time Price Tickers** | ✅ Complete | Market overview with live price, 24h change, volume, trend; 4s polling, 3s Redis cache |
 | **Market Indicator Inspection Chart** | ✅ Complete | Read-only OHLCV candlestick chart side panel from Market page; all 11 strategy indicators selectable (up to 8 active); EMA(20) + RSI(14) pre-selected; warm-up nulls; empty/error/loading states; lightweight-charts rendering |
 | **Backtest Toast Notifications** | ✅ Complete | Transient Sonner toast notifications replace the inline status banner on the strategy backtest page; single-run and batch-run start confirmations appear top-right without pushing page layout; shortcut guidance shown as informational toast; existing red error banner preserved |
+| **Pandas TA Indicator Calculation Parity** | ✅ Complete | All 10 core indicator functions (SMA, EMA, RSI, MACD, Bollinger Bands, ATR, Stochastic, ADX, Ichimoku, OBV) replaced with thin `pandas-ta-classic` wrappers; values now match industry-standard TA library output within floating-point tolerance; `fibonacci_retracements` and `price_variation_pct` retain custom implementations; warm-up `None` contract preserved; 40 parity and regression tests added |
 | **Volatility Metrics (Market Overview)** | ✅ Complete | Show current + historical volatility with percentile rank per pair |
 | **Market Sentiment Indicators (Market Overview)** | ✅ Complete | Fear & Greed Index (Alternative.me), Long/Short Ratio (Binance), Funding Rates (Binance); 15min cache, partial failure support, market overview only (no backtest results sentiment context) |
 | **Top-50 Token Coverage Expansion** | ✅ Done | Expanded supported assets to 50 tokens using the existing ingestion/validation architecture, with market page text filtering; single-asset/single-timeframe constraints preserved |
@@ -2715,6 +2716,7 @@ npm run type-check    # TypeScript validation
 - **2026-02-24:** Added PRD/TST planning for an Onboarding Funnel Dashboard in PostHog with required steps (`signup_completed` → `second_session`), conversion visibility, and date-range/cohort filters.
 - **2026-02-24:** Added PRD/TST planning for backend PostHog worker lifecycle tracking (`backtest_job_started`, `backtest_job_completed`, `backtest_job_failed`) with async fire-and-forget dispatch guidance.
 - **2026-05-03:** Replaced inline status banner on the strategy backtest page with Sonner toast notifications (FEAT-101): single-run and batch-run start confirmations are now transient `toast.success` overlays positioned top-right; shortcut guidance uses `toast.info`; the `statusMessage` React state and its JSX block were removed, eliminating layout disruption when notifications appear.
+- **2026-05-04:** Replaced hand-rolled indicator algorithms with `pandas-ta-classic` wrappers for calculation parity (FEAT-102): SMA, EMA, RSI, MACD, Bollinger Bands, ATR, Stochastic, ADX, Ichimoku, and OBV now produce values matching the pandas-ta reference library; warm-up `None` contract and all existing API shapes preserved; `fibonacci_retracements` and `price_variation_pct` retain their custom implementations; 40 parity/regression tests cover both the backtest path and `GET /market/chart-data`.
 - **2026-02-23:** Added PRD/TST planning for PostHog analytics with GDPR consent and documented planned product analytics coverage.
 - **2026-01-03:** Enhanced trade explanation view documentation
 - **2026-01-03:** Added planned backtest trade explanation view details (condition breakdowns, indicator overlays, condition-candle highlights)
