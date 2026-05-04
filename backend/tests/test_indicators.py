@@ -276,18 +276,16 @@ class TestATR:
             assert result[i] is None
 
     def test_atr_first_value_is_simple_average(self):
-        """First ATR value should be simple average of true ranges."""
+        """First ATR value matches pandas-ta-classic Wilder's RMA initialization."""
         highs = [110.0, 112.0, 115.0]
         lows = [100.0, 105.0, 108.0]
         closes = [105.0, 110.0, 112.0]
 
         result = atr(highs, lows, closes, period=3)
 
-        # TR[0] = 110 - 100 = 10
-        # TR[1] = max(112-105, |112-105|, |105-105|) = max(7, 7, 0) = 7
-        # TR[2] = max(115-108, |115-110|, |108-110|) = max(7, 5, 2) = 7
-        # First ATR = (10+7+7)/3 = 8
-        assert result[2] == 8.0
+        # pandas-ta-classic ATR (RMA) seeds from TR values at indices 1+ (excludes
+        # TR[0] which has no prior close). With period=3 and TR[1]=TR[2]=7: init=7.0
+        assert result[2] == 7.0
 
     def test_atr_short_list(self):
         """ATR of list shorter than 2 should return all None."""
@@ -371,10 +369,10 @@ class TestStochastic:
         closes = [100.0] * 50
         k_line, d_line = stochastic(highs, lows, closes)
 
-        # When highest == lowest, should return 50
+        # pandas-ta-classic returns 0.0 for zero-range (division produces 0)
         for k in k_line:
             if k is not None:
-                assert k == 50.0
+                assert k == 0.0
 
 
 class TestADX:
@@ -459,11 +457,16 @@ class TestIchimoku:
         closes = [100.0] * 100
         conv, base, span_a, span_b = ichimoku(highs, lows, closes)
 
-        # All values should be 100 after warmup
-        for i in range(52, 100):
+        # conv and base are available from their own warmup periods (9 and 26)
+        for i in range(9, 100):
             assert conv[i] == 100.0
+        for i in range(26, 100):
             assert base[i] == 100.0
+        # span_a (ISA) is displaced by kijun=26 periods; available from index 51
+        for i in range(51, 100):
             assert span_a[i] == 100.0
+        # span_b (ISB) is displaced by kijun=26 and needs senkou=52 window: starts at 77
+        for i in range(77, 100):
             assert span_b[i] == 100.0
 
 
@@ -477,15 +480,16 @@ class TestOBV:
         result = obv(closes, volumes)
 
         assert len(result) == 5
-        assert result[0] is None  # No previous close
-        # Index 1: price up, add volume = +1500
-        assert result[1] == 1500.0
-        # Index 2: price down, subtract volume = 1500 - 1200 = 300
-        assert result[2] == 300.0
-        # Index 3: price up, add volume = 300 + 1800 = 2100
-        assert result[3] == 2100.0
-        # Index 4: price same, no change = 2100
-        assert result[4] == 2100.0
+        # pandas-ta-classic seeds OBV at volume[0], no warmup period
+        assert result[0] == 1000.0
+        # Index 1: price up, add volume = 1000 + 1500 = 2500
+        assert result[1] == 2500.0
+        # Index 2: price down, subtract volume = 2500 - 1200 = 1300
+        assert result[2] == 1300.0
+        # Index 3: price up, add volume = 1300 + 1800 = 3100
+        assert result[3] == 3100.0
+        # Index 4: price same, no change = 3100
+        assert result[4] == 3100.0
 
     def test_obv_all_gains(self):
         """OBV should increase when all prices rise."""
@@ -504,9 +508,11 @@ class TestOBV:
         volumes = [1000.0, 1000.0, 1000.0]
         result = obv(closes, volumes)
 
-        assert result[0] is None
+        # pandas-ta-classic: index 0 is seeded to volume[0]
+        assert result[0] == 1000.0
+        # NaN close propagates as NaN in OBV
         assert result[1] is None
-        assert result[2] is None  # Can't calculate without previous valid close
+        assert result[2] is None
 
 
 class TestFibonacci:

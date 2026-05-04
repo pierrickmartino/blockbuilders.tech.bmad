@@ -37,3 +37,18 @@ The observable behavior change is calculation parity for existing indicator outp
 
 ## Data model changes
 No SQLModel fields, tables, indexes, or persisted values are added or changed.
+
+## Implementation Plan
+_Produced by Opus. Approved: [reviewed]_
+
+**Reference library:** `pandas-ta-classic` (maintained fork, Python 3.12 + numpy 2 compatible). Original `pandas-ta` is abandoned and incompatible with the current stack.
+**Parity definition:** values returned by backend indicator functions equal those returned by `pandas-ta-classic` for the same OHLCV input and parameters, within `pytest.approx(rel=1e-9, abs=1e-9)`.
+**Carve-outs:** `fibonacci_retracements` and `price_variation_pct` keep their existing implementations (no Pandas-TA equivalent / not in scope per spec non-goals).
+
+1. **`backend/requirements.txt`** — add `pandas`, `numpy`, and `pandas-ta-classic` to runtime deps with version pins. Backend. No migration. **Must complete before bullet 2.**
+2. **`backend/app/backtest/_ta_adapter.py`** (new) — small private helper: `to_series(values: list[float]) -> pd.Series` and `from_series(s: pd.Series) -> list[Optional[float]]` (NaN → `None`), so each indicator wrapper stays under five lines. Backend. No migration. **Used by bullet 3.**
+3. **`backend/app/backtest/indicators.py`** — replace algorithm bodies of `sma`, `ema`, `rsi`, `macd`, `bollinger`, `atr`, `stochastic`, `adx`, `ichimoku`, `obv` with thin wrappers around `pandas-ta-classic` via the adapter. Preserve every existing function signature and the `None`-for-warmup contract. Leave `fibonacci_retracements` and `price_variation_pct` untouched. Backend. No migration. **Depends on bullets 1–2.**
+4. **`backend/app/backtest/interpreter.py`, `backend/app/api/chart.py`** — verification only; no code edits. Confirm call sites still typecheck and behave identically after bullet 3. Backend. No migration. **Verification after bullet 3.**
+5. **`backend/tests/conftest.py`** — add `synthetic_ohlcv_candles` fixture that seeds `numpy.random` deterministically and generates ~250 daily candles via geometric Brownian motion, persisted via the `Candle` SQLModel into the test DB. Reused across all eight TCs. Backend. No migration. **Used by bullet 6.**
+6. **`backend/tests/test_pandas_ta_indicators.py`** (new) — implement the eight test functions named verbatim in the test plan (TC-01…TC-08). Each test invokes the real backtest engine or `GET /market/chart-data`, computes the `pandas-ta-classic` reference inline against the same fixture data, and asserts equality at `pytest.approx(rel=1e-9, abs=1e-9)`. TC-07 and TC-08 repeat the call and assert byte-equal JSON / equal trade lists as a regression guard. TC-04 asserts `None` for warm-up indices. TC-06 asserts existing 400 / validation errors are unchanged. Backend. No migration. **Depends on bullets 3 and 5.**
+7. **`tasks/lessons.md`** — append one-line note recording the `pandas-ta-classic` choice over abandoned `pandas-ta` so future agents don't re-litigate. Update `tasks/todo.md` with the FEAT-102 slice status. Backend. No migration. **Last.**

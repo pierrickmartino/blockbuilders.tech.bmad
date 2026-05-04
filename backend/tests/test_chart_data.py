@@ -249,10 +249,11 @@ def test_feat_100_warmup_values_are_null(client: TestClient, session: Session):
     [rsi_series] = r.json()["indicators"]
 
     # First N points (RSI(14) warm-up) must be null, never 0.0.
-    for p in rsi_series["points"][:14]:
+    # pandas-ta first valid RSI is at index period-1=13, so indices 0-12 are warmup.
+    for p in rsi_series["points"][:13]:
         assert p["value"] is None
     # Sanity: at least some later values are real numbers.
-    assert any(p["value"] is not None for p in rsi_series["points"][14:])
+    assert any(p["value"] is not None for p in rsi_series["points"][13:])
 
 
 # --- Multi-output indicator polish ----------------------------------------

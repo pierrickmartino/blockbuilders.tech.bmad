@@ -1,5 +1,23 @@
 # Tasks — in flight
 
+## FEAT-102 — Pandas TA Indicator Calculation Parity (done)
+
+Backend
+- [x] Add `pandas==3.0.2`, `numpy==2.4.4`, `pandas-ta-classic==0.5.44` to `requirements.txt`
+- [x] New `app/backtest/_ta_adapter.py` — `to_series` / `from_series` adapter (list ↔ pandas Series, None ↔ NaN)
+- [x] Rewrite `app/backtest/indicators.py` — 10 indicator functions replaced with thin pandas-ta-classic wrappers; `fibonacci_retracements` and `price_variation_pct` retained as-is
+- [x] Update `tests/test_indicators.py` — 5 tests adjusted to match pandas-ta behavior (OBV index-0, ATR init, stochastic flat price, Ichimoku ISB displacement)
+- [x] Add `synthetic_ohlcv_candles` fixture to `tests/conftest.py` (seeded GBM, 252 candles)
+- [x] New `tests/test_pandas_ta_indicators.py` — 32 parity/regression tests (TC-01 through TC-08)
+- [x] Fix warmup boundary in `tests/test_chart_data.py` — RSI(14) first valid at index 13, not 14
+
+Verification
+- [x] `pytest tests/test_pandas_ta_indicators.py -v` → 32 passed
+- [x] `pytest tests/test_indicators.py -v` → 51 passed
+- [x] `pytest tests/ --ignore=tests/test_billing.py -v` → 229 passed, 3 pre-existing auth failures (unrelated)
+
+---
+
 ## FEAT-101 — Backtest Toast Notifications (done)
 
 Frontend
