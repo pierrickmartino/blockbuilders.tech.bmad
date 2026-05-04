@@ -12,9 +12,16 @@ Backend
 - [x] Fix warmup boundary in `tests/test_chart_data.py` — RSI(14) first valid at index 13, not 14
 
 Verification
-- [x] `pytest tests/test_pandas_ta_indicators.py -v` → 32 passed
+- [x] `pytest tests/test_pandas_ta_indicators.py -v` → 29 passed (post C1-C4 fix rewrite)
 - [x] `pytest tests/test_indicators.py -v` → 51 passed
-- [x] `pytest tests/ --ignore=tests/test_billing.py -v` → 229 passed, 3 pre-existing auth failures (unrelated)
+- [x] `pytest tests/ --ignore=tests/test_billing.py -v` → 226 passed, 3 pre-existing auth failures (unrelated)
+
+C1–C4 structural fixes (2026-05-04)
+- [x] C1: moved `os.environ` + `app.main` import to module level; added `engine`/`session`/`client` fixtures — TC-06 no longer lazy-imports app inside test body
+- [x] C2: TC-01 rewritten to use `interpret_strategy()` + `run_backtest()` + signal parity loop (AC-1 backtest path now exercised)
+- [x] C3: TC-02 calls `GET /market/chart-data` for MACD/Bollinger/Stochastic/ADX/Ichimoku; TC-03 Fibonacci via HTTP (AC-2/AC-3 HTTP path now exercised)
+- [x] C4: TC-07 calls `run_backtest()` twice and compares `num_trades`, `total_return_pct`, `final_balance`, `win_rate_pct`, trade `pnl`/`entry_price`/`exit_price` (AC-7 now exercised)
+- [x] TC-08 upgraded to call `GET /market/chart-data` twice and compare responses
 
 ---
 
