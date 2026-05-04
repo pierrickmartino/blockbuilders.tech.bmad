@@ -39,9 +39,10 @@ def macd(
     df = ta.macd(to_series(closes), fast=fast, slow=slow, signal=signal)
     if df is None:
         return [None] * n, [None] * n, [None] * n
-    macd_col = f"MACD_{fast}_{slow}_{signal}"
-    signal_col = f"MACDs_{fast}_{slow}_{signal}"
-    hist_col = f"MACDh_{fast}_{slow}_{signal}"
+    normalized_fast, normalized_slow = min(fast, slow), max(fast, slow)
+    macd_col = f"MACD_{normalized_fast}_{normalized_slow}_{signal}"
+    signal_col = f"MACDs_{normalized_fast}_{normalized_slow}_{signal}"
+    hist_col = f"MACDh_{normalized_fast}_{normalized_slow}_{signal}"
     return from_series(df[macd_col], n), from_series(df[signal_col], n), from_series(df[hist_col], n)
 
 

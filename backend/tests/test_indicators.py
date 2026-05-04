@@ -205,6 +205,14 @@ class TestMACD:
             if m is not None and s is not None and h is not None:
                 assert abs(h - (m - s)) < 0.0001
 
+    def test_macd_reversed_fast_slow_periods(self):
+        """MACD should handle pandas-ta period normalization when slow < fast."""
+        closes = [100.0 + i for i in range(60)]
+        normal = macd(closes, fast=12, slow=26, signal=9)
+        reversed_periods = macd(closes, fast=26, slow=12, signal=9)
+
+        assert reversed_periods == normal
+
 
 class TestBollinger:
     """Tests for Bollinger Bands."""
