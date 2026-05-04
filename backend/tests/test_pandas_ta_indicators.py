@@ -1,8 +1,11 @@
 """Parity tests: indicator functions must match pandas-ta-classic reference output.
 
-TC-01  SMA/EMA/RSI/ATR/OBV — backtest path parity via interpret_strategy + run_backtest (AC-1)
-TC-02  MACD/Bollinger/Stochastic/ADX/Ichimoku — chart-data HTTP parity (AC-2, AC-3)
-TC-03  Fibonacci/price_variation_pct — carve-out: fib via chart-data, pv via direct (AC-3)
+TC-01  ALL strategy indicators — backtest path parity via interpret_strategy + run_backtest (AC-1)
+         Reference: raw pandas_ta_classic calls, bypassing ind.* wrappers entirely
+TC-02  Single-series indicators (SMA/EMA/RSI/ATR/OBV) — chart-data HTTP parity (AC-2)
+         Reference: raw pandas_ta_classic calls, independent of ind.* wrappers
+TC-03  Multi-series indicators (MACD/Bollinger/Stochastic/ADX/Ichimoku/Fibonacci) — chart-data HTTP parity (AC-3)
+         Reference: raw pandas_ta_classic calls or pure-math formula for custom indicators
 TC-04  Warmup contract: indices before min_periods return None (AC-4)
 TC-05  Timestamp alignment: same indicator output regardless of caller (AC-5)
 TC-06  Invalid indicator key → 400 (AC-6)
@@ -19,7 +22,6 @@ os.environ["REDIS_URL"] = "redis://localhost:6379/15"
 
 from uuid import uuid4
 
-import numpy as np
 import pandas_ta_classic as ta
 import pytest
 from fastapi.testclient import TestClient
@@ -27,18 +29,17 @@ from sqlalchemy.pool import StaticPool
 from sqlmodel import Session, SQLModel, create_engine
 
 from app.backtest import indicators as ind
-from app.backtest._ta_adapter import to_series
+from app.backtest._ta_adapter import from_series, to_series
 from app.backtest.engine import run_backtest
 from app.backtest.interpreter import interpret_strategy
 from app.core.database import get_session
 from app.core.security import hash_password
 from app.main import app
-from app.models.candle import Candle
 from app.models.user import PlanTier, User, UserTier
 
 
 # ---------------------------------------------------------------------------
-# Fixtures (C1 fix: defined here so session/engine shadow conftest)
+# Fixtures (defined here so session/engine shadow conftest for isolation)
 # ---------------------------------------------------------------------------
 
 
@@ -125,11 +126,6 @@ def _volumes(candles):
     return [c.volume for c in candles]
 
 
-def _ref(series) -> list:
-    """Convert a pandas Series to a list, NaN → None."""
-    return [None if (v is None or (isinstance(v, float) and np.isnan(v))) else float(v) for v in series]
-
-
 def _approx(val, ref_val):
     if ref_val is None:
         return val is None
@@ -144,13 +140,42 @@ def _assert_parity(actual: list, reference: list):
         assert _approx(a, r), f"Index {i}: actual={a} ref={r}"
 
 
+def _fib_ref(highs: list, lows: list, lookback: int = 50) -> dict:
+    """Pure-math reference for Fibonacci retracements, independent of ind.fibonacci_retracements."""
+    n = len(highs)
+    levels = {"0_236": 0.236, "0_382": 0.382, "0_5": 0.5, "0_618": 0.618, "0_786": 0.786}
+    result: dict = {k: [None] * n for k in levels}
+    for i in range(lookback - 1, n):
+        window_h = highs[i - lookback + 1 : i + 1]
+        window_l = lows[i - lookback + 1 : i + 1]
+        highest = max(window_h)
+        lowest = min(window_l)
+        r = highest - lowest
+        for key, level in levels.items():
+            result[key][i] = lowest if r == 0 else highest - r * level
+    return result
+
+
+def _pv_pct_ref(closes: list) -> list:
+    """Pure-math reference for price_variation_pct, independent of ind.price_variation_pct."""
+    n = len(closes)
+    if n == 0:
+        return []
+    ref: list = [None]
+    for i in range(1, n):
+        if closes[i] is None or closes[i - 1] is None or closes[i - 1] == 0:
+            ref.append(None)
+        else:
+            ref.append(((closes[i] - closes[i - 1]) / closes[i - 1]) * 100)
+    return ref
+
+
 # ---------------------------------------------------------------------------
 # Strategy builders for TC-01 and TC-07
 # ---------------------------------------------------------------------------
 
 
 def _sma_gt_price_strategy(period: int) -> dict:
-    """Entry: SMA(period) > close; Exit: close > SMA(period)."""
     return {
         "blocks": [
             {"id": "sma1", "type": "sma", "params": {"period": period}},
@@ -172,7 +197,6 @@ def _sma_gt_price_strategy(period: int) -> dict:
 
 
 def _ema_gt_price_strategy(period: int) -> dict:
-    """Entry: EMA(period) > close; Exit: close > EMA(period)."""
     return {
         "blocks": [
             {"id": "ema1", "type": "ema", "params": {"period": period}},
@@ -194,7 +218,6 @@ def _ema_gt_price_strategy(period: int) -> dict:
 
 
 def _rsi_lt_const_strategy(period: int, threshold: float) -> dict:
-    """Entry: RSI(period) < threshold; Exit: RSI(period) > threshold."""
     return {
         "blocks": [
             {"id": "rsi1", "type": "rsi", "params": {"period": period}},
@@ -216,7 +239,6 @@ def _rsi_lt_const_strategy(period: int, threshold: float) -> dict:
 
 
 def _atr_gt_const_strategy(period: int, threshold: float) -> dict:
-    """Entry: ATR(period) > threshold; Exit: ATR(period) < threshold."""
     return {
         "blocks": [
             {"id": "atr1", "type": "atr", "params": {"period": period}},
@@ -238,7 +260,6 @@ def _atr_gt_const_strategy(period: int, threshold: float) -> dict:
 
 
 def _obv_gt_const_strategy(threshold: float) -> dict:
-    """Entry: OBV > threshold; Exit: OBV < threshold."""
     return {
         "blocks": [
             {"id": "obv1", "type": "obv", "params": {}},
@@ -259,65 +280,216 @@ def _obv_gt_const_strategy(threshold: float) -> dict:
     }
 
 
+def _macd_gt_const_strategy(threshold: float = 0.0) -> dict:
+    """Entry: MACD line (default output port) > threshold."""
+    return {
+        "blocks": [
+            {"id": "macd1", "type": "macd", "params": {"fast_period": 12, "slow_period": 26, "signal_period": 9}},
+            {"id": "const1", "type": "constant", "params": {"value": threshold}},
+            {"id": "cmp_e", "type": "compare", "params": {"operator": ">"}},
+            {"id": "cmp_x", "type": "compare", "params": {"operator": "<"}},
+            {"id": "entry1", "type": "entry_signal", "params": {}},
+            {"id": "exit1", "type": "exit_signal", "params": {}},
+        ],
+        "connections": [
+            {"from": {"block_id": "macd1", "port": "output"}, "to": {"block_id": "cmp_e", "port": "left"}},
+            {"from": {"block_id": "const1", "port": "output"}, "to": {"block_id": "cmp_e", "port": "right"}},
+            {"from": {"block_id": "cmp_e", "port": "output"}, "to": {"block_id": "entry1", "port": "signal"}},
+            {"from": {"block_id": "macd1", "port": "output"}, "to": {"block_id": "cmp_x", "port": "left"}},
+            {"from": {"block_id": "const1", "port": "output"}, "to": {"block_id": "cmp_x", "port": "right"}},
+            {"from": {"block_id": "cmp_x", "port": "output"}, "to": {"block_id": "exit1", "port": "signal"}},
+        ],
+    }
+
+
+def _bollinger_middle_gt_price_strategy(period: int = 20) -> dict:
+    """Entry: Bollinger middle band (default output port) > close."""
+    return {
+        "blocks": [
+            {"id": "bb1", "type": "bollinger", "params": {"period": period, "stddev": 2.0}},
+            {"id": "price1", "type": "price", "params": {"source": "close"}},
+            {"id": "cmp_e", "type": "compare", "params": {"operator": ">"}},
+            {"id": "cmp_x", "type": "compare", "params": {"operator": ">"}},
+            {"id": "entry1", "type": "entry_signal", "params": {}},
+            {"id": "exit1", "type": "exit_signal", "params": {}},
+        ],
+        "connections": [
+            {"from": {"block_id": "bb1", "port": "output"}, "to": {"block_id": "cmp_e", "port": "left"}},
+            {"from": {"block_id": "price1", "port": "output"}, "to": {"block_id": "cmp_e", "port": "right"}},
+            {"from": {"block_id": "cmp_e", "port": "output"}, "to": {"block_id": "entry1", "port": "signal"}},
+            {"from": {"block_id": "price1", "port": "output"}, "to": {"block_id": "cmp_x", "port": "left"}},
+            {"from": {"block_id": "bb1", "port": "output"}, "to": {"block_id": "cmp_x", "port": "right"}},
+            {"from": {"block_id": "cmp_x", "port": "output"}, "to": {"block_id": "exit1", "port": "signal"}},
+        ],
+    }
+
+
+def _stochastic_k_lt_const_strategy(k_period: int = 14, threshold: float = 30.0) -> dict:
+    """Entry: Stochastic %K (default output port) < threshold."""
+    return {
+        "blocks": [
+            {"id": "stoch1", "type": "stochastic", "params": {"k_period": k_period, "d_period": 3, "smooth": 3}},
+            {"id": "const1", "type": "constant", "params": {"value": threshold}},
+            {"id": "cmp_e", "type": "compare", "params": {"operator": "<"}},
+            {"id": "cmp_x", "type": "compare", "params": {"operator": ">"}},
+            {"id": "entry1", "type": "entry_signal", "params": {}},
+            {"id": "exit1", "type": "exit_signal", "params": {}},
+        ],
+        "connections": [
+            {"from": {"block_id": "stoch1", "port": "output"}, "to": {"block_id": "cmp_e", "port": "left"}},
+            {"from": {"block_id": "const1", "port": "output"}, "to": {"block_id": "cmp_e", "port": "right"}},
+            {"from": {"block_id": "cmp_e", "port": "output"}, "to": {"block_id": "entry1", "port": "signal"}},
+            {"from": {"block_id": "stoch1", "port": "output"}, "to": {"block_id": "cmp_x", "port": "left"}},
+            {"from": {"block_id": "const1", "port": "output"}, "to": {"block_id": "cmp_x", "port": "right"}},
+            {"from": {"block_id": "cmp_x", "port": "output"}, "to": {"block_id": "exit1", "port": "signal"}},
+        ],
+    }
+
+
+def _adx_gt_const_strategy(period: int = 14, threshold: float = 25.0) -> dict:
+    """Entry: ADX (default output port) > threshold."""
+    return {
+        "blocks": [
+            {"id": "adx1", "type": "adx", "params": {"period": period}},
+            {"id": "const1", "type": "constant", "params": {"value": threshold}},
+            {"id": "cmp_e", "type": "compare", "params": {"operator": ">"}},
+            {"id": "cmp_x", "type": "compare", "params": {"operator": "<"}},
+            {"id": "entry1", "type": "entry_signal", "params": {}},
+            {"id": "exit1", "type": "exit_signal", "params": {}},
+        ],
+        "connections": [
+            {"from": {"block_id": "adx1", "port": "output"}, "to": {"block_id": "cmp_e", "port": "left"}},
+            {"from": {"block_id": "const1", "port": "output"}, "to": {"block_id": "cmp_e", "port": "right"}},
+            {"from": {"block_id": "cmp_e", "port": "output"}, "to": {"block_id": "entry1", "port": "signal"}},
+            {"from": {"block_id": "adx1", "port": "output"}, "to": {"block_id": "cmp_x", "port": "left"}},
+            {"from": {"block_id": "const1", "port": "output"}, "to": {"block_id": "cmp_x", "port": "right"}},
+            {"from": {"block_id": "cmp_x", "port": "output"}, "to": {"block_id": "exit1", "port": "signal"}},
+        ],
+    }
+
+
+def _ichimoku_conv_gt_const_strategy(threshold: float) -> dict:
+    """Entry: Ichimoku conversion line (default output port) > threshold."""
+    return {
+        "blocks": [
+            {"id": "ich1", "type": "ichimoku", "params": {"conversion": 9, "base": 26, "span_b": 52, "displacement": 26}},
+            {"id": "const1", "type": "constant", "params": {"value": threshold}},
+            {"id": "cmp_e", "type": "compare", "params": {"operator": ">"}},
+            {"id": "cmp_x", "type": "compare", "params": {"operator": "<"}},
+            {"id": "entry1", "type": "entry_signal", "params": {}},
+            {"id": "exit1", "type": "exit_signal", "params": {}},
+        ],
+        "connections": [
+            {"from": {"block_id": "ich1", "port": "output"}, "to": {"block_id": "cmp_e", "port": "left"}},
+            {"from": {"block_id": "const1", "port": "output"}, "to": {"block_id": "cmp_e", "port": "right"}},
+            {"from": {"block_id": "cmp_e", "port": "output"}, "to": {"block_id": "entry1", "port": "signal"}},
+            {"from": {"block_id": "ich1", "port": "output"}, "to": {"block_id": "cmp_x", "port": "left"}},
+            {"from": {"block_id": "const1", "port": "output"}, "to": {"block_id": "cmp_x", "port": "right"}},
+            {"from": {"block_id": "cmp_x", "port": "output"}, "to": {"block_id": "exit1", "port": "signal"}},
+        ],
+    }
+
+
+def _fibonacci_l5_gt_price_strategy(lookback: int = 50) -> dict:
+    """Entry: Fibonacci 0.5 level (default output port) > close."""
+    return {
+        "blocks": [
+            {"id": "fib1", "type": "fibonacci", "params": {"lookback": lookback}},
+            {"id": "price1", "type": "price", "params": {"source": "close"}},
+            {"id": "cmp_e", "type": "compare", "params": {"operator": ">"}},
+            {"id": "cmp_x", "type": "compare", "params": {"operator": ">"}},
+            {"id": "entry1", "type": "entry_signal", "params": {}},
+            {"id": "exit1", "type": "exit_signal", "params": {}},
+        ],
+        "connections": [
+            {"from": {"block_id": "fib1", "port": "output"}, "to": {"block_id": "cmp_e", "port": "left"}},
+            {"from": {"block_id": "price1", "port": "output"}, "to": {"block_id": "cmp_e", "port": "right"}},
+            {"from": {"block_id": "cmp_e", "port": "output"}, "to": {"block_id": "entry1", "port": "signal"}},
+            {"from": {"block_id": "price1", "port": "output"}, "to": {"block_id": "cmp_x", "port": "left"}},
+            {"from": {"block_id": "fib1", "port": "output"}, "to": {"block_id": "cmp_x", "port": "right"}},
+            {"from": {"block_id": "cmp_x", "port": "output"}, "to": {"block_id": "exit1", "port": "signal"}},
+        ],
+    }
+
+
+def _pv_pct_gt_const_strategy(threshold: float = 0.0) -> dict:
+    """Entry: price_variation_pct > threshold."""
+    return {
+        "blocks": [
+            {"id": "pv1", "type": "price_variation_pct", "params": {}},
+            {"id": "const1", "type": "constant", "params": {"value": threshold}},
+            {"id": "cmp_e", "type": "compare", "params": {"operator": ">"}},
+            {"id": "cmp_x", "type": "compare", "params": {"operator": "<"}},
+            {"id": "entry1", "type": "entry_signal", "params": {}},
+            {"id": "exit1", "type": "exit_signal", "params": {}},
+        ],
+        "connections": [
+            {"from": {"block_id": "pv1", "port": "output"}, "to": {"block_id": "cmp_e", "port": "left"}},
+            {"from": {"block_id": "const1", "port": "output"}, "to": {"block_id": "cmp_e", "port": "right"}},
+            {"from": {"block_id": "cmp_e", "port": "output"}, "to": {"block_id": "entry1", "port": "signal"}},
+            {"from": {"block_id": "pv1", "port": "output"}, "to": {"block_id": "cmp_x", "port": "left"}},
+            {"from": {"block_id": "const1", "port": "output"}, "to": {"block_id": "cmp_x", "port": "right"}},
+            {"from": {"block_id": "cmp_x", "port": "output"}, "to": {"block_id": "exit1", "port": "signal"}},
+        ],
+    }
+
+
 # ---------------------------------------------------------------------------
-# TC-01  Backtest path parity: interpret_strategy + run_backtest (C2 fix)
+# TC-01  Backtest path parity for ALL strategy indicators (M1 fix)
+#        Reference: raw pandas_ta_classic, bypassing ind.* wrappers
 # ---------------------------------------------------------------------------
 
 
 class TestTC01BacktestPathParity:
-    """TC-01: SMA/EMA/RSI/ATR/OBV entry signals match direct indicator calculations (AC-1).
+    """TC-01: every strategy indicator entry signal matches raw pandas-ta-classic output (AC-1).
 
-    Each test builds a strategy, runs interpret_strategy() + run_backtest(), then asserts
-    that every entry signal equals the result of evaluating the compare expression directly
-    against the indicator values — the same logic the interpreter applies internally.
+    Each test builds a strategy, runs interpret_strategy() + run_backtest(), then checks that
+    every entry_long[i] equals the compare expression evaluated directly against raw ta.* output
+    — bypassing ind.* wrappers so that wrapper-layer bugs are detectable.
     """
 
     def test_sma_backtest_path(self, synthetic_ohlcv_candles):
         candles = synthetic_ohlcv_candles
         closes = _closes(candles)
         period = 20
+        n = len(closes)
 
         signals = interpret_strategy(_sma_gt_price_strategy(period), candles)
-        result = run_backtest(candles, signals, initial_balance=10_000.0, fee_rate=0.001, slippage_rate=0.001)
+        run_backtest(candles, signals, initial_balance=10_000.0, fee_rate=0.001, slippage_rate=0.001)
 
-        sma_vals = ind.sma(closes, period)
+        ref = from_series(ta.sma(to_series(closes), length=period), n)
         for i, entry in enumerate(signals.entry_long):
-            expected = sma_vals[i] is not None and sma_vals[i] > closes[i]
+            expected = ref[i] is not None and ref[i] > closes[i]
             assert entry == expected, f"SMA entry mismatch at index {i}"
-
-        assert isinstance(result.num_trades, int)
-        assert isinstance(result.final_balance, float)
 
     def test_ema_backtest_path(self, synthetic_ohlcv_candles):
         candles = synthetic_ohlcv_candles
         closes = _closes(candles)
         period = 20
+        n = len(closes)
 
         signals = interpret_strategy(_ema_gt_price_strategy(period), candles)
-        result = run_backtest(candles, signals, initial_balance=10_000.0, fee_rate=0.001, slippage_rate=0.001)
+        run_backtest(candles, signals, initial_balance=10_000.0, fee_rate=0.001, slippage_rate=0.001)
 
-        ema_vals = ind.ema(closes, period)
+        ref = from_series(ta.ema(to_series(closes), length=period), n)
         for i, entry in enumerate(signals.entry_long):
-            expected = ema_vals[i] is not None and ema_vals[i] > closes[i]
+            expected = ref[i] is not None and ref[i] > closes[i]
             assert entry == expected, f"EMA entry mismatch at index {i}"
-
-        assert isinstance(result.num_trades, int)
 
     def test_rsi_backtest_path(self, synthetic_ohlcv_candles):
         candles = synthetic_ohlcv_candles
         closes = _closes(candles)
         period = 14
         threshold = 50.0
+        n = len(closes)
 
         signals = interpret_strategy(_rsi_lt_const_strategy(period, threshold), candles)
-        result = run_backtest(candles, signals, initial_balance=10_000.0, fee_rate=0.001, slippage_rate=0.001)
+        run_backtest(candles, signals, initial_balance=10_000.0, fee_rate=0.001, slippage_rate=0.001)
 
-        rsi_vals = ind.rsi(closes, period)
+        ref = from_series(ta.rsi(to_series(closes), length=period), n)
         for i, entry in enumerate(signals.entry_long):
-            expected = rsi_vals[i] is not None and rsi_vals[i] < threshold
+            expected = ref[i] is not None and ref[i] < threshold
             assert entry == expected, f"RSI entry mismatch at index {i}"
-
-        assert isinstance(result.num_trades, int)
 
     def test_atr_backtest_path(self, synthetic_ohlcv_candles):
         candles = synthetic_ohlcv_candles
@@ -326,47 +498,256 @@ class TestTC01BacktestPathParity:
         closes = _closes(candles)
         period = 14
         threshold = 1.0
+        n = len(closes)
 
         signals = interpret_strategy(_atr_gt_const_strategy(period, threshold), candles)
-        result = run_backtest(candles, signals, initial_balance=10_000.0, fee_rate=0.001, slippage_rate=0.001)
+        run_backtest(candles, signals, initial_balance=10_000.0, fee_rate=0.001, slippage_rate=0.001)
 
-        atr_vals = ind.atr(highs, lows, closes, period)
+        ref = from_series(ta.atr(to_series(highs), to_series(lows), to_series(closes), length=period), n)
         for i, entry in enumerate(signals.entry_long):
-            expected = atr_vals[i] is not None and atr_vals[i] > threshold
+            expected = ref[i] is not None and ref[i] > threshold
             assert entry == expected, f"ATR entry mismatch at index {i}"
-
-        assert isinstance(result.num_trades, int)
 
     def test_obv_backtest_path(self, synthetic_ohlcv_candles):
         candles = synthetic_ohlcv_candles
         closes = _closes(candles)
         volumes = _volumes(candles)
         threshold = 0.0
+        n = len(closes)
 
         signals = interpret_strategy(_obv_gt_const_strategy(threshold), candles)
-        result = run_backtest(candles, signals, initial_balance=10_000.0, fee_rate=0.001, slippage_rate=0.001)
+        run_backtest(candles, signals, initial_balance=10_000.0, fee_rate=0.001, slippage_rate=0.001)
 
-        obv_vals = ind.obv(closes, volumes)
+        ref = from_series(ta.obv(to_series(closes), to_series(volumes)), n)
         for i, entry in enumerate(signals.entry_long):
-            expected = obv_vals[i] is not None and obv_vals[i] > threshold
+            expected = ref[i] is not None and ref[i] > threshold
             assert entry == expected, f"OBV entry mismatch at index {i}"
 
-        assert isinstance(result.num_trades, int)
+    def test_macd_backtest_path(self, synthetic_ohlcv_candles):
+        candles = synthetic_ohlcv_candles
+        closes = _closes(candles)
+        threshold = 0.0
+        n = len(closes)
+
+        signals = interpret_strategy(_macd_gt_const_strategy(threshold), candles)
+        run_backtest(candles, signals, initial_balance=10_000.0, fee_rate=0.001, slippage_rate=0.001)
+
+        df = ta.macd(to_series(closes), fast=12, slow=26, signal=9)
+        ref = from_series(df["MACD_12_26_9"], n)
+        for i, entry in enumerate(signals.entry_long):
+            expected = ref[i] is not None and ref[i] > threshold
+            assert entry == expected, f"MACD entry mismatch at index {i}"
+
+    def test_bollinger_backtest_path(self, synthetic_ohlcv_candles):
+        candles = synthetic_ohlcv_candles
+        closes = _closes(candles)
+        period = 20
+        n = len(closes)
+
+        signals = interpret_strategy(_bollinger_middle_gt_price_strategy(period), candles)
+        run_backtest(candles, signals, initial_balance=10_000.0, fee_rate=0.001, slippage_rate=0.001)
+
+        df = ta.bbands(to_series(closes), length=period, std=2.0)
+        middle_col = next(c for c in df.columns if c.startswith(f"BBM_{period}_"))
+        ref = from_series(df[middle_col], n)
+        for i, entry in enumerate(signals.entry_long):
+            expected = ref[i] is not None and ref[i] > closes[i]
+            assert entry == expected, f"Bollinger middle entry mismatch at index {i}"
+
+    def test_stochastic_backtest_path(self, synthetic_ohlcv_candles):
+        candles = synthetic_ohlcv_candles
+        highs = _highs(candles)
+        lows = _lows(candles)
+        closes = _closes(candles)
+        threshold = 30.0
+        n = len(closes)
+
+        signals = interpret_strategy(_stochastic_k_lt_const_strategy(14, threshold), candles)
+        run_backtest(candles, signals, initial_balance=10_000.0, fee_rate=0.001, slippage_rate=0.001)
+
+        df = ta.stoch(to_series(highs), to_series(lows), to_series(closes), k=14, d=3, smooth_k=3)
+        ref = from_series(df["STOCHk_14_3_3"], n)
+        for i, entry in enumerate(signals.entry_long):
+            expected = ref[i] is not None and ref[i] < threshold
+            assert entry == expected, f"Stochastic %K entry mismatch at index {i}"
+
+    def test_adx_backtest_path(self, synthetic_ohlcv_candles):
+        candles = synthetic_ohlcv_candles
+        highs = _highs(candles)
+        lows = _lows(candles)
+        closes = _closes(candles)
+        threshold = 25.0
+        n = len(closes)
+
+        signals = interpret_strategy(_adx_gt_const_strategy(14, threshold), candles)
+        run_backtest(candles, signals, initial_balance=10_000.0, fee_rate=0.001, slippage_rate=0.001)
+
+        df = ta.adx(to_series(highs), to_series(lows), to_series(closes), length=14)
+        ref = from_series(df["ADX_14"], n)
+        for i, entry in enumerate(signals.entry_long):
+            expected = ref[i] is not None and ref[i] > threshold
+            assert entry == expected, f"ADX entry mismatch at index {i}"
+
+    def test_ichimoku_backtest_path(self, synthetic_ohlcv_candles):
+        candles = synthetic_ohlcv_candles
+        highs = _highs(candles)
+        lows = _lows(candles)
+        closes = _closes(candles)
+        n = len(closes)
+        median_close = sorted(closes)[n // 2]
+
+        signals = interpret_strategy(_ichimoku_conv_gt_const_strategy(median_close), candles)
+        run_backtest(candles, signals, initial_balance=10_000.0, fee_rate=0.001, slippage_rate=0.001)
+
+        result = ta.ichimoku(to_series(highs), to_series(lows), to_series(closes), tenkan=9, kijun=26, senkou=52)
+        ref = from_series(result[0]["ITS_9"], n)
+        for i, entry in enumerate(signals.entry_long):
+            expected = ref[i] is not None and ref[i] > median_close
+            assert entry == expected, f"Ichimoku conversion entry mismatch at index {i}"
+
+    def test_fibonacci_backtest_path(self, synthetic_ohlcv_candles):
+        candles = synthetic_ohlcv_candles
+        highs = _highs(candles)
+        lows = _lows(candles)
+        closes = _closes(candles)
+        lookback = 50
+        n = len(closes)
+
+        signals = interpret_strategy(_fibonacci_l5_gt_price_strategy(lookback), candles)
+        run_backtest(candles, signals, initial_balance=10_000.0, fee_rate=0.001, slippage_rate=0.001)
+
+        ref = _fib_ref(highs, lows, lookback)["0_5"]
+        for i, entry in enumerate(signals.entry_long):
+            expected = ref[i] is not None and ref[i] > closes[i]
+            assert entry == expected, f"Fibonacci level_5 entry mismatch at index {i}"
+
+    def test_price_variation_pct_backtest_path(self, synthetic_ohlcv_candles):
+        candles = synthetic_ohlcv_candles
+        closes = _closes(candles)
+        threshold = 0.0
+        n = len(closes)
+
+        signals = interpret_strategy(_pv_pct_gt_const_strategy(threshold), candles)
+        run_backtest(candles, signals, initial_balance=10_000.0, fee_rate=0.001, slippage_rate=0.001)
+
+        ref = _pv_pct_ref(closes)
+        for i, entry in enumerate(signals.entry_long):
+            expected = ref[i] is not None and ref[i] > threshold
+            assert entry == expected, f"price_variation_pct entry mismatch at index {i}"
 
 
 # ---------------------------------------------------------------------------
-# TC-02  Chart-data HTTP parity: MACD/Bollinger/Stochastic/ADX/Ichimoku (C3 fix)
+# TC-02  Single-series chart-data HTTP parity: SMA/EMA/RSI/ATR/OBV (M2 fix)
+#        Reference: raw pandas_ta_classic, independent of ind.* wrappers
 # ---------------------------------------------------------------------------
 
 
-class TestTC02ChartDataParity:
-    """TC-02: complex multi-output indicators match via GET /market/chart-data (AC-2, AC-3)."""
+class TestTC02SingleSeriesChartDataParity:
+    """TC-02: SMA/EMA/RSI/ATR/OBV chart-data response matches raw pandas-ta-classic output (AC-2)."""
+
+    def test_sma_chart_data_parity(self, synthetic_ohlcv_candles, client, session):
+        user = _seed_user(session)
+        token = _login(client, user.email)
+        closes = _closes(synthetic_ohlcv_candles)
+        n = len(closes)
+
+        r = client.get(
+            "/market/chart-data",
+            params={"asset": "BTC/USDT", "timeframe": "1d", "indicators": "sma:20"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert r.status_code == 200
+
+        ref = from_series(ta.sma(to_series(closes), length=20), n)
+        _assert_parity(_series_values(r.json()["indicators"], "sma"), ref)
+
+    def test_ema_chart_data_parity(self, synthetic_ohlcv_candles, client, session):
+        user = _seed_user(session)
+        token = _login(client, user.email)
+        closes = _closes(synthetic_ohlcv_candles)
+        n = len(closes)
+
+        r = client.get(
+            "/market/chart-data",
+            params={"asset": "BTC/USDT", "timeframe": "1d", "indicators": "ema:20"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert r.status_code == 200
+
+        ref = from_series(ta.ema(to_series(closes), length=20), n)
+        _assert_parity(_series_values(r.json()["indicators"], "ema"), ref)
+
+    def test_rsi_chart_data_parity(self, synthetic_ohlcv_candles, client, session):
+        user = _seed_user(session)
+        token = _login(client, user.email)
+        closes = _closes(synthetic_ohlcv_candles)
+        n = len(closes)
+
+        r = client.get(
+            "/market/chart-data",
+            params={"asset": "BTC/USDT", "timeframe": "1d", "indicators": "rsi:14"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert r.status_code == 200
+
+        ref = from_series(ta.rsi(to_series(closes), length=14), n)
+        _assert_parity(_series_values(r.json()["indicators"], "rsi"), ref)
+
+    def test_atr_chart_data_parity(self, synthetic_ohlcv_candles, client, session):
+        user = _seed_user(session)
+        token = _login(client, user.email)
+        highs = _highs(synthetic_ohlcv_candles)
+        lows = _lows(synthetic_ohlcv_candles)
+        closes = _closes(synthetic_ohlcv_candles)
+        n = len(closes)
+
+        r = client.get(
+            "/market/chart-data",
+            params={"asset": "BTC/USDT", "timeframe": "1d", "indicators": "atr:14"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert r.status_code == 200
+
+        ref = from_series(ta.atr(to_series(highs), to_series(lows), to_series(closes), length=14), n)
+        _assert_parity(_series_values(r.json()["indicators"], "atr"), ref)
+
+    def test_obv_chart_data_parity(self, synthetic_ohlcv_candles, client, session):
+        user = _seed_user(session)
+        token = _login(client, user.email)
+        closes = _closes(synthetic_ohlcv_candles)
+        volumes = _volumes(synthetic_ohlcv_candles)
+        n = len(closes)
+
+        r = client.get(
+            "/market/chart-data",
+            params={"asset": "BTC/USDT", "timeframe": "1d", "indicators": "obv"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert r.status_code == 200
+
+        ref = from_series(ta.obv(to_series(closes), to_series(volumes)), n)
+        _assert_parity(_series_values(r.json()["indicators"], "obv"), ref)
+
+
+# ---------------------------------------------------------------------------
+# TC-03  Multi-series chart-data HTTP parity (M3 fix)
+#        Reference: raw pandas_ta_classic; Fibonacci: pure-math formula
+# ---------------------------------------------------------------------------
+
+
+class TestTC03MultiSeriesChartDataParity:
+    """TC-03: MACD/Bollinger/Stochastic/ADX/Ichimoku/Fibonacci chart-data response
+    matches raw pandas-ta-classic output (AC-3).
+
+    Reference values are computed directly via ta.* without going through ind.* wrappers,
+    so a column-naming bug in any ind.* wrapper would be caught here.
+    """
 
     def test_macd_chart_data_parity(self, synthetic_ohlcv_candles, client, session):
         user = _seed_user(session)
         token = _login(client, user.email)
-        candles = synthetic_ohlcv_candles
-        closes = _closes(candles)
+        closes = _closes(synthetic_ohlcv_candles)
+        n = len(closes)
 
         r = client.get(
             "/market/chart-data",
@@ -376,16 +757,17 @@ class TestTC02ChartDataParity:
         assert r.status_code == 200
         body = r.json()
 
-        macd_line, signal_line, hist = ind.macd(closes)
-        _assert_parity(_series_values(body["indicators"], "macd"), macd_line)
-        _assert_parity(_series_values(body["indicators"], "macd_signal"), signal_line)
-        _assert_parity(_series_values(body["indicators"], "macd_hist"), hist)
+        df = ta.macd(to_series(closes), fast=12, slow=26, signal=9)
+        _assert_parity(_series_values(body["indicators"], "macd"), from_series(df["MACD_12_26_9"], n))
+        _assert_parity(_series_values(body["indicators"], "macd_signal"), from_series(df["MACDs_12_26_9"], n))
+        _assert_parity(_series_values(body["indicators"], "macd_hist"), from_series(df["MACDh_12_26_9"], n))
 
     def test_bollinger_chart_data_parity(self, synthetic_ohlcv_candles, client, session):
         user = _seed_user(session)
         token = _login(client, user.email)
-        candles = synthetic_ohlcv_candles
-        closes = _closes(candles)
+        closes = _closes(synthetic_ohlcv_candles)
+        n = len(closes)
+        period = 20
 
         r = client.get(
             "/market/chart-data",
@@ -395,18 +777,21 @@ class TestTC02ChartDataParity:
         assert r.status_code == 200
         body = r.json()
 
-        upper, middle, lower = ind.bollinger(closes, period=20, std_dev=2.0)
-        _assert_parity(_series_values(body["indicators"], "bollinger_upper"), upper)
-        _assert_parity(_series_values(body["indicators"], "bollinger_middle"), middle)
-        _assert_parity(_series_values(body["indicators"], "bollinger_lower"), lower)
+        df = ta.bbands(to_series(closes), length=period, std=2.0)
+        upper_col = next(c for c in df.columns if c.startswith(f"BBU_{period}_"))
+        middle_col = next(c for c in df.columns if c.startswith(f"BBM_{period}_"))
+        lower_col = next(c for c in df.columns if c.startswith(f"BBL_{period}_"))
+        _assert_parity(_series_values(body["indicators"], "bollinger_upper"), from_series(df[upper_col], n))
+        _assert_parity(_series_values(body["indicators"], "bollinger_middle"), from_series(df[middle_col], n))
+        _assert_parity(_series_values(body["indicators"], "bollinger_lower"), from_series(df[lower_col], n))
 
     def test_stochastic_chart_data_parity(self, synthetic_ohlcv_candles, client, session):
         user = _seed_user(session)
         token = _login(client, user.email)
-        candles = synthetic_ohlcv_candles
-        highs = _highs(candles)
-        lows = _lows(candles)
-        closes = _closes(candles)
+        highs = _highs(synthetic_ohlcv_candles)
+        lows = _lows(synthetic_ohlcv_candles)
+        closes = _closes(synthetic_ohlcv_candles)
+        n = len(closes)
 
         r = client.get(
             "/market/chart-data",
@@ -416,17 +801,17 @@ class TestTC02ChartDataParity:
         assert r.status_code == 200
         body = r.json()
 
-        k_line, d_line = ind.stochastic(highs, lows, closes, k_period=14)
-        _assert_parity(_series_values(body["indicators"], "stochastic_k"), k_line)
-        _assert_parity(_series_values(body["indicators"], "stochastic_d"), d_line)
+        df = ta.stoch(to_series(highs), to_series(lows), to_series(closes), k=14, d=3, smooth_k=3)
+        _assert_parity(_series_values(body["indicators"], "stochastic_k"), from_series(df["STOCHk_14_3_3"], n))
+        _assert_parity(_series_values(body["indicators"], "stochastic_d"), from_series(df["STOCHd_14_3_3"], n))
 
     def test_adx_chart_data_parity(self, synthetic_ohlcv_candles, client, session):
         user = _seed_user(session)
         token = _login(client, user.email)
-        candles = synthetic_ohlcv_candles
-        highs = _highs(candles)
-        lows = _lows(candles)
-        closes = _closes(candles)
+        highs = _highs(synthetic_ohlcv_candles)
+        lows = _lows(synthetic_ohlcv_candles)
+        closes = _closes(synthetic_ohlcv_candles)
+        n = len(closes)
 
         r = client.get(
             "/market/chart-data",
@@ -436,18 +821,18 @@ class TestTC02ChartDataParity:
         assert r.status_code == 200
         body = r.json()
 
-        adx_line, plus_di, minus_di = ind.adx(highs, lows, closes, period=14)
-        _assert_parity(_series_values(body["indicators"], "adx"), adx_line)
-        _assert_parity(_series_values(body["indicators"], "adx_plus_di"), plus_di)
-        _assert_parity(_series_values(body["indicators"], "adx_minus_di"), minus_di)
+        df = ta.adx(to_series(highs), to_series(lows), to_series(closes), length=14)
+        _assert_parity(_series_values(body["indicators"], "adx"), from_series(df["ADX_14"], n))
+        _assert_parity(_series_values(body["indicators"], "adx_plus_di"), from_series(df["DMP_14"], n))
+        _assert_parity(_series_values(body["indicators"], "adx_minus_di"), from_series(df["DMN_14"], n))
 
     def test_ichimoku_chart_data_parity(self, synthetic_ohlcv_candles, client, session):
         user = _seed_user(session)
         token = _login(client, user.email)
-        candles = synthetic_ohlcv_candles
-        highs = _highs(candles)
-        lows = _lows(candles)
-        closes = _closes(candles)
+        highs = _highs(synthetic_ohlcv_candles)
+        lows = _lows(synthetic_ohlcv_candles)
+        closes = _closes(synthetic_ohlcv_candles)
+        n = len(closes)
 
         r = client.get(
             "/market/chart-data",
@@ -457,27 +842,18 @@ class TestTC02ChartDataParity:
         assert r.status_code == 200
         body = r.json()
 
-        conv, base_line, span_a, span_b = ind.ichimoku(highs, lows, closes)
-        _assert_parity(_series_values(body["indicators"], "ichimoku_conversion"), conv)
-        _assert_parity(_series_values(body["indicators"], "ichimoku_base"), base_line)
-        _assert_parity(_series_values(body["indicators"], "ichimoku_span_a"), span_a)
-        _assert_parity(_series_values(body["indicators"], "ichimoku_span_b"), span_b)
-
-
-# ---------------------------------------------------------------------------
-# TC-03  Carve-out indicators: Fibonacci via chart-data, price_variation_pct direct
-# ---------------------------------------------------------------------------
-
-
-class TestTC03CarveOutIndicators:
-    """TC-03: Fibonacci parity via chart-data; price_variation_pct kept as direct call (AC-3)."""
+        result = ta.ichimoku(to_series(highs), to_series(lows), to_series(closes), tenkan=9, kijun=26, senkou=52)
+        df = result[0]
+        _assert_parity(_series_values(body["indicators"], "ichimoku_conversion"), from_series(df["ITS_9"], n))
+        _assert_parity(_series_values(body["indicators"], "ichimoku_base"), from_series(df["IKS_26"], n))
+        _assert_parity(_series_values(body["indicators"], "ichimoku_span_a"), from_series(df["ISA_9"], n))
+        _assert_parity(_series_values(body["indicators"], "ichimoku_span_b"), from_series(df["ISB_26"], n))
 
     def test_fibonacci_chart_data_parity(self, synthetic_ohlcv_candles, client, session):
         user = _seed_user(session)
         token = _login(client, user.email)
-        candles = synthetic_ohlcv_candles
-        highs = _highs(candles)
-        lows = _lows(candles)
+        highs = _highs(synthetic_ohlcv_candles)
+        lows = _lows(synthetic_ohlcv_candles)
 
         r = client.get(
             "/market/chart-data",
@@ -487,18 +863,12 @@ class TestTC03CarveOutIndicators:
         assert r.status_code == 200
         body = r.json()
 
-        l236, l382, l5, l618, l786 = ind.fibonacci_retracements(highs, lows, lookback=50)
-        _assert_parity(_series_values(body["indicators"], "fib_0_236"), l236)
-        _assert_parity(_series_values(body["indicators"], "fib_0_382"), l382)
-        _assert_parity(_series_values(body["indicators"], "fib_0_5"), l5)
-        _assert_parity(_series_values(body["indicators"], "fib_0_618"), l618)
-        _assert_parity(_series_values(body["indicators"], "fib_0_786"), l786)
-
-    def test_price_variation_pct_deterministic(self, synthetic_ohlcv_candles):
-        closes = _closes(synthetic_ohlcv_candles)
-        r1 = ind.price_variation_pct(closes)
-        r2 = ind.price_variation_pct(closes)
-        assert r1 == r2
+        fib = _fib_ref(highs, lows, lookback=50)
+        _assert_parity(_series_values(body["indicators"], "fib_0_236"), fib["0_236"])
+        _assert_parity(_series_values(body["indicators"], "fib_0_382"), fib["0_382"])
+        _assert_parity(_series_values(body["indicators"], "fib_0_5"), fib["0_5"])
+        _assert_parity(_series_values(body["indicators"], "fib_0_618"), fib["0_618"])
+        _assert_parity(_series_values(body["indicators"], "fib_0_786"), fib["0_786"])
 
 
 # ---------------------------------------------------------------------------
@@ -530,7 +900,6 @@ class TestTC04WarmupContract:
     def test_macd_warmup_is_none(self, synthetic_ohlcv_candles):
         closes = _closes(synthetic_ohlcv_candles)
         macd_line, signal_line, _ = ind.macd(closes)
-        # MACD line valid after slow EMA warmup (25 candles); signal 8 more
         for i in range(25):
             assert macd_line[i] is None, f"macd[{i}] should be None during warmup"
         for i in range(33):
@@ -547,10 +916,10 @@ class TestTC04WarmupContract:
     def test_none_is_not_zero_or_false(self, synthetic_ohlcv_candles):
         closes = _closes(synthetic_ohlcv_candles)
         result = ind.sma(closes, period=20)
-        warmup_values = result[:19]
-        assert all(v is None for v in warmup_values)
-        assert not any(v == 0.0 for v in warmup_values)
-        assert not any(v is False for v in warmup_values)
+        warmup = result[:19]
+        assert all(v is None for v in warmup)
+        assert not any(v == 0.0 for v in warmup)
+        assert not any(v is False for v in warmup)
 
 
 # ---------------------------------------------------------------------------
@@ -578,7 +947,7 @@ class TestTC05TimestampAlignment:
 
 
 # ---------------------------------------------------------------------------
-# TC-06  Invalid indicator validation (C1 fix: use client fixture, not lazy import)
+# TC-06  Invalid indicator validation (uses client fixture, not lazy import)
 # ---------------------------------------------------------------------------
 
 
@@ -599,7 +968,7 @@ class TestTC06InvalidIndicatorValidation:
 
 
 # ---------------------------------------------------------------------------
-# TC-07  Backtest determinism: run_backtest twice yields identical results (C4 fix)
+# TC-07  Backtest determinism: run_backtest twice yields identical results
 # ---------------------------------------------------------------------------
 
 
@@ -641,7 +1010,7 @@ class TestTC07BacktestDeterminism:
 
 
 # ---------------------------------------------------------------------------
-# TC-08  Chart-data determinism: GET /market/chart-data twice (AC-8 upgrade)
+# TC-08  Chart-data determinism: GET /market/chart-data twice (AC-8)
 # ---------------------------------------------------------------------------
 
 

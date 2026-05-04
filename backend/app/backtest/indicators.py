@@ -55,10 +55,9 @@ def bollinger(
     df = ta.bbands(to_series(closes), length=period, std=std_dev)
     if df is None:
         return [None] * n, [None] * n, [None] * n
-    std_str = f"{std_dev:.1f}"
-    upper_col = f"BBU_{period}_{std_str}"
-    middle_col = f"BBM_{period}_{std_str}"
-    lower_col = f"BBL_{period}_{std_str}"
+    upper_col = next(c for c in df.columns if c.startswith(f"BBU_{period}_"))
+    middle_col = next(c for c in df.columns if c.startswith(f"BBM_{period}_"))
+    lower_col = next(c for c in df.columns if c.startswith(f"BBL_{period}_"))
     return from_series(df[upper_col], n), from_series(df[middle_col], n), from_series(df[lower_col], n)
 
 

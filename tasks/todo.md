@@ -23,6 +23,16 @@ C1–C4 structural fixes (2026-05-04)
 - [x] C4: TC-07 calls `run_backtest()` twice and compares `num_trades`, `total_return_pct`, `final_balance`, `win_rate_pct`, trade `pnl`/`entry_price`/`exit_price` (AC-7 now exercised)
 - [x] TC-08 upgraded to call `GET /market/chart-data` twice and compare responses
 
+Code-review findings fixed (2026-05-04)
+- [x] C1-fix: `indicators.py` Bollinger column lookup uses prefix search (`startswith`) instead of `:.1f` format — prevents KeyError for std_dev like 2.25
+- [x] M1-fix: TC-01 (12 tests) now uses `from_series(ta.*, n)` raw reference for all indicators — no longer self-referential against `ind.*`
+- [x] M2-fix: TC-02 restructured as `TestTC02SingleSeriesChartDataParity` with 5 HTTP tests (SMA/EMA/RSI/ATR/OBV) against raw `ta.*` reference
+- [x] M3-fix: TC-03 restructured as `TestTC03MultiSeriesChartDataParity` (MACD/Bollinger/Stochastic/ADX/Ichimoku/Fibonacci) against raw `ta.*`/`_fib_ref()` pure-math — no longer self-referential
+
+Verification (post code-review fixes)
+- [x] `pytest tests/test_pandas_ta_indicators.py -v` → 40 passed
+- [x] `pytest tests/ --ignore=tests/test_billing.py -v` → 237 passed, 3 pre-existing auth failures (unrelated)
+
 ---
 
 ## FEAT-101 — Backtest Toast Notifications (done)
