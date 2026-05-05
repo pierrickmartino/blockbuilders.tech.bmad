@@ -27,7 +27,6 @@ Run: git diff main...HEAD
 Read the diff. Do not read all source files — read only the changed files.
 
 ## Step 3: Classify findings
-
 CRITICAL (feature cannot ship as-is):
   - Acceptance criterion with no matching implementation
   - Failing test or untested critical code path
@@ -49,11 +48,11 @@ MINOR (defer or fix in this cycle):
 
 ## Step 4: Format output
 CRITICAL: N findings
-  [C1] path/to/file.py:line — description
+  [C1] AC-XXX path/to/file.py:line — description
 MAJOR: N findings
-  [M1] path/to/file.ts:line — description
+  [M1] AC-XXX path/to/file.ts:line — description
 MINOR: N findings
-  [m1] path/to/file.py:line — description
+  [m1] AC-XXX path/to/file.py:line — description
 
 Do not edit any files. Do not suggest implementations. Return findings only.
 Stop when the findings list is complete.

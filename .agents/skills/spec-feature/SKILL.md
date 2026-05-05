@@ -28,6 +28,9 @@ Create docs/features/$FEAT_ID.md with the following sections:
 
   ## Acceptance criteria
   Numbered list. Each item is observable user behaviour, not implementation detail.
+  Use stable IDs:
+  AC-001 ...
+  AC-002 ...
 
   ## API contract  (omit if SCOPE is frontend only)
   New or changed FastAPI endpoints. For each:

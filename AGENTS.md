@@ -31,12 +31,12 @@ Never use Opus for implementation. Never use Sonnet for planning.
 ## Required workflow
 See the detailed stage descriptions in the Target Operating Model document.
 Short form:
-  Stage 1:  Codex CLI → spec + test plan
-  Stage 2:  Opus /plan-feature → implementation plan (no code)
-  Stage 3a: Sonnet /build-feature FEAT-XXX backend
-  Stage 3b: Sonnet /build-feature FEAT-XXX frontend
-  Stage 4:  Codex CLI /review-feature FEAT-XXX
-  Stage 5:  Sonnet /docs-sync FEAT-XXX
+  Stage 1:  Codex → spec + test plan -> $spec-feature FEAT-XXX "desc" scope
+  Stage 2:  Opus /plan-feature → implementation plan (no code) -> /plan-feature FEAT-XXX
+  Stage 3a: Sonnet /build-feature FEAT-XXX backend -> /build-feature FEAT-XXX backend
+  Stage 3b: Sonnet /build-feature FEAT-XXX frontend -> /build-feature FEAT-XXX frontend
+  Stage 4:  Codex /review-feature FEAT-XXX -> $review-feature FEAT-XXX
+  Stage 5:  Sonnet /docs-sync FEAT-XXX -> /docs-sync FEAT-XXX
 
 ## Hard constraints
 - Never modify docs/product/product.md without explicit human instruction.

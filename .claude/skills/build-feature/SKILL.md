@@ -21,6 +21,7 @@ Load only the CLAUDE.md files relevant to the scope.
 ## Step 2: Implement the plan
 Execute exactly the bullet points in the ## Implementation Plan section.
 Follow this order if scope is both: backend first, then frontend.
+Reference AC IDs while working.
 
 Backend changes follow these patterns:
   - FastAPI routes: backend/app/api/<router>.py
@@ -47,6 +48,7 @@ After frontend changes:
 ## Step 4: Produce a summary
 Output:
   FILES CHANGED: <list every file with one-line description of change>
+  AC COVERED: <list AC IDs implemented>
   TESTS RUN: <command and result pass/fail for each>
   RISKS: <any remaining ambiguities or deviations from the plan>
   DOCS NEEDED: <which spec or product.md sections may need updating>

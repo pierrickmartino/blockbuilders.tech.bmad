@@ -39,6 +39,12 @@ Append the following to docs/features/$ARGUMENTS.md:
 
 ## Step 5: Output the hard stop line and nothing else after it
 
-══ PLAN COMPLETE. Close this session. Open a new Sonnet session to implement: claude --model claude-sonnet-4-6 then /build-feature $ARGUMENTS ══
+═════════════════════════════════════════════
+PLAN COMPLETE. Close this session.
+Open a new Sonnet session to implement:
+  claude --model $IMPLEMENTATION_MODEL
+  /build-feature $ARGUMENTS backend
+  /build-feature $ARGUMENTS frontend
+═════════════════════════════════════════════
 
 Do not write any code after this line. Do not continue. The session is done.

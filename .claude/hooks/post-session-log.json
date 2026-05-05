@@ -1,6 +1,6 @@
 {
   "hooks": {
-    "PostSession": [{
+    "SessionEnd": [{
       "matcher": "",
       "hooks": [{
         "type": "command",
