@@ -19,27 +19,27 @@ Parse the invocation arguments:
 ## Step 1: Create the feature spec
 Create docs/features/$FEAT_ID.md with the following sections:
 
-  ## Goal
+  ### Goal
   One paragraph: what the feature does for the user.
 
-  ## Non-goals
+  ### Non-goals
   Explicit list. What this feature does NOT do in this iteration.
   Be specific. Vague non-goals do not prevent scope creep.
 
-  ## Acceptance criteria
+  ### Acceptance criteria
   Numbered list. Each item is observable user behaviour, not implementation detail.
   Use stable IDs:
   AC-001 ...
   AC-002 ...
 
-  ## API contract  (omit if SCOPE is frontend only)
+  ### API contract  (omit if SCOPE is frontend only)
   New or changed FastAPI endpoints. For each:
     method, path, request body (Pydantic schema), response body, auth required.
 
-  ## Data model changes  (omit if no model change)
+  ### Data model changes  (omit if no model change)
   New SQLModel fields or tables with Python types.
 
-  ## UI behaviour  (omit if SCOPE is backend only)
+  ### UI behaviour  (omit if SCOPE is backend only)
   What the user sees and interacts with.
 
 ## Step 2: Create the test plan
@@ -56,3 +56,14 @@ One test case per acceptance criterion. For each:
 Do not touch any source code files.
 Describe behaviour, not mechanism. No implementation details in the spec.
 When both documents are written, stop and wait.
+
+## Step 3: Output the hard stop line and nothing else after it
+
+═════════════════════════════════════════════
+SPEC COMPLETE. Close this session.
+Open a new Opus session to implement:
+  claude --model $PLANNING_MODEL
+  /plan-feature $FEAT_ID
+═════════════════════════════════════════════
+
+Do not write any code after this line. Do not continue. The session is done.
