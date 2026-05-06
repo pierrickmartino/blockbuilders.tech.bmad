@@ -1,0 +1,145 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-05-06T00:00:00Z",
+  "title": "Design System: Blockbuilders",
+  "extensions": {
+    "colorMeta": {
+      "precision-blue":   { "role": "primary",     "displayName": "Precision Blue",   "canonical": "oklch(50% 0.14 230)", "tonalRamp": ["oklch(15% 0.05 230)", "oklch(25% 0.08 230)", "oklch(35% 0.11 230)", "oklch(45% 0.14 230)", "oklch(55% 0.12 230)", "oklch(68% 0.09 230)", "oklch(82% 0.05 230)", "oklch(93% 0.02 230)"] },
+      "cool-white":       { "role": "neutral",      "displayName": "Cool White",        "canonical": "oklch(100% 0.002 220)", "tonalRamp": ["oklch(10% 0.002 220)", "oklch(25% 0.002 220)", "oklch(40% 0.002 220)", "oklch(55% 0.002 220)", "oklch(70% 0.002 220)", "oklch(82% 0.002 220)", "oklch(92% 0.002 220)", "oklch(99% 0.002 220)"] },
+      "cool-mist":        { "role": "neutral",      "displayName": "Cool Mist",         "canonical": "oklch(96% 0.005 222)", "tonalRamp": ["oklch(12% 0.003 222)", "oklch(25% 0.004 222)", "oklch(38% 0.005 222)", "oklch(52% 0.005 222)", "oklch(65% 0.005 222)", "oklch(78% 0.005 222)", "oklch(90% 0.005 222)", "oklch(96% 0.005 222)"] },
+      "near-black":       { "role": "neutral",      "displayName": "Near Black",        "canonical": "oklch(13% 0.001 220)", "tonalRamp": ["oklch(13% 0.001 220)", "oklch(25% 0.001 220)", "oklch(38% 0.001 220)", "oklch(52% 0.001 220)", "oklch(65% 0.001 220)", "oklch(78% 0.001 220)", "oklch(88% 0.001 220)", "oklch(97% 0.001 220)"] },
+      "graphite":         { "role": "neutral",      "displayName": "Graphite",          "canonical": "oklch(48% 0.001 220)", "tonalRamp": ["oklch(15% 0.001 220)", "oklch(25% 0.001 220)", "oklch(35% 0.001 220)", "oklch(48% 0.001 220)", "oklch(60% 0.001 220)", "oklch(73% 0.001 220)", "oklch(85% 0.001 220)", "oklch(95% 0.001 220)"] },
+      "error-red":        { "role": "semantic",     "displayName": "Error Red",         "canonical": "oklch(50% 0.22 25)",  "tonalRamp": ["oklch(18% 0.08 25)", "oklch(28% 0.12 25)", "oklch(38% 0.16 25)", "oklch(50% 0.22 25)", "oklch(60% 0.20 25)", "oklch(72% 0.16 25)", "oklch(84% 0.10 25)", "oklch(94% 0.04 25)"] },
+      "growth-green":     { "role": "semantic",     "displayName": "Growth Green",      "canonical": "oklch(50% 0.18 145)", "tonalRamp": ["oklch(18% 0.07 145)", "oklch(28% 0.10 145)", "oklch(38% 0.14 145)", "oklch(50% 0.18 145)", "oklch(60% 0.17 145)", "oklch(72% 0.14 145)", "oklch(84% 0.09 145)", "oklch(94% 0.04 145)"] },
+      "signal-amber":     { "role": "semantic",     "displayName": "Signal Amber",      "canonical": "oklch(72% 0.18 80)",  "tonalRamp": ["oklch(20% 0.06 80)", "oklch(32% 0.09 80)", "oklch(46% 0.13 80)", "oklch(60% 0.17 80)", "oklch(72% 0.18 80)", "oklch(82% 0.15 80)", "oklch(90% 0.10 80)", "oklch(96% 0.04 80)"] },
+      "block-input":      { "role": "canvas",       "displayName": "Block Input (Violet)",    "canonical": "oklch(55% 0.22 310)", "tonalRamp": ["oklch(18% 0.08 310)", "oklch(28% 0.12 310)", "oklch(38% 0.17 310)", "oklch(48% 0.21 310)", "oklch(58% 0.21 310)", "oklch(70% 0.17 310)", "oklch(83% 0.11 310)", "oklch(93% 0.05 310)"] },
+      "block-indicator":  { "role": "canvas",       "displayName": "Block Indicator (Blue)",  "canonical": "oklch(60% 0.18 245)", "tonalRamp": ["oklch(18% 0.06 245)", "oklch(28% 0.10 245)", "oklch(40% 0.14 245)", "oklch(52% 0.17 245)", "oklch(63% 0.17 245)", "oklch(74% 0.14 245)", "oklch(85% 0.09 245)", "oklch(94% 0.04 245)"] },
+      "block-logic":      { "role": "canvas",       "displayName": "Block Logic (Amber)",     "canonical": "oklch(62% 0.17 72)",  "tonalRamp": ["oklch(20% 0.06 72)", "oklch(32% 0.09 72)", "oklch(44% 0.13 72)", "oklch(56% 0.16 72)", "oklch(66% 0.16 72)", "oklch(78% 0.13 72)", "oklch(88% 0.09 72)", "oklch(95% 0.04 72)"] },
+      "block-signal":     { "role": "canvas",       "displayName": "Block Signal (Green)",    "canonical": "oklch(70% 0.18 148)", "tonalRamp": ["oklch(18% 0.06 148)", "oklch(30% 0.09 148)", "oklch(44% 0.13 148)", "oklch(57% 0.17 148)", "oklch(68% 0.18 148)", "oklch(78% 0.15 148)", "oklch(88% 0.10 148)", "oklch(95% 0.04 148)"] },
+      "block-risk":       { "role": "canvas",       "displayName": "Block Risk (Red)",        "canonical": "oklch(50% 0.22 25)",  "tonalRamp": ["oklch(18% 0.08 25)", "oklch(28% 0.12 25)", "oklch(38% 0.16 25)", "oklch(50% 0.22 25)", "oklch(60% 0.20 25)", "oklch(72% 0.16 25)", "oklch(84% 0.10 25)", "oklch(94% 0.04 25)"] }
+    },
+    "typographyMeta": {
+      "headline": { "displayName": "Headline", "purpose": "Page titles and major section headers. One per view." },
+      "title":    { "displayName": "Title",    "purpose": "Card titles, dialog headers, sidebar section labels." },
+      "body":     { "displayName": "Body",     "purpose": "All prose, descriptions, form labels, list content. Max 65ch." },
+      "label":    { "displayName": "Label",    "purpose": "Badges, chip labels, metadata. Uppercase only in table headers." },
+      "data":     { "displayName": "Data Mono","purpose": "All numeric values, percentages, P&L, timestamps. tabular-nums required." }
+    },
+    "shadows": [
+      { "name": "ambient",    "value": "0 1px 2px 0 rgba(10,10,10,0.05)", "purpose": "Raised cards and subtly lifted tiles." },
+      { "name": "structural", "value": "0 4px 6px -1px rgba(10,10,10,0.08), 0 2px 4px -2px rgba(10,10,10,0.05)", "purpose": "Dropdowns, popovers, select menus." },
+      { "name": "modal",      "value": "0 20px 25px -5px rgba(10,10,10,0.12), 0 8px 10px -6px rgba(10,10,10,0.08)", "purpose": "Dialog overlays, command palette." }
+    ],
+    "motion": [
+      { "name": "ease-default", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Default easing for all state transitions. Ease-out-expo: quick settle, no overshoot." },
+      { "name": "duration-fast",   "value": "150ms", "purpose": "Clicks, toggles, badge state changes." },
+      { "name": "duration-normal", "value": "250ms", "purpose": "Modals, drawers, reveals, panel expansions." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Main call-to-action. Run Backtest, Save Strategy, Create.",
+      "html": "<button class=\"ds-btn-primary\">Run Backtest</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 36px; padding: 0 16px; background: #1975b3; color: #ffffff; font-family: 'IBM Plex Sans', ui-sans-serif, sans-serif; font-size: 0.875rem; font-weight: 500; border: none; border-radius: 6px; box-shadow: 0 1px 2px 0 rgba(10,10,10,0.05); cursor: pointer; transition: background 150ms cubic-bezier(0.16,1,0.3,1); } .ds-btn-primary:hover { background: #1668a1; } .ds-btn-primary:focus-visible { outline: 1px solid #1975b3; outline-offset: 2px; } .ds-btn-primary:disabled { opacity: 0.5; pointer-events: none; }"
+    },
+    {
+      "name": "Outline Button",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "Secondary actions alongside a primary button.",
+      "html": "<button class=\"ds-btn-outline\">Cancel</button>",
+      "css": ".ds-btn-outline { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 36px; padding: 0 16px; background: #ffffff; color: #0a0a0a; font-family: 'IBM Plex Sans', ui-sans-serif, sans-serif; font-size: 0.875rem; font-weight: 500; border: 1px solid #eef0f2; border-radius: 6px; box-shadow: 0 1px 2px 0 rgba(10,10,10,0.05); cursor: pointer; transition: background 150ms cubic-bezier(0.16,1,0.3,1); } .ds-btn-outline:hover { background: #ebecf0; } .ds-btn-outline:focus-visible { outline: 1px solid #1975b3; outline-offset: 2px; } .ds-btn-outline:disabled { opacity: 0.5; pointer-events: none; }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Navigation items, icon actions, and tertiary controls.",
+      "html": "<button class=\"ds-btn-ghost\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M3 12h18M12 3l9 9-9 9\"/></svg> Settings</button>",
+      "css": ".ds-btn-ghost { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 36px; padding: 0 12px; background: transparent; color: #0a0a0a; font-family: 'IBM Plex Sans', ui-sans-serif, sans-serif; font-size: 0.875rem; font-weight: 500; border: none; border-radius: 6px; cursor: pointer; transition: background 150ms cubic-bezier(0.16,1,0.3,1); } .ds-btn-ghost:hover { background: #ebecf0; } .ds-btn-ghost:focus-visible { outline: 1px solid #1975b3; outline-offset: 2px; } .ds-btn-ghost:disabled { opacity: 0.5; pointer-events: none; }"
+    },
+    {
+      "name": "Flat Card",
+      "kind": "card",
+      "refersTo": "card-flat",
+      "description": "Default content container. Inline panels, form sections, content groups.",
+      "html": "<div class=\"ds-card-flat\"><div class=\"ds-card-title\">Strategy Details</div><div class=\"ds-card-body\">SMA 20 crossover on BTC/USDT daily</div></div>",
+      "css": ".ds-card-flat { background: #ffffff; border: 1px solid #eef0f2; border-radius: 8px; padding: 24px; color: #0a0a0a; } .ds-card-title { font-family: 'IBM Plex Sans', ui-sans-serif, sans-serif; font-size: 1rem; font-weight: 600; line-height: 1.4; margin-bottom: 6px; } .ds-card-body { font-family: 'IBM Plex Sans', ui-sans-serif, sans-serif; font-size: 0.875rem; font-weight: 400; line-height: 1.5; color: #666666; }"
+    },
+    {
+      "name": "Raised Card",
+      "kind": "card",
+      "refersTo": "card-raised",
+      "description": "Dashboard tiles and summary panels that read as above the page surface.",
+      "html": "<div class=\"ds-card-raised\"><div class=\"ds-card-label\">Win Rate</div><div class=\"ds-card-metric\">64.2%</div></div>",
+      "css": ".ds-card-raised { background: #f3f4f6; border: 1px solid #eef0f2; border-radius: 8px; padding: 24px; box-shadow: 0 1px 2px 0 rgba(10,10,10,0.05); color: #0a0a0a; } .ds-card-label { font-family: 'IBM Plex Sans', ui-sans-serif, sans-serif; font-size: 0.75rem; font-weight: 500; color: #666666; margin-bottom: 4px; } .ds-card-metric { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 1.5rem; font-weight: 700; letter-spacing: -0.025em; font-variant-numeric: tabular-nums; color: #0a0a0a; }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input-default",
+      "description": "Standard text field. Strategy names, settings, form fields.",
+      "html": "<div class=\"ds-field\"><label class=\"ds-label\" for=\"strategy-name\">Strategy Name</label><input class=\"ds-input\" id=\"strategy-name\" type=\"text\" placeholder=\"My SMA Strategy\"></div>",
+      "css": ".ds-field { display: flex; flex-direction: column; gap: 6px; } .ds-label { font-family: 'IBM Plex Sans', ui-sans-serif, sans-serif; font-size: 0.875rem; font-weight: 500; color: #0a0a0a; } .ds-input { height: 36px; width: 100%; padding: 0 12px; background: transparent; color: #0a0a0a; font-family: 'IBM Plex Sans', ui-sans-serif, sans-serif; font-size: 0.875rem; border: 1px solid #eef0f2; border-radius: 6px; box-shadow: 0 1px 2px 0 rgba(10,10,10,0.05); transition: border-color 150ms cubic-bezier(0.16,1,0.3,1); outline: none; } .ds-input::placeholder { color: #666666; } .ds-input:focus { border-color: #eef0f2; box-shadow: 0 0 0 1px #1975b3; } .ds-input[aria-invalid='true'] { border-color: #dc2828; } .ds-input[aria-invalid='true']:focus { box-shadow: 0 0 0 1px #dc2828; } .ds-input:disabled { opacity: 0.5; cursor: not-allowed; }"
+    },
+    {
+      "name": "Badge",
+      "kind": "chip",
+      "refersTo": "button-primary",
+      "description": "Semantic status labels. Backtest status, strategy health, usage tiers.",
+      "html": "<div style=\"display:flex;gap:8px;align-items:center;\"><span class=\"ds-badge ds-badge--default\">Active</span><span class=\"ds-badge ds-badge--success\">Profitable</span><span class=\"ds-badge ds-badge--warning\">Review</span><span class=\"ds-badge ds-badge--destructive\">Error</span></div>",
+      "css": ".ds-badge { display: inline-flex; align-items: center; border-radius: 4px; border: 1px solid transparent; padding: 1px 10px; font-family: 'IBM Plex Sans', ui-sans-serif, sans-serif; font-size: 0.75rem; font-weight: 600; line-height: 1; transition: background 150ms; } .ds-badge--default { background: #1975b3; color: #ffffff; } .ds-badge--success { background: #16a249; color: #ffffff; } .ds-badge--warning { background: #f59f0a; color: #0a0a0a; } .ds-badge--destructive { background: #dc2828; color: #ffffff; } .ds-badge--outline { background: transparent; color: #0a0a0a; border-color: #eef0f2; }"
+    },
+    {
+      "name": "Canvas Block Node",
+      "kind": "custom",
+      "refersTo": "button-primary",
+      "description": "Strategy canvas building block. The signature component — each category has a distinct semantic color. Never replicate these colors outside the canvas.",
+      "html": "<div class=\"ds-node ds-node--indicator\"><div class=\"ds-node-header\"><svg class=\"ds-node-icon\" viewBox=\"0 0 16 16\" fill=\"none\"><polyline points=\"2,12 5,7 8,9 11,4 14,6\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg><span class=\"ds-node-label\">SMA</span></div><div class=\"ds-node-body\"><div class=\"ds-node-field\"><span class=\"ds-node-field-label\">Period</span><span class=\"ds-node-field-value\">20</span></div></div><div class=\"ds-node-handle ds-node-handle--left\"></div><div class=\"ds-node-handle ds-node-handle--right\"></div></div>",
+      "css": ".ds-node { position: relative; min-width: 160px; background: #ffffff; border: 1px solid rgba(60,131,246,0.3); border-radius: 6px; font-family: 'IBM Plex Sans', ui-sans-serif, sans-serif; box-shadow: 0 1px 2px 0 rgba(10,10,10,0.05); } .ds-node--indicator { border-color: rgba(60,131,246,0.3); } .ds-node--indicator .ds-node-header { background: #3c83f6; } .ds-node--input { border-color: rgba(146,52,234,0.3); } .ds-node--input .ds-node-header { background: #9234ea; } .ds-node--logic { border-color: rgba(219,119,6,0.3); } .ds-node--logic .ds-node-header { background: #db7706; } .ds-node--signal { border-color: rgba(33,196,93,0.3); } .ds-node--signal .ds-node-header { background: #21c45d; } .ds-node--risk { border-color: rgba(220,40,40,0.3); } .ds-node--risk .ds-node-header { background: #dc2828; } .ds-node-header { display: flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 5px 5px 0 0; color: #ffffff; } .ds-node-icon { width: 14px; height: 14px; flex-shrink: 0; } .ds-node-label { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.01em; } .ds-node-body { padding: 8px 10px; display: flex; flex-direction: column; gap: 4px; } .ds-node-field { display: flex; justify-content: space-between; align-items: center; } .ds-node-field-label { font-size: 0.75rem; color: #666666; } .ds-node-field-value { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 0.75rem; font-weight: 500; font-variant-numeric: tabular-nums; color: #0a0a0a; } .ds-node-handle { position: absolute; top: 50%; width: 8px; height: 8px; background: #3c83f6; border: 2px solid #ffffff; border-radius: 50%; transform: translateY(-50%); } .ds-node-handle--left { left: -5px; } .ds-node-handle--right { right: -5px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Analytical Lens",
+    "overview": "Blockbuilders is a tool that steps back so the strategy is what you see. Every design decision is filtered through a single question: does this element help the trader understand their strategy, or does it compete with it? The interface carries no decorative weight. Chrome recedes; data surfaces.\n\nThe system is cool, structured, and unambiguous. It uses a single blue accent against neutral grays, reserving color for one place that earns it: the canvas, where five semantic block categories speak in their own visual grammar. Outside the canvas, the interface is quiet. Inside the canvas, the structure of a strategy is immediately legible by color alone.\n\nBoth light and dark modes are first-class. Light for daytime focused sessions; dark for late-night review. The system follows the user's system preference by default. Neither mode defaults to drama.",
+    "keyCharacteristics": [
+      "Single teal-blue accent; all other color is semantic or canvas-only",
+      "IBM Plex Sans + IBM Plex Mono: engineered without coldness, precise without intimidation",
+      "Gently curved surfaces (8px); never sharp, never pill-shaped",
+      "Three-stop elevation scale; flat surfaces dominate, shadows are structural",
+      "Dual-mode: light and dark, system-preference driven, both fully specified",
+      "The canvas block taxonomy is the only place five distinct hues coexist"
+    ],
+    "rules": [
+      { "name": "The Silent Surface Rule", "body": "Background and surface-elevated share the same cool neutral family. Depth is earned by shadow and border, never by a competing hue.", "section": "colors" },
+      { "name": "The Canvas Grammar Rule", "body": "The five block category colors (violet, blue, amber, green, red) are used exclusively on canvas nodes. They never appear as accent colors, link colors, badges, or any UI chrome outside the canvas.", "section": "colors" },
+      { "name": "The Mono Data Rule", "body": "Every numeric value, percentage, P&L figure, date, and timestamp is rendered in IBM Plex Mono with font-variant-numeric: tabular-nums. Displaying financial data in proportional type is prohibited.", "section": "typography" },
+      { "name": "The Flat-By-Default Rule", "body": "Surfaces are flat at rest. A shadow is a semantic claim — this element is above the page. Make that claim only when it's true.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do render all numeric values, percentages, and financial figures in IBM Plex Mono with tabular-nums.",
+      "Do use the five canvas block colors (violet, blue, amber, green, red) exclusively on canvas nodes.",
+      "Do apply shadows only on raised cards (shadow-sm), floating UI (shadow-md), and modal overlays (shadow-overlay).",
+      "Do use tinted soft backgrounds for inline alert banners rather than full-saturation state colors.",
+      "Do follow the system theme preference (light/dark) rather than forcing either mode.",
+      "Do ensure focus states are visible on all interactive elements for keyboard navigation."
+    ],
+    "donts": [
+      "Don't use neon, high-chroma, or vibrant accent colors anywhere in the UI chrome. No glowing borders, no animated color pulses, no gradient overlays.",
+      "Don't use information density as a design value. Bloomberg-style triple-pane layouts and unpadded full-width data tables are prohibited.",
+      "Don't use decorative shadows. Shadows communicate layer position only.",
+      "Don't use border-left or border-right greater than 1px as a colored category or state stripe on cards, list items, or alerts.",
+      "Don't use gradient text (background-clip: text with a gradient). Use weight or size for emphasis.",
+      "Don't render any chart value, metric figure, or timestamp in IBM Plex Sans.",
+      "Don't apply block category colors to badges, buttons, navigation items, or any surface outside the strategy canvas."
+    ]
+  }
+}
