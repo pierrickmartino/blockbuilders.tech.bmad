@@ -1,11 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useAuth } from "@/context/auth";
 import { useDisplay } from "@/context/display";
 import { apiFetch } from "@/lib/api";
 import { formatDateTime, formatPercent } from "@/lib/format";
+import { computeSignals, selectNextAction } from "@/lib/dashboard-signals";
 import { Strategy } from "@/types/strategy";
 import { BacktestStatusResponse } from "@/types/backtest";
 import { getRecentBacktests } from "@/lib/recent-views";
@@ -24,20 +24,7 @@ import {
   ArrowDownRight,
   AlertCircle,
   CheckCircle2,
-  Sparkles,
 } from "lucide-react";
-
-function formatDisplayName(email: string | undefined): string {
-  if (!email) return "there";
-  const local = email.split("@")[0];
-  const cleaned = local.replace(/[._-]+/g, " ").replace(/\d+/g, "").trim();
-  if (!cleaned) return "there";
-  return cleaned
-    .split(" ")
-    .filter(Boolean)
-    .map((w) => w[0].toUpperCase() + w.slice(1))
-    .join(" ");
-}
 
 function formatAsset(asset: string): string {
   return asset.replace("/", " / ");
@@ -53,8 +40,20 @@ function formatDateOnly(dateStr: string | null | undefined): string {
   return `${y}-${m}-${d}`;
 }
 
+function formatRelativeTime(dateStr: string): string {
+  const diffMs = Date.now() - new Date(dateStr).getTime();
+  const diffMins = Math.floor(diffMs / 60_000);
+  if (diffMins < 2) return "just now";
+  if (diffMins < 60) return `${diffMins}m ago`;
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 30) return `${diffDays}d ago`;
+  const diffMonths = Math.floor(diffDays / 30);
+  return `${diffMonths}mo ago`;
+}
+
 export default function DashboardPage() {
-  const { user } = useAuth();
   const { timezone } = useDisplay();
   const [strategies, setStrategies] = useState<Strategy[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -148,17 +147,9 @@ export default function DashboardPage() {
     }
   };
 
+  const signals = useMemo(() => computeSignals(strategies), [strategies]);
+  const nextAction = useMemo(() => selectNextAction(strategies), [strategies]);
   const recentStrategiesList = strategies.slice(0, 5);
-  const displayName = formatDisplayName(user?.email);
-
-  const weekStart = new Date();
-  weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-  weekStart.setHours(0, 0, 0, 0);
-  const newThisWeek = strategies.filter(
-    (s) => new Date(s.created_at) >= weekStart
-  ).length;
-
-  const latestBacktest = recentBacktestsData[0];
 
   return (
     <main className="container mx-auto max-w-6xl space-y-8 p-4 md:p-6">
@@ -166,11 +157,12 @@ export default function DashboardPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-1">
           <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
-            Welcome back
+            Strategy workspace
           </p>
-          <h1 className="text-4xl font-bold tracking-tight">{displayName}</h1>
+          <h1 className="text-2xl font-bold tracking-tight">
+            Backtest activity and readiness
+          </h1>
           <p className="text-sm text-muted-foreground">
-            Your strategy workspace is ready.{" "}
             <Link
               href="/how-backtests-work"
               className="inline-flex items-center gap-1 text-foreground underline-offset-4 hover:underline"
@@ -180,84 +172,107 @@ export default function DashboardPage() {
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
+          {!isLoading && (
+            <Button asChild>
+              <Link href={nextAction.href}>
+                {nextAction.label}
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+          )}
         </div>
       </div>
 
-      {/* Stat cards */}
+      {/* Signal cards */}
       <div className="grid gap-4 sm:grid-cols-3">
-        {/* Strategies count */}
+        {/* Drafts / unvalidated */}
         <Card>
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Strategies</span>
-              <Layers className="h-4 w-4 text-primary" />
+              <span className="text-sm text-muted-foreground">Drafts / unvalidated</span>
+              <Layers className="h-4 w-4 text-muted-foreground" />
             </div>
             <p className="mt-3 text-4xl font-bold tabular-nums tracking-tight">
-              {isLoading ? <Skeleton className="h-10 w-12" /> : strategies.length}
+              {isLoading ? <Skeleton className="h-10 w-12" /> : signals.draftsCount}
             </p>
-            {!isLoading && newThisWeek > 0 && (
-              <div className="mt-3">
-                <Badge className="gap-1 bg-green-500/10 text-green-700 hover:bg-green-500/10 dark:text-green-400">
-                  <ArrowUpRight className="h-3 w-3" />+{newThisWeek} this week
-                </Badge>
-              </div>
-            )}
-            {!isLoading && newThisWeek === 0 && (
-              <div className="mt-3 h-6" />
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Recently viewed backtests */}
-        <Card>
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">
-                Recently viewed backtests
-              </span>
-              <Activity className="h-4 w-4 text-green-500 dark:text-green-400" />
-            </div>
-            <p className="mt-3 text-4xl font-bold tabular-nums tracking-tight">
-              {!recentBacktestsLoaded ? (
-                <Skeleton className="h-10 w-8" />
-              ) : (
-                recentBacktestsData.length
-              )}
-            </p>
-            {latestBacktest ? (
+            {!isLoading && (
               <p className="mt-3 text-xs text-muted-foreground">
-                Last run · {formatDateOnly(latestBacktest.date_to)}
+                {signals.draftsCount === 1 ? "strategy" : "strategies"} with no backtest run
               </p>
-            ) : (
-              <div className="mt-3 h-6" />
             )}
           </CardContent>
         </Card>
 
-        {/* Dark CTA card */}
-        <Card className="bg-foreground text-background">
-          <CardContent className="flex h-full flex-col p-5">
+        {/* Last run */}
+        <Card>
+          <CardContent className="p-5">
             <div className="flex items-center justify-between">
-              <span className="text-xs text-background/50">
-                Start something new
-              </span>
-              <Button
-                size="icon"
-                className="h-7 w-7 bg-primary text-primary-foreground hover:bg-primary/90"
-                asChild
+              <span className="text-sm text-muted-foreground">Last run</span>
+              <Activity className="h-4 w-4 text-muted-foreground" />
+            </div>
+            {isLoading ? (
+              <>
+                <Skeleton className="mt-3 h-10 w-20" />
+                <Skeleton className="mt-3 h-4 w-32" />
+              </>
+            ) : signals.lastRun ? (
+              <Link
+                href={`/strategies/${signals.lastRun.strategyId}/backtest`}
+                className="block"
               >
-                <Link href="/strategies">
-                  <Plus className="h-3.5 w-3.5" />
-                </Link>
-              </Button>
+                <p
+                  className={`mt-3 text-3xl font-bold tabular-nums tracking-tight ${
+                    (signals.lastRun.returnPct ?? 0) >= 0
+                      ? "text-green-600 dark:text-green-400"
+                      : "text-red-600 dark:text-red-400"
+                  }`}
+                >
+                  {formatPercent(signals.lastRun.returnPct ?? 0)}
+                </p>
+                <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                  <span>DD {formatPercent(signals.lastRun.drawdownPct ?? 0)}</span>
+                  <span>·</span>
+                  <span className="truncate">{signals.lastRun.name}</span>
+                </div>
+              </Link>
+            ) : (
+              <>
+                <p className="mt-3 text-4xl font-bold tabular-nums tracking-tight text-muted-foreground/40">
+                  —
+                </p>
+                <p className="mt-3 text-xs text-muted-foreground">no backtest results yet</p>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Data freshness */}
+        <Card>
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Data freshness</span>
+              <Clock className="h-4 w-4 text-muted-foreground" />
             </div>
-            <div className="mt-4 flex-1">
-              <p className="text-2xl font-bold leading-tight">New Strategy</p>
-              <p className="mt-1 text-sm text-background/60">Build with blocks</p>
-            </div>
-            <div className="mt-4 flex justify-end">
-              
-            </div>
+            {isLoading ? (
+              <>
+                <Skeleton className="mt-3 h-8 w-24" />
+                <Skeleton className="mt-3 h-4 w-28" />
+              </>
+            ) : signals.freshness.mostRecentRunAt ? (
+              <>
+                <p className="mt-3 text-2xl font-bold tracking-tight tabular-nums">
+                  {formatRelativeTime(signals.freshness.mostRecentRunAt)}
+                </p>
+                <p className="mt-2 text-xs text-muted-foreground">since last backtest run</p>
+              </>
+            ) : (
+              <>
+                <p className="mt-3 text-xl font-semibold text-muted-foreground/50">
+                  No runs yet
+                </p>
+                <div className="mt-3 h-4" />
+              </>
+            )}
           </CardContent>
         </Card>
       </div>

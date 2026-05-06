@@ -8,46 +8,49 @@ import { Meta } from "@storybook/addon-docs/blocks";
 **Auth required:** Yes
 **Layout group:** `(app)`
 
-The first screen after login. Gives a high-level snapshot of the user's workspace — their strategy count, recent backtests, and quick navigation shortcuts.
+The first screen after login. Orients the user toward resuming or validating strategy work — not a generic greeting. The primary action is always deterministic and derived from live strategy state.
 
 ---
 
 ## Sections
 
-### 1. Welcome hero
+### 1. Strategy workspace hero
 ```
-Welcome back, <displayName>
-Your strategy workspace is ready. Learn about assumptions →
+Strategy workspace
+Backtest activity and readiness
+Learn about assumptions →
 ```
-`displayName` is derived from the user's email prefix (`email.split("@")[0]`).
+The hero shows a fixed lab-language heading. A prominent primary CTA button is always visible (unless data is still loading), selected by `selectNextAction(strategies)` via this deterministic rule:
 
-### 2. Quick stats row (3-column grid, collapses to 1 col on mobile)
+1. If any non-archived strategy's `last_run_at` is newer than its `updated_at` → **"Review last backtest"** (links to that strategy's backtest view).
+2. Else if any strategy has `last_run_at == null` → **"Continue editing {name}"** (links to the most-recently-updated draft's strategy page).
+3. Else → **"Run a backtest"** (links to the most-recently-updated strategy's backtest view).
+4. If zero non-archived strategies exist → **"Create a strategy"** (links to `/strategies`).
 
-| Card | Icon | Data |
-|---|---|---|
-| **Strategies** | `Layers` | Total strategy count from `GET /strategies/` |
-| **Recent Backtests** | `TrendingUp` | Count of recently viewed backtests |
-| **New Strategy** | `Plus` | Shortcut link to `/strategies` |
+### 2. Signal cards row (3-column grid, collapses to 1 col on mobile)
 
-Cards show a `<Skeleton>` placeholder while data is loading.
+| Card | Icon | Data source | Signal |
+|---|---|---|---|
+| **Drafts / unvalidated** | `Layers` | `GET /strategies/` | Count of non-archived strategies where `last_run_at == null` |
+| **Last run** | `Activity` | `GET /strategies/` | `latest_total_return_pct` + `latest_max_drawdown_pct` of the strategy with the most recent `last_run_at`; links to that strategy's backtest view |
+| **Data freshness** | `Clock` | `GET /strategies/` | Relative time since the most recent `last_run_at` or `last_auto_run_at` across the workspace |
 
-### 3. Recently Viewed Strategies *(conditional)*
-Appears when the user has previously visited a strategy. Reads IDs from `localStorage` via `getRecentStrategies()`, then fetches strategy details in parallel. Renders up to 3 cards in a responsive grid (1→2→3 columns).
+Cards show a `<Skeleton>` placeholder while data is loading. The Last run and Data freshness cards show a `—` / "No runs yet" empty state when no backtest results exist.
 
-### 4. Recent Backtests *(conditional)*
+### 3. Recent Backtests *(conditional)*
 Reads recent backtest refs from `localStorage` via `getRecentBacktests()`, then fetches each run. Shows a list card with:
 - Date range (`date_from` → `date_to`)
 - Asset badge and timeframe
 - `total_return_pct` with colour-coded up/down arrow
 
-### 5. Your Strategies
+### 4. Your Strategies
 Shows up to 5 strategies from `GET /strategies/` with clone quick action. States:
 
 | State | UI |
 |---|---|
 | **Loading** | 3 skeleton rows |
 | **Empty** | Centred empty state with a "Create Strategy" CTA |
-| **Populated** | Strategy cards with name, asset badge, last-updated timestamp, and "Clone" button |
+| **Populated** | Strategy rows with name, asset badge, last-updated timestamp, and "Clone" button |
 
 ---
 
@@ -55,8 +58,7 @@ Shows up to 5 strategies from `GET /strategies/` with clone quick action. States
 
 | Source | Endpoint | Notes |
 |---|---|---|
-| Strategies list | `GET /strategies/` | Full list; first 5 shown |
-| Recent strategies | `GET /strategies/:id` × N | Fetched in parallel; errors silently skipped |
+| Strategies list | `GET /strategies/` | Full list; first 5 shown in Your Strategies; signals computed client-side |
 | Recent backtests | `GET /backtests/:runId` × N | Fetched in parallel; errors silently skipped |
 
 All fetches on mount via `useEffect`. Clone action calls `POST /strategies/:id/duplicate` then refreshes the list.
@@ -67,7 +69,8 @@ All fetches on mount via `useEffect`. Clone action calls `POST /strategies/:id/d
 
 - `Card`, `CardContent`, `Badge`, `Skeleton`, `Button` (shadcn/ui)
 - `useAuth`, `useDisplay` contexts
-- `getRecentStrategies`, `getRecentBacktests` (localStorage helpers)
+- `getRecentBacktests` (localStorage helper)
+- `selectNextAction`, `computeSignals` (`@/lib/dashboard-signals`)
 - `formatDateTime`, `formatPercent` (format lib)
 
 ---
@@ -76,6 +79,5 @@ All fetches on mount via `useEffect`. Clone action calls `POST /strategies/:id/d
 
 | Breakpoint | Layout |
 |---|---|
-| Mobile | Single-column stack; stats in 1 col |
-| `sm` (640px) | Stats in 3 columns |
-| `lg` (1024px) | Recently Viewed in 3 columns |
+| Mobile | Single-column stack; signal cards in 1 col |
+| `sm` (640px) | Signal cards in 3 columns |
