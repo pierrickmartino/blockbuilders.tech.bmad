@@ -11,7 +11,7 @@ interface MarketSentimentPanelProps {
 }
 
 const PANEL_CLASS =
-  "rounded-lg border border-border bg-card p-4 text-card-foreground shadow-sm";
+  "rounded-lg border border-border bg-muted/30 p-4 text-card-foreground lg:sticky lg:top-6";
 const HEADING_ID = "market-sentiment-heading";
 const LONG_SHORT_COLOR = "hsl(var(--chart-1))";
 const FUNDING_COLOR = "hsl(var(--chart-2))";
@@ -20,17 +20,16 @@ function SentimentNarrative({ sentiment }: { sentiment: MarketSentimentResponse 
   const value = sentiment.fear_greed.value;
   const statuses = Object.values(sentiment.source_status);
   const anyDegraded = statuses.some((s) => s !== "ok");
-  const qualifier = anyDegraded ? "mixed signals" : "high confidence";
+  const qualifier = anyDegraded ? "some sources are delayed" : "all sources current";
 
   if (value === null) {
-    return <p>Sentiment score unavailable.</p>;
+    return <p>Sentiment score is unavailable right now.</p>;
   }
 
   if (value >= 60) {
     return (
       <p>
-        <span aria-hidden="true">📈 </span>
-        Market sentiment: <span className="font-medium">Risk-on</span> ({qualifier})
+        Market mood: <span className="font-medium text-foreground">Risk-on</span>. Use this as context, not a trade signal. {qualifier}.
       </p>
     );
   }
@@ -38,16 +37,14 @@ function SentimentNarrative({ sentiment }: { sentiment: MarketSentimentResponse 
   if (value <= 40) {
     return (
       <p>
-        <span aria-hidden="true">📉 </span>
-        Market sentiment: <span className="font-medium">Risk-off</span> ({anyDegraded ? qualifier : "cautious"})
+        Market mood: <span className="font-medium text-foreground">Risk-off</span>. Use this as context, not a trade signal. {anyDegraded ? qualifier : "sources look cautious"}.
       </p>
     );
   }
 
   return (
     <p>
-      <span aria-hidden="true">⚖️ </span>
-      Market sentiment: <span className="font-medium">Neutral</span> — no strong directional bias
+      Market mood: <span className="font-medium text-foreground">Neutral</span>. No strong directional bias from these sources.
     </p>
   );
 }
@@ -58,14 +55,15 @@ export function MarketSentimentPanel({ asset }: MarketSentimentPanelProps) {
   if (isLoading) {
     return (
       <section className={PANEL_CLASS} aria-labelledby={HEADING_ID} aria-busy="true">
-        <h2 id={HEADING_ID} className="text-lg font-semibold mb-4">
+        <h2 id={HEADING_ID} className="mb-1 text-base font-semibold">
           Market Sentiment
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
+        <p className="mb-4 text-sm text-muted-foreground">BTC/USDT market mood</p>
+        <div className="grid grid-cols-1 gap-3">
           {[0, 1, 2].map((i) => (
             <div
               key={i}
-              className="h-28 rounded-md border border-border bg-muted/40 animate-pulse"
+              className="h-20 rounded-md border border-border bg-muted/40 animate-pulse"
               aria-hidden="true"
             />
           ))}
@@ -78,17 +76,18 @@ export function MarketSentimentPanel({ asset }: MarketSentimentPanelProps) {
   if (error) {
     return (
       <section className={PANEL_CLASS} aria-labelledby={HEADING_ID}>
-        <h2 id={HEADING_ID} className="text-lg font-semibold mb-4">
+        <h2 id={HEADING_ID} className="mb-1 text-base font-semibold">
           Market Sentiment
         </h2>
-        <div className="rounded border border-amber-200 bg-amber-50 p-3 dark:border-amber-900 dark:bg-amber-950/40">
-          <p className="text-sm text-amber-800 dark:text-amber-200">
-            Sentiment data temporarily unavailable.
+        <p className="mb-4 text-sm text-muted-foreground">BTC/USDT market mood</p>
+        <div className="rounded-md border border-warning/30 bg-warning-soft p-3">
+          <p className="text-sm text-warning-foreground">
+            Market mood data is temporarily unavailable.
           </p>
           <button
             type="button"
             onClick={() => refresh()}
-            className="mt-2 text-sm font-medium text-amber-900 underline underline-offset-2 hover:text-amber-950 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring dark:text-amber-100 dark:hover:text-amber-50"
+            className="mt-2 min-h-9 rounded-md text-sm font-medium text-warning-foreground underline underline-offset-2 hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring"
           >
             Retry
           </button>
@@ -101,11 +100,14 @@ export function MarketSentimentPanel({ asset }: MarketSentimentPanelProps) {
 
   return (
     <section className={PANEL_CLASS} aria-labelledby={HEADING_ID}>
-      <h2 id={HEADING_ID} className="text-lg font-semibold mb-4">
-        Market Sentiment
-      </h2>
+      <div className="mb-4">
+        <h2 id={HEADING_ID} className="text-base font-semibold">
+          Market Sentiment
+        </h2>
+        <p className="text-sm text-muted-foreground">BTC/USDT market mood</p>
+      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 mb-4">
+      <div className="grid grid-cols-1 divide-y divide-border rounded-md border border-border bg-background">
         <SentimentGauge
           label="Fear & Greed Index"
           value={sentiment.fear_greed.value}
@@ -132,7 +134,7 @@ export function MarketSentimentPanel({ asset }: MarketSentimentPanelProps) {
         />
       </div>
 
-      <div className="text-xs text-muted-foreground">
+      <div className="mt-4 text-xs text-muted-foreground">
         <SentimentNarrative sentiment={sentiment} />
       </div>
     </section>

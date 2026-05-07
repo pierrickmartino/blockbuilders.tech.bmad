@@ -1,4 +1,3 @@
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   Tooltip,
@@ -36,62 +35,56 @@ export function SentimentGauge({
 }: SentimentGaugeProps) {
   if (status === "unavailable") {
     return (
-      <Card>
-        <CardContent className="p-4">
-          <div className="mb-2 text-sm font-medium text-muted-foreground">{label}</div>
-          <Badge variant="outline" className="text-xs">Unavailable</Badge>
-        </CardContent>
-      </Card>
+      <div className="p-3">
+        <div className="mb-2 text-sm font-medium text-muted-foreground">{label}</div>
+        <Badge variant="outline" className="text-xs">Source unavailable</Badge>
+      </div>
     );
   }
 
   const range = max - min;
   const percentage = range > 0 && value !== null ? ((value - min) / range) * 100 : 0;
   const clampedPct = Math.max(0, Math.min(100, percentage));
-  const displayValue = value !== null ? formatter(value) : "—";
+  const displayValue = value !== null ? formatter(value) : "No score";
 
   return (
-    <Card className={status === "partial" ? "opacity-80 border-dashed" : undefined}>
-      <CardContent className="p-3">
-        <div className="mb-2 flex items-center gap-2 text-sm font-semibold">
-          {label}
-          {status === "partial" && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Badge variant="outline" className="text-xs">Partial</Badge>
-                </TooltipTrigger>
-                <TooltipContent>Data may be incomplete or delayed</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )}
-        </div>
+    <div className={status === "partial" ? "p-3 opacity-80" : "p-3"}>
+      <div className="mb-2 flex items-center gap-2 text-sm font-semibold">
+        {label}
+        {status === "partial" && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge variant="outline" className="text-xs">Partial source</Badge>
+              </TooltipTrigger>
+              <TooltipContent>Some source data may be incomplete or delayed.</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
+      </div>
 
-        {/* Value display */}
-        <div className="text-lg font-semibold mb-2">
-          {displayValue}
-        </div>
+      <div className="data-text mb-2 text-lg font-semibold">
+        {displayValue}
+      </div>
 
-        {/* Gauge bar */}
+      <div
+        className="h-2 w-full rounded-full bg-muted"
+        role="meter"
+        aria-label={label}
+        aria-valuenow={value ?? undefined}
+        aria-valuemin={min}
+        aria-valuemax={max}
+      >
         <div
-          className="h-2 w-full rounded-full bg-muted"
-          role="meter"
-          aria-label={label}
-          aria-valuenow={value ?? undefined}
-          aria-valuemin={min}
-          aria-valuemax={max}
-        >
-          <div
-            className={`${gaugeColor(clampedPct)} h-2 rounded-full transition-all`}
-            style={{ width: `${clampedPct}%` }}
-          />
-        </div>
+          className={`${gaugeColor(clampedPct)} h-2 rounded-full transition-all`}
+          style={{ width: `${clampedPct}%` }}
+        />
+      </div>
 
-        <div className="mt-1 flex justify-between text-xs text-muted-foreground">
-          <span>{min}{unit ? ` ${unit}` : ""}</span>
-          <span>{max}{unit ? ` ${unit}` : ""}</span>
-        </div>
-      </CardContent>
-    </Card>
+      <div className="mt-1 flex justify-between text-xs text-muted-foreground">
+        <span>{min}{unit ? ` ${unit}` : ""}</span>
+        <span>{max}{unit ? ` ${unit}` : ""}</span>
+      </div>
+    </div>
   );
 }

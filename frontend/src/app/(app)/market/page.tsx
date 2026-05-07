@@ -22,7 +22,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { TrendingUp, TrendingDown, Info, Search, X, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+import { TrendingUp, TrendingDown, Info, Search, X, ArrowUp, ArrowDown, ArrowUpDown, BarChart3 } from "lucide-react";
 import { MarketSentimentPanel } from "@/components/MarketSentimentPanel";
 import { MarketChartPanel } from "@/components/MarketChartPanel";
 import type { TickerItem } from "@/types/market";
@@ -30,9 +30,9 @@ import type { TickerItem } from "@/types/market";
 type SortKey = "pair" | "price" | "change_24h_pct" | "volume_24h" | "volatility_percentile_1y";
 type SortDir = "asc" | "desc";
 
-const VOL_STD_HELP = "Standard deviation of recent daily returns — higher means wider price swings.";
-const VOL_ATR_HELP = "Average True Range as a percentage of price — typical daily range.";
-const VOL_PCTILE_HELP = "Percentile compares today's volatility to the last year.";
+const VOL_STD_HELP = "How much daily returns have moved recently. Higher values mean wider price swings.";
+const VOL_ATR_HELP = "The asset's typical daily trading range as a percentage of price.";
+const VOL_PCTILE_HELP = "Where today's volatility sits compared with the last year. 100 means unusually volatile.";
 
 function InfoTip({ text }: { text: string }) {
   return (
@@ -52,6 +52,16 @@ function SortIcon({ active, dir }: { active: boolean; dir: SortDir }) {
   return dir === "asc"
     ? <ArrowUp className="inline-block ml-1 w-3 h-3" />
     : <ArrowDown className="inline-block ml-1 w-3 h-3" />;
+}
+
+function sortLabel(label: string, key: SortKey, activeKey: SortKey, dir: SortDir) {
+  if (key !== activeKey) return `Sort ${label}`;
+  return `${label} is sorted ${dir === "asc" ? "ascending" : "descending"}. Activate to reverse.`;
+}
+
+function ariaSortFor(key: SortKey, activeKey: SortKey, dir: SortDir) {
+  if (key !== activeKey) return "none";
+  return dir === "asc" ? "ascending" : "descending";
 }
 
 function TableSkeleton() {
@@ -109,33 +119,43 @@ export default function MarketPage() {
   };
 
   const header = (
-    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-      <div>
+    <div className="flex flex-col gap-4 border-b border-border pb-5 sm:flex-row sm:items-end sm:justify-between">
+      <div className="space-y-1">
         <h1 className="text-2xl font-bold tracking-tight">Market Overview</h1>
+        <p className="max-w-2xl text-sm text-muted-foreground">
+          Scan live pairs, compare volatility, then inspect a chart before building or backtesting a strategy.
+        </p>
         {asOf && (
           <p className="text-sm text-muted-foreground" aria-live="polite">
             Last updated: <span className="data-text">{formatDateTime(asOf, timezone)}</span>
           </p>
         )}
       </div>
-      <div className="relative w-full sm:w-64">
-        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Filter pairs..."
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-          className="pl-8 pr-8"
-          aria-label="Filter pairs"
-        />
+      <div className="flex w-full flex-col gap-2 sm:w-72">
+        <div className="relative">
+          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search pair, for example BTC"
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            className="h-10 pl-9 pr-10"
+            aria-label="Search market pairs"
+          />
+          {filter && (
+            <button
+              type="button"
+              onClick={() => setFilter("")}
+              className="absolute right-1.5 top-1.5 grid h-7 w-7 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring"
+              aria-label="Clear filter"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
         {filter && (
-          <button
-            type="button"
-            onClick={() => setFilter("")}
-            className="absolute right-2 top-2 rounded p-0.5 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring"
-            aria-label="Clear filter"
-          >
-            <X className="h-4 w-4" />
-          </button>
+          <p className="text-xs text-muted-foreground">
+            {filteredTickers.length} of {tickers.length} pairs match your search
+          </p>
         )}
       </div>
     </div>
@@ -179,19 +199,13 @@ export default function MarketPage() {
       <main className="container mx-auto max-w-6xl space-y-6 p-4 md:p-6">
         {header}
 
-        {filter && (
-          <p className="text-xs text-muted-foreground -mt-3">
-            Showing {shownCount} of {totalCount} pairs
-          </p>
-        )}
-
-        {/* Market Sentiment Panel */}
-        <MarketSentimentPanel asset="BTC/USDT" />
-
         {isEmpty ? (
           <div className="rounded-lg border border-dashed p-8 text-center">
             <p className="text-sm font-medium">
-              {filter ? `No pairs match "${filter}"` : "No market data available"}
+              {filter ? `No pairs match "${filter}"` : "No market pairs available"}
+            </p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {filter ? "Try a symbol like BTC, ETH, or SOL." : "Market data has not loaded yet. Try refreshing shortly."}
             </p>
             {filter && (
               <Button
@@ -205,65 +219,86 @@ export default function MarketPage() {
             )}
           </div>
         ) : (
-          <>
-            {/* Desktop: Table */}
-            <div className="hidden md:block">
-              <Table>
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
+            <section aria-labelledby="market-list-heading" className="min-w-0 space-y-3">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <h2 id="market-list-heading" className="text-lg font-semibold">
+                    Market Pairs
+                  </h2>
+                  <p className="text-sm text-muted-foreground">
+                    Sort by price, volume, or volatility. Use Inspect to open the chart panel.
+                  </p>
+                </div>
+                <p className="data-text text-sm text-muted-foreground">
+                  {shownCount} of {totalCount} pairs
+                </p>
+              </div>
+
+              {/* Desktop: Table */}
+              <div className="hidden overflow-hidden rounded-lg border border-border md:block">
+                <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>
+                    <TableHead aria-sort={ariaSortFor("pair", sortKey, sortDir)}>
                       <button
                         type="button"
                         onClick={() => toggleSort("pair")}
-                        className="font-medium hover:text-foreground"
+                        className="inline-flex min-h-9 items-center rounded-md font-medium hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring"
+                        aria-label={sortLabel("pair", "pair", sortKey, sortDir)}
                       >
                         Pair<SortIcon active={sortKey === "pair"} dir={sortDir} />
                       </button>
                     </TableHead>
-                    <TableHead className="text-right">
+                    <TableHead className="text-right" aria-sort={ariaSortFor("price", sortKey, sortDir)}>
                       <button
                         type="button"
                         onClick={() => toggleSort("price")}
-                        className="font-medium hover:text-foreground"
+                        className="inline-flex min-h-9 items-center rounded-md font-medium hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring"
+                        aria-label={sortLabel("price", "price", sortKey, sortDir)}
                       >
                         Price<SortIcon active={sortKey === "price"} dir={sortDir} />
                       </button>
                     </TableHead>
-                    <TableHead className="text-right">
+                    <TableHead className="text-right" aria-sort={ariaSortFor("change_24h_pct", sortKey, sortDir)}>
                       <button
                         type="button"
                         onClick={() => toggleSort("change_24h_pct")}
-                        className="font-medium hover:text-foreground"
+                        className="inline-flex min-h-9 items-center rounded-md font-medium hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring"
+                        aria-label={sortLabel("24h change", "change_24h_pct", sortKey, sortDir)}
                       >
                         24h Change<SortIcon active={sortKey === "change_24h_pct"} dir={sortDir} />
                       </button>
                     </TableHead>
-                    <TableHead className="text-right">
+                    <TableHead className="text-right" aria-sort={ariaSortFor("volume_24h", sortKey, sortDir)}>
                       <button
                         type="button"
                         onClick={() => toggleSort("volume_24h")}
-                        className="font-medium hover:text-foreground"
+                        className="inline-flex min-h-9 items-center rounded-md font-medium hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring"
+                        aria-label={sortLabel("24h volume", "volume_24h", sortKey, sortDir)}
                       >
                         24h Volume<SortIcon active={sortKey === "volume_24h"} dir={sortDir} />
                       </button>
                     </TableHead>
                     <TableHead className="text-right">
-                      Vol (Std)<InfoTip text={VOL_STD_HELP} />
+                      Return Vol<InfoTip text={VOL_STD_HELP} />
                     </TableHead>
                     <TableHead className="text-right">
-                      Vol (ATR%)<InfoTip text={VOL_ATR_HELP} />
+                      ATR Range<InfoTip text={VOL_ATR_HELP} />
                     </TableHead>
-                    <TableHead className="text-right">
+                    <TableHead className="text-right" aria-sort={ariaSortFor("volatility_percentile_1y", sortKey, sortDir)}>
                       <button
                         type="button"
                         onClick={() => toggleSort("volatility_percentile_1y")}
-                        className="font-medium hover:text-foreground"
+                        className="inline-flex min-h-9 items-center rounded-md font-medium hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring"
+                        aria-label={sortLabel("1 year volatility rank", "volatility_percentile_1y", sortKey, sortDir)}
                       >
-                        Vol %ile<SortIcon active={sortKey === "volatility_percentile_1y"} dir={sortDir} />
+                        1Y Vol Rank<SortIcon active={sortKey === "volatility_percentile_1y"} dir={sortDir} />
                       </button>
                       <InfoTip text={VOL_PCTILE_HELP} />
                     </TableHead>
-                    <TableHead className="text-center">Trend</TableHead>
+                    <TableHead className="text-center">24h Direction</TableHead>
+                    <TableHead className="text-right">Chart</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -275,8 +310,8 @@ export default function MarketPage() {
                           <button
                             type="button"
                             onClick={() => setInspectedAsset(ticker.pair)}
-                            className="hover:text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring rounded"
-                            aria-label={`Inspect chart for ${ticker.pair}`}
+                            className="min-h-9 rounded-md hover:text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring"
+                            aria-label={`Open chart for ${ticker.pair}`}
                           >
                             {ticker.pair}
                           </button>
@@ -303,10 +338,22 @@ export default function MarketPage() {
                         </TableCell>
                         <TableCell className="text-center">
                           {positive ? (
-                            <TrendingUp className="inline-block w-5 h-5 text-success" aria-label="Up" />
+                            <TrendingUp className="inline-block w-5 h-5 text-success" aria-label="Up over 24 hours" />
                           ) : (
-                            <TrendingDown className="inline-block w-5 h-5 text-destructive" aria-label="Down" />
+                            <TrendingDown className="inline-block w-5 h-5 text-destructive" aria-label="Down over 24 hours" />
                           )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-9 px-2"
+                            onClick={() => setInspectedAsset(ticker.pair)}
+                            aria-label={`Open ${ticker.pair} chart`}
+                          >
+                            <BarChart3 className="h-4 w-4" aria-hidden="true" />
+                          </Button>
                         </TableCell>
                       </TableRow>
                     );
@@ -322,29 +369,41 @@ export default function MarketPage() {
                 return (
                   <Card key={ticker.pair}>
                     <CardContent className="p-4">
-                      <div className="flex items-center justify-between mb-3">
+                      <div className="mb-3 flex items-center justify-between gap-3">
                         <button
                           type="button"
                           onClick={() => setInspectedAsset(ticker.pair)}
-                          className="data-text text-lg font-medium hover:text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring rounded"
-                          aria-label={`Inspect chart for ${ticker.pair}`}
+                          className="data-text min-h-11 rounded-md text-lg font-medium hover:text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring"
+                          aria-label={`Open chart for ${ticker.pair}`}
                         >
                           {ticker.pair}
                         </button>
-                        <span
-                          className={`data-text inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm font-medium ${
-                            positive
-                              ? "bg-success/10 text-success"
-                              : "bg-destructive/10 text-destructive"
-                          }`}
-                        >
-                          {positive ? (
-                            <TrendingUp className="w-4 h-4" aria-label="Up" />
-                          ) : (
-                            <TrendingDown className="w-4 h-4" aria-label="Down" />
-                          )}
-                          {positive ? "+" : ""}{formatPercent(ticker.change_24h_pct)}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`data-text inline-flex min-h-9 items-center gap-1 rounded-md px-2 text-sm font-medium ${
+                              positive
+                                ? "bg-success/10 text-success"
+                                : "bg-destructive/10 text-destructive"
+                            }`}
+                          >
+                            {positive ? (
+                              <TrendingUp className="w-4 h-4" aria-label="Up over 24 hours" />
+                            ) : (
+                              <TrendingDown className="w-4 h-4" aria-label="Down over 24 hours" />
+                            )}
+                            {positive ? "+" : ""}{formatPercent(ticker.change_24h_pct)}
+                          </span>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-11 px-3"
+                            onClick={() => setInspectedAsset(ticker.pair)}
+                            aria-label={`Open ${ticker.pair} chart`}
+                          >
+                            <BarChart3 className="h-4 w-4" aria-hidden="true" />
+                          </Button>
+                        </div>
                       </div>
                       <div className="grid grid-cols-2 gap-3 text-sm">
                         <div className="col-span-2">
@@ -359,7 +418,7 @@ export default function MarketPage() {
                         </div>
                         <div>
                           <p className="text-muted-foreground">
-                            Vol (Std)<InfoTip text={VOL_STD_HELP} />
+                            Return Vol<InfoTip text={VOL_STD_HELP} />
                           </p>
                           <p className="data-text font-medium">
                             {formatVolatility(ticker.volatility_stddev, 3)}
@@ -367,7 +426,7 @@ export default function MarketPage() {
                         </div>
                         <div>
                           <p className="text-muted-foreground">
-                            Vol (ATR%)<InfoTip text={VOL_ATR_HELP} />
+                            ATR Range<InfoTip text={VOL_ATR_HELP} />
                           </p>
                           <p className="data-text font-medium">
                             {formatVolatility(ticker.volatility_atr_pct, 1)}
@@ -375,7 +434,7 @@ export default function MarketPage() {
                         </div>
                         <div className="col-span-2">
                           <p className="text-muted-foreground">
-                            Vol Percentile (1y)<InfoTip text={VOL_PCTILE_HELP} />
+                            1Y Vol Rank<InfoTip text={VOL_PCTILE_HELP} />
                           </p>
                           <p className="data-text font-medium">
                             {formatVolatility(ticker.volatility_percentile_1y, 0)}
@@ -387,7 +446,10 @@ export default function MarketPage() {
                 );
               })}
             </div>
-          </>
+            </section>
+
+            <MarketSentimentPanel asset="BTC/USDT" />
+          </div>
         )}
 
         <MarketChartPanel

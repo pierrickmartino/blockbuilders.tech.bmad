@@ -1,5 +1,15 @@
 # Tasks — in flight
 
+## Market page layout pass (in flight)
+
+- [x] Write layout plan for market page
+- [x] Receive implementation approval
+- [x] Make asset list the primary market page object
+- [x] Add explicit chart inspection affordances
+- [x] Flatten sentiment section hierarchy
+- [x] Verify lint from `frontend/` via bundled Node runtime (0 errors, existing warnings elsewhere)
+- [x] Manual smoke: loading, error, empty filter, mobile width, keyboard sort/inspect (skipped at developer direction)
+
 ## Dashboard distill pass (in flight)
 
 - [x] Write dashboard distillation plan

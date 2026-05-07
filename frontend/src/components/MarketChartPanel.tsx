@@ -209,13 +209,13 @@ function ChartPanelHeader({
       <div>
         <h2 className="text-lg font-semibold">{asset ?? ""}</h2>
         <p className="text-xs text-muted-foreground">
-          Timeframe: <span className="data-text">{timeframe}</span>
+          Candle interval: <span className="data-text">{timeframe}</span>
           {earliest && latest && (
             <>
               {" · "}
-              Data:{" "}
+              Available data:{" "}
               <span className="data-text">
-                {earliest.slice(0, 10)} → {latest.slice(0, 10)}
+                {earliest.slice(0, 10)} to {latest.slice(0, 10)}
               </span>
             </>
           )}
@@ -251,7 +251,7 @@ function IndicatorSelector({
   return (
     <div className="border-b p-3 flex flex-wrap items-center gap-2">
       <span className="text-xs font-medium text-muted-foreground mr-1">
-        Indicators
+        Chart indicators
       </span>
       {catalog.map((opt) => {
         const sel = active(opt.key);
@@ -283,7 +283,7 @@ function IndicatorSelector({
                   if (Number.isFinite(v) && v >= 1) onPeriodChange(opt.key, v);
                 }}
                 className="w-12 rounded border border-border bg-background px-1 py-0.5 text-xs data-text"
-                aria-label={`${opt.label} period`}
+                aria-label={`${opt.label} lookback period`}
               />
             )}
           </div>
@@ -482,9 +482,9 @@ function ChartCanvas({
 
   return (
     <div className="space-y-2">
-      <div ref={priceContainerRef} aria-label="Price chart with candles" />
+      <div ref={priceContainerRef} aria-label="Candlestick price chart" />
       {oscillatorSeries.length > 0 && (
-        <div ref={oscillatorContainerRef} aria-label="Indicator pane" />
+        <div ref={oscillatorContainerRef} aria-label="Selected indicator chart" />
       )}
     </div>
   );
@@ -502,11 +502,11 @@ function CandleReadout({ candle }: { candle: ChartCandle }) {
       <span className="data-text font-medium">
         {candle.timestamp.replace("T", " ").slice(0, 16)}
       </span>
-      <span>O <span className="data-text">{candle.open}</span></span>
-      <span>H <span className="data-text">{candle.high}</span></span>
-      <span>L <span className="data-text">{candle.low}</span></span>
-      <span>C <span className="data-text">{candle.close}</span></span>
-      <span>V <span className="data-text">{candle.volume}</span></span>
+      <span>Open <span className="data-text">{candle.open}</span></span>
+      <span>High <span className="data-text">{candle.high}</span></span>
+      <span>Low <span className="data-text">{candle.low}</span></span>
+      <span>Close <span className="data-text">{candle.close}</span></span>
+      <span>Volume <span className="data-text">{candle.volume}</span></span>
     </div>
   );
 }
@@ -533,9 +533,9 @@ function SeriesLegend({
 function ChartEmptyState({ asset, timeframe }: { asset: string; timeframe: string }) {
   return (
     <div className="rounded-lg border border-dashed p-8 text-center">
-      <p className="text-sm font-medium">No stored OHLCV data for this selection.</p>
+      <p className="text-sm font-medium">No price candles for this selection.</p>
       <p className="mt-1 text-xs text-muted-foreground">
-        {asset} · {timeframe}
+        {asset} at {timeframe}. Try another pair or timeframe when available.
       </p>
     </div>
   );
@@ -544,7 +544,7 @@ function ChartEmptyState({ asset, timeframe }: { asset: string; timeframe: strin
 function ChartErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
   return (
     <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm">
-      <p className="font-medium text-destructive">Chart data unavailable.</p>
+      <p className="font-medium text-destructive">Could not load the chart.</p>
       <p className="mt-1 text-muted-foreground">{message}</p>
       <Button variant="outline" size="sm" className="mt-3" onClick={onRetry}>
         Retry
