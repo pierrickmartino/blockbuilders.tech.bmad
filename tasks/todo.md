@@ -1,5 +1,37 @@
 # Tasks — in flight
 
+## Dashboard distill pass (in flight)
+
+- [x] Write dashboard distillation plan
+- [x] Receive implementation approval
+- [x] Remove redundant dashboard shortcuts and copy
+- [x] Update Dashboard Storybook docs to match distilled structure
+- [ ] Verify lint from `frontend/` (blocked: `npm`, `pnpm`, `yarn`, and `corepack` are not on PATH)
+- [ ] Manual smoke: empty data, API failure, mobile width, keyboard flow (blocked: frontend dependencies absent)
+
+## Dashboard hardening pass (in flight)
+
+- [x] Write hardening plan for dashboard page
+- [x] Receive implementation approval
+- [x] Harden dashboard async fetches, edge-case copy, and clone recovery
+- [ ] Verify lint from `frontend/` (blocked: `npm`, `pnpm`, `yarn`, and `corepack` are not on PATH; `frontend/node_modules` absent)
+- [ ] Manual smoke: long names, empty data, API failure, mobile width, keyboard flow (blocked: frontend dependencies absent)
+
+## Dashboard clarify pass (in flight)
+
+- [x] Write copy-focused plan for dashboard clarification
+- [x] Receive implementation approval
+- [x] Tighten dashboard headline, primary action copy, states, and messages
+- [x] Update Dashboard Storybook docs to match current implementation
+- [ ] Verify lint (blocked: `npm`, `pnpm`, `yarn`, and `corepack` are not on PATH)
+
+## Dashboard flagship polish (in flight)
+
+- [x] Align dashboard page to the design system polish checklist
+- [x] Fix responsive strategy rows, touch targets, and state tokens
+- [x] Remove visible dashboard shell drift in the sidebar
+- [ ] Verify lint and local rendering (blocked: no npm/pnpm/yarn/corepack on PATH and no frontend/node_modules)
+
 ## FEAT-102 — Pandas TA Indicator Calculation Parity (done)
 
 Backend

@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/auth";
 import { useDisplay } from "@/context/display";
-import { apiFetch } from "@/lib/api";
+import { ApiError, apiFetch } from "@/lib/api";
 import { formatDateTime, formatPercent } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import { Strategy } from "@/types/strategy";
 import { BacktestStatusResponse } from "@/types/backtest";
 import { getRecentBacktests } from "@/lib/recent-views";
@@ -16,41 +17,185 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Layers,
   Activity,
-  Clock,
   Plus,
   ArrowRight,
   Copy,
-  ArrowUpRight,
-  ArrowDownRight,
   AlertCircle,
   CheckCircle2,
-  Sparkles,
+  PlayCircle,
+  RotateCw,
+  Target,
 } from "lucide-react";
+
+const MAX_DISPLAY_NAME_LENGTH = 40;
 
 function formatDisplayName(email: string | undefined): string {
   if (!email) return "there";
   const local = email.split("@")[0];
-  const cleaned = local.replace(/[._-]+/g, " ").replace(/\d+/g, "").trim();
+  const cleaned = local
+    .replace(/[._-]+/g, " ")
+    .replace(/\d+/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
   if (!cleaned) return "there";
-  return cleaned
+  const displayName = cleaned
     .split(" ")
     .filter(Boolean)
     .map((w) => w[0].toUpperCase() + w.slice(1))
     .join(" ");
+  return displayName.length > MAX_DISPLAY_NAME_LENGTH
+    ? `${displayName.slice(0, MAX_DISPLAY_NAME_LENGTH).trim()}...`
+    : displayName;
 }
 
 function formatAsset(asset: string): string {
-  return asset.replace("/", " / ");
+  return asset.replace(/\//g, " / ");
 }
 
-function formatDateOnly(dateStr: string | null | undefined): string {
-  if (!dateStr) return "—";
-  const date = new Date(dateStr);
-  if (isNaN(date.getTime())) return "—";
-  const y = date.getUTCFullYear();
-  const m = String(date.getUTCMonth() + 1).padStart(2, "0");
-  const d = String(date.getUTCDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
+function formatCount(count: number, singular: string, plural: string): string {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
+function formatValidationQueue(count: number): string {
+  if (count === 0) return "Clear";
+  return formatCount(count, "to validate", "to validate");
+}
+
+function getValidationDetail(count: number): string {
+  if (count === 0) return "Every listed strategy has a current backtest.";
+  if (count === 1) return "One strategy needs a fresh run.";
+  return "Run these before trusting the current results.";
+}
+
+function formatUntestedWork(untested: number, changed: number): string {
+  if (untested === 0 && changed === 0) return "None";
+  if (changed === 0) return `${untested} untested`;
+  if (untested === 0) return `${changed} changed`;
+  return `${untested} untested, ${changed} changed`;
+}
+
+function getUntestedWorkDetail(untested: number, changed: number): string {
+  if (untested === 0 && changed === 0) {
+    return "No hidden draft risk in this list.";
+  }
+  if (untested > 0 && changed > 0) return "New and edited strategies need validation.";
+  if (untested > 0) return "New strategies need their first backtest.";
+  return "Saved edits have not been tested yet.";
+}
+
+function formatOutcomePercent(value: number): string {
+  return value > 0 ? `+${formatPercent(value)}` : formatPercent(value);
+}
+
+function getLatestOutcomeDetail(value: number | null | undefined): string {
+  if (value == null) return "No completed result is available yet.";
+  if (value > 0) return "Latest completed result is positive.";
+  if (value < 0) return "Latest completed result is negative.";
+  return "Latest completed result is flat.";
+}
+
+function getValidationTone(count: number) {
+  if (count === 0) {
+    return {
+      surface: "border-success/25 bg-success-soft/70",
+      label: "text-foreground",
+      value: "text-foreground",
+    };
+  }
+  return {
+    surface: "border-primary/20 bg-primary/5",
+    label: "text-primary",
+    value: "text-primary",
+  };
+}
+
+function getLatestOutcomeTone(value: number | null | undefined) {
+  if (value == null || value === 0) {
+    return {
+      surface: "border-border bg-background/50",
+      label: "text-muted-foreground",
+      value: "text-foreground",
+    };
+  }
+  if (value > 0) {
+    return {
+      surface: "border-success/25 bg-success-soft/70",
+      label: "text-foreground",
+      value: "text-foreground",
+    };
+  }
+  return {
+    surface: "border-destructive/25 bg-destructive-soft",
+    label: "text-foreground",
+    value: "text-foreground",
+  };
+}
+
+function getUntestedWorkTone(untested: number, changed: number) {
+  if (untested === 0 && changed === 0) {
+    return {
+      surface: "border-border bg-background/50",
+      label: "text-muted-foreground",
+      value: "text-foreground",
+    };
+  }
+  return {
+    surface: "border-warning/25 bg-warning-soft/80",
+    label: "text-foreground",
+    value: "text-foreground",
+  };
+}
+
+function getDashboardErrorMessage(err: unknown, fallback: string): string {
+  if (err instanceof ApiError) {
+    if (err.status === 0) {
+      return "The request timed out. Check your connection, then retry the dashboard.";
+    }
+    if (err.status === 401) {
+      return "Your session expired. Sign in again to load your strategies.";
+    }
+    if (err.status === 403) {
+      return "You do not have permission to view this strategy data.";
+    }
+    if (err.status === 429) {
+      return "Too many requests hit the API at once. Wait a moment, then retry.";
+    }
+    if (err.status >= 500) {
+      return "The server could not load this data. Retry in a moment.";
+    }
+    return err.message || fallback;
+  }
+  return err instanceof Error ? err.message : fallback;
+}
+
+function getTime(value: string | null | undefined): number {
+  if (!value) return 0;
+  const time = new Date(value).getTime();
+  return Number.isNaN(time) ? 0 : time;
+}
+
+function hasBacktestRun(strategy: Strategy): boolean {
+  return Boolean(
+    strategy.last_run_at ||
+      strategy.latest_total_return_pct != null ||
+      strategy.latest_max_drawdown_pct != null ||
+      strategy.latest_win_rate_pct != null ||
+      strategy.latest_num_trades != null
+  );
+}
+
+function needsValidation(strategy: Strategy): boolean {
+  if (!hasBacktestRun(strategy)) return true;
+  if (!strategy.last_run_at) return false;
+  return getTime(strategy.updated_at) > getTime(strategy.last_run_at);
+}
+
+function sortByUpdatedDesc(a: Strategy, b: Strategy): number {
+  return getTime(b.updated_at) - getTime(a.updated_at);
+}
+
+function sortByLastRunDesc(a: Strategy, b: Strategy): number {
+  return getTime(b.last_run_at) - getTime(a.last_run_at);
 }
 
 export default function DashboardPage() {
@@ -70,24 +215,49 @@ export default function DashboardPage() {
     BacktestStatusResponse[]
   >([]);
   const [recentBacktestsLoaded, setRecentBacktestsLoaded] = useState(false);
+  const isMountedRef = useRef(true);
+  const strategiesRequestId = useRef(0);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const loadStrategies = useCallback(() => {
+    const requestId = strategiesRequestId.current + 1;
+    strategiesRequestId.current = requestId;
     setIsLoading(true);
     setStrategiesLoadFailed(false);
+    setError(null);
     apiFetch<Strategy[]>("/strategies/")
       .then((data) => {
+        if (!isMountedRef.current || strategiesRequestId.current !== requestId) {
+          return;
+        }
         setStrategies(data);
         setStrategiesLoadFailed(false);
       })
       .catch((err) => {
+        if (!isMountedRef.current || strategiesRequestId.current !== requestId) {
+          return;
+        }
         setStrategiesLoadFailed(true);
         setError(
-          err instanceof Error
-            ? err.message
-            : "Could not load your strategies. Please try again."
+          getDashboardErrorMessage(
+            err,
+            "We could not load your strategies. Retry to refresh the dashboard."
+          )
         );
       })
-      .finally(() => setIsLoading(false));
+      .finally(() => {
+        if (
+          isMountedRef.current &&
+          strategiesRequestId.current === requestId
+        ) {
+          setIsLoading(false);
+        }
+      });
   }, []);
 
   useEffect(() => {
@@ -95,24 +265,38 @@ export default function DashboardPage() {
   }, [loadStrategies]);
 
   useEffect(() => {
-    setRecentBacktestRefs(getRecentBacktests());
+    setRecentBacktestRefs(
+      getRecentBacktests().filter(
+        (ref) =>
+          typeof ref.strategyId === "string" && typeof ref.runId === "string"
+      )
+    );
   }, []);
 
   useEffect(() => {
-    if (recentBacktestRefs.length === 0) {
+    let isActive = true;
+    const refsWithRuns = recentBacktestRefs.filter((ref) => ref.runId);
+
+    setRecentBacktestsLoaded(false);
+    setRecentBacktestsData([]);
+
+    if (refsWithRuns.length === 0) {
       setRecentBacktestsLoaded(true);
-      return;
+      return () => {
+        isActive = false;
+      };
     }
 
     const fetchRecent = async () => {
       const results = await Promise.allSettled(
-        recentBacktestRefs
-          .filter((ref) => ref.runId)
-          .map((ref) =>
-            apiFetch<BacktestStatusResponse>(`/backtests/${ref.runId}`)
+        refsWithRuns.map((ref) =>
+          apiFetch<BacktestStatusResponse>(
+            `/backtests/${encodeURIComponent(ref.runId ?? "")}`
           )
+        )
       );
 
+      if (!isActive) return;
       const validBacktests = results
         .filter((r) => r.status === "fulfilled")
         .map((r) => (r as PromiseFulfilledResult<BacktestStatusResponse>).value);
@@ -122,6 +306,9 @@ export default function DashboardPage() {
     };
 
     fetchRecent();
+    return () => {
+      isActive = false;
+    };
   }, [recentBacktestRefs]);
 
   useEffect(() => {
@@ -131,6 +318,7 @@ export default function DashboardPage() {
   }, [successMessage]);
 
   const handleClone = async (id: string) => {
+    if (actionLoading) return;
     setActionLoading(id);
     setError(null);
     setSuccessMessage(null);
@@ -138,144 +326,349 @@ export default function DashboardPage() {
       const cloned = await apiFetch<Strategy>(`/strategies/${id}/duplicate`, {
         method: "POST",
       });
-      const updatedStrategies = await apiFetch<Strategy[]>("/strategies/");
-      setStrategies(updatedStrategies);
-      setSuccessMessage(`"${cloned.name}" was created from your strategy.`);
+      if (!isMountedRef.current) return;
+      try {
+        const updatedStrategies = await apiFetch<Strategy[]>("/strategies/");
+        if (!isMountedRef.current) return;
+        setStrategies(updatedStrategies);
+        setSuccessMessage(
+          `Created "${cloned.name}". Open it from your strategy list when you are ready to edit.`
+        );
+      } catch {
+        if (!isMountedRef.current) return;
+        setStrategies((current) => {
+          if (current.some((strategy) => strategy.id === cloned.id)) {
+            return current;
+          }
+          return [cloned, ...current];
+        });
+        setSuccessMessage(
+          `Created "${cloned.name}". It is shown here now, but the full list could not refresh.`
+        );
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to clone strategy");
+      if (!isMountedRef.current) return;
+      setError(
+        getDashboardErrorMessage(
+          err,
+          "We could not duplicate this strategy. Try again from the strategy row."
+        )
+      );
     } finally {
-      setActionLoading(null);
+      if (isMountedRef.current) {
+        setActionLoading(null);
+      }
     }
   };
 
   const recentStrategiesList = strategies.slice(0, 5);
   const displayName = formatDisplayName(user?.email);
 
-  const weekStart = new Date();
-  weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-  weekStart.setHours(0, 0, 0, 0);
-  const newThisWeek = strategies.filter(
-    (s) => new Date(s.created_at) >= weekStart
-  ).length;
-
+  const strategiesNeedingValidation = strategies.filter(needsValidation);
+  const untestedStrategies = strategies.filter(
+    (strategy) => !hasBacktestRun(strategy)
+  );
+  const staleStrategies = strategies.filter((strategy) => {
+    return hasBacktestRun(strategy) && needsValidation(strategy);
+  });
+  const nextStrategy = [...strategiesNeedingValidation].sort(
+    sortByUpdatedDesc
+  )[0];
+  const latestResultStrategy = [...strategies]
+    .filter((strategy) => hasBacktestRun(strategy))
+    .sort(sortByLastRunDesc)[0];
   const latestBacktest = recentBacktestsData[0];
+  const completedLatestBacktest =
+    latestBacktest?.status === "completed" ? latestBacktest : null;
+  const latestReturn =
+    latestResultStrategy?.latest_total_return_pct ??
+    completedLatestBacktest?.summary?.total_return_pct;
+  const validationTone = getValidationTone(strategiesNeedingValidation.length);
+  const latestOutcomeTone = getLatestOutcomeTone(latestReturn);
+  const untestedWorkTone = getUntestedWorkTone(
+    untestedStrategies.length,
+    staleStrategies.length
+  );
+  const validationDetail = getValidationDetail(
+    strategiesNeedingValidation.length
+  );
+  const latestOutcomeDetail = getLatestOutcomeDetail(latestReturn);
+  const untestedWorkDetail = getUntestedWorkDetail(
+    untestedStrategies.length,
+    staleStrategies.length
+  );
+  const primaryStrategy = nextStrategy ?? latestResultStrategy ?? strategies[0];
+  const primaryHref = strategiesLoadFailed
+    ? "/dashboard"
+    : strategies.length === 0
+      ? "/strategies"
+      : nextStrategy
+        ? `/strategies/${nextStrategy.id}/backtest`
+        : completedLatestBacktest
+          ? `/strategies/${completedLatestBacktest.strategy_id}/backtest`
+          : primaryStrategy
+            ? `/strategies/${primaryStrategy.id}`
+            : "/strategies";
+  const primaryTitle = strategiesLoadFailed
+    ? "Strategy data did not load"
+    : strategies.length === 0
+      ? "Create your first strategy"
+      : nextStrategy
+        ? `Test ${nextStrategy.name}`
+        : completedLatestBacktest
+          ? `Review the ${formatAsset(completedLatestBacktest.asset)} result`
+          : latestResultStrategy
+            ? `Continue from ${latestResultStrategy.name}`
+            : "Open your strategy workspace";
+  const primaryDescription = strategiesLoadFailed
+    ? "Retry loading so the dashboard can find the next strategy to test or review."
+    : strategies.length === 0
+      ? "Build a visual strategy first. After that, this dashboard will track what needs testing."
+      : nextStrategy
+        ? "This strategy has saved changes that have not been backtested yet."
+        : completedLatestBacktest
+          ? "Your latest viewed backtest is ready for a closer read."
+          : latestResultStrategy
+            ? "All visible strategies have current results. Reopen the latest result or refine the strategy."
+            : "Open the strategy list to pick up your work.";
+  const primaryActionLabel = strategiesLoadFailed
+    ? "Retry loading"
+    : strategies.length === 0
+      ? "Create strategy"
+      : nextStrategy
+        ? "Run backtest"
+        : completedLatestBacktest
+          ? "Open result"
+          : "Open strategy";
+  const PrimaryIcon = strategiesLoadFailed
+    ? RotateCw
+    : strategies.length === 0
+      ? Plus
+      : nextStrategy
+        ? PlayCircle
+        : Target;
+  const openStrategyHref = primaryStrategy
+    ? `/strategies/${primaryStrategy.id}`
+    : null;
+  const showOpenStrategyLink =
+    openStrategyHref !== null &&
+    !isLoading &&
+    !strategiesLoadFailed &&
+    primaryHref !== openStrategyHref;
 
   return (
-    <main className="container mx-auto max-w-6xl space-y-8 p-4 md:p-6">
-      {/* Hero */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="space-y-1">
-          <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
-            Welcome back
-          </p>
-          <h1 className="text-4xl font-bold tracking-tight">{displayName}</h1>
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-3 py-4 sm:px-4 md:gap-6 md:px-6 md:py-7">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+        <div className="max-w-2xl space-y-1">
+          <h1 className="text-2xl font-bold tracking-tight [overflow-wrap:anywhere] md:text-3xl">
+            Next strategy check, {displayName}
+          </h1>
           <p className="text-sm text-muted-foreground">
-            Your strategy workspace is ready.{" "}
-            <Link
-              href="/how-backtests-work"
-              className="inline-flex items-center gap-1 text-foreground underline-offset-4 hover:underline"
-            >
-              Learn about assumptions <ArrowRight className="h-3 w-3" />
-            </Link>
+            Validate saved changes, then review the latest result.
           </p>
         </div>
-        <div className="flex shrink-0 items-center gap-2">
-        </div>
+        <Link
+          href="/how-backtests-work"
+          className="inline-flex min-h-11 w-fit items-center gap-1 text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring md:min-h-0"
+        >
+          Backtest assumptions <ArrowRight className="h-3 w-3" />
+        </Link>
       </div>
 
-      {/* Stat cards */}
-      <div className="grid gap-4 sm:grid-cols-3">
-        {/* Strategies count */}
-        <Card>
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Strategies</span>
-              <Layers className="h-4 w-4 text-primary" />
-            </div>
-            <p className="mt-3 text-4xl font-bold tabular-nums tracking-tight">
-              {isLoading ? <Skeleton className="h-10 w-12" /> : strategies.length}
-            </p>
-            {!isLoading && newThisWeek > 0 && (
-              <div className="mt-3">
-                <Badge className="gap-1 bg-green-500/10 text-green-700 hover:bg-green-500/10 dark:text-green-400">
-                  <ArrowUpRight className="h-3 w-3" />+{newThisWeek} this week
-                </Badge>
+      <section aria-labelledby="next-action-heading">
+        <Card variant="raised" className="border-primary/10">
+          <CardContent className="p-5 lg:p-6">
+            <div className="flex min-w-0 flex-col gap-4">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div className="flex min-w-0 items-start gap-3">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-primary/15 bg-primary/10 text-primary">
+                    <PrimaryIcon className="h-5 w-5" aria-hidden="true" />
+                  </span>
+                  <div className="min-w-0 space-y-1">
+                    <h2
+                      id="next-action-heading"
+                      className="text-xl font-semibold tracking-tight [overflow-wrap:anywhere]"
+                    >
+                      {isLoading ? (
+                        <Skeleton className="h-7 w-56" />
+                      ) : (
+                        primaryTitle
+                      )}
+                    </h2>
+                    <p className="max-w-2xl text-sm text-muted-foreground [overflow-wrap:anywhere]">
+                      {isLoading ? (
+                        <Skeleton className="h-5 w-full max-w-md" />
+                      ) : (
+                        primaryDescription
+                      )}
+                    </p>
+                  </div>
+                </div>
+                <div className="grid w-full shrink-0 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center">
+                  {strategiesLoadFailed ? (
+                    <Button
+                      size="touch"
+                      onClick={loadStrategies}
+                      className="sm:h-9"
+                    >
+                      <RotateCw className="mr-2 h-4 w-4" />
+                      {primaryActionLabel}
+                    </Button>
+                  ) : isLoading ? (
+                    <Button size="touch" disabled className="sm:h-9">
+                      <PrimaryIcon className="mr-2 h-4 w-4" />
+                      {primaryActionLabel}
+                    </Button>
+                  ) : (
+                    <Button size="touch" className="sm:h-9" asChild>
+                      <Link href={primaryHref}>
+                        <PrimaryIcon className="mr-2 h-4 w-4" />
+                        {primaryActionLabel}
+                      </Link>
+                    </Button>
+                  )}
+                  {showOpenStrategyLink && openStrategyHref && (
+                    <Button
+                      variant="ghost"
+                      size="touch"
+                      className="sm:h-9"
+                      asChild
+                    >
+                      <Link href={openStrategyHref}>Open strategy</Link>
+                    </Button>
+                  )}
+                </div>
               </div>
-            )}
-            {!isLoading && newThisWeek === 0 && (
-              <div className="mt-3 h-6" />
-            )}
-          </CardContent>
-        </Card>
 
-        {/* Recently viewed backtests */}
-        <Card>
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">
-                Recently viewed backtests
-              </span>
-              <Activity className="h-4 w-4 text-green-500 dark:text-green-400" />
+              <dl className="grid gap-2 border-t border-border pt-4 text-sm sm:grid-cols-3">
+                <div
+                  className={cn(
+                    "grid min-h-24 gap-1 rounded-md border px-3 py-2.5",
+                    validationTone.surface
+                  )}
+                >
+                  <dt
+                    className={cn("text-xs font-medium", validationTone.label)}
+                  >
+                    Validation queue
+                  </dt>
+                  <dd
+                    className={cn(
+                      "font-semibold tabular-nums",
+                      validationTone.value
+                    )}
+                  >
+                    {isLoading ? (
+                      <Skeleton className="h-5 w-12" />
+                    ) : (
+                      formatValidationQueue(strategiesNeedingValidation.length)
+                    )}
+                  </dd>
+                  <dd className="text-xs leading-5 text-muted-foreground">
+                    {isLoading ? (
+                      <Skeleton className="h-4 w-36" />
+                    ) : (
+                      validationDetail
+                    )}
+                  </dd>
+                </div>
+                <div
+                  className={cn(
+                    "grid min-h-24 gap-1 rounded-md border px-3 py-2.5",
+                    latestOutcomeTone.surface
+                  )}
+                >
+                  <dt
+                    className={cn(
+                      "text-xs font-medium",
+                      latestOutcomeTone.label
+                    )}
+                  >
+                    Latest outcome
+                  </dt>
+                  <dd
+                    className={cn(
+                      latestReturn == null
+                        ? "font-semibold"
+                        : "data-text font-semibold",
+                      latestOutcomeTone.value
+                    )}
+                  >
+                    {isLoading || !recentBacktestsLoaded ? (
+                      <Skeleton className="h-5 w-16" />
+                    ) : latestReturn != null ? (
+                      formatOutcomePercent(latestReturn)
+                    ) : (
+                      "No result"
+                    )}
+                  </dd>
+                  <dd className="text-xs leading-5 text-muted-foreground">
+                    {isLoading || !recentBacktestsLoaded ? (
+                      <Skeleton className="h-4 w-32" />
+                    ) : (
+                      latestOutcomeDetail
+                    )}
+                  </dd>
+                </div>
+                <div
+                  className={cn(
+                    "grid min-h-24 gap-1 rounded-md border px-3 py-2.5",
+                    untestedWorkTone.surface
+                  )}
+                >
+                  <dt
+                    className={cn("text-xs font-medium", untestedWorkTone.label)}
+                  >
+                    Untested work
+                  </dt>
+                  <dd
+                    className={cn(
+                      "font-semibold tabular-nums",
+                      untestedWorkTone.value
+                    )}
+                  >
+                    {isLoading ? (
+                      <Skeleton className="h-5 w-12" />
+                    ) : (
+                      formatUntestedWork(
+                        untestedStrategies.length,
+                        staleStrategies.length
+                      )
+                    )}
+                  </dd>
+                  <dd className="text-xs leading-5 text-muted-foreground">
+                    {isLoading ? (
+                      <Skeleton className="h-4 w-36" />
+                    ) : (
+                      untestedWorkDetail
+                    )}
+                  </dd>
+                </div>
+              </dl>
             </div>
-            <p className="mt-3 text-4xl font-bold tabular-nums tracking-tight">
-              {!recentBacktestsLoaded ? (
-                <Skeleton className="h-10 w-8" />
-              ) : (
-                recentBacktestsData.length
-              )}
-            </p>
-            {latestBacktest ? (
-              <p className="mt-3 text-xs text-muted-foreground">
-                Last run · {formatDateOnly(latestBacktest.date_to)}
-              </p>
-            ) : (
-              <div className="mt-3 h-6" />
-            )}
           </CardContent>
         </Card>
-
-        {/* Dark CTA card */}
-        <Card className="bg-foreground text-background">
-          <CardContent className="flex h-full flex-col p-5">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-background/50">
-                Start something new
-              </span>
-              <Button
-                size="icon"
-                className="h-7 w-7 bg-primary text-primary-foreground hover:bg-primary/90"
-                asChild
-              >
-                <Link href="/strategies">
-                  <Plus className="h-3.5 w-3.5" />
-                </Link>
-              </Button>
-            </div>
-            <div className="mt-4 flex-1">
-              <p className="text-2xl font-bold leading-tight">New Strategy</p>
-              <p className="mt-1 text-sm text-background/60">Build with blocks</p>
-            </div>
-            <div className="mt-4 flex justify-end">
-              
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      </section>
 
       {error && (
         <div
           role="alert"
           aria-live="assertive"
-          className="flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive"
+          className="flex flex-col gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive sm:flex-row sm:items-start"
         >
-          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-          <div className="flex-1">{error}</div>
+          <div className="flex min-w-0 gap-3">
+            <AlertCircle
+              className="mt-0.5 h-4 w-4 shrink-0"
+              aria-hidden="true"
+            />
+            <div className="flex-1 [overflow-wrap:anywhere]">{error}</div>
+          </div>
           {strategiesLoadFailed && (
             <Button
               variant="outline"
-              size="sm"
+              size="touch"
               onClick={loadStrategies}
-              className="h-7"
+              className="w-full sm:h-9 sm:w-auto"
             >
               Retry
             </Button>
@@ -287,114 +680,24 @@ export default function DashboardPage() {
         <div
           role="status"
           aria-live="polite"
-          className="flex items-start gap-3 rounded-lg border border-green-500/30 bg-green-500/5 px-4 py-3 text-sm text-green-700 dark:text-green-400"
+          className="flex items-start gap-3 rounded-lg border border-success/30 bg-success-soft px-4 py-3 text-sm text-success"
         >
           <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-          <div className="flex-1">{successMessage}</div>
+          <div className="flex-1 [overflow-wrap:anywhere]">{successMessage}</div>
         </div>
       )}
 
-      {/* Recent Backtests */}
-      <section>
+      <section aria-labelledby="strategies-heading">
         <Card>
           <CardContent className="p-0">
-            <div className="flex items-center gap-2 px-5 py-4">
-              <Clock className="h-4 w-4 text-muted-foreground" />
-              <h2 className="font-semibold tracking-tight">Recent backtests</h2>
-              {recentBacktestsData.length > 0 && (
-                <span className="ml-0.5 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-muted px-1.5 text-xs font-medium text-muted-foreground">
-                  {recentBacktestsData.length}
-                </span>
-              )}
-              <Link
-                href="/strategies"
-                className="ml-auto flex items-center gap-1 text-sm text-primary underline-offset-4 hover:underline"
-              >
-                View all <ArrowRight className="h-3 w-3" />
-              </Link>
-            </div>
-
-            {recentBacktestsData.length > 0 ? (
-              <div className="divide-y divide-border">
-                {recentBacktestsData.map((run) => {
-                  const returnPct = run.summary?.total_return_pct;
-                  const isPositive = returnPct !== undefined && returnPct > 0;
-                  const isNegative = returnPct !== undefined && returnPct < 0;
-
-                  return (
-                    <Link
-                      key={run.run_id}
-                      href={`/strategies/${run.strategy_id}/backtest`}
-                      className="flex items-center gap-4 px-5 py-3.5 transition-colors hover:bg-muted/50"
-                    >
-                      <span className="h-2 w-2 shrink-0 rounded-full bg-primary" />
-                      <span className="min-w-0 flex-1">
-                        <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-                          <span className="font-medium">
-                            {formatAsset(run.asset)}
-                          </span>
-                          <span className="text-muted-foreground">
-                            {formatDateOnly(run.date_from)} →{" "}
-                            {formatDateOnly(run.date_to)}
-                          </span>
-                        </span>
-                      </span>
-                      <Badge
-                        variant="secondary"
-                        className="font-mono text-xs font-normal"
-                      >
-                        {run.timeframe}
-                      </Badge>
-                      {run.summary && (
-                        <span
-                          className={`flex items-center gap-1 text-sm font-semibold tabular-nums ${
-                            isPositive
-                              ? "text-green-600 dark:text-green-400"
-                              : isNegative
-                                ? "text-red-600 dark:text-red-400"
-                                : "text-foreground"
-                          }`}
-                        >
-                          {isPositive && (
-                            <ArrowUpRight className="h-3.5 w-3.5" />
-                          )}
-                          {isNegative && (
-                            <ArrowDownRight className="h-3.5 w-3.5" />
-                          )}
-                          {formatPercent(run.summary.total_return_pct)}
-                        </span>
-                      )}
-                    </Link>
-                  );
-                })}
-              </div>
-            ) : recentBacktestsLoaded ? (
-              <p className="px-5 pb-5 text-sm text-muted-foreground">
-                Backtests you run will appear here.
-              </p>
-            ) : (
-              <div className="space-y-px divide-y divide-border">
-                {[1, 2].map((i) => (
-                  <div key={i} className="flex items-center gap-4 px-5 py-4">
-                    <Skeleton className="h-2 w-2 rounded-full" />
-                    <Skeleton className="h-4 flex-1" />
-                    <Skeleton className="h-5 w-12" />
-                    <Skeleton className="h-4 w-16" />
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </section>
-
-      {/* Your Strategies */}
-      <section>
-        <Card>
-          <CardContent className="p-0">
-            <div className="flex items-center gap-2 px-5 py-4">
+            <div className="flex items-center gap-2 px-4 py-4 sm:px-5">
               <Layers className="h-4 w-4 text-muted-foreground" />
-              <h2 className="font-semibold tracking-tight">Your strategies</h2>
+              <h2
+                id="strategies-heading"
+                className="font-semibold tracking-tight"
+              >
+                Your strategies
+              </h2>
               {!isLoading && strategies.length > 0 && (
                 <span className="ml-0.5 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-muted px-1.5 text-xs font-medium text-muted-foreground">
                   {strategies.length}
@@ -402,7 +705,7 @@ export default function DashboardPage() {
               )}
               <Link
                 href="/strategies"
-                className="ml-auto flex items-center gap-1 text-sm text-primary underline-offset-4 hover:underline"
+                className="ml-auto inline-flex min-h-11 items-center gap-1 text-sm text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring md:min-h-9"
               >
                 View all <ArrowRight className="h-3 w-3" />
               </Link>
@@ -411,7 +714,10 @@ export default function DashboardPage() {
             {isLoading ? (
               <div className="divide-y divide-border">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="flex items-center gap-4 px-5 py-4">
+                  <div
+                    key={i}
+                    className="flex items-center gap-4 px-4 py-4 sm:px-5"
+                  >
                     <Skeleton className="h-8 w-8 rounded-lg" />
                     <div className="flex-1 space-y-1.5">
                       <Skeleton className="h-4 w-40" />
@@ -424,60 +730,64 @@ export default function DashboardPage() {
                 ))}
               </div>
             ) : strategies.length === 0 ? (
-              <div className="flex flex-col items-center justify-center px-5 py-16 text-center">
+              <div className="flex flex-col items-center justify-center px-5 py-14 text-center sm:py-16">
                 <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
                   <Layers className="h-7 w-7 text-primary" />
                 </div>
                 <h3 className="mb-1 font-semibold">No strategies yet</h3>
                 <p className="mb-4 text-sm text-muted-foreground">
-                  Create your first strategy to get started
+                  Build one visual strategy, then test it against historical data.
                 </p>
                 <Button asChild>
                   <Link href="/strategies">
                     <Plus className="mr-2 h-4 w-4" />
-                    Create Strategy
+                    Create strategy
                   </Link>
                 </Button>
               </div>
             ) : (
               <>
-                {/* Column headers */}
-                <div className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-4 border-t border-border px-5 py-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                <div className="hidden grid-cols-[minmax(0,1fr)_8rem_9rem_5.5rem] items-center gap-4 border-t border-border px-5 py-2 text-xs font-medium uppercase tracking-wider text-muted-foreground md:grid">
                   <span>Strategy</span>
-                  <span className="w-32 text-right">Pair</span>
-                  <span className="w-36 text-right">Updated</span>
-                  <span className="w-16" />
+                  <span className="text-right">Pair</span>
+                  <span className="text-right">Updated</span>
+                  <span className="text-right">Action</span>
                 </div>
                 <div className="divide-y divide-border">
                   {recentStrategiesList.map((strategy) => (
                     <div
                       key={strategy.id}
-                      className="group relative grid grid-cols-[1fr_auto_auto_auto] items-center gap-4 px-5 py-3.5 transition-colors hover:bg-muted/50"
+                      className="group relative flex flex-col gap-3 px-4 py-4 transition-colors duration-fast hover:bg-primary/[0.04] sm:px-5 md:grid md:grid-cols-[minmax(0,1fr)_8rem_minmax(7rem,9rem)_6rem] md:items-center md:gap-4 md:py-3.5"
                     >
                       <Link
                         href={`/strategies/${strategy.id}`}
                         aria-label={`Open strategy ${strategy.name}`}
                         className="absolute inset-0 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus-ring"
                       />
-                      {/* Strategy info */}
                       <div className="flex min-w-0 items-center gap-3">
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                          <Activity className="h-4 w-4" />
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-primary/10 bg-primary/10 text-primary">
+                          <Activity className="h-4 w-4" aria-hidden="true" />
                         </div>
                         <div className="min-w-0">
                           <p className="truncate text-sm font-medium group-hover:text-primary">
                             {strategy.name}
                           </p>
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-xs text-muted-foreground [overflow-wrap:anywhere] md:hidden">
+                            {formatAsset(strategy.asset)} ·{" "}
+                            {strategy.timeframe} ·{" "}
+                            <span className="font-mono tabular-nums">
+                              {formatDateTime(strategy.updated_at, timezone)}
+                            </span>
+                          </p>
+                          <p className="hidden truncate text-xs text-muted-foreground md:block">
                             {strategy.asset} · {strategy.timeframe}
                           </p>
                         </div>
                       </div>
-                      {/* Pair */}
-                      <div className="flex w-32 items-center justify-end gap-1.5">
+                      <div className="hidden items-center justify-end gap-1.5 md:flex">
                         <Badge
                           variant="secondary"
-                          className="text-xs font-normal"
+                          className="max-w-full truncate border-primary/15 bg-primary/5 text-xs font-normal text-primary hover:bg-primary/10"
                         >
                           {strategy.asset}
                         </Badge>
@@ -485,21 +795,22 @@ export default function DashboardPage() {
                           {strategy.timeframe}
                         </span>
                       </div>
-                      {/* Updated */}
-                      <span className="w-36 text-right text-xs text-muted-foreground">
+                      <span className="hidden text-right text-xs text-muted-foreground md:block">
                         {formatDateTime(strategy.updated_at, timezone)}
                       </span>
-                      {/* Actions */}
-                      <div className="relative z-10 flex w-16 items-center justify-end">
+                      <div className="relative z-10 flex items-center justify-start md:justify-end">
                         <Button
                           variant="ghost"
-                          size="sm"
-                          className="h-7 gap-1 px-2 text-xs text-muted-foreground hover:text-foreground"
+                          size="touch"
+                          className="h-11 gap-1 px-3 text-xs text-muted-foreground hover:text-foreground md:h-8 md:px-2"
+                          aria-label={`Duplicate ${strategy.name}`}
                           onClick={() => handleClone(strategy.id)}
-                          disabled={actionLoading === strategy.id}
+                          disabled={actionLoading !== null}
                         >
-                          <Copy className="h-3 w-3" />
-                          {actionLoading === strategy.id ? "…" : "Clone"}
+                          <Copy className="h-3 w-3" aria-hidden="true" />
+                          {actionLoading === strategy.id
+                            ? "Cloning"
+                            : "Duplicate"}
                         </Button>
                       </div>
                     </div>
@@ -509,7 +820,7 @@ export default function DashboardPage() {
                   <div className="border-t border-border px-5 py-3 text-center">
                     <Link
                       href="/strategies"
-                      className="inline-flex items-center gap-1 text-sm text-primary underline-offset-4 hover:underline"
+                      className="inline-flex min-h-11 items-center gap-1 text-sm text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring md:min-h-9"
                     >
                       +{strategies.length - 5} more strategies
                       <ArrowRight className="h-3 w-3" />
@@ -521,6 +832,6 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </section>
-    </main>
+    </div>
   );
 }

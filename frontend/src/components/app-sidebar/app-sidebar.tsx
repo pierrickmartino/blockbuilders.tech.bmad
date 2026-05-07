@@ -94,7 +94,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
               <Link href="/dashboard">
-                <div className="flex aspect-square size-9 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-sm shadow-primary/25">
+                <div className="flex aspect-square size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
                   <Blocks className="size-5" />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
@@ -124,7 +124,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                         tooltip={item.title}
                         className={cn(
                           "relative transition-colors duration-fast",
-                          isActive && "border-l-2 border-primary"
+                          isActive && "bg-sidebar-accent text-sidebar-accent-foreground"
                         )}
                       >
                         <Link href={item.url}>
