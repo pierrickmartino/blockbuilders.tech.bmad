@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { toast } from "sonner";
 import { useAuth } from "@/context/auth";
 import { useDisplay } from "@/context/display";
 import { ApiError, apiFetch } from "@/lib/api";
@@ -21,7 +22,6 @@ import {
   ArrowRight,
   Copy,
   AlertCircle,
-  CheckCircle2,
   PlayCircle,
   RotateCw,
   Target,
@@ -205,7 +205,6 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [strategiesLoadFailed, setStrategiesLoadFailed] = useState(false);
 
   const [recentBacktestRefs, setRecentBacktestRefs] = useState<
@@ -311,17 +310,10 @@ export default function DashboardPage() {
     };
   }, [recentBacktestRefs]);
 
-  useEffect(() => {
-    if (!successMessage) return;
-    const t = setTimeout(() => setSuccessMessage(null), 4000);
-    return () => clearTimeout(t);
-  }, [successMessage]);
-
   const handleClone = async (id: string) => {
     if (actionLoading) return;
     setActionLoading(id);
     setError(null);
-    setSuccessMessage(null);
     try {
       const cloned = await apiFetch<Strategy>(`/strategies/${id}/duplicate`, {
         method: "POST",
@@ -331,9 +323,9 @@ export default function DashboardPage() {
         const updatedStrategies = await apiFetch<Strategy[]>("/strategies/");
         if (!isMountedRef.current) return;
         setStrategies(updatedStrategies);
-        setSuccessMessage(
-          `Created "${cloned.name}". Open it from your strategy list when you are ready to edit.`
-        );
+        toast.success(`Created "${cloned.name}".`, {
+          description: "Open it from your strategy list when you are ready to edit.",
+        });
       } catch {
         if (!isMountedRef.current) return;
         setStrategies((current) => {
@@ -342,13 +334,13 @@ export default function DashboardPage() {
           }
           return [cloned, ...current];
         });
-        setSuccessMessage(
-          `Created "${cloned.name}". It is shown here now, but the full list could not refresh.`
-        );
+        toast.success(`Created "${cloned.name}".`, {
+          description: "It is shown here now, but the full list could not refresh.",
+        });
       }
     } catch (err) {
       if (!isMountedRef.current) return;
-      setError(
+      toast.error(
         getDashboardErrorMessage(
           err,
           "We could not duplicate this strategy. Try again from the strategy row."
@@ -650,7 +642,7 @@ export default function DashboardPage() {
         </Card>
       </section>
 
-      {error && (
+      {error && strategiesLoadFailed && (
         <div
           role="alert"
           aria-live="assertive"
@@ -663,27 +655,14 @@ export default function DashboardPage() {
             />
             <div className="flex-1 [overflow-wrap:anywhere]">{error}</div>
           </div>
-          {strategiesLoadFailed && (
-            <Button
-              variant="outline"
-              size="touch"
-              onClick={loadStrategies}
-              className="w-full sm:h-9 sm:w-auto"
-            >
-              Retry
-            </Button>
-          )}
-        </div>
-      )}
-
-      {successMessage && (
-        <div
-          role="status"
-          aria-live="polite"
-          className="flex items-start gap-3 rounded-lg border border-success/30 bg-success-soft px-4 py-3 text-sm text-success"
-        >
-          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-          <div className="flex-1 [overflow-wrap:anywhere]">{successMessage}</div>
+          <Button
+            variant="outline"
+            size="touch"
+            onClick={loadStrategies}
+            className="w-full sm:h-9 sm:w-auto"
+          >
+            Retry
+          </Button>
         </div>
       )}
 
