@@ -32,6 +32,22 @@
 - [x] Remove visible dashboard shell drift in the sidebar
 - [ ] Verify lint and local rendering (blocked: no npm/pnpm/yarn/corepack on PATH and no frontend/node_modules)
 
+## FEAT-103 — Dashboard Toast Notifications (in flight)
+
+Frontend
+- [x] Add `import { toast } from "sonner"` and remove unused `CheckCircle2` import
+- [x] Delete `successMessage` state, its `useEffect` auto-dismiss timer, and `setSuccessMessage(null)` calls
+- [x] Replace `setSuccessMessage(...)` calls in `handleClone` with `toast.success(...)`
+- [x] Replace `setError(...)` in `handleClone` catch with `toast.error(...)`
+- [x] Remove `{successMessage && (...)}` JSX block; gate inline error alert on `error && strategiesLoadFailed`
+- [x] Confirm `loadStrategies` still clears `error` on retry start (no change needed)
+
+Verification
+- [ ] Manual smoke: duplicate success toast (AC-001), partial-refresh toast (AC-002), duplicate failure toast (AC-003), layout stability (AC-004), toast dismissal (AC-005), blocking load error inline (AC-006), mobile 360px viewport (AC-007) — requires running dev server
+- [ ] Verify lint from `frontend/` (blocked: `npm`, `pnpm`, `yarn`, and `corepack` are not on PATH)
+
+---
+
 ## FEAT-102 — Pandas TA Indicator Calculation Parity (done)
 
 Backend
