@@ -64,6 +64,48 @@ function ariaSortFor(key: SortKey, activeKey: SortKey, dir: SortDir) {
   return dir === "asc" ? "ascending" : "descending";
 }
 
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+function changeTextClass(value: number | null | undefined): string {
+  if (!isFiniteNumber(value)) return "text-muted-foreground";
+  return value >= 0 ? "text-success" : "text-destructive";
+}
+
+function changePillClass(value: number | null | undefined): string {
+  if (!isFiniteNumber(value)) return "bg-muted text-muted-foreground";
+  return value >= 0 ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive";
+}
+
+function formatSignedPercent(value: number | null | undefined): string {
+  if (!isFiniteNumber(value)) return formatPercent(value);
+  return `${value >= 0 ? "+" : ""}${formatPercent(value)}`;
+}
+
+function DirectionIcon({
+  value,
+  className = "inline-block w-5 h-5",
+}: {
+  value: number | null | undefined;
+  className?: string;
+}) {
+  if (!isFiniteNumber(value)) {
+    return (
+      <ArrowUpDown
+        className={`${className} text-muted-foreground`}
+        aria-label="24 hour direction unavailable"
+      />
+    );
+  }
+
+  return value >= 0 ? (
+    <TrendingUp className={`${className} text-success`} aria-label="Up over 24 hours" />
+  ) : (
+    <TrendingDown className={`${className} text-destructive`} aria-label="Down over 24 hours" />
+  );
+}
+
 function TableSkeleton() {
   return (
     <div className="space-y-2">
@@ -87,11 +129,15 @@ export default function MarketPage() {
   const [inspectedAsset, setInspectedAsset] = useState<string | null>(null);
   const { tickers, asOf, isLoading, error, refresh } = useMarketTickers();
   const { timezone } = useDisplay();
+  const searchStatusId = "market-search-status";
 
   const filteredTickers = useMemo(() => {
+    const normalizedFilter = filter.trim().toLocaleUpperCase();
     const base = !filter
       ? tickers
-      : tickers.filter((t) => t.pair.toUpperCase().includes(filter.toUpperCase()));
+      : tickers.filter((t) =>
+          t.pair.toLocaleUpperCase().includes(normalizedFilter),
+        );
 
     const sorted = [...base].sort((a, b) => {
       const av = a[sortKey as keyof TickerItem];
@@ -118,12 +164,19 @@ export default function MarketPage() {
     }
   };
 
+  const mobileSortOptions: Array<{ key: SortKey; label: string }> = [
+    { key: "volume_24h", label: "Volume" },
+    { key: "change_24h_pct", label: "24h" },
+    { key: "price", label: "Price" },
+    { key: "volatility_percentile_1y", label: "Vol rank" },
+  ];
+
   const header = (
     <div className="flex flex-col gap-4 border-b border-border pb-5 sm:flex-row sm:items-end sm:justify-between">
       <div className="space-y-1">
         <h1 className="text-2xl font-bold tracking-tight">Market Overview</h1>
         <p className="max-w-2xl text-sm text-muted-foreground">
-          Scan live pairs, compare volatility, then inspect a chart before building or backtesting a strategy.
+          Scan pairs, compare volatility, then inspect candles before building or backtesting.
         </p>
         {asOf && (
           <p className="text-sm text-muted-foreground" aria-live="polite">
@@ -133,19 +186,20 @@ export default function MarketPage() {
       </div>
       <div className="flex w-full flex-col gap-2 sm:w-72">
         <div className="relative">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search pair, for example BTC"
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
-            className="h-10 pl-9 pr-10"
+            className="h-11 pl-9 pr-12 sm:h-10"
             aria-label="Search market pairs"
+            aria-describedby={filter ? searchStatusId : undefined}
           />
           {filter && (
             <button
               type="button"
               onClick={() => setFilter("")}
-              className="absolute right-1.5 top-1.5 grid h-7 w-7 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring"
+              className="absolute right-0 top-0 grid h-11 w-11 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring sm:right-1.5 sm:top-1.5 sm:h-7 sm:w-7"
               aria-label="Clear filter"
             >
               <X className="h-4 w-4" />
@@ -153,7 +207,11 @@ export default function MarketPage() {
           )}
         </div>
         {filter && (
-          <p className="text-xs text-muted-foreground">
+          <p
+            id={searchStatusId}
+            className="text-xs text-muted-foreground"
+            aria-live="polite"
+          >
             {filteredTickers.length} of {tickers.length} pairs match your search
           </p>
         )}
@@ -170,7 +228,7 @@ export default function MarketPage() {
     );
   }
 
-  if (error) {
+  if (error && tickers.length === 0) {
     return (
       <main className="container mx-auto max-w-6xl space-y-6 p-4 md:p-6">
         {header}
@@ -193,16 +251,45 @@ export default function MarketPage() {
   const isEmpty = filteredTickers.length === 0;
   const totalCount = tickers.length;
   const shownCount = filteredTickers.length;
+  const hasBackgroundError = Boolean(error && tickers.length > 0);
 
   return (
     <TooltipProvider>
-      <main className="container mx-auto max-w-6xl space-y-6 p-4 md:p-6">
+      <main className="container mx-auto max-w-7xl space-y-6 p-4 md:p-6">
         {header}
+
+        {hasBackgroundError && (
+          <div
+            className="rounded-lg border border-warning/30 bg-warning-soft p-3 text-sm"
+            role="status"
+          >
+            <p className="font-medium text-warning-foreground">
+              Showing the latest market data we have.
+            </p>
+            <p className="mt-1 break-words text-muted-foreground">
+              A background refresh failed. Check your connection or retry.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-3"
+              onClick={() => refresh()}
+            >
+              Retry
+            </Button>
+          </div>
+        )}
 
         {isEmpty ? (
           <div className="rounded-lg border border-dashed p-8 text-center">
-            <p className="text-sm font-medium">
-              {filter ? `No pairs match "${filter}"` : "No market pairs available"}
+            <p className="break-words text-sm font-medium">
+              {filter ? (
+                <>
+                  No pairs match <span className="data-text">{filter}</span>
+                </>
+              ) : (
+                "No market pairs available"
+              )}
             </p>
             <p className="mt-1 text-sm text-muted-foreground">
               {filter ? "Try a symbol like BTC, ETH, or SOL." : "Market data has not loaded yet. Try refreshing shortly."}
@@ -219,24 +306,49 @@ export default function MarketPage() {
             )}
           </div>
         ) : (
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
-            <section aria-labelledby="market-list-heading" className="min-w-0 space-y-3">
-              <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                  <h2 id="market-list-heading" className="text-lg font-semibold">
-                    Market Pairs
-                  </h2>
-                  <p className="text-sm text-muted-foreground">
-                    Sort by price, volume, or volatility. Use Inspect to open the chart panel.
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_20rem] xl:items-start">
+            <section aria-labelledby="market-list-heading" className="min-w-0">
+              <div className="overflow-hidden rounded-lg border border-border bg-card">
+                <div className="flex flex-col gap-3 border-b border-border p-4 sm:flex-row sm:items-end sm:justify-between">
+                  <div className="space-y-1">
+                    <h2 id="market-list-heading" className="text-lg font-semibold">
+                      Market Pairs
+                    </h2>
+                    <p className="text-sm text-muted-foreground">
+                      Sort the list, then open a pair to inspect candles and indicators.
+                    </p>
+                  </div>
+                  <p className="data-text text-sm text-muted-foreground">
+                    {shownCount} of {totalCount} pairs
                   </p>
                 </div>
-                <p className="data-text text-sm text-muted-foreground">
-                  {shownCount} of {totalCount} pairs
-                </p>
-              </div>
 
-              {/* Desktop: Table */}
-              <div className="hidden overflow-hidden rounded-lg border border-border md:block">
+                <div
+                  className="flex gap-2 overflow-x-auto border-b border-border p-3 md:hidden"
+                  aria-label="Market sort controls"
+                >
+                  {mobileSortOptions.map((option) => {
+                    const active = sortKey === option.key;
+                    return (
+                      <Button
+                        key={option.key}
+                        type="button"
+                        variant={active ? "default" : "outline"}
+                        size="touch"
+                        className="shrink-0 px-3 text-xs"
+                        onClick={() => toggleSort(option.key)}
+                        aria-pressed={active}
+                        aria-label={sortLabel(option.label, option.key, sortKey, sortDir)}
+                      >
+                        {option.label}
+                        <SortIcon active={active} dir={sortDir} />
+                      </Button>
+                    );
+                  })}
+                </div>
+
+                {/* Desktop: Table */}
+                <div className="hidden md:block">
                 <Table>
                 <TableHeader>
                   <TableRow>
@@ -298,20 +410,20 @@ export default function MarketPage() {
                       <InfoTip text={VOL_PCTILE_HELP} />
                     </TableHead>
                     <TableHead className="text-center">24h Direction</TableHead>
-                    <TableHead className="text-right">Chart</TableHead>
+                    <TableHead className="text-right">Inspect</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredTickers.map((ticker) => {
-                    const positive = ticker.change_24h_pct >= 0;
                     return (
-                      <TableRow key={ticker.pair}>
-                        <TableCell className="data-text font-medium">
+                      <TableRow key={ticker.pair} className="group">
+                        <TableCell className="data-text max-w-40 font-medium">
                           <button
                             type="button"
                             onClick={() => setInspectedAsset(ticker.pair)}
-                            className="min-h-9 rounded-md hover:text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring"
+                            className="min-h-9 max-w-full truncate rounded-md text-left transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring"
                             aria-label={`Open chart for ${ticker.pair}`}
+                            title={ticker.pair}
                           >
                             {ticker.pair}
                           </button>
@@ -320,9 +432,9 @@ export default function MarketPage() {
                           {formatPrice(ticker.price, "USDT")}
                         </TableCell>
                         <TableCell
-                          className={`data-text text-right ${positive ? "text-success" : "text-destructive"}`}
+                          className={`data-text text-right ${changeTextClass(ticker.change_24h_pct)}`}
                         >
-                          {positive ? "+" : ""}{formatPercent(ticker.change_24h_pct)}
+                          {formatSignedPercent(ticker.change_24h_pct)}
                         </TableCell>
                         <TableCell className="data-text text-right">
                           {formatNumber(ticker.volume_24h, 0)}
@@ -337,18 +449,14 @@ export default function MarketPage() {
                           {formatVolatility(ticker.volatility_percentile_1y, 0)}
                         </TableCell>
                         <TableCell className="text-center">
-                          {positive ? (
-                            <TrendingUp className="inline-block w-5 h-5 text-success" aria-label="Up over 24 hours" />
-                          ) : (
-                            <TrendingDown className="inline-block w-5 h-5 text-destructive" aria-label="Down over 24 hours" />
-                          )}
+                          <DirectionIcon value={ticker.change_24h_pct} />
                         </TableCell>
                         <TableCell className="text-right">
                           <Button
                             type="button"
                             variant="ghost"
-                            size="sm"
-                            className="h-9 px-2"
+                            size="icon"
+                            className="text-muted-foreground transition-colors group-hover:text-foreground"
                             onClick={() => setInspectedAsset(ticker.pair)}
                             aria-label={`Open ${ticker.pair} chart`}
                           >
@@ -362,42 +470,35 @@ export default function MarketPage() {
               </Table>
             </div>
 
-            {/* Mobile: Cards */}
-            <div className="space-y-3 md:hidden">
+                {/* Mobile: Cards */}
+                <div className="space-y-3 bg-background p-3 md:hidden">
               {filteredTickers.map((ticker) => {
-                const positive = ticker.change_24h_pct >= 0;
                 return (
-                  <Card key={ticker.pair}>
+                  <Card key={ticker.pair} className="overflow-hidden">
                     <CardContent className="p-4">
-                      <div className="mb-3 flex items-center justify-between gap-3">
+                      <div className="mb-4 flex items-start justify-between gap-3">
                         <button
                           type="button"
                           onClick={() => setInspectedAsset(ticker.pair)}
-                          className="data-text min-h-11 rounded-md text-lg font-medium hover:text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring"
+                          className="data-text min-h-11 min-w-0 truncate rounded-md text-left text-lg font-medium hover:text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring"
                           aria-label={`Open chart for ${ticker.pair}`}
+                          title={ticker.pair}
                         >
                           {ticker.pair}
                         </button>
-                        <div className="flex items-center gap-2">
+                        <div className="flex shrink-0 items-center gap-2">
                           <span
                             className={`data-text inline-flex min-h-9 items-center gap-1 rounded-md px-2 text-sm font-medium ${
-                              positive
-                                ? "bg-success/10 text-success"
-                                : "bg-destructive/10 text-destructive"
+                              changePillClass(ticker.change_24h_pct)
                             }`}
                           >
-                            {positive ? (
-                              <TrendingUp className="w-4 h-4" aria-label="Up over 24 hours" />
-                            ) : (
-                              <TrendingDown className="w-4 h-4" aria-label="Down over 24 hours" />
-                            )}
-                            {positive ? "+" : ""}{formatPercent(ticker.change_24h_pct)}
+                            <DirectionIcon value={ticker.change_24h_pct} className="h-4 w-4" />
+                            {formatSignedPercent(ticker.change_24h_pct)}
                           </span>
                           <Button
                             type="button"
                             variant="outline"
-                            size="sm"
-                            className="h-11 px-3"
+                            size="icon-touch"
                             onClick={() => setInspectedAsset(ticker.pair)}
                             aria-label={`Open ${ticker.pair} chart`}
                           >
@@ -405,19 +506,19 @@ export default function MarketPage() {
                           </Button>
                         </div>
                       </div>
-                      <div className="grid grid-cols-2 gap-3 text-sm">
-                        <div className="col-span-2">
-                          <p className="text-muted-foreground">Price</p>
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+                        <div>
+                          <p className="text-xs text-muted-foreground">Price</p>
                           <p className="data-text font-medium">
                             {formatPrice(ticker.price, "USDT")}
                           </p>
                         </div>
-                        <div className="col-span-2">
-                          <p className="text-muted-foreground">24h Volume</p>
+                        <div>
+                          <p className="text-xs text-muted-foreground">24h Volume</p>
                           <p className="data-text font-medium">{formatNumber(ticker.volume_24h, 0)}</p>
                         </div>
                         <div>
-                          <p className="text-muted-foreground">
+                          <p className="text-xs text-muted-foreground">
                             Return Vol<InfoTip text={VOL_STD_HELP} />
                           </p>
                           <p className="data-text font-medium">
@@ -425,7 +526,7 @@ export default function MarketPage() {
                           </p>
                         </div>
                         <div>
-                          <p className="text-muted-foreground">
+                          <p className="text-xs text-muted-foreground">
                             ATR Range<InfoTip text={VOL_ATR_HELP} />
                           </p>
                           <p className="data-text font-medium">
@@ -433,7 +534,7 @@ export default function MarketPage() {
                           </p>
                         </div>
                         <div className="col-span-2">
-                          <p className="text-muted-foreground">
+                          <p className="text-xs text-muted-foreground">
                             1Y Vol Rank<InfoTip text={VOL_PCTILE_HELP} />
                           </p>
                           <p className="data-text font-medium">
@@ -445,7 +546,8 @@ export default function MarketPage() {
                   </Card>
                 );
               })}
-            </div>
+                </div>
+              </div>
             </section>
 
             <MarketSentimentPanel asset="BTC/USDT" />

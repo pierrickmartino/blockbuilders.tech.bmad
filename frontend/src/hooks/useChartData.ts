@@ -39,6 +39,8 @@ export function useChartData({
     requestIdRef.current = requestId;
 
     if (!asset) {
+      setData(null);
+      setError(null);
       setIsLoading(false);
       return;
     }
@@ -47,6 +49,7 @@ export function useChartData({
       isMountedRef.current && requestId === requestIdRef.current;
 
     setIsLoading(true);
+    setData(null);
     try {
       const params = new URLSearchParams({ asset, timeframe });
       if (indicatorParam) params.set("indicators", indicatorParam);

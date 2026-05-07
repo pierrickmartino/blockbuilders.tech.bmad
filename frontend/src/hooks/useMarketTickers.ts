@@ -10,25 +10,30 @@ export function useMarketTickers() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const isMountedRef = useRef(true);
+  const requestIdRef = useRef(0);
 
   const fetchTickers = useCallback(async () => {
+    const requestId = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
+    const isCurrentRequest = () =>
+      isMountedRef.current && requestId === requestIdRef.current;
+
     try {
       const response = await apiFetch<TickerListResponse>("/market/tickers");
-      // Only update state if component is still mounted
-      if (isMountedRef.current) {
+      if (isCurrentRequest()) {
         setTickers(response.items);
         setAsOf(response.as_of);
         setError(null);
       }
     } catch (err) {
-      if (isMountedRef.current) {
+      if (isCurrentRequest()) {
         console.error("Failed to fetch tickers:", err);
         setError(
           err instanceof Error ? err.message : "Failed to fetch market data"
         );
       }
     } finally {
-      if (isMountedRef.current) {
+      if (isCurrentRequest()) {
         setIsLoading(false);
       }
     }

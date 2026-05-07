@@ -9,26 +9,31 @@ export function useMarketSentiment(asset: string = "BTC/USDT") {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const isMountedRef = useRef(true);
+  const requestIdRef = useRef(0);
 
   const fetchSentiment = useCallback(async () => {
+    const requestId = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
+    const isCurrentRequest = () =>
+      isMountedRef.current && requestId === requestIdRef.current;
+
     try {
       const response = await apiFetch<MarketSentimentResponse>(
         `/market/sentiment?asset=${encodeURIComponent(asset)}`
       );
-      // Only update state if component is still mounted
-      if (isMountedRef.current) {
+      if (isCurrentRequest()) {
         setSentiment(response);
         setError(null);
       }
     } catch (err) {
-      if (isMountedRef.current) {
+      if (isCurrentRequest()) {
         console.error("Failed to fetch sentiment:", err);
         setError(
           err instanceof Error ? err.message : "Failed to fetch sentiment data"
         );
       }
     } finally {
-      if (isMountedRef.current) {
+      if (isCurrentRequest()) {
         setIsLoading(false);
       }
     }

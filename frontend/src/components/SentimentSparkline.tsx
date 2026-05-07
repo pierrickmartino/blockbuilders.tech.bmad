@@ -29,7 +29,7 @@ export function SentimentSparkline({
     const isUnavailable = status === "unavailable";
     return (
       <div className="p-3">
-        <div className="mb-2 text-sm font-semibold">{label}</div>
+        <div className="mb-2 break-words text-sm font-semibold">{label}</div>
         <Badge variant="outline" className="text-xs">
           {isUnavailable ? "Source unavailable" : "No history yet"}
         </Badge>
@@ -53,8 +53,8 @@ export function SentimentSparkline({
 
   return (
     <div className="p-3">
-      <div className="mb-1 flex items-center gap-1.5">
-        <span className="text-sm font-semibold">{label}</span>
+      <div className="mb-1 flex min-w-0 items-center gap-1.5">
+        <span className="min-w-0 break-words text-sm font-semibold">{label}</span>
         {isPartial && (
           <span
             className="inline-flex items-center gap-0.5 text-xs text-warning"

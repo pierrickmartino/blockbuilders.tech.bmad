@@ -11,10 +11,16 @@ import {
   type ISeriesApi,
   type Time,
 } from "lightweight-charts";
-import { X } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useChartTheme } from "@/lib/chart-theme";
 import { useChartData, type ChartIndicatorSelection } from "@/hooks/useChartData";
 import { buildChartIndicatorCatalog } from "@/lib/chart-indicators";
@@ -31,6 +37,15 @@ const DEFAULT_TIMEFRAME = "1d";
 
 const PRICE_PANE_HEIGHT = 360;
 const OSCILLATOR_PANE_HEIGHT = 140;
+const MAX_INDICATOR_PERIOD = 500;
+
+const numberFormatter = new Intl.NumberFormat("en-US", {
+  maximumFractionDigits: 8,
+});
+const compactNumberFormatter = new Intl.NumberFormat("en-US", {
+  maximumFractionDigits: 2,
+  notation: "compact",
+});
 
 function hasTimezoneOffset(ts: string): boolean {
   return /(?:Z|[+-]\d{2}:\d{2})$/.test(ts);
@@ -53,6 +68,38 @@ function chartTimeKey(time: Time): string {
     return String(time);
   }
   return `${time.year}-${String(time.month).padStart(2, "0")}-${String(time.day).padStart(2, "0")}`;
+}
+
+function formatNumber(value: number): string {
+  return numberFormatter.format(value);
+}
+
+function formatVolume(value: number): string {
+  return compactNumberFormatter.format(value);
+}
+
+function formatDateLabel(value: string): string {
+  if (!value) return "Unknown";
+  return value.replace("T", " ").slice(0, 16);
+}
+
+function clampPeriod(value: number): number {
+  return Math.min(Math.max(Math.round(value), 1), MAX_INDICATOR_PERIOD);
+}
+
+function getChartErrorMessage(message: string): string {
+  const trimmed = message.trim();
+  if (!trimmed) return "The chart service did not return a useful error.";
+  if (/401|403|unauthor/i.test(trimmed)) {
+    return "You do not have access to this chart data. Sign in again and retry.";
+  }
+  if (/429|rate/i.test(trimmed)) {
+    return "The market data service is busy. Wait a moment, then retry.";
+  }
+  if (/network|fetch|timeout|offline/i.test(trimmed)) {
+    return "The market data service could not be reached. Check the connection and retry.";
+  }
+  return trimmed.length > 160 ? `${trimmed.slice(0, 157)}...` : trimmed;
 }
 
 interface FocusedCandle {
@@ -99,28 +146,30 @@ export function MarketChartPanel({
         hideCloseButton
         // Override the default sm:max-w-sm cap and size to ~80% on desktop.
         className={cn(
-          "w-full p-0 sm:max-w-none md:w-[80vw] flex flex-col gap-0",
+          "flex w-full flex-col gap-0 p-0 sm:max-w-none md:w-[88vw] xl:w-[80vw]",
         )}
         aria-label={asset ? `Chart inspection for ${asset}` : "Chart inspection"}
       >
-        <ChartPanelHeader
-          asset={asset}
-          timeframe={timeframe}
-          earliest={data?.data_status.earliest_candle ?? null}
-          latest={data?.data_status.latest_candle ?? null}
-          onClose={onClose}
-        />
+        <div className="sticky top-0 z-10 border-b bg-background">
+          <ChartPanelHeader
+            asset={asset}
+            timeframe={timeframe}
+            earliest={data?.data_status.earliest_candle ?? null}
+            latest={data?.data_status.latest_candle ?? null}
+            onClose={onClose}
+          />
 
-        <IndicatorSelector
-          catalog={catalog}
-          selection={selection}
-          onToggle={toggleIndicator}
-          onPeriodChange={(key, period) =>
-            setSelection((prev) =>
-              prev.map((s) => (s.key === key ? { ...s, period } : s)),
-            )
-          }
-        />
+          <IndicatorSelector
+            catalog={catalog}
+            selection={selection}
+            onToggle={toggleIndicator}
+            onPeriodChange={(key, period) =>
+              setSelection((prev) =>
+                prev.map((s) => (s.key === key ? { ...s, period } : s)),
+              )
+            }
+          />
+        </div>
 
         <ChartPanelBody
           key={`${asset ?? ""}:${timeframe}`}
@@ -162,10 +211,14 @@ function ChartPanelBody({
     setFocused(next ? { candle: next } : null);
   }, []);
 
+  const latestCandle = data?.candles.at(-1) ?? null;
+
   return (
-    <div className="flex-1 overflow-y-auto p-4 space-y-4">
+    <div className="flex-1 space-y-3 overflow-y-auto p-3 sm:p-4">
       {isLoading && !data ? (
-        <Skeleton className="h-[480px] w-full" />
+        <div role="status" aria-live="polite" aria-label="Loading chart data">
+          <Skeleton className="h-[480px] w-full" />
+        </div>
       ) : error ? (
         <ChartErrorState message={error} onRetry={onRetry} />
       ) : data && !data.data_status.has_candles ? (
@@ -180,10 +233,16 @@ function ChartPanelBody({
         />
       ) : null}
 
-      {focused && <CandleReadout candle={focused.candle} />}
-
-      {data && (
-        <SeriesLegend price={priceSeries} oscillator={oscillatorSeries} />
+      {data && data.data_status.has_candles && (
+        <ChartDataSummary
+          asset={asset}
+          timeframe={timeframe}
+          candles={data.candles}
+          selectedCandle={focused?.candle ?? latestCandle}
+          priceSeries={priceSeries}
+          oscillatorSeries={oscillatorSeries}
+          isRefreshing={isLoading}
+        />
       )}
     </div>
   );
@@ -205,15 +264,16 @@ function ChartPanelHeader({
   onClose: () => void;
 }) {
   return (
-    <header className="flex items-start justify-between border-b p-4">
-      <div>
-        <h2 className="text-lg font-semibold">{asset ?? ""}</h2>
-        <p className="text-xs text-muted-foreground">
-          Candle interval: <span className="data-text">{timeframe}</span>
+    <header className="flex items-start justify-between gap-4 p-4">
+      <div className="min-w-0">
+        <h2 className="truncate text-lg font-semibold" title={asset ?? undefined}>
+          {asset ?? "Chart inspection"}
+        </h2>
+        <p className="flex flex-wrap gap-x-1 text-xs text-muted-foreground">
+          <span className="data-text">{timeframe}</span>
           {earliest && latest && (
             <>
               {" · "}
-              Available data:{" "}
               <span className="data-text">
                 {earliest.slice(0, 10)} to {latest.slice(0, 10)}
               </span>
@@ -223,9 +283,10 @@ function ChartPanelHeader({
       </div>
       <Button
         variant="ghost"
-        size="sm"
+        size="icon-touch"
         onClick={onClose}
         aria-label="Close chart panel"
+        className="shrink-0"
       >
         <X className="h-4 w-4" />
       </Button>
@@ -246,49 +307,103 @@ function IndicatorSelector({
   onToggle: (key: string, defaultPeriod: number | undefined) => void;
   onPeriodChange: (key: string, period: number) => void;
 }) {
-  const active = (key: string) => selection.find((s) => s.key === key);
+  const selectedOptions = selection.map((sel) => {
+    const option = catalog.find((opt) => opt.key === sel.key);
+    return {
+      ...sel,
+      label: option?.label ?? sel.key.toUpperCase(),
+      defaultPeriod: option?.defaultPeriod,
+    };
+  });
+  const inactiveOptions = catalog.filter(
+    (opt) => !selection.some((sel) => sel.key === opt.key),
+  );
+  const isAtLimit = selection.length >= 8;
 
   return (
-    <div className="border-b p-3 flex flex-wrap items-center gap-2">
-      <span className="text-xs font-medium text-muted-foreground mr-1">
-        Chart indicators
-      </span>
-      {catalog.map((opt) => {
-        const sel = active(opt.key);
-        const isActive = sel !== undefined;
-        return (
-          <div
-            key={opt.key}
-            className={cn(
-              "flex items-center gap-1 rounded-md border px-2 py-1 text-xs",
-              isActive ? "border-primary bg-primary/10" : "border-border",
-            )}
+    <div className="flex flex-nowrap items-center gap-2 overflow-x-auto px-4 pb-3 sm:flex-wrap">
+      <div className="mr-1 flex min-h-11 shrink-0 flex-col justify-center sm:min-h-9">
+        <span className="text-xs font-medium text-muted-foreground">
+          Indicators
+        </span>
+        <span className="data-text text-[11px] text-muted-foreground" aria-live="polite">
+          {selection.length}/8 active
+        </span>
+      </div>
+
+      {selectedOptions.map((sel) => (
+        <div
+          key={sel.key}
+          className="flex min-h-11 max-w-[16rem] shrink-0 items-center gap-1 rounded-md border border-primary/30 bg-primary/5 px-2 text-xs sm:max-w-full"
+        >
+          <span className="min-w-0 max-w-32 truncate font-medium" title={sel.label}>
+            {sel.label}
+          </span>
+          {sel.defaultPeriod != null && sel.period != null && (
+            <input
+              type="number"
+              min={1}
+              max={MAX_INDICATOR_PERIOD}
+              value={sel.period}
+              onChange={(e) => {
+                const v = Number(e.target.value);
+                if (Number.isFinite(v)) onPeriodChange(sel.key, clampPeriod(v));
+              }}
+              onBlur={(e) => {
+                const v = Number(e.target.value);
+                onPeriodChange(sel.key, Number.isFinite(v) ? clampPeriod(v) : 1);
+              }}
+              className="h-11 w-16 rounded border border-input bg-background px-1 text-xs data-text focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring sm:h-9 sm:w-14"
+              aria-label={`${sel.label} lookback period`}
+            />
+          )}
+          <button
+            type="button"
+            onClick={() => onToggle(sel.key, sel.defaultPeriod)}
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-background hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring sm:h-8 sm:w-8"
+            aria-label={`Remove ${sel.label}`}
           >
-            <button
-              type="button"
-              onClick={() => onToggle(opt.key, opt.defaultPeriod)}
-              aria-pressed={isActive}
-              className="font-medium"
+            <X className="h-3.5 w-3.5" aria-hidden="true" />
+          </button>
+        </div>
+      ))}
+
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            type="button"
+            variant="outline"
+            size="touch"
+            className="px-3 text-xs"
+            disabled={inactiveOptions.length === 0 || isAtLimit}
+            aria-label={
+              isAtLimit
+                ? "Indicator limit reached"
+                : "Add chart indicator"
+            }
+          >
+            <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+            Add
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start">
+          {inactiveOptions.map((opt) => (
+            <DropdownMenuItem
+              key={opt.key}
+              onSelect={() => onToggle(opt.key, opt.defaultPeriod)}
+              disabled={isAtLimit}
             >
               {opt.label}
-            </button>
-            {isActive && opt.defaultPeriod != null && sel?.period != null && (
-              <input
-                type="number"
-                min={1}
-                max={500}
-                value={sel.period}
-                onChange={(e) => {
-                  const v = Number(e.target.value);
-                  if (Number.isFinite(v) && v >= 1) onPeriodChange(opt.key, v);
-                }}
-                className="w-12 rounded border border-border bg-background px-1 py-0.5 text-xs data-text"
-                aria-label={`${opt.label} lookback period`}
-              />
-            )}
-          </div>
-        );
-      })}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {isAtLimit && (
+        <span className="min-h-11 shrink-0 content-center text-xs text-muted-foreground sm:min-h-9">
+          Indicator limit reached
+        </span>
+      )}
     </div>
   );
 }
@@ -313,6 +428,7 @@ function ChartCanvas({
   const oscillatorContainerRef = useRef<HTMLDivElement>(null);
   const priceChartRef = useRef<IChartApi | null>(null);
   const oscChartRef = useRef<IChartApi | null>(null);
+  const hasCandles = candles.length > 0;
 
   // Build a timestamp -> candle index for crosshair lookups.
   const candleByTime = useMemo(() => {
@@ -326,7 +442,7 @@ function ChartCanvas({
   // Price pane (candles + volume + price-pane indicators)
   useEffect(() => {
     const container = priceContainerRef.current;
-    if (!container || candles.length === 0) return;
+    if (!container || !hasCandles || container.clientWidth === 0) return;
 
     const chart = createChart(container, {
       width: container.clientWidth,
@@ -399,10 +515,11 @@ function ChartCanvas({
       );
     });
 
-    const handleResize = () => {
-      chart.applyOptions({ width: container.clientWidth });
-    };
-    window.addEventListener("resize", handleResize);
+    const resizeObserver = new ResizeObserver(([entry]) => {
+      const width = Math.floor(entry.contentRect.width);
+      if (width > 0) chart.applyOptions({ width });
+    });
+    resizeObserver.observe(container);
 
     chart.subscribeCrosshairMove((param) => {
       if (!param.time) {
@@ -414,17 +531,19 @@ function ChartCanvas({
     });
 
     return () => {
-      window.removeEventListener("resize", handleResize);
+      resizeObserver.disconnect();
       chart.remove();
       priceChartRef.current = null;
     };
     // theme intentionally included so we rebuild on dark-mode toggle
-  }, [candles, priceSeries, theme, candleByTime, onFocus, timeframe]);
+  }, [candles, priceSeries, theme, candleByTime, onFocus, timeframe, hasCandles]);
 
   // Oscillator pane (separate chart instance)
   useEffect(() => {
     const container = oscillatorContainerRef.current;
-    if (!container || oscillatorSeries.length === 0) return;
+    if (!container || oscillatorSeries.length === 0 || container.clientWidth === 0) {
+      return;
+    }
 
     const chart = createChart(container, {
       width: container.clientWidth,
@@ -468,13 +587,14 @@ function ChartCanvas({
       (series as ISeriesApi<"Line"> | ISeriesApi<"Histogram">).setData(points);
     });
 
-    const handleResize = () => {
-      chart.applyOptions({ width: container.clientWidth });
-    };
-    window.addEventListener("resize", handleResize);
+    const resizeObserver = new ResizeObserver(([entry]) => {
+      const width = Math.floor(entry.contentRect.width);
+      if (width > 0) chart.applyOptions({ width });
+    });
+    resizeObserver.observe(container);
 
     return () => {
-      window.removeEventListener("resize", handleResize);
+      resizeObserver.disconnect();
       chart.remove();
       oscChartRef.current = null;
     };
@@ -482,9 +602,17 @@ function ChartCanvas({
 
   return (
     <div className="space-y-2">
-      <div ref={priceContainerRef} aria-label="Candlestick price chart" />
+      <div
+        ref={priceContainerRef}
+        className="min-h-[360px]"
+        aria-label="Candlestick price chart"
+      />
       {oscillatorSeries.length > 0 && (
-        <div ref={oscillatorContainerRef} aria-label="Selected indicator chart" />
+        <div
+          ref={oscillatorContainerRef}
+          className="min-h-[140px]"
+          aria-label="Selected indicator chart"
+        />
       )}
     </div>
   );
@@ -492,40 +620,205 @@ function ChartCanvas({
 
 // --- supporting blocks ----------------------------------------------------
 
-function CandleReadout({ candle }: { candle: ChartCandle }) {
+function ChartDataSummary({
+  asset,
+  timeframe,
+  candles,
+  selectedCandle,
+  priceSeries,
+  oscillatorSeries,
+  isRefreshing,
+}: {
+  asset: string | null;
+  timeframe: string;
+  candles: ChartCandle[];
+  selectedCandle: ChartCandle | null;
+  priceSeries: IndicatorSeries[];
+  oscillatorSeries: IndicatorSeries[];
+  isRefreshing: boolean;
+}) {
+  const activeSeries = [...priceSeries, ...oscillatorSeries];
+  const range = useMemo(() => {
+    if (candles.length === 0) return null;
+    let low = candles[0].low;
+    let high = candles[0].high;
+    for (const candle of candles) {
+      low = Math.min(low, candle.low);
+      high = Math.max(high, candle.high);
+    }
+    return { low, high };
+  }, [candles]);
+
   return (
-    <div
-      className="rounded-md border bg-card p-3 text-xs flex flex-wrap gap-x-4 gap-y-1"
-      role="status"
-      aria-live="polite"
+    <section
+      className="rounded-lg border bg-card p-4 text-xs"
+      aria-labelledby="chart-data-summary-heading"
     >
-      <span className="data-text font-medium">
-        {candle.timestamp.replace("T", " ").slice(0, 16)}
-      </span>
-      <span>Open <span className="data-text">{candle.open}</span></span>
-      <span>High <span className="data-text">{candle.high}</span></span>
-      <span>Low <span className="data-text">{candle.low}</span></span>
-      <span>Close <span className="data-text">{candle.close}</span></span>
-      <span>Volume <span className="data-text">{candle.volume}</span></span>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 id="chart-data-summary-heading" className="text-sm font-medium">
+          Chart data
+        </h3>
+        <span
+          className="data-text rounded-md border border-border bg-muted/40 px-2 py-1 text-muted-foreground"
+          role="status"
+        >
+          {isRefreshing ? "Refreshing" : `${candles.length} candles`}
+        </span>
+      </div>
+      <dl className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <SummaryItem label="Pair" value={asset ?? "Unknown"} />
+        <SummaryItem label="Timeframe" value={timeframe} isData />
+        <SummaryItem
+          label="Range"
+          value={
+            range
+              ? `${formatNumber(range.low)} to ${formatNumber(range.high)}`
+              : "Unknown"
+          }
+          isData
+        />
+        <SummaryItem
+          label="Indicators"
+          value={
+            activeSeries.length > 0
+              ? activeSeries.map((series) => series.label).join(", ")
+              : "None"
+          }
+        />
+      </dl>
+      {selectedCandle && <CandleReadout candle={selectedCandle} />}
+      <ChartScreenReaderTable
+        selectedCandle={selectedCandle}
+        activeSeries={activeSeries}
+      />
+    </section>
+  );
+}
+
+function SummaryItem({
+  label,
+  value,
+  isData = false,
+}: {
+  label: string;
+  value: string;
+  isData?: boolean;
+}) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-xs text-muted-foreground">{label}</dt>
+      <dd
+        className={cn(
+          "mt-1 break-words text-sm text-foreground",
+          isData && "data-text",
+        )}
+        title={value}
+      >
+        {value}
+      </dd>
     </div>
   );
 }
 
-function SeriesLegend({
-  price,
-  oscillator,
-}: {
-  price: IndicatorSeries[];
-  oscillator: IndicatorSeries[];
-}) {
-  if (price.length === 0 && oscillator.length === 0) return null;
+function CandleReadout({ candle }: { candle: ChartCandle }) {
+  const items = [
+    ["Open", formatNumber(candle.open)],
+    ["High", formatNumber(candle.high)],
+    ["Low", formatNumber(candle.low)],
+    ["Close", formatNumber(candle.close)],
+    ["Volume", formatVolume(candle.volume)],
+  ];
+
   return (
-    <div className="text-xs text-muted-foreground flex flex-wrap gap-3">
-      {[...price, ...oscillator].map((s) => (
-        <span key={s.key} className="rounded border px-2 py-0.5">
-          {s.label}
-        </span>
+    <dl
+      className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground"
+      role="status"
+      aria-live="polite"
+    >
+      <div className="data-text font-medium text-foreground">
+        <dt className="sr-only">Selected candle time</dt>
+        <dd>{formatDateLabel(candle.timestamp)}</dd>
+      </div>
+      {items.map(([label, value]) => (
+        <div key={label} className="flex gap-1">
+          <dt>{label}</dt>
+          <dd className="data-text text-foreground">{value}</dd>
+        </div>
       ))}
+    </dl>
+  );
+}
+
+function ChartScreenReaderTable({
+  selectedCandle,
+  activeSeries,
+}: {
+  selectedCandle: ChartCandle | null;
+  activeSeries: IndicatorSeries[];
+}) {
+  const latestIndicatorRows = activeSeries.map((series) => {
+    const latestPoint = [...series.points].reverse().find((p) => p.value !== null);
+    return {
+      key: series.key,
+      label: series.label,
+      pane: series.pane,
+      value: latestPoint ? formatNumber(latestPoint.value as number) : "No value",
+    };
+  });
+
+  return (
+    <div className="sr-only">
+      <table>
+        <caption>Accessible chart data fallback</caption>
+        <tbody>
+          {selectedCandle ? (
+            <>
+              <tr>
+                <th scope="row">Selected candle time</th>
+                <td>{formatDateLabel(selectedCandle.timestamp)}</td>
+              </tr>
+              <tr>
+                <th scope="row">Open</th>
+                <td>{formatNumber(selectedCandle.open)}</td>
+              </tr>
+              <tr>
+                <th scope="row">High</th>
+                <td>{formatNumber(selectedCandle.high)}</td>
+              </tr>
+              <tr>
+                <th scope="row">Low</th>
+                <td>{formatNumber(selectedCandle.low)}</td>
+              </tr>
+              <tr>
+                <th scope="row">Close</th>
+                <td>{formatNumber(selectedCandle.close)}</td>
+              </tr>
+              <tr>
+                <th scope="row">Volume</th>
+                <td>{formatVolume(selectedCandle.volume)}</td>
+              </tr>
+            </>
+          ) : (
+            <tr>
+              <th scope="row">Selected candle</th>
+              <td>No candle selected</td>
+            </tr>
+          )}
+          {latestIndicatorRows.length > 0 ? (
+            latestIndicatorRows.map((row) => (
+              <tr key={row.key}>
+                <th scope="row">{row.label}</th>
+                <td>{row.value} on {row.pane} pane</td>
+              </tr>
+            ))
+          ) : (
+            <tr>
+              <th scope="row">Indicators</th>
+              <td>No active indicators</td>
+            </tr>
+          )}
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -535,7 +828,9 @@ function ChartEmptyState({ asset, timeframe }: { asset: string; timeframe: strin
     <div className="rounded-lg border border-dashed p-8 text-center">
       <p className="text-sm font-medium">No price candles for this selection.</p>
       <p className="mt-1 text-xs text-muted-foreground">
-        {asset} at {timeframe}. Try another pair or timeframe when available.
+        <span className="break-words">{asset || "This pair"}</span>{" "}
+        <span className="data-text">at {timeframe}</span>. Try another pair or
+        timeframe when available.
       </p>
     </div>
   );
@@ -543,9 +838,14 @@ function ChartEmptyState({ asset, timeframe }: { asset: string; timeframe: strin
 
 function ChartErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
   return (
-    <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm">
+    <div
+      className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm"
+      role="alert"
+    >
       <p className="font-medium text-destructive">Could not load the chart.</p>
-      <p className="mt-1 text-muted-foreground">{message}</p>
+      <p className="mt-1 break-words text-muted-foreground">
+        {getChartErrorMessage(message)}
+      </p>
       <Button variant="outline" size="sm" className="mt-3" onClick={onRetry}>
         Retry
       </Button>

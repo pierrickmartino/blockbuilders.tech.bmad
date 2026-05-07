@@ -1,5 +1,27 @@
 # Tasks — in flight
 
+## Market page polish pass (in flight)
+
+- [x] Write polish plan for market page
+- [x] Receive implementation approval
+- [x] Make market list hierarchy and scanability feel composed
+- [x] Flatten sentiment panel density while preserving source states
+- [x] Tune chart panel controls and data summary polish
+- [x] Verify lint from `frontend/` via local ESLint binary (0 errors, existing warnings elsewhere)
+- [x] Verify TypeScript from `frontend/` via local TypeScript binary (`tsc --noEmit` clean)
+- [x] Manual visual smoke stopped at user direction
+
+## Market page hardening pass (in flight)
+
+- [x] Write hardening plan for market page
+- [x] Receive implementation approval
+- [x] Harden market ticker and sentiment polling against stale responses
+- [x] Harden market page overflow, empty, error, and live status states
+- [x] Harden chart inspection panel accessible data fallback and edge states
+- [x] Verify lint from `frontend/` via bundled Node runtime (0 errors, existing warnings elsewhere)
+- [x] Verify TypeScript from `frontend/` via bundled Node runtime (`tsc --noEmit` clean)
+- [x] Manual smoke: long symbols, empty filter, API failure, mobile width, keyboard inspect (skipped at user direction)
+
 ## Market page layout pass (in flight)
 
 - [x] Write layout plan for market page

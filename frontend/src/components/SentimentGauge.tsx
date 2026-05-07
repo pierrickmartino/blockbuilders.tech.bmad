@@ -49,8 +49,8 @@ export function SentimentGauge({
 
   return (
     <div className={status === "partial" ? "p-3 opacity-80" : "p-3"}>
-      <div className="mb-2 flex items-center gap-2 text-sm font-semibold">
-        {label}
+      <div className="mb-2 flex min-w-0 items-center gap-2 text-sm font-semibold">
+        <span className="min-w-0 break-words">{label}</span>
         {status === "partial" && (
           <TooltipProvider>
             <Tooltip>
@@ -74,6 +74,7 @@ export function SentimentGauge({
         aria-valuenow={value ?? undefined}
         aria-valuemin={min}
         aria-valuemax={max}
+        aria-valuetext={displayValue}
       >
         <div
           className={`${gaugeColor(clampedPct)} h-2 rounded-full transition-all`}
