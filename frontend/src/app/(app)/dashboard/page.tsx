@@ -58,7 +58,7 @@ function formatCount(count: number, singular: string, plural: string): string {
 
 function formatValidationQueue(count: number): string {
   if (count === 0) return "Clear";
-  return formatCount(count, "to validate", "to validate");
+  return formatCount(count, "to test", "to test");
 }
 
 function getValidationDetail(count: number): string {
@@ -97,13 +97,13 @@ function getLatestOutcomeDetail(value: number | null | undefined): string {
 function getValidationTone(count: number) {
   if (count === 0) {
     return {
-      surface: "border-success/25 bg-success-soft/70",
+      surface: "bg-success-soft/60",
       label: "text-foreground",
       value: "text-foreground",
     };
   }
   return {
-    surface: "border-primary/20 bg-primary/5",
+    surface: "bg-primary/5",
     label: "text-primary",
     value: "text-primary",
   };
@@ -112,20 +112,20 @@ function getValidationTone(count: number) {
 function getLatestOutcomeTone(value: number | null | undefined) {
   if (value == null || value === 0) {
     return {
-      surface: "border-border bg-background/50",
+      surface: "",
       label: "text-muted-foreground",
       value: "text-foreground",
     };
   }
   if (value > 0) {
     return {
-      surface: "border-success/25 bg-success-soft/70",
+      surface: "bg-success-soft/60",
       label: "text-foreground",
       value: "text-foreground",
     };
   }
   return {
-    surface: "border-destructive/25 bg-destructive-soft",
+    surface: "bg-destructive-soft",
     label: "text-foreground",
     value: "text-foreground",
   };
@@ -134,13 +134,13 @@ function getLatestOutcomeTone(value: number | null | undefined) {
 function getUntestedWorkTone(untested: number, changed: number) {
   if (untested === 0 && changed === 0) {
     return {
-      surface: "border-border bg-background/50",
+      surface: "",
       label: "text-muted-foreground",
       value: "text-foreground",
     };
   }
   return {
-    surface: "border-warning/25 bg-warning-soft/80",
+    surface: "bg-warning-soft/70",
     label: "text-foreground",
     value: "text-foreground",
   };
@@ -450,21 +450,20 @@ export default function DashboardPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-3 py-4 sm:px-4 md:gap-6 md:px-6 md:py-7">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-        <div className="max-w-2xl space-y-1">
-          <h1 className="text-2xl font-bold tracking-tight [overflow-wrap:anywhere] md:text-3xl">
-            Next strategy check, {displayName}
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Validate saved changes, then review the latest result.
-          </p>
-        </div>
-        <Link
-          href="/how-backtests-work"
-          className="inline-flex min-h-11 w-fit items-center gap-1 text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring md:min-h-0"
-        >
-          Backtest assumptions <ArrowRight className="h-3 w-3" />
-        </Link>
+      <div className="max-w-2xl space-y-1">
+        <h1 className="text-2xl font-bold tracking-tight [overflow-wrap:anywhere] md:text-3xl">
+          Next strategy check, {displayName}
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          Validate saved changes, then review the latest result.{" "}
+          <Link
+            href="/how-backtests-work"
+            className="inline-flex items-center gap-0.5 underline underline-offset-4 hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring rounded-sm"
+          >
+            Backtest assumptions
+            <ArrowRight className="h-3 w-3" aria-hidden="true" />
+          </Link>
+        </p>
       </div>
 
       <section aria-labelledby="next-action-heading">
@@ -532,17 +531,17 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              <dl className="grid gap-2 border-t border-border pt-4 text-sm sm:grid-cols-3">
+              <dl className="mt-4 grid border-t border-border text-sm sm:grid-cols-3 divide-y divide-border sm:divide-y-0 sm:divide-x">
                 <div
                   className={cn(
-                    "grid min-h-24 gap-1 rounded-md border px-3 py-2.5",
+                    "grid min-h-[4.5rem] content-start gap-1 px-3 py-3",
                     validationTone.surface
                   )}
                 >
                   <dt
                     className={cn("text-xs font-medium", validationTone.label)}
                   >
-                    Validation queue
+                    Needs testing
                   </dt>
                   <dd
                     className={cn(
@@ -566,7 +565,7 @@ export default function DashboardPage() {
                 </div>
                 <div
                   className={cn(
-                    "grid min-h-24 gap-1 rounded-md border px-3 py-2.5",
+                    "grid min-h-[4.5rem] content-start gap-1 px-3 py-3",
                     latestOutcomeTone.surface
                   )}
                 >
@@ -576,7 +575,7 @@ export default function DashboardPage() {
                       latestOutcomeTone.label
                     )}
                   >
-                    Latest outcome
+                    Latest result
                   </dt>
                   <dd
                     className={cn(
@@ -604,7 +603,7 @@ export default function DashboardPage() {
                 </div>
                 <div
                   className={cn(
-                    "grid min-h-24 gap-1 rounded-md border px-3 py-2.5",
+                    "grid min-h-[4.5rem] content-start gap-1 px-3 py-3",
                     untestedWorkTone.surface
                   )}
                 >
@@ -748,8 +747,9 @@ export default function DashboardPage() {
                           <Activity className="h-4 w-4" aria-hidden="true" />
                         </div>
                         <div className="min-w-0">
-                          <p className="truncate text-sm font-medium group-hover:text-primary">
-                            {strategy.name}
+                          <p className="flex min-w-0 items-center gap-1 text-sm font-medium group-hover:text-primary">
+                            <span className="truncate">{strategy.name}</span>
+                            <ArrowRight className="h-3 w-3 shrink-0 opacity-0 transition-opacity duration-fast group-hover:opacity-50" aria-hidden="true" />
                           </p>
                           <p className="text-xs text-muted-foreground [overflow-wrap:anywhere] md:hidden">
                             {formatAsset(strategy.asset)} ·{" "}
@@ -774,7 +774,7 @@ export default function DashboardPage() {
                           {strategy.timeframe}
                         </span>
                       </div>
-                      <span className="hidden text-right text-xs text-muted-foreground md:block">
+                      <span className="hidden text-right font-mono tabular-nums text-xs text-muted-foreground md:block">
                         {formatDateTime(strategy.updated_at, timezone)}
                       </span>
                       <div className="relative z-10 flex items-center justify-start md:justify-end">

@@ -34,6 +34,7 @@ interface MarketChartPanelProps {
 }
 
 const DEFAULT_TIMEFRAME = "1d";
+const TIMEFRAMES = ["1h", "4h", "1d", "1w"] as const;
 
 const PRICE_PANE_HEIGHT = 360;
 const OSCILLATOR_PANE_HEIGHT = 140;
@@ -111,6 +112,7 @@ export function MarketChartPanel({
   timeframe = DEFAULT_TIMEFRAME,
   onClose,
 }: MarketChartPanelProps): JSX.Element {
+  const [activeTimeframe, setActiveTimeframe] = useState(timeframe);
   const catalog = useMemo(() => buildChartIndicatorCatalog(), []);
   const [selection, setSelection] = useState<ChartIndicatorSelection[]>([
     { key: "ema", period: 20 },
@@ -118,7 +120,7 @@ export function MarketChartPanel({
   ]);
   const { data, isLoading, error, refresh } = useChartData({
     asset,
-    timeframe,
+    timeframe: activeTimeframe,
     indicators: selection,
   });
 
@@ -153,10 +155,11 @@ export function MarketChartPanel({
         <div className="sticky top-0 z-10 border-b bg-background">
           <ChartPanelHeader
             asset={asset}
-            timeframe={timeframe}
+            timeframe={activeTimeframe}
             earliest={data?.data_status.earliest_candle ?? null}
             latest={data?.data_status.latest_candle ?? null}
             onClose={onClose}
+            onTimeframeChange={setActiveTimeframe}
           />
 
           <IndicatorSelector
@@ -172,9 +175,9 @@ export function MarketChartPanel({
         </div>
 
         <ChartPanelBody
-          key={`${asset ?? ""}:${timeframe}`}
+          key={`${asset ?? ""}:${activeTimeframe}`}
           asset={asset}
-          timeframe={timeframe}
+          timeframe={activeTimeframe}
           data={data}
           isLoading={isLoading}
           error={error}
@@ -256,40 +259,56 @@ function ChartPanelHeader({
   earliest,
   latest,
   onClose,
+  onTimeframeChange,
 }: {
   asset: string | null;
   timeframe: string;
   earliest: string | null;
   latest: string | null;
   onClose: () => void;
+  onTimeframeChange: (tf: string) => void;
 }) {
   return (
     <header className="flex items-start justify-between gap-4 p-4">
-      <div className="min-w-0">
+      <div className="min-w-0 flex-1">
         <h2 className="truncate text-lg font-semibold" title={asset ?? undefined}>
           {asset ?? "Chart inspection"}
         </h2>
-        <p className="flex flex-wrap gap-x-1 text-xs text-muted-foreground">
-          <span className="data-text">{timeframe}</span>
-          {earliest && latest && (
-            <>
-              {" · "}
-              <span className="data-text">
-                {earliest.slice(0, 10)} to {latest.slice(0, 10)}
-              </span>
-            </>
-          )}
-        </p>
+        {earliest && latest && (
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            <span className="data-text">{earliest.slice(0, 10)} to {latest.slice(0, 10)}</span>
+          </p>
+        )}
       </div>
-      <Button
-        variant="ghost"
-        size="icon-touch"
-        onClick={onClose}
-        aria-label="Close chart panel"
-        className="shrink-0"
-      >
-        <X className="h-4 w-4" />
-      </Button>
+      <div className="flex shrink-0 items-center gap-3">
+        <div className="flex gap-1" role="group" aria-label="Chart timeframe">
+          {TIMEFRAMES.map((tf) => (
+            <button
+              key={tf}
+              type="button"
+              onClick={() => onTimeframeChange(tf)}
+              className={cn(
+                "data-text rounded px-2 py-1 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring",
+                tf === timeframe
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground",
+              )}
+              aria-pressed={tf === timeframe}
+              aria-label={`${tf} timeframe`}
+            >
+              {tf}
+            </button>
+          ))}
+        </div>
+        <Button
+          variant="ghost"
+          size="icon-touch"
+          onClick={onClose}
+          aria-label="Close chart panel"
+        >
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
     </header>
   );
 }

@@ -1,0 +1,122 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - link "Skip to main content" [ref=e3] [cursor=pointer]:
+      - /url: "#main"
+    - banner [ref=e4]:
+      - generic [ref=e5]:
+        - generic [ref=e6]:
+          - img [ref=e8]
+          - generic [ref=e11]: Blockbuilders
+        - generic [ref=e12]:
+          - link "Sign in" [ref=e13] [cursor=pointer]:
+            - /url: /login
+          - link "Get started free" [ref=e14] [cursor=pointer]:
+            - /url: /login?mode=signup
+    - main [ref=e15]:
+      - region "Build crypto strategies visually." [ref=e16]:
+        - generic [ref=e18]:
+          - generic [ref=e19]:
+            - heading "Build crypto strategies visually." [level=1] [ref=e20]:
+              - text: Build crypto strategies
+              - emphasis [ref=e21]: visually
+              - text: .
+            - paragraph [ref=e22]: Blockbuilders is a no-code strategy lab for retail crypto traders. Drag blocks onto a canvas, backtest against real historical data, and iterate until your strategy makes sense — without writing a single line of code.
+            - generic [ref=e23]:
+              - link "Start building free" [ref=e24] [cursor=pointer]:
+                - /url: /login?mode=signup
+                - text: Start building free
+                - img
+              - paragraph [ref=e25]:
+                - text: No credit card required.
+                - link "Sign in" [ref=e26] [cursor=pointer]:
+                  - /url: /login
+          - generic [ref=e27]:
+            - generic [ref=e28]:
+              - generic [ref=e29]: untitled-strategy.bb
+              - generic [ref=e32]: ready
+            - generic [ref=e33]:
+              - generic [ref=e34]:
+                - generic [ref=e36]: indicator
+                - generic [ref=e37]: EMA(12)
+              - generic [ref=e39]:
+                - generic [ref=e41]: indicator
+                - generic [ref=e42]: EMA(26)
+              - generic [ref=e44]:
+                - generic [ref=e46]: logic
+                - generic [ref=e47]: crossOver
+              - generic [ref=e49]:
+                - generic [ref=e51]: signal
+                - generic [ref=e52]: BUY · BTC/USDT
+      - region "How it works" [ref=e53]:
+        - generic [ref=e54]:
+          - generic [ref=e55]:
+            - heading "How it works" [level=2] [ref=e56]
+            - paragraph [ref=e57]: From idea to backtest in three steps.
+          - list [ref=e58]:
+            - listitem [ref=e59]:
+              - generic [ref=e60]: Step 01
+              - 'heading "Step 01: Pick your blocks" [level=3] [ref=e61]':
+                - generic [ref=e62]: "Step 01:"
+                - text: Pick your blocks
+              - paragraph [ref=e63]: Choose from indicators like MA, EMA, RSI, and MACD. Add logic blocks to define entry and exit conditions.
+            - listitem [ref=e64]:
+              - generic [ref=e65]: Step 02
+              - 'heading "Step 02: Connect & configure" [level=3] [ref=e66]':
+                - generic [ref=e67]: "Step 02:"
+                - text: Connect & configure
+              - paragraph [ref=e68]: Wire blocks together on a visual canvas. Set parameters with a single click — no typing required.
+            - listitem [ref=e69]:
+              - generic [ref=e70]: Step 03
+              - 'heading "Step 03: Run & iterate" [level=3] [ref=e71]':
+                - generic [ref=e72]: "Step 03:"
+                - text: Run & iterate
+              - paragraph [ref=e73]: Hit backtest. Review your equity curve and metrics. Adjust blocks and run again until it makes sense.
+      - region "Everything you need to test your ideas" [ref=e74]:
+        - generic [ref=e75]:
+          - generic [ref=e76]:
+            - heading "Everything you need to test your ideas" [level=2] [ref=e77]
+            - paragraph [ref=e78]: Built for traders who think visually, not programmatically.
+          - list [ref=e79]:
+            - listitem [ref=e80]:
+              - img [ref=e82]
+              - heading "Visual Strategy Builder" [level=3] [ref=e85]
+              - paragraph [ref=e86]: Drag and drop indicator, logic, and signal blocks onto a canvas. Connect them visually — no code, no formulas.
+            - listitem [ref=e87]:
+              - img [ref=e89]
+              - heading "Instant Backtesting" [level=3] [ref=e92]
+              - paragraph [ref=e93]: Run your strategy against years of historical BTC/USDT and ETH/USDT data in seconds. See results immediately.
+            - listitem [ref=e94]:
+              - img [ref=e96]
+              - heading "Built-in Risk Controls" [level=3] [ref=e98]
+              - paragraph [ref=e99]: Set stop-loss, take-profit, and position sizing right on the canvas. Your risk rules are part of your strategy.
+            - listitem [ref=e100]:
+              - img [ref=e102]
+              - heading "Clear Performance Metrics" [level=3] [ref=e103]
+              - paragraph [ref=e104]: Equity curve, win rate, max drawdown, and a full trade list — all presented in plain language you can act on.
+            - listitem [ref=e105]:
+              - img [ref=e107]
+              - heading "Strategy Monitoring" [level=3] [ref=e109]
+              - paragraph [ref=e110]: Save your strategies and get automatic daily re-runs so you always know how they perform on fresh data.
+      - region "Ready to test your first strategy?" [ref=e111]:
+        - generic [ref=e113]:
+          - heading "Ready to test your first strategy?" [level=2] [ref=e114]
+          - paragraph [ref=e115]: Validate your ideas against years of real historical data before putting real money on the line.
+          - link "Get started — it's free" [ref=e116] [cursor=pointer]:
+            - /url: /login?mode=signup
+            - text: Get started — it's free
+            - img
+    - contentinfo [ref=e117]:
+      - generic [ref=e118]:
+        - generic [ref=e119]:
+          - img [ref=e121]
+          - generic [ref=e124]: Blockbuilders
+        - paragraph [ref=e125]: A no-code strategy lab for crypto traders.
+        - navigation "Footer" [ref=e126]:
+          - link "Privacy" [ref=e127] [cursor=pointer]:
+            - /url: /privacy
+          - link "Terms" [ref=e128] [cursor=pointer]:
+            - /url: /terms
+          - link "Contact" [ref=e129] [cursor=pointer]:
+            - /url: /contact
+  - region "Notifications alt+T"
+  - alert [ref=e130]

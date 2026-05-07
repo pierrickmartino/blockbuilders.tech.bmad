@@ -57,9 +57,10 @@ export function MarketSentimentPanel({ asset }: MarketSentimentPanelProps) {
       <section className={PANEL_CLASS} aria-labelledby={HEADING_ID} aria-busy="true">
         <div className="border-b border-border p-4">
           <h2 id={HEADING_ID} className="text-base font-semibold">
-            Market Sentiment
+            Market Context
           </h2>
-          <p className="text-sm text-muted-foreground">{asset} market mood</p>
+          <p className="text-sm text-muted-foreground">{asset} · broad market mood</p>
+          <p className="mt-1 text-xs text-muted-foreground">Reflects overall crypto sentiment, not your selected pair.</p>
         </div>
         <div className="grid grid-cols-1 gap-3 p-4">
           {[0, 1, 2].map((i) => (
@@ -80,9 +81,10 @@ export function MarketSentimentPanel({ asset }: MarketSentimentPanelProps) {
       <section className={PANEL_CLASS} aria-labelledby={HEADING_ID}>
         <div className="border-b border-border p-4">
           <h2 id={HEADING_ID} className="text-base font-semibold">
-            Market Sentiment
+            Market Context
           </h2>
-          <p className="text-sm text-muted-foreground">{asset} market mood</p>
+          <p className="text-sm text-muted-foreground">{asset} · broad market mood</p>
+          <p className="mt-1 text-xs text-muted-foreground">Reflects overall crypto sentiment, not your selected pair.</p>
         </div>
         <div className="m-4 rounded-md border border-warning/30 bg-warning-soft p-3">
           <p className="text-sm text-warning-foreground">
@@ -107,9 +109,10 @@ export function MarketSentimentPanel({ asset }: MarketSentimentPanelProps) {
     <section className={PANEL_CLASS} aria-labelledby={HEADING_ID}>
       <div className="border-b border-border p-4">
         <h2 id={HEADING_ID} className="text-base font-semibold">
-          Market Sentiment
+          Market Context
         </h2>
-        <p className="text-sm text-muted-foreground">{asset} market mood</p>
+        <p className="text-sm text-muted-foreground">{asset} · broad market mood</p>
+        <p className="mt-1 text-xs text-muted-foreground">Reflects overall crypto sentiment, not your selected pair.</p>
       </div>
 
       {hasBackgroundError && (

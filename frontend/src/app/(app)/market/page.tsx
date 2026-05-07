@@ -32,7 +32,7 @@ type SortDir = "asc" | "desc";
 
 const VOL_STD_HELP = "How much daily returns have moved recently. Higher values mean wider price swings.";
 const VOL_ATR_HELP = "The asset's typical daily trading range as a percentage of price.";
-const VOL_PCTILE_HELP = "Where today's volatility sits compared with the last year. 100 means unusually volatile.";
+const VOL_PCTILE_HELP = "Where today's volatility sits compared with the last year. 100 means unusually volatile. Hover a value for Return Vol and ATR Range detail.";
 
 function InfoTip({ text }: { text: string }) {
   return (
@@ -103,6 +103,46 @@ function DirectionIcon({
     <TrendingUp className={`${className} text-success`} aria-label="Up over 24 hours" />
   ) : (
     <TrendingDown className={`${className} text-destructive`} aria-label="Down over 24 hours" />
+  );
+}
+
+function VolatilityCell({ ticker }: { ticker: TickerItem }) {
+  const hasBreakdown =
+    isFiniteNumber(ticker.volatility_stddev) || isFiniteNumber(ticker.volatility_atr_pct);
+
+  if (!hasBreakdown) {
+    return (
+      <span className="data-text">{formatVolatility(ticker.volatility_percentile_1y, 0)}</span>
+    );
+  }
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span
+          tabIndex={0}
+          className="data-text cursor-help underline decoration-dotted underline-offset-2"
+        >
+          {formatVolatility(ticker.volatility_percentile_1y, 0)}
+        </span>
+      </TooltipTrigger>
+      <TooltipContent>
+        <div className="space-y-1 text-xs">
+          <div className="flex justify-between gap-4">
+            <span className="text-muted-foreground">1Y Vol Rank</span>
+            <span className="data-text">{formatVolatility(ticker.volatility_percentile_1y, 0)}</span>
+          </div>
+          <div className="flex justify-between gap-4">
+            <span className="text-muted-foreground">Return Vol</span>
+            <span className="data-text">{formatVolatility(ticker.volatility_stddev, 3)}</span>
+          </div>
+          <div className="flex justify-between gap-4">
+            <span className="text-muted-foreground">ATR Range</span>
+            <span className="data-text">{formatVolatility(ticker.volatility_atr_pct, 1)}</span>
+          </div>
+        </div>
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -315,7 +355,7 @@ export default function MarketPage() {
                       Market Pairs
                     </h2>
                     <p className="text-sm text-muted-foreground">
-                      Sort the list, then open a pair to inspect candles and indicators.
+                      Click a pair to inspect its candles and indicators.
                     </p>
                   </div>
                   <p className="data-text text-sm text-muted-foreground">
@@ -392,12 +432,6 @@ export default function MarketPage() {
                         24h Volume<SortIcon active={sortKey === "volume_24h"} dir={sortDir} />
                       </button>
                     </TableHead>
-                    <TableHead className="text-right">
-                      Return Vol<InfoTip text={VOL_STD_HELP} />
-                    </TableHead>
-                    <TableHead className="text-right">
-                      ATR Range<InfoTip text={VOL_ATR_HELP} />
-                    </TableHead>
                     <TableHead className="text-right" aria-sort={ariaSortFor("volatility_percentile_1y", sortKey, sortDir)}>
                       <button
                         type="button"
@@ -409,19 +443,24 @@ export default function MarketPage() {
                       </button>
                       <InfoTip text={VOL_PCTILE_HELP} />
                     </TableHead>
-                    <TableHead className="text-center">24h Direction</TableHead>
-                    <TableHead className="text-right">Inspect</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredTickers.map((ticker) => {
                     return (
-                      <TableRow key={ticker.pair} className="group">
+                      <TableRow
+                        key={ticker.pair}
+                        className="group cursor-pointer"
+                        onClick={() => setInspectedAsset(ticker.pair)}
+                      >
                         <TableCell className="data-text max-w-40 font-medium">
                           <button
                             type="button"
-                            onClick={() => setInspectedAsset(ticker.pair)}
-                            className="min-h-9 max-w-full truncate rounded-md text-left transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setInspectedAsset(ticker.pair);
+                            }}
+                            className="min-h-9 max-w-full truncate rounded-md text-left text-primary transition-colors hover:text-primary/80 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring"
                             aria-label={`Open chart for ${ticker.pair}`}
                             title={ticker.pair}
                           >
@@ -440,28 +479,7 @@ export default function MarketPage() {
                           {formatNumber(ticker.volume_24h, 0)}
                         </TableCell>
                         <TableCell className="data-text text-right">
-                          {formatVolatility(ticker.volatility_stddev, 3)}
-                        </TableCell>
-                        <TableCell className="data-text text-right">
-                          {formatVolatility(ticker.volatility_atr_pct, 1)}
-                        </TableCell>
-                        <TableCell className="data-text text-right">
-                          {formatVolatility(ticker.volatility_percentile_1y, 0)}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <DirectionIcon value={ticker.change_24h_pct} />
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="text-muted-foreground transition-colors group-hover:text-foreground"
-                            onClick={() => setInspectedAsset(ticker.pair)}
-                            aria-label={`Open ${ticker.pair} chart`}
-                          >
-                            <BarChart3 className="h-4 w-4" aria-hidden="true" />
-                          </Button>
+                          <VolatilityCell ticker={ticker} />
                         </TableCell>
                       </TableRow>
                     );
@@ -480,7 +498,7 @@ export default function MarketPage() {
                         <button
                           type="button"
                           onClick={() => setInspectedAsset(ticker.pair)}
-                          className="data-text min-h-11 min-w-0 truncate rounded-md text-left text-lg font-medium hover:text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring"
+                          className="data-text min-h-11 min-w-0 truncate rounded-md text-left text-lg font-medium text-primary hover:text-primary/80 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring"
                           aria-label={`Open chart for ${ticker.pair}`}
                           title={ticker.pair}
                         >

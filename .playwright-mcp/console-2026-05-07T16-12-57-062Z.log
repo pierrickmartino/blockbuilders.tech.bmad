@@ -1,0 +1,13 @@
+[  250078ms] [WARNING] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. @ http://localhost:3000/_next/static/chunks/7ac6e33f3b90fb20.js:0
+[  250079ms] [WARNING] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. @ http://localhost:3000/_next/static/chunks/7ac6e33f3b90fb20.js:0
+[  420147ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8000/notifications/:0
+[  420147ms] [ERROR] Failed to fetch notifications: TypeError: Failed to fetch
+    at n (http://localhost:3000/_next/static/chunks/ee0836b02e070c6b.js:1:812)
+    at o (http://localhost:3000/_next/static/chunks/ee0836b02e070c6b.js:1:1232)
+    at http://localhost:3000/_next/static/chunks/7115ba98e95bb9ee.js:1:43279 @ http://localhost:3000/_next/static/chunks/7115ba98e95bb9ee.js:0

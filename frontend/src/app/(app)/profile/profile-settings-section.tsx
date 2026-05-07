@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { apiFetch, ApiError } from "@/lib/api";
 import { ProfileSettings, ProfileUpdateRequest } from "@/types/profile";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 export function ProfileSettingsSection() {
@@ -19,35 +21,61 @@ export function ProfileSettingsSection() {
   const [showBadges, setShowBadges] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [message, setMessage] = useState<{
     type: "success" | "error";
     text: string;
   } | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<{
+    handle?: string;
+    displayName?: string;
+    bio?: string;
+  }>({});
+
+  const applySettings = useCallback((data: ProfileSettings) => {
+    setSettings(data);
+    setIsPublic(data.is_public);
+    setHandle(data.handle || "");
+    setDisplayName(data.display_name || "");
+    setBio(data.bio || "");
+    setShowStrategies(data.show_strategies);
+    setShowContributions(data.show_contributions);
+    setShowBadges(data.show_badges);
+  }, []);
+
+  const fetchSettings = useCallback(async () => {
+    setIsLoading(true);
+    setLoadFailed(false);
+    setMessage(null);
+    try {
+      const data = await apiFetch<ProfileSettings>("/profiles/me/settings");
+      applySettings(data);
+    } catch {
+      setLoadFailed(true);
+      setMessage({ type: "error", text: "Failed to load profile settings" });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [applySettings]);
 
   useEffect(() => {
-    async function fetchSettings() {
-      try {
-        const data = await apiFetch<ProfileSettings>("/profiles/me/settings");
-        setSettings(data);
-        setIsPublic(data.is_public);
-        setHandle(data.handle || "");
-        setDisplayName(data.display_name || "");
-        setBio(data.bio || "");
-        setShowStrategies(data.show_strategies);
-        setShowContributions(data.show_contributions);
-        setShowBadges(data.show_badges);
-      } catch {
-        setMessage({ type: "error", text: "Failed to load profile settings" });
-      } finally {
-        setIsLoading(false);
-      }
-    }
     fetchSettings();
-  }, []);
+  }, [fetchSettings]);
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     setMessage(null);
+
+    const nextErrors = validateProfileFields(handle, displayName, bio);
+    setFieldErrors(nextErrors);
+    if (nextErrors.handle || nextErrors.displayName || nextErrors.bio) {
+      setMessage({
+        type: "error",
+        text: "Check the highlighted profile fields before saving.",
+      });
+      return;
+    }
+
     setIsSaving(true);
 
     const data: ProfileUpdateRequest = {
@@ -65,7 +93,7 @@ export function ProfileSettingsSection() {
         method: "PUT",
         body: JSON.stringify(data),
       });
-      setSettings(updated);
+      applySettings(updated);
       setMessage({ type: "success", text: "Profile settings saved" });
     } catch (err) {
       if (err instanceof ApiError) {
@@ -79,7 +107,35 @@ export function ProfileSettingsSection() {
   }
 
   if (isLoading) {
-    return <p className="text-muted-foreground">Loading...</p>;
+    return (
+      <div className="space-y-3" aria-label="Loading profile settings">
+        <Skeleton className="h-20 w-full rounded-lg" />
+        <Skeleton className="h-9 w-full" />
+        <Skeleton className="h-24 w-full" />
+      </div>
+    );
+  }
+
+  if (loadFailed) {
+    return (
+      <div
+        role="alert"
+        className="flex flex-col gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive sm:flex-row sm:items-center sm:justify-between"
+      >
+        <span className="min-w-0 break-words">
+          {message?.text || "Failed to load profile settings"}
+        </span>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={fetchSettings}
+          className="min-h-11 shrink-0 border-destructive/30 text-destructive hover:bg-destructive/10 sm:min-h-0"
+        >
+          Retry
+        </Button>
+      </div>
+    );
   }
 
   const profileUrl =
@@ -91,33 +147,35 @@ export function ProfileSettingsSection() {
     <form onSubmit={handleSave} className="max-w-2xl space-y-4">
       {message && (
         <div
+          role={message.type === "success" ? "status" : "alert"}
           className={cn(
-            "rounded border p-3 text-sm",
+            "rounded-lg border px-4 py-3 text-sm",
             message.type === "success"
-              ? "border-green-200 bg-green-50 text-green-600 dark:border-green-800 dark:bg-green-950 dark:text-green-400"
-              : "border-red-200 bg-red-50 text-red-600 dark:border-red-800 dark:bg-red-950 dark:text-red-400"
+              ? "border-success/30 bg-success/5 text-success"
+              : "border-destructive/30 bg-destructive/5 text-destructive"
           )}
         >
-          {message.text}
+          <span className="break-words">{message.text}</span>
         </div>
       )}
 
       {/* Public toggle */}
-      <div className="flex items-center gap-3">
-        <input
-          type="checkbox"
+      <div className="flex flex-col gap-3 rounded-lg border bg-muted/20 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <label htmlFor="is_public" className="text-sm font-medium">
+            Make my profile public
+          </label>
+          <p id="public-profile-desc" className="mt-1 text-xs text-muted-foreground">
+            When enabled, others can view your profile at your unique URL.
+          </p>
+        </div>
+        <Switch
           id="is_public"
           checked={isPublic}
-          onChange={(e) => setIsPublic(e.target.checked)}
-          className="h-4 w-4 rounded border-gray-300"
+          onCheckedChange={setIsPublic}
+          aria-describedby="public-profile-desc"
         />
-        <label htmlFor="is_public" className="text-sm font-medium">
-          Make my profile public
-        </label>
       </div>
-      <p className="text-xs text-muted-foreground">
-        When enabled, others can view your profile at your unique URL.
-      </p>
 
       {/* Handle */}
       <div>
@@ -128,14 +186,26 @@ export function ProfileSettingsSection() {
           id="handle"
           type="text"
           value={handle}
-          onChange={(e) => setHandle(e.target.value)}
+          onChange={(e) => {
+            setHandle(e.target.value);
+            setFieldErrors((prev) => ({ ...prev, handle: undefined }));
+          }}
           placeholder="e.g., trendbuilder"
           maxLength={30}
           pattern="[a-zA-Z0-9_]{3,30}"
+          autoCapitalize="none"
+          autoCorrect="off"
+          aria-invalid={Boolean(fieldErrors.handle)}
+          aria-describedby={fieldErrors.handle ? "handle-error" : "handle-help"}
         />
-        <p className="mt-1 text-xs text-muted-foreground">
+        <p id="handle-help" className="mt-1 text-xs text-muted-foreground">
           3-30 characters, letters, numbers, underscores only
         </p>
+        {fieldErrors.handle && (
+          <p id="handle-error" className="mt-1 text-xs text-destructive">
+            {fieldErrors.handle}
+          </p>
+        )}
       </div>
 
       {/* Display Name */}
@@ -147,10 +217,25 @@ export function ProfileSettingsSection() {
           id="display_name"
           type="text"
           value={displayName}
-          onChange={(e) => setDisplayName(e.target.value)}
+          onChange={(e) => {
+            setDisplayName(e.target.value);
+            setFieldErrors((prev) => ({ ...prev, displayName: undefined }));
+          }}
           placeholder="Your Name"
           maxLength={100}
+          aria-invalid={Boolean(fieldErrors.displayName)}
+          aria-describedby={
+            fieldErrors.displayName ? "display-name-error" : "display-name-help"
+          }
         />
+        <p id="display-name-help" className="mt-1 text-xs text-muted-foreground">
+          Optional. Maximum 100 characters.
+        </p>
+        {fieldErrors.displayName && (
+          <p id="display-name-error" className="mt-1 text-xs text-destructive">
+            {fieldErrors.displayName}
+          </p>
+        )}
       </div>
 
       {/* Bio */}
@@ -161,44 +246,54 @@ export function ProfileSettingsSection() {
         <textarea
           id="bio"
           value={bio}
-          onChange={(e) => setBio(e.target.value)}
+          onChange={(e) => {
+            setBio(e.target.value);
+            setFieldErrors((prev) => ({ ...prev, bio: undefined }));
+          }}
           placeholder="A short bio about your trading approach..."
           maxLength={160}
           rows={3}
-          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring"
+          aria-invalid={Boolean(fieldErrors.bio)}
+          aria-describedby={fieldErrors.bio ? "bio-error" : "bio-count"}
+          className="w-full resize-y rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring aria-[invalid=true]:border-destructive aria-[invalid=true]:focus-visible:ring-destructive"
         />
-        <p className="mt-1 text-xs text-muted-foreground">
+        <p id="bio-count" className="mt-1 text-xs text-muted-foreground">
           {bio.length}/160 characters
         </p>
+        {fieldErrors.bio && (
+          <p id="bio-error" className="mt-1 text-xs text-destructive">
+            {fieldErrors.bio}
+          </p>
+        )}
       </div>
 
       {/* Visibility toggles */}
       <div className="space-y-2">
         <p className="text-sm font-medium">Show on public profile:</p>
-        <div className="flex flex-col gap-2">
-          <label className="flex cursor-pointer items-center gap-2 text-sm">
+        <div className="flex flex-col gap-1">
+          <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-md px-1 text-sm">
             <Checkbox
               id="show-strategies"
               checked={showStrategies}
               onCheckedChange={(checked) => setShowStrategies(checked === true)}
             />
-            Published strategies
+            <span className="min-w-0 break-words">Published strategies</span>
           </label>
-          <label className="flex cursor-pointer items-center gap-2 text-sm">
+          <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-md px-1 text-sm">
             <Checkbox
               id="show-contributions"
               checked={showContributions}
               onCheckedChange={(checked) => setShowContributions(checked === true)}
             />
-            Contribution stats
+            <span className="min-w-0 break-words">Contribution stats</span>
           </label>
-          <label className="flex cursor-pointer items-center gap-2 text-sm">
+          <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-md px-1 text-sm">
             <Checkbox
               id="show-badges"
               checked={showBadges}
               onCheckedChange={(checked) => setShowBadges(checked === true)}
             />
-            Badges
+            <span className="min-w-0 break-words">Badges</span>
           </label>
         </div>
       </div>
@@ -213,7 +308,7 @@ export function ProfileSettingsSection() {
             href={profileUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-sm text-primary underline"
+            className="break-all text-sm text-primary underline"
           >
             {profileUrl}
           </a>
@@ -225,4 +320,28 @@ export function ProfileSettingsSection() {
       </Button>
     </form>
   );
+}
+
+function validateProfileFields(handle: string, displayName: string, bio: string) {
+  const errors: {
+    handle?: string;
+    displayName?: string;
+    bio?: string;
+  } = {};
+  const trimmedHandle = handle.trim();
+
+  if (trimmedHandle && !/^[a-zA-Z0-9_]{3,30}$/.test(trimmedHandle)) {
+    errors.handle =
+      "Use 3-30 characters with letters, numbers, and underscores only.";
+  }
+
+  if (displayName.trim().length > 100) {
+    errors.displayName = "Display name must be 100 characters or fewer.";
+  }
+
+  if (bio.trim().length > 160) {
+    errors.bio = "Bio must be 160 characters or fewer.";
+  }
+
+  return errors;
 }

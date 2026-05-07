@@ -1,5 +1,14 @@
 # Tasks — in flight
 
+## Profile page hardening pass (in flight)
+
+- [x] Write hardening plan for profile page
+- [x] Receive implementation approval
+- [x] Harden profile form validation, overflow, async retry, and accessible status states
+- [x] Verify lint from `frontend/` via bundled Node runtime (0 errors, existing warnings elsewhere)
+- [x] Verify TypeScript from `frontend/` via bundled Node runtime (`tsc --noEmit` clean)
+- [ ] Manual smoke: invalid defaults, strategy retry, long text, mobile width, keyboard controls (not run)
+
 ## Market page polish pass (in flight)
 
 - [x] Write polish plan for market page
