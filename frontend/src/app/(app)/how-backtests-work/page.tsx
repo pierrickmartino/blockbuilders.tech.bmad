@@ -1,9 +1,19 @@
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Database,
+  LineChart,
+  ShieldCheck,
+  TriangleAlert,
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardHeader,
+  CardTitle,
 } from "@/components/ui/card";
 
 function SectionTitle({
@@ -15,7 +25,7 @@ function SectionTitle({
 }) {
   return (
     <h2
-      className={`font-semibold leading-none tracking-tight ${className ?? ""}`}
+      className={`font-semibold leading-tight tracking-tight ${className ?? ""}`}
     >
       {children}
     </h2>
@@ -26,131 +36,326 @@ function SectionTitle({
 // backend/app/core/plans.py. Update both when these change.
 const DEFAULT_FEE_PCT = "0.1%";
 const DEFAULT_SLIPPAGE_PCT = "0.05%";
-const MAX_ACTIVE_STRATEGIES = 10;
-const MAX_BACKTESTS_PER_DAY = 50;
+const DEFAULT_SPREAD_PCT = "0.02%";
+const FREE_ACTIVE_STRATEGIES = 10;
+const FREE_BACKTESTS_PER_DAY = 50;
 const LAST_UPDATED = "2026-04-08";
+
+function DataText({ children }: { children: React.ReactNode }) {
+  return <span className="data-text whitespace-nowrap">{children}</span>;
+}
+
+function InlineLink({
+  href,
+  children,
+}: {
+  href: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      className="text-primary underline underline-offset-4 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring"
+    >
+      {children}
+    </Link>
+  );
+}
+
+function AssumptionRow({
+  label,
+  value,
+}: {
+  label: string;
+  value: React.ReactNode;
+}) {
+  return (
+    <div className="grid gap-1 border-t py-3 first:border-t-0 first:pt-0 last:pb-0 sm:grid-cols-[150px_minmax(0,1fr)]">
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className="font-medium text-foreground">{value}</dd>
+    </div>
+  );
+}
+
+const modelSteps = [
+  "Your connected blocks are evaluated on completed candles.",
+  "Signals are converted into simulated entries and exits.",
+  "Fees, slippage, and spread are deducted from each trade.",
+  "Results are summarized into metrics, equity, and trade history.",
+];
 
 export default function HowBacktestsWorkPage() {
   return (
-    <main className="mx-auto max-w-3xl p-4 md:p-6">
-      <Link
-        href="/backtests"
-        className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring"
-      >
-        <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-        Back to backtests
-      </Link>
+    <article className="mx-auto max-w-5xl p-4 md:p-6">
+      <Button asChild variant="ghost" size="touch" className="mb-4 -ml-2 px-2">
+        <Link href="/dashboard">
+          <ArrowLeft aria-hidden="true" />
+          Back to dashboard
+        </Link>
+      </Button>
 
-      <h1 className="text-2xl font-bold tracking-tight">
-        How Backtests Work
-      </h1>
-      <p className="mb-6 text-muted-foreground">
-        What the engine simulates, what it doesn&apos;t, and the limits you should know.
-      </p>
+      <header className="grid gap-6 border-b pb-8 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-end">
+        <div>
+          <Badge variant="outline" className="mb-3">
+            Backtest assumptions
+          </Badge>
+          <h1 className="text-2xl font-bold tracking-tight">
+            How Backtests Work
+          </h1>
+          <p className="mt-2 max-w-2xl text-muted-foreground">
+            How Blockbuilders turns historical candles into simulated trades,
+            and where the model stops.
+          </p>
+        </div>
 
-      <div className="space-y-6">
-        <Card>
-          <CardHeader>
-            <SectionTitle>What is Backtesting?</SectionTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">
-              Backtesting simulates how your{" "}
-              <Link href="/strategies" className="underline underline-offset-4 hover:text-foreground">
-                strategy
-              </Link>{" "}
-              would have performed on historical price data. It helps you
-              evaluate your strategy before risking real capital.
+        <dl className="rounded-lg border bg-surface-elevated p-4 text-sm">
+          <AssumptionRow
+            label="Default costs"
+            value={
+              <>
+                <DataText>{DEFAULT_FEE_PCT}</DataText> fee,{" "}
+                <DataText>{DEFAULT_SLIPPAGE_PCT}</DataText> slippage,{" "}
+                <DataText>{DEFAULT_SPREAD_PCT}</DataText> spread
+              </>
+            }
+          />
+          <AssumptionRow
+            label="Execution"
+            value="Next candle open after a signal"
+          />
+          <AssumptionRow
+            label="Reset window"
+            value={
+              <>
+                Midnight <DataText>UTC</DataText>
+              </>
+            }
+          />
+        </dl>
+      </header>
+
+      <div className="mt-8 space-y-10">
+        <section className="grid gap-6 md:grid-cols-[minmax(0,1.35fr)_minmax(280px,0.65fr)] md:items-start">
+          <Card variant="raised" className="md:min-h-full">
+            <CardHeader>
+              <CardTitle>What a Backtest Checks</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="max-w-2xl text-muted-foreground">
+                A backtest replays your{" "}
+                <InlineLink href="/strategies">
+                  strategy
+                </InlineLink>{" "}
+                on past market candles. It shows how the rules would have behaved
+                with the engine&apos;s assumptions, so you can compare ideas before
+                risking real capital.
+              </p>
+
+              <div className="mt-6 grid gap-3 text-sm sm:grid-cols-[1fr_auto_1fr_auto_1fr] sm:items-center">
+                {["Strategy blocks", "Historical candles", "Simulated trades"].map(
+                  (item, index) => (
+                    <div key={item} className="contents">
+                      <span className="min-h-11 rounded-md border bg-background px-3 py-2 text-foreground">
+                        {item}
+                      </span>
+                      {index < 2 && (
+                        <ArrowRight
+                          className="hidden h-4 w-4 text-muted-foreground sm:block"
+                          aria-hidden="true"
+                        />
+                      )}
+                    </div>
+                  )
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          <aside className="rounded-lg border bg-card p-5">
+            <h2 className="text-sm font-semibold leading-tight">Model path</h2>
+            <ol className="mt-4 space-y-3 text-sm text-muted-foreground">
+              {modelSteps.map((step, index) => (
+                <li key={step} className="grid grid-cols-[2rem_minmax(0,1fr)] gap-3">
+                  <span className="data-text flex h-7 w-7 items-center justify-center rounded-md border bg-surface-elevated text-xs text-foreground">
+                    {index + 1}
+                  </span>
+                  <span>{step}</span>
+                </li>
+              ))}
+            </ol>
+          </aside>
+        </section>
+
+        <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <LineChart className="h-4 w-4 text-primary" aria-hidden="true" />
+                <CardTitle>How Trades Are Simulated</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <ul className="list-outside list-disc space-y-3 pl-5 text-muted-foreground">
+                <li>
+                  <strong className="text-foreground">Market data:</strong> Uses
+                  OHLCV candles (open, high, low, close, volume), not
+                  tick-by-tick order book data.
+                </li>
+                <li>
+                  <strong className="text-foreground">Entries and exits:</strong> When
+                  a signal appears, the simulated order fills at the next
+                  candle&apos;s open price.
+                </li>
+                <li>
+                  <strong className="text-foreground">Fees:</strong> A fixed
+                  trading fee is applied to each trade. The default is{" "}
+                  <DataText>{DEFAULT_FEE_PCT}</DataText>, and supported run
+                  settings can override it.
+                </li>
+                <li>
+                  <strong className="text-foreground">Slippage:</strong> A simple
+                  extra cost is applied to approximate worse fills. The default
+                  is <DataText>{DEFAULT_SLIPPAGE_PCT}</DataText> per trade.
+                </li>
+                <li>
+                  <strong className="text-foreground">Spread:</strong> A default{" "}
+                  <DataText>{DEFAULT_SPREAD_PCT}</DataText> spread assumption is
+                  included in the transaction-cost breakdown.
+                </li>
+                <li>
+                  <strong className="text-foreground">Position size:</strong> Each trade uses a fixed
+                  percentage of the simulated portfolio.
+                </li>
+              </ul>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Database className="h-4 w-4 text-primary" aria-hidden="true" />
+                <CardTitle>Data and Bias Controls</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <ul className="list-outside list-disc space-y-3 pl-5 text-muted-foreground">
+                <li>
+                  Candles are cached in Blockbuilders and filled from
+                  CryptoCompare when coverage is incomplete.
+                </li>
+                <li>
+                  Large data gaps stop the run instead of quietly producing a
+                  misleading result.
+                </li>
+                <li>
+                  Signals use completed candles only, which avoids lookahead
+                  bias in the strategy evaluation.
+                </li>
+                <li>
+                  Results from very low trade counts should be treated as weak
+                  evidence, even when the return looks attractive.
+                </li>
+              </ul>
+            </CardContent>
+          </Card>
+        </section>
+
+        <section className="grid gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-start">
+          <div>
+            <SectionTitle className="text-lg">Current Limits</SectionTitle>
+            <p className="mt-3 max-w-2xl text-muted-foreground">
+              The engine is intentionally narrow right now. Constraints make
+              comparisons easier to trust while the product keeps improving.
             </p>
-          </CardContent>
-        </Card>
+          </div>
 
-        <Card>
-          <CardHeader>
-            <SectionTitle>Data & Execution Model</SectionTitle>
-          </CardHeader>
-          <CardContent>
-            <ul className="list-outside list-disc space-y-2 pl-5 text-muted-foreground">
-              <li>
-                <strong className="text-foreground">Price Data:</strong> Uses OHLCV (Open, High, Low, Close,
-                Volume) candle data, not tick-by-tick order book data
-              </li>
-              <li>
-                <strong className="text-foreground">Entry/Exit:</strong> Orders execute at the next
-                candle&apos;s open price after a signal
-              </li>
-              <li>
-                <strong className="text-foreground">Fees:</strong> Configurable trading fee applied per trade
-                (default: {DEFAULT_FEE_PCT})
-              </li>
-              <li>
-                <strong className="text-foreground">Slippage:</strong> Configurable slippage cost per trade
-                (default: {DEFAULT_SLIPPAGE_PCT})
-              </li>
-              <li>
-                <strong className="text-foreground">Position Sizing:</strong> Fixed percentage of portfolio
-                per trade
-              </li>
-            </ul>
-          </CardContent>
-        </Card>
+          <Card>
+            <CardContent className="p-5">
+              <ul className="grid gap-3 text-sm text-muted-foreground sm:grid-cols-2">
+                <li>One asset per strategy, currently BTC/USDT or ETH/USDT.</li>
+                <li>One timeframe per strategy, currently 1d or 4h.</li>
+                <li>A focused indicator set for building strategies.</li>
+                <li>Long-only strategy behavior in the current engine.</li>
+              </ul>
+            </CardContent>
+          </Card>
+        </section>
 
-        <Card>
-          <CardHeader>
-            <SectionTitle>MVP Constraints</SectionTitle>
-          </CardHeader>
-          <CardContent>
-            <ul className="list-outside list-disc space-y-2 pl-5 text-muted-foreground">
-              <li>Single asset per strategy (BTC/USDT or ETH/USDT)</li>
-              <li>Single timeframe per strategy (1d or 4h)</li>
-              <li>Limited indicator set for building strategies</li>
-              <li>Simple long-only strategies</li>
-            </ul>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <SectionTitle>Usage Limits</SectionTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="mb-2 text-muted-foreground">
-              To ensure fair access during beta, we have soft limits in place:
+        <section className="grid gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-start">
+          <div>
+            <SectionTitle className="text-lg">Usage Limits</SectionTitle>
+            <p className="mt-3 max-w-2xl text-muted-foreground">
+              Free accounts start with soft defaults to keep beta access fair.
+              Your plan may include higher limits.
             </p>
-            <ul className="list-outside list-disc space-y-2 pl-5 text-muted-foreground">
+          </div>
+
+          <dl className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-lg border bg-card p-4">
+              <dt className="text-sm font-medium text-foreground">
+                Active strategies
+              </dt>
+              <dd className="mt-1 text-sm text-muted-foreground">
+                Up to <DataText>{FREE_ACTIVE_STRATEGIES}</DataText> active
+                strategies.{" "}
+                <InlineLink href="/strategies?status=archived">
+                  Archive unused ones
+                </InlineLink>{" "}
+                to free slots.
+              </dd>
+            </div>
+            <div className="rounded-lg border bg-card p-4">
+              <dt className="text-sm font-medium text-foreground">
+                Daily backtests
+              </dt>
+              <dd className="mt-1 text-sm text-muted-foreground">
+                Up to <DataText>{FREE_BACKTESTS_PER_DAY}</DataText> backtests
+                per day. The counter resets at midnight <DataText>UTC</DataText>.
+              </dd>
+            </div>
+          </dl>
+        </section>
+
+        <section className="rounded-lg border bg-warning-soft p-5">
+          <div className="grid gap-4 md:grid-cols-[220px_minmax(0,1fr)]">
+            <div>
+              <div className="flex items-center gap-2">
+                <TriangleAlert
+                  className="h-4 w-4 text-warning"
+                  aria-hidden="true"
+                />
+                <SectionTitle className="text-lg">Important Disclaimer</SectionTitle>
+              </div>
+              <p className="mt-2 font-medium text-foreground">
+                Simulated results only.
+              </p>
+            </div>
+            <ul className="list-outside list-disc space-y-2 pl-5 text-foreground">
               <li>
-                Up to {MAX_ACTIVE_STRATEGIES} active strategies ({" "}
-                <Link href="/strategies?status=archived" className="underline underline-offset-4 hover:text-foreground">
-                  archive unused ones
-                </Link>{" "}
-                to free slots)
+                Backtests are simulations and do not guarantee future results.
               </li>
-              <li>Up to {MAX_BACKTESTS_PER_DAY} backtests per day (resets at midnight UTC)</li>
+              <li>
+                Real fills, liquidity, outages, and market conditions can differ
+                from the model.
+              </li>
+              <li>
+                Use results to compare strategy assumptions, not as predictions.
+              </li>
+              <li>This is not investment advice.</li>
             </ul>
-          </CardContent>
-        </Card>
+          </div>
+        </section>
 
-        <Card className="border-warning/40 bg-warning/10">
-          <CardHeader>
-            <SectionTitle className="text-warning">Important Disclaimer</SectionTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="mb-2 font-medium text-foreground">
-              Simulated results only
-            </p>
-            <ul className="list-outside list-disc space-y-1 pl-5 text-muted-foreground">
-              <li>Past performance does not guarantee future results</li>
-              <li>Backtests are simulations, not predictions</li>
-              <li>Real market conditions may differ significantly</li>
-              <li>This is not investment advice</li>
-            </ul>
-          </CardContent>
-        </Card>
-
-        <p className="text-xs text-muted-foreground">
-          Last updated: {LAST_UPDATED}
-        </p>
+        <footer className="flex flex-col gap-3 border-t pt-5 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+          <p>
+            Last updated: <DataText>{LAST_UPDATED}</DataText>
+          </p>
+          <p className="flex items-center gap-2">
+            <ShieldCheck className="h-4 w-4" aria-hidden="true" />
+            Compare assumptions before comparing returns.
+          </p>
+        </footer>
       </div>
-    </main>
+    </article>
   );
 }
