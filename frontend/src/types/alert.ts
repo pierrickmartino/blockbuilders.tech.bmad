@@ -47,6 +47,7 @@ export interface CreatePriceAlertRequest {
   asset: string;
   direction: Direction;
   threshold_price: number;
+  notify_in_app: boolean;
   notify_email: boolean;
   notify_webhook: boolean;
   webhook_url?: string;

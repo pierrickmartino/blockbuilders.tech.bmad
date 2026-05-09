@@ -148,7 +148,7 @@ export function MarketChartPanel({
         hideCloseButton
         // Override the default sm:max-w-sm cap and size to ~80% on desktop.
         className={cn(
-          "flex w-full flex-col gap-0 p-0 sm:max-w-none md:w-[88vw] xl:w-[80vw]",
+          "flex w-full flex-col gap-0 p-0 sm:max-w-none md:w-[88vw] xl:w-[62vw]",
         )}
         aria-label={asset ? `Chart inspection for ${asset}` : "Chart inspection"}
       >
@@ -345,8 +345,8 @@ function IndicatorSelector({
         <span className="text-xs font-medium text-muted-foreground">
           Indicators
         </span>
-        <span className="data-text text-[11px] text-muted-foreground" aria-live="polite">
-          {selection.length}/8 active
+        <span className="text-[11px] text-muted-foreground" aria-live="polite">
+          <span className="data-text">{selection.length}</span>/8 active
         </span>
       </div>
 

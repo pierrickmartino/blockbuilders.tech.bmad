@@ -15,6 +15,8 @@ import {
   TrendingUp,
   Award,
   Bell,
+  Settings2,
+  CreditCard,
 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
@@ -35,6 +37,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
@@ -200,6 +203,19 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     Profile
                   </Link>
                 </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/preferences" className="cursor-pointer">
+                    <Settings2 className="mr-2 size-4" />
+                    Preferences
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/plan" className="cursor-pointer">
+                    <CreditCard className="mr-2 size-4" />
+                    Usage &amp; Plan
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={() => logout()}
                   className="cursor-pointer text-destructive focus:text-destructive"

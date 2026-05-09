@@ -541,7 +541,7 @@ export default function DashboardPage() {
                   <dt
                     className={cn("text-xs font-medium", validationTone.label)}
                   >
-                    Needs testing
+                    Stale results
                   </dt>
                   <dd
                     className={cn(
@@ -610,7 +610,7 @@ export default function DashboardPage() {
                   <dt
                     className={cn("text-xs font-medium", untestedWorkTone.label)}
                   >
-                    Untested work
+                    Never tested
                   </dt>
                   <dd
                     className={cn(
@@ -672,7 +672,7 @@ export default function DashboardPage() {
               <Layers className="h-4 w-4 text-muted-foreground" />
               <h2
                 id="strategies-heading"
-                className="font-semibold tracking-tight"
+                className="text-base font-semibold tracking-tight"
               >
                 Your strategies
               </h2>
@@ -766,7 +766,7 @@ export default function DashboardPage() {
                       <div className="hidden items-center justify-end gap-1.5 md:flex">
                         <Badge
                           variant="secondary"
-                          className="max-w-full truncate border-primary/15 bg-primary/5 text-xs font-normal text-primary hover:bg-primary/10"
+                          className="max-w-full truncate text-xs font-normal"
                         >
                           {strategy.asset}
                         </Badge>
@@ -801,7 +801,8 @@ export default function DashboardPage() {
                       href="/strategies"
                       className="inline-flex min-h-11 items-center gap-1 text-sm text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring md:min-h-9"
                     >
-                      +{strategies.length - 5} more strategies
+                      +{strategies.length - 5} more{" "}
+                      {strategies.length - 5 === 1 ? "strategy" : "strategies"}
                       <ArrowRight className="h-3 w-3" />
                     </Link>
                   </div>

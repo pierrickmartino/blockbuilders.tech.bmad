@@ -5,7 +5,9 @@ import { apiFetch, ApiError } from "@/lib/api";
 import { ALLOWED_ASSETS, AllowedAsset } from "@/types/strategy";
 import { AlertRule, Direction } from "@/types/alert";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -31,6 +33,7 @@ export default function CreatePriceAlertModal({ open, onOpenChange, onCreated }:
   const [asset, setAsset] = useState<string>(ALLOWED_ASSETS[0]);
   const [direction, setDirection] = useState<Direction>("above");
   const [thresholdPrice, setThresholdPrice] = useState<string>("");
+  const [notifyInApp, setNotifyInApp] = useState(true);
   const [notifyEmail, setNotifyEmail] = useState(false);
   const [notifyWebhook, setNotifyWebhook] = useState(false);
   const [webhookUrl, setWebhookUrl] = useState("");
@@ -42,6 +45,7 @@ export default function CreatePriceAlertModal({ open, onOpenChange, onCreated }:
     setAsset(ALLOWED_ASSETS[0]);
     setDirection("above");
     setThresholdPrice("");
+    setNotifyInApp(true);
     setNotifyEmail(false);
     setNotifyWebhook(false);
     setWebhookUrl("");
@@ -79,6 +83,7 @@ export default function CreatePriceAlertModal({ open, onOpenChange, onCreated }:
           asset,
           direction,
           threshold_price: price,
+          notify_in_app: notifyInApp,
           notify_email: notifyEmail,
           notify_webhook: notifyWebhook,
           webhook_url: notifyWebhook ? webhookUrl.trim() : undefined,
@@ -115,18 +120,19 @@ export default function CreatePriceAlertModal({ open, onOpenChange, onCreated }:
         </DialogHeader>
 
         {error && (
-          <div className="rounded border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+          <div
+            role="alert"
+            className="rounded border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive"
+          >
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <label htmlFor="asset" className="text-sm font-medium">
-              Asset
-            </label>
+            <Label htmlFor="asset-select">Asset</Label>
             <Select value={asset} onValueChange={setAsset}>
-              <SelectTrigger>
+              <SelectTrigger id="asset-select">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -140,11 +146,9 @@ export default function CreatePriceAlertModal({ open, onOpenChange, onCreated }:
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="direction" className="text-sm font-medium">
-              Condition
-            </label>
+            <Label htmlFor="direction-select">Condition</Label>
             <Select value={direction} onValueChange={(v) => setDirection(v as Direction)}>
-              <SelectTrigger>
+              <SelectTrigger id="direction-select">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -155,9 +159,7 @@ export default function CreatePriceAlertModal({ open, onOpenChange, onCreated }:
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="threshold" className="text-sm font-medium">
-              Threshold Price (USD)
-            </label>
+            <Label htmlFor="threshold">Threshold Price (USD)</Label>
             <Input
               id="threshold"
               type="number"
@@ -170,41 +172,53 @@ export default function CreatePriceAlertModal({ open, onOpenChange, onCreated }:
           </div>
 
           <div className="space-y-3">
-            <label className="text-sm font-medium">Notifications</label>
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
+            <p className="text-sm font-medium">Notifications</p>
+            <div className="space-y-2.5">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="notify-in-app"
+                  checked={notifyInApp}
+                  onCheckedChange={(checked) => setNotifyInApp(checked === true)}
+                />
+                <Label htmlFor="notify-in-app" className="font-normal">
+                  In-app notification
+                </Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="notify-email"
                   checked={notifyEmail}
-                  onChange={(e) => setNotifyEmail(e.target.checked)}
-                  className="h-4 w-4 rounded border-gray-300"
+                  onCheckedChange={(checked) => setNotifyEmail(checked === true)}
                 />
-                Email notification
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
+                <Label htmlFor="notify-email" className="font-normal">
+                  Email notification
+                </Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="notify-webhook"
                   checked={notifyWebhook}
-                  onChange={(e) => setNotifyWebhook(e.target.checked)}
-                  className="h-4 w-4 rounded border-gray-300"
+                  onCheckedChange={(checked) => setNotifyWebhook(checked === true)}
                 />
-                Webhook notification
-              </label>
+                <Label htmlFor="notify-webhook" className="font-normal">
+                  Webhook notification
+                </Label>
+              </div>
             </div>
             {notifyWebhook && (
               <Input
+                id="webhook-url"
                 type="url"
                 value={webhookUrl}
                 onChange={(e) => setWebhookUrl(e.target.value)}
                 placeholder="https://your-webhook-url.com"
+                aria-label="Webhook URL"
               />
             )}
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="expires" className="text-sm font-medium">
-              Expiration (optional)
-            </label>
+            <Label htmlFor="expires">Expiration (optional)</Label>
             <Input
               id="expires"
               type="datetime-local"

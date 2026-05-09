@@ -16,6 +16,24 @@ const HEADING_ID = "market-sentiment-heading";
 const LONG_SHORT_COLOR = "hsl(var(--chart-1))";
 const FUNDING_COLOR = "hsl(var(--chart-2))";
 
+const FEAR_GREED_HELP =
+  "Aggregate index (0–100) measuring crypto market emotion. Below 25 = extreme fear; above 75 = extreme greed. Use as context, not a directional trade signal.";
+const LONG_SHORT_HELP =
+  "Ratio of accounts holding long vs. short perpetual positions. Above 1.0 = more longs than shorts; below 1.0 = shorts dominate.";
+const FUNDING_HELP =
+  "Periodic payment exchanged between long and short holders on perpetual contracts. Positive = longs pay shorts (market leaning long); negative = shorts pay longs.";
+
+function PanelHeader() {
+  return (
+    <div className="border-b border-border p-4">
+      <h2 id={HEADING_ID} className="text-base font-semibold">
+        Market Mood
+      </h2>
+      <p className="text-sm text-muted-foreground">Overall crypto sentiment — not pair-specific</p>
+    </div>
+  );
+}
+
 function SentimentNarrative({ sentiment }: { sentiment: MarketSentimentResponse }) {
   const value = sentiment.fear_greed.value;
   const statuses = Object.values(sentiment.source_status);
@@ -55,18 +73,12 @@ export function MarketSentimentPanel({ asset }: MarketSentimentPanelProps) {
   if (isLoading) {
     return (
       <section className={PANEL_CLASS} aria-labelledby={HEADING_ID} aria-busy="true">
-        <div className="border-b border-border p-4">
-          <h2 id={HEADING_ID} className="text-base font-semibold">
-            Market Context
-          </h2>
-          <p className="text-sm text-muted-foreground">{asset} · broad market mood</p>
-          <p className="mt-1 text-xs text-muted-foreground">Reflects overall crypto sentiment, not your selected pair.</p>
-        </div>
+        <PanelHeader />
         <div className="grid grid-cols-1 gap-3 p-4">
           {[0, 1, 2].map((i) => (
             <div
               key={i}
-              className="h-20 rounded-md border border-border bg-muted/40 animate-pulse"
+              className="h-20 animate-pulse rounded-md border border-border bg-muted/40"
               aria-hidden="true"
             />
           ))}
@@ -79,13 +91,7 @@ export function MarketSentimentPanel({ asset }: MarketSentimentPanelProps) {
   if (error && !sentiment) {
     return (
       <section className={PANEL_CLASS} aria-labelledby={HEADING_ID}>
-        <div className="border-b border-border p-4">
-          <h2 id={HEADING_ID} className="text-base font-semibold">
-            Market Context
-          </h2>
-          <p className="text-sm text-muted-foreground">{asset} · broad market mood</p>
-          <p className="mt-1 text-xs text-muted-foreground">Reflects overall crypto sentiment, not your selected pair.</p>
-        </div>
+        <PanelHeader />
         <div className="m-4 rounded-md border border-warning/30 bg-warning-soft p-3">
           <p className="text-sm text-warning-foreground">
             Market mood data is temporarily unavailable.
@@ -107,13 +113,7 @@ export function MarketSentimentPanel({ asset }: MarketSentimentPanelProps) {
 
   return (
     <section className={PANEL_CLASS} aria-labelledby={HEADING_ID}>
-      <div className="border-b border-border p-4">
-        <h2 id={HEADING_ID} className="text-base font-semibold">
-          Market Context
-        </h2>
-        <p className="text-sm text-muted-foreground">{asset} · broad market mood</p>
-        <p className="mt-1 text-xs text-muted-foreground">Reflects overall crypto sentiment, not your selected pair.</p>
-      </div>
+      <PanelHeader />
 
       {hasBackgroundError && (
         <div
@@ -139,6 +139,7 @@ export function MarketSentimentPanel({ asset }: MarketSentimentPanelProps) {
       <div className="grid grid-cols-1 divide-y divide-border bg-background md:grid-cols-3 md:divide-x md:divide-y-0 xl:grid-cols-1 xl:divide-x-0 xl:divide-y">
         <SentimentGauge
           label="Fear & Greed Index"
+          helpText={FEAR_GREED_HELP}
           value={sentiment.fear_greed.value}
           min={0}
           max={100}
@@ -148,6 +149,7 @@ export function MarketSentimentPanel({ asset }: MarketSentimentPanelProps) {
 
         <SentimentSparkline
           label="Long/Short Ratio (7d)"
+          helpText={LONG_SHORT_HELP}
           history={sentiment.long_short_ratio.history}
           status={sentiment.source_status.long_short_ratio}
           color={LONG_SHORT_COLOR}
@@ -156,6 +158,7 @@ export function MarketSentimentPanel({ asset }: MarketSentimentPanelProps) {
 
         <SentimentSparkline
           label="Funding Rate (7d)"
+          helpText={FUNDING_HELP}
           history={sentiment.funding.history}
           status={sentiment.source_status.funding}
           color={FUNDING_COLOR}

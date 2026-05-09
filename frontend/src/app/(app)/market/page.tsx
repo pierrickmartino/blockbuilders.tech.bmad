@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { cn } from "@/lib/utils";
 import { useMarketTickers } from "@/hooks/useMarketTickers";
 import { formatPrice, formatPercent, formatNumber, formatDateTime, formatVolatility } from "@/lib/format";
 import { useDisplay } from "@/context/display";
@@ -163,10 +165,13 @@ function TableSkeleton() {
 }
 
 export default function MarketPage() {
+  const searchParams = useSearchParams();
   const [filter, setFilter] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("volume_24h");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
-  const [inspectedAsset, setInspectedAsset] = useState<string | null>(null);
+  const [inspectedAsset, setInspectedAsset] = useState<string | null>(
+    searchParams.get("asset"),
+  );
   const { tickers, asOf, isLoading, error, refresh } = useMarketTickers();
   const { timezone } = useDisplay();
   const searchStatusId = "market-search-status";
@@ -358,8 +363,9 @@ export default function MarketPage() {
                       Click a pair to inspect its candles and indicators.
                     </p>
                   </div>
-                  <p className="data-text text-sm text-muted-foreground">
-                    {shownCount} of {totalCount} pairs
+                  <p className="text-sm text-muted-foreground">
+                    <span className="data-text">{shownCount}</span> of{" "}
+                    <span className="data-text">{totalCount}</span> pairs
                   </p>
                 </div>
 
@@ -450,7 +456,10 @@ export default function MarketPage() {
                     return (
                       <TableRow
                         key={ticker.pair}
-                        className="group cursor-pointer"
+                        className={cn(
+                          "group cursor-pointer transition-colors hover:bg-muted/30",
+                          ticker.pair === inspectedAsset && "bg-primary/5"
+                        )}
                         onClick={() => setInspectedAsset(ticker.pair)}
                       >
                         <TableCell className="data-text max-w-40 font-medium">
@@ -492,7 +501,7 @@ export default function MarketPage() {
                 <div className="space-y-3 bg-background p-3 md:hidden">
               {filteredTickers.map((ticker) => {
                 return (
-                  <Card key={ticker.pair} className="overflow-hidden">
+                  <Card key={ticker.pair} className={cn("overflow-hidden transition-colors", ticker.pair === inspectedAsset && "border-primary/40 bg-primary/5")}>
                     <CardContent className="p-4">
                       <div className="mb-4 flex items-start justify-between gap-3">
                         <button

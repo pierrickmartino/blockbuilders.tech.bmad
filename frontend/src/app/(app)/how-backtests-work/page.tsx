@@ -40,7 +40,7 @@ const DEFAULT_SLIPPAGE_PCT = "0.05%";
 const DEFAULT_SPREAD_PCT = "0.02%";
 const FREE_ACTIVE_STRATEGIES = 10;
 const FREE_BACKTESTS_PER_DAY = 50;
-const LAST_UPDATED = "2026-04-08";
+const LAST_UPDATED = "2026-05-09";
 
 function DataText({ children }: { children: React.ReactNode }) {
   return <span className="data-text whitespace-nowrap">{children}</span>;
@@ -151,33 +151,52 @@ export default function HowBacktestsWorkPage() {
               </p>
 
               <div className="mt-6 grid gap-3 text-sm sm:grid-cols-[1fr_auto_1fr_auto_1fr] sm:items-center">
-                {["Strategy blocks", "Historical candles", "Simulated trades"].map(
-                  (item, index) => (
-                    <div key={item} className="contents">
-                      <span className="min-h-11 rounded-md border bg-background px-3 py-2 text-foreground">
-                        {item}
-                      </span>
-                      {index < 2 && (
-                        <>
-                          <ArrowRight
-                            className="hidden h-4 w-4 text-muted-foreground sm:block"
-                            aria-hidden="true"
-                          />
-                          <ArrowDown
-                            className="mx-auto block h-4 w-4 text-muted-foreground sm:hidden"
-                            aria-hidden="true"
-                          />
-                        </>
-                      )}
-                    </div>
-                  )
-                )}
+                {[
+                  {
+                    label: "Strategy blocks",
+                    bg: "bg-violet-50 dark:bg-violet-900/30",
+                    text: "text-violet-700 dark:text-violet-300",
+                    border: "border-violet-200 dark:border-violet-700",
+                  },
+                  {
+                    label: "Historical candles",
+                    bg: "bg-sky-50 dark:bg-sky-900/30",
+                    text: "text-sky-700 dark:text-sky-300",
+                    border: "border-sky-200 dark:border-sky-700",
+                  },
+                  {
+                    label: "Simulated trades",
+                    bg: "bg-emerald-50 dark:bg-emerald-900/30",
+                    text: "text-emerald-700 dark:text-emerald-300",
+                    border: "border-emerald-200 dark:border-emerald-700",
+                  },
+                ].map((item, index) => (
+                  <div key={item.label} className="contents">
+                    <span
+                      className={`min-h-11 rounded-md border px-3 py-2 font-medium ${item.bg} ${item.text} ${item.border}`}
+                    >
+                      {item.label}
+                    </span>
+                    {index < 2 && (
+                      <>
+                        <ArrowRight
+                          className="hidden h-4 w-4 text-muted-foreground sm:block"
+                          aria-hidden="true"
+                        />
+                        <ArrowDown
+                          className="mx-auto block h-4 w-4 text-muted-foreground sm:hidden"
+                          aria-hidden="true"
+                        />
+                      </>
+                    )}
+                  </div>
+                ))}
               </div>
             </CardContent>
           </Card>
 
           <aside className="rounded-lg border bg-card p-5">
-            <h2 className="text-sm font-semibold leading-tight">Model path</h2>
+            <SectionTitle className="text-base">Model path</SectionTitle>
             <ol className="mt-4 space-y-3 text-sm text-muted-foreground">
               {modelSteps.map((step, index) => (
                 <li key={step} className="grid grid-cols-[2rem_minmax(0,1fr)] gap-3">
@@ -193,7 +212,7 @@ export default function HowBacktestsWorkPage() {
 
         {/* Simulation detail */}
         <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-          <Card>
+          <Card variant="raised">
             <CardHeader>
               <div className="flex items-center gap-2">
                 <LineChart className="h-4 w-4 text-primary" aria-hidden="true" />
@@ -256,7 +275,8 @@ export default function HowBacktestsWorkPage() {
                 </li>
                 <li>
                   Signals use completed candles only, which avoids lookahead
-                  bias in the strategy evaluation.
+                  bias (using future data the strategy wouldn&apos;t have had at
+                  signal time) in the strategy evaluation.
                 </li>
                 <li>
                   Results from very low trade counts should be treated as weak

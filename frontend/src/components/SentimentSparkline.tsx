@@ -1,10 +1,17 @@
 import { LineChart, Line, ResponsiveContainer } from "recharts";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Info } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import type { HistoryPoint } from "@/types/market";
 
 interface SentimentSparklineProps {
   label: string;
+  helpText?: string;
   history: HistoryPoint[];
   status: "ok" | "partial" | "unavailable";
   color?: string;
@@ -20,6 +27,7 @@ function formatDate(isoDate: string): string {
 
 export function SentimentSparkline({
   label,
+  helpText,
   history,
   status,
   color = "hsl(var(--primary))",
@@ -55,6 +63,18 @@ export function SentimentSparkline({
     <div className="p-3">
       <div className="mb-1 flex min-w-0 items-center gap-1.5">
         <span className="min-w-0 break-words text-sm font-semibold">{label}</span>
+        {helpText && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="h-3 w-3 shrink-0 cursor-help text-muted-foreground" aria-hidden="true" />
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="max-w-xs">{helpText}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
         {isPartial && (
           <span
             className="inline-flex items-center gap-0.5 text-xs text-warning"

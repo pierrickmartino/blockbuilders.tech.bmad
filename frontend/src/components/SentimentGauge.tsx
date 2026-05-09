@@ -1,3 +1,4 @@
+import { Info } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   Tooltip,
@@ -8,6 +9,7 @@ import {
 
 interface SentimentGaugeProps {
   label: string;
+  helpText?: string;
   value: number | null;
   min: number;
   max: number;
@@ -26,6 +28,7 @@ function gaugeColor(pct: number): string {
 
 export function SentimentGauge({
   label,
+  helpText,
   value,
   min,
   max,
@@ -51,6 +54,18 @@ export function SentimentGauge({
     <div className={status === "partial" ? "p-3 opacity-80" : "p-3"}>
       <div className="mb-2 flex min-w-0 items-center gap-2 text-sm font-semibold">
         <span className="min-w-0 break-words">{label}</span>
+        {helpText && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="h-3 w-3 shrink-0 cursor-help text-muted-foreground" aria-hidden="true" />
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="max-w-xs">{helpText}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
         {status === "partial" && (
           <TooltipProvider>
             <Tooltip>
