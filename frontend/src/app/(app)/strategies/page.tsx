@@ -907,6 +907,13 @@ export default function StrategiesPage() {
         )}
       </div>
 
+      <p className="text-xs text-muted-foreground">
+        {(search || assetFilter !== "all" || performanceFilter !== "all" || lastRunFilter !== "all" || selectedTagIds.length > 0 || showArchived)
+          ? `Showing ${filteredAndSortedStrategies.length} of ${strategies.length} ${strategies.length === 1 ? "strategy" : "strategies"}`
+          : `${strategies.length} ${strategies.length === 1 ? "strategy" : "strategies"}`
+        }
+      </p>
+
       {selectedIds.size > 0 && (
         <div className="sticky top-0 z-30 flex items-center justify-between rounded-lg border-2 border-primary/30 bg-background p-3 shadow-md">
           <span className="text-sm text-muted-foreground">
@@ -1047,13 +1054,13 @@ export default function StrategiesPage() {
                             <Badge variant="secondary">Archived</Badge>
                           )}
                           {strategy.auto_update_enabled && (
-                            <Badge variant="outline" className="bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300">Monitor</Badge>
+                            <Badge variant="outline">Monitor</Badge>
                           )}
                         </div>
                         {strategy.tags && strategy.tags.length > 0 && (
                           <div className="flex flex-wrap gap-1">
                             {strategy.tags.map((tag) => (
-                              <Badge key={tag.id} variant="outline" className="bg-purple-50 text-purple-700 text-xs dark:bg-purple-950 dark:text-purple-300">
+                              <Badge key={tag.id} variant="outline" className="text-xs">
                                 {tag.name}
                               </Badge>
                             ))}
@@ -1067,13 +1074,13 @@ export default function StrategiesPage() {
                     <TableCell className="text-muted-foreground">
                       {strategy.timeframe}
                     </TableCell>
-                    <TableCell className={`text-base font-semibold tabular-nums ${getReturnColorClass(strategy.latest_total_return_pct)}`}>
+                    <TableCell className={`font-mono text-base font-semibold tabular-nums ${getReturnColorClass(strategy.latest_total_return_pct)}`}>
                       {formatMetric(strategy.latest_total_return_pct, "%")}
                     </TableCell>
                     {(["30d", "60d", "90d", "1y"] as const).map((p) => {
                       const val = strategy[`return_${p}`];
                       return (
-                        <TableCell key={p} className={`text-xs tabular-nums text-center opacity-80 ${getReturnColorClass(val)}`}>
+                        <TableCell key={p} className={`font-mono text-xs tabular-nums text-center opacity-80 ${getReturnColorClass(val)}`}>
                           {formatMetric(val, "%")}
                         </TableCell>
                       );
@@ -1081,18 +1088,18 @@ export default function StrategiesPage() {
                     {isPremiumUser && (["2y", "3y"] as const).map((p) => {
                       const val = strategy[`return_${p}`];
                       return (
-                        <TableCell key={p} className={`text-xs tabular-nums text-center opacity-80 ${getReturnColorClass(val)}`}>
+                        <TableCell key={p} className={`font-mono text-xs tabular-nums text-center opacity-80 ${getReturnColorClass(val)}`}>
                           {formatMetric(val, "%")}
                         </TableCell>
                       );
                     })}
-                    <TableCell className="tabular-nums">
+                    <TableCell className="font-mono tabular-nums">
                       {formatMetric(strategy.latest_max_drawdown_pct, "%")}
                     </TableCell>
-                    <TableCell className="tabular-nums">
+                    <TableCell className="font-mono tabular-nums">
                       {formatMetric(strategy.latest_win_rate_pct, "%")}
                     </TableCell>
-                    <TableCell className="tabular-nums">
+                    <TableCell className="font-mono tabular-nums">
                       {formatMetric(strategy.latest_num_trades, "", 0)}
                     </TableCell>
                     <TableCell className="text-muted-foreground">
@@ -1168,10 +1175,10 @@ export default function StrategiesPage() {
                           <Badge variant="secondary">Archived</Badge>
                         )}
                         {strategy.auto_update_enabled && (
-                          <Badge variant="outline" className="bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300">Monitor: On</Badge>
+                          <Badge variant="outline">Monitor: On</Badge>
                         )}
                         {strategy.tags?.map((tag) => (
-                          <Badge key={tag.id} variant="outline" className="bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300">
+                          <Badge key={tag.id} variant="outline" className="text-xs">
                             {tag.name}
                           </Badge>
                         ))}
@@ -1213,25 +1220,25 @@ export default function StrategiesPage() {
                   <div className="mb-3 grid grid-cols-2 gap-3">
                     <div>
                       <div className="text-xs text-muted-foreground">Total Return</div>
-                      <div className={`font-semibold tabular-nums ${getReturnColorClass(strategy.latest_total_return_pct)}`}>
+                      <div className={`font-mono font-semibold tabular-nums ${getReturnColorClass(strategy.latest_total_return_pct)}`}>
                         {formatMetric(strategy.latest_total_return_pct, "%")}
                       </div>
                     </div>
                     <div>
                       <div className="text-xs text-muted-foreground">Max Drawdown</div>
-                      <div className="font-semibold tabular-nums">
+                      <div className="font-mono font-semibold tabular-nums">
                         {formatMetric(strategy.latest_max_drawdown_pct, "%")}
                       </div>
                     </div>
                     <div>
                       <div className="text-xs text-muted-foreground">Win Rate</div>
-                      <div className="font-semibold tabular-nums">
+                      <div className="font-mono font-semibold tabular-nums">
                         {formatMetric(strategy.latest_win_rate_pct, "%")}
                       </div>
                     </div>
                     <div>
                       <div className="text-xs text-muted-foreground">Trades</div>
-                      <div className="font-semibold tabular-nums">
+                      <div className="font-mono font-semibold tabular-nums">
                         {formatMetric(strategy.latest_num_trades, "", 0)}
                       </div>
                     </div>
@@ -1243,7 +1250,7 @@ export default function StrategiesPage() {
                       return (
                         <div key={p} className="flex flex-col gap-0.5">
                           <span className="text-muted-foreground">{p}</span>
-                          <span className={`block tabular-nums ${getReturnColorClass(val)}`}>
+                          <span className={`block font-mono tabular-nums ${getReturnColorClass(val)}`}>
                             {formatMetric(val, "%")}
                           </span>
                         </div>
@@ -1254,7 +1261,7 @@ export default function StrategiesPage() {
                       return (
                         <div key={p} className="flex flex-col gap-0.5">
                           <span className="text-muted-foreground">{p}</span>
-                          <span className={`block tabular-nums ${getReturnColorClass(val)}`}>
+                          <span className={`block font-mono tabular-nums ${getReturnColorClass(val)}`}>
                             {formatMetric(val, "%")}
                           </span>
                         </div>

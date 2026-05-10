@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useAuth } from "@/context/auth";
 import { useDisplay } from "@/context/display";
@@ -201,6 +202,7 @@ function sortByLastRunDesc(a: Strategy, b: Strategy): number {
 export default function DashboardPage() {
   const { user } = useAuth();
   const { timezone } = useDisplay();
+  const router = useRouter();
   const [strategies, setStrategies] = useState<Strategy[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -448,6 +450,28 @@ export default function DashboardPage() {
     !strategiesLoadFailed &&
     primaryHref !== openStrategyHref;
 
+  // Keyboard shortcut — B triggers the primary CTA from anywhere on the page.
+  // Placed after all computed variables so primaryHref is in scope.
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.tagName === "SELECT" ||
+        target.isContentEditable
+      )
+        return;
+      if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
+      if ((e.key === "b" || e.key === "B") && !isLoading && !strategiesLoadFailed) {
+        e.preventDefault();
+        router.push(primaryHref);
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [isLoading, strategiesLoadFailed, primaryHref, router]);
+
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-3 py-4 sm:px-4 md:gap-6 md:px-6 md:py-7">
       <div className="max-w-2xl space-y-1">
@@ -527,6 +551,16 @@ export default function DashboardPage() {
                     >
                       <Link href={openStrategyHref}>Open strategy</Link>
                     </Button>
+                  )}
+                  {!isLoading && !strategiesLoadFailed && nextStrategy && (
+                    <span
+                      className="hidden items-center gap-1 text-xs text-muted-foreground md:flex"
+                      aria-label="Keyboard shortcut: B"
+                    >
+                      <kbd className="rounded border border-border px-1 py-0.5 font-mono text-[10px] leading-none">
+                        B
+                      </kbd>
+                    </span>
                   )}
                 </div>
               </div>
@@ -725,7 +759,7 @@ export default function DashboardPage() {
               </div>
             ) : (
               <>
-                <div className="hidden grid-cols-[minmax(0,1fr)_8rem_9rem_5.5rem] items-center gap-4 border-t border-border px-5 py-2 text-xs font-medium uppercase tracking-wider text-muted-foreground md:grid">
+                <div className="hidden grid-cols-[minmax(0,1fr)_8rem_9rem_auto] items-center gap-4 border-t border-border px-5 py-2 text-xs font-medium uppercase tracking-wider text-muted-foreground md:grid">
                   <span>Strategy</span>
                   <span className="text-right">Pair</span>
                   <span className="text-right">Updated</span>
@@ -735,7 +769,7 @@ export default function DashboardPage() {
                   {recentStrategiesList.map((strategy) => (
                     <div
                       key={strategy.id}
-                      className="group relative flex flex-col gap-3 px-4 py-4 transition-colors duration-fast hover:bg-primary/[0.04] sm:px-5 md:grid md:grid-cols-[minmax(0,1fr)_8rem_minmax(7rem,9rem)_6rem] md:items-center md:gap-4 md:py-3.5"
+                      className="group relative flex flex-col gap-3 px-4 py-4 transition-colors duration-fast hover:bg-primary/[0.04] sm:px-5 md:grid md:grid-cols-[minmax(0,1fr)_8rem_minmax(7rem,9rem)_auto] md:items-center md:gap-4 md:py-3.5"
                     >
                       <Link
                         href={`/strategies/${strategy.id}`}
@@ -747,7 +781,13 @@ export default function DashboardPage() {
                           <Activity className="h-4 w-4" aria-hidden="true" />
                         </div>
                         <div className="min-w-0">
-                          <p className="flex min-w-0 items-center gap-1 text-sm font-medium group-hover:text-primary">
+                          <p className="flex min-w-0 items-center gap-1.5 text-sm font-medium group-hover:text-primary">
+                            {needsValidation(strategy) && (
+                              <span
+                                className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-warning"
+                                aria-label="Needs backtest"
+                              />
+                            )}
                             <span className="truncate">{strategy.name}</span>
                             <ArrowRight className="h-3 w-3 shrink-0 opacity-0 transition-opacity duration-fast group-hover:opacity-50" aria-hidden="true" />
                           </p>
@@ -777,7 +817,21 @@ export default function DashboardPage() {
                       <span className="hidden text-right font-mono tabular-nums text-xs text-muted-foreground md:block">
                         {formatDateTime(strategy.updated_at, timezone)}
                       </span>
-                      <div className="relative z-10 flex items-center justify-start md:justify-end">
+                      <div className="relative z-10 flex items-center justify-start gap-1 md:justify-end">
+                        {needsValidation(strategy) && (
+                          <Button
+                            variant="ghost"
+                            size="touch"
+                            className="h-11 px-2 text-muted-foreground hover:text-foreground md:h-8 md:px-2"
+                            aria-label={`Run backtest for ${strategy.name}`}
+                            title="Run backtest"
+                            asChild
+                          >
+                            <Link href={`/strategies/${strategy.id}/backtest`}>
+                              <PlayCircle className="h-3.5 w-3.5" aria-hidden="true" />
+                            </Link>
+                          </Button>
+                        )}
                         <Button
                           variant="ghost"
                           size="touch"
