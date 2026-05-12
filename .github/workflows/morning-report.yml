@@ -1,0 +1,81 @@
+name: Morning Report (Claude)
+on:
+  schedule:
+    - cron: "0 5 * * *"  # 05:00 UTC = 07:00 Zurich summer
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: read
+  pull-requests: read
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with: { fetch-depth: 0 }
+
+      - name: Configure git
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Build GitHub snapshot
+        id: ctx
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          DATE=$(date -u +%Y-%m-%d)
+          echo "date=$DATE" >> "$GITHUB_OUTPUT"
+          mkdir -p .github/ai-context
+          {
+            echo "# GitHub Snapshot — $DATE"
+            echo; echo "## Open PRs"
+            gh pr list --state open --limit 20 \
+              --json number,title,author,isDraft,mergeStateStatus,reviewDecision,updatedAt,url
+            echo; echo "## Needs human"
+            gh issue list --label needs-human --state open --limit 20 \
+              --json number,title,labels,updatedAt,url
+            echo; echo "## AI-ready"
+            gh issue list --label ai-ready --state open --limit 20 \
+              --json number,title,labels,updatedAt,url
+          } > .github/ai-context/github-snapshot.md
+
+      - name: Run Claude morning report
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            Run the /morning-report skill for ${{ steps.ctx.outputs.date }}.
+          claude_args: "--max-turns 20"
+
+      - name: Commit and capture URL
+        id: commit
+        run: |
+          git add docs/ai/morning-reports/ .github/ai-context/ || true
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "docs(ai): report ${{ steps.ctx.outputs.date }}"
+          git push
+          URL="${{ github.server_url }}/${{ github.repository }}/blob/main/docs/ai/morning-reports/${{ steps.ctx.outputs.date }}.md"
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+
+      - name: Post to Slack
+        if: steps.commit.outputs.url != ''
+        env:
+          WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          SUMMARY=$(head -25 docs/ai/morning-reports/${{ steps.ctx.outputs.date }}.md \
+            | grep -v '^#' | tr -s '\n' ' ' | cut -c1-400)
+          curl -s -X POST "$WEBHOOK" \
+            -H 'Content-type: application/json' \
+            --data "{
+              \"text\": \":sunny: Morning Report ${{ steps.ctx.outputs.date }}\",
+              \"blocks\": [
+                {\"type\":\"section\",\"text\":{\"type\":\"mrkdwn\",
+                  \"text\":\":sunny: *Blockbuilders Morning Report — ${{ steps.ctx.outputs.date }}*\\n$SUMMARY…\"}},
+                {\"type\":\"actions\",\"elements\":[{\"type\":\"button\",
+                  \"text\":{\"type\":\"plain_text\",\"text\":\"Read full report\"},
+                  \"url\":\"${{ steps.commit.outputs.url }}\"}]}
+              ]
+            }"

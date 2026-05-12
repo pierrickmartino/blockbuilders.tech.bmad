@@ -1,0 +1,77 @@
+name: AI-ready feature
+about: Create a feature request that can be processed by AI agents
+labels: [type-feature, needs-spec]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template for features that may enter the overnight AI workflow.
+
+  - type: input
+    id: feature_id
+    attributes:
+      label: Feature ID
+      description: Leave blank if unknown. Example FEAT-009.
+      placeholder: FEAT-XXX
+    validations:
+      required: false
+
+  - type: textarea
+    id: user_goal
+    attributes:
+      label: User goal
+      description: What should the user be able to do?
+      placeholder: As a user, I want to...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Scope
+      options:
+        - frontend
+        - backend
+        - fullstack
+        - docs/tests only
+    validations:
+      required: true
+
+  - type: dropdown
+    id: risk
+    attributes:
+      label: Risk level
+      options:
+        - risk-low
+        - risk-medium
+        - risk-high
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria draft
+      description: Plain language is fine. AI will convert this to AC IDs.
+      placeholder: |
+        - User can...
+        - System prevents...
+        - Error state shows...
+    validations:
+      required: true
+
+  - type: textarea
+    id: non_goals
+    attributes:
+      label: Non-goals
+      description: What should not be included?
+    validations:
+      required: false
+
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Constraints or references
+      description: Technical, design, or product constraints.
+    validations:
+      required: false

@@ -1,0 +1,54 @@
+name: Nightly Research (Claude)
+on:
+  schedule:
+    - cron: "0 21 * * *"  # 21:00 UTC = 23:00 Zurich summer
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: read
+
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with: { fetch-depth: 0 }
+
+      - name: Configure git
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Set date
+        id: ctx
+        run: echo "date=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+
+      - name: Run Claude nightly research
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            Today is ${{ steps.ctx.outputs.date }}.
+            Read AGENTS.md and docs/product/product.md.
+            Search the web for:
+              - Updates to Next.js, React, TypeScript, Tailwind, XyFlow
+              - Updates to FastAPI, SQLModel, Alembic, PostgreSQL, Redis/RQ
+              - Security advisories affecting project dependencies
+              - UX patterns for visual strategy builders
+              - Implementation references for open ai-ready issues
+            Write the report to docs/ai/nightly-research/${{ steps.ctx.outputs.date }}.md
+            Structure: Executive summary, Findings for active issues,
+            Security risks, Implementation references, Questions, Next actions.
+            Do not edit source code. Do not modify docs/product/product.md.
+          claude_args: "--max-turns 30"
+
+      - name: Commit report
+        run: |
+          git add docs/ai/nightly-research/ || true
+          if git diff --cached --quiet; then
+            echo "No changes"
+          else
+            git commit -m "docs(ai): research ${{ steps.ctx.outputs.date }}"
+            git push
+          fi
