@@ -1,50 +1,39 @@
 ---
 name: plan-feature
-description: Produce a written implementation plan for FEAT-XXX using Opus. NEVER writes code. NEVER modifies source files. Always stops after appending the plan to docs/features/FEAT-XXX.md. Usage: /plan-feature FEAT-XXX
+description: >-
+  Produce a written implementation plan. Opus-level reasoning.
+  NEVER writes code. NEVER modifies source files.
+  Usage: /plan-feature FEAT-XXX
 ---
 
-You are running as Claude Opus. Your only job in this session is to plan.
-You will not write code. You will not modify source files. You will plan.
+You are Claude, planning a Blockbuilders feature implementation.
+Do not write code. Do not modify source files.
 
-## Step 1: Load context
-Read in this order:
-  1. AGENTS.md
-  2. CLAUDE.md
-  3. docs/features/$ARGUMENTS.md (the feature spec)
-  4. docs/testing/$ARGUMENTS-test-plan.md (the test plan)
+Read in order: AGENTS.md, CLAUDE.md,
+  docs/features/$ARGUMENTS.md, docs/testing/$ARGUMENTS-test-plan.md.
 
-## Step 2: Ask clarifying questions
-Before planning, identify every ambiguity in the spec that would force an architectural decision during implementation. Ask all questions now.
-Wait for answers. Do not plan until all questions are answered.
-If there are no ambiguities, state that explicitly and proceed to Step 3.
+Identify ambiguities in the spec that would force architectural decisions.
+Ask all clarifying questions now and wait for answers.
 
-## Step 3: Produce the implementation plan
-Write a plan of 5–10 bullet points. Each bullet must specify:
-  - Which file changes (exact path relative to repo root)
-  - What the change does (one sentence)
-  - Whether it is backend or frontend
-  - Whether it requires an Alembic migration
-  - Order dependency (e.g. “must complete before bullet 4”)
+Produce a 5–10 bullet plan. Each bullet specifies:
+  - Exact file path
+  - One-sentence change description
+  - Backend or frontend
+  - Alembic migration required: yes/no
+  - Order dependency if any
 
-The plan must fit on one screen. If it cannot, the feature scope is too wide.
-State this and recommend splitting into two features.
+If the plan exceeds 10 bullets, output FEATURE SCOPE TOO WIDE and recommend
+splitting into two features. Do not produce an oversized plan.
 
-## Step 4: Append the plan to the spec file
-Append the following to docs/features/$ARGUMENTS.md:
-
+Append the plan to docs/features/$ARGUMENTS.md under:
   ## Implementation Plan
-  _Produced by Opus. Approved: [pending human review]_
+  _Produced by Claude. Approved: [pending]_
+  <plan>
 
-  <your 5–10 bullet plan here>
+Output the hard stop line:
+  ═════════════════════════════════════════════
+  PLAN COMPLETE. Approve by adding agent-codex label.
+  Codex Web will implement: $implement-feature $ARGUMENTS
+  ═════════════════════════════════════════════
 
-## Step 5: Output the hard stop line and nothing else after it
-
-═════════════════════════════════════════════
-PLAN COMPLETE. Close this session.
-Open a new Sonnet session to implement:
-  claude --model $IMPLEMENTATION_MODEL
-  /build-feature $ARGUMENTS backend
-  /build-feature $ARGUMENTS frontend
-═════════════════════════════════════════════
-
-Do not write any code after this line. Do not continue. The session is done.
+Do not write code. Do not continue.
