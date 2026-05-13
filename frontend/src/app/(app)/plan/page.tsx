@@ -230,7 +230,7 @@ export default function PlanPage() {
               <div className="rounded-lg border bg-muted/20 p-4">
                 <div className="mb-3 flex flex-col gap-2 min-[420px]:flex-row min-[420px]:items-center min-[420px]:justify-between">
                   <h3 className="font-semibold">Backtest Credits</h3>
-                  <Badge variant="default" className="tabular-nums">
+                  <Badge variant="default" className="font-mono tabular-nums">
                     {profile?.settings.backtest_credit_balance ?? 0} credits
                   </Badge>
                 </div>
@@ -252,7 +252,7 @@ export default function PlanPage() {
               <div className="rounded-lg border bg-muted/20 p-4">
                 <div className="mb-3 flex flex-col gap-2 min-[420px]:flex-row min-[420px]:items-center min-[420px]:justify-between">
                   <h3 className="font-semibold">Extra Strategy Slots</h3>
-                  <Badge variant="default" className="tabular-nums">
+                  <Badge variant="default" className="font-mono tabular-nums">
                     +{profile?.settings.extra_strategy_slots ?? 0} slots
                   </Badge>
                 </div>
@@ -344,7 +344,7 @@ export default function PlanPage() {
                         </span>
                       </div>
                       <div className="flex items-baseline gap-1">
-                        <span className="text-2xl font-bold tabular-nums">
+                        <span className="font-mono text-2xl font-bold tabular-nums">
                           $19
                         </span>
                         <span className="text-sm text-muted-foreground">
@@ -354,7 +354,7 @@ export default function PlanPage() {
                     </div>
                     <div className="text-sm sm:text-right">
                       <p className="text-muted-foreground">Annual billing:</p>
-                      <p className="font-medium tabular-nums">$190/year</p>
+                      <p className="font-mono font-medium tabular-nums">$190/year</p>
                       <p className="text-xs font-medium text-success">
                         Save 2 months
                       </p>
@@ -402,12 +402,14 @@ export default function PlanPage() {
                       </p>
                     </div>
                     <div className="shrink-0 text-sm sm:text-right">
-                      <span className="font-semibold tabular-nums">$49</span>
+                      <span className="font-mono font-semibold tabular-nums">$49</span>
                       <span className="text-xs text-muted-foreground">
                         /month
                       </span>
                       <p className="text-xs text-muted-foreground">
-                        or $490/year · save 2 months
+                        or{" "}
+                        <span className="font-mono tabular-nums">$490</span>
+                        /year · save 2 months
                       </p>
                     </div>
                   </div>
@@ -495,7 +497,7 @@ function UsageCard({ title, used, limit, helper, resetsAt }: UsageCardProps) {
     >
       <div className="flex flex-col gap-2 min-[420px]:flex-row min-[420px]:items-center min-[420px]:justify-between">
         <h3 className="font-medium">{title}</h3>
-        <Badge variant={badgeVariant} className="tabular-nums">
+        <Badge variant={badgeVariant} className="font-mono tabular-nums">
           {safeUsed} / {safeLimit || "No limit"}
         </Badge>
       </div>
