@@ -1,5 +1,12 @@
 # Tasks — in flight
 
+## CI frontend test step fix (in flight)
+
+- [x] Write CI fix plan
+- [x] Receive implementation approval
+- [x] Update frontend CI test step to tolerate absent test runner
+- [x] Verify frontend lint and build (`npm run lint` exit 0 with existing warnings; `npm run build` clean)
+
 ## Profile page hardening pass (in flight)
 
 - [x] Write hardening plan for profile page
