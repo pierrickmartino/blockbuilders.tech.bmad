@@ -238,8 +238,6 @@ function ChartPanelBody({
 
       {data && data.data_status.has_candles && (
         <ChartDataSummary
-          asset={asset}
-          timeframe={timeframe}
           candles={data.candles}
           selectedCandle={focused?.candle ?? latestCandle}
           priceSeries={priceSeries}
@@ -288,7 +286,7 @@ function ChartPanelHeader({
               type="button"
               onClick={() => onTimeframeChange(tf)}
               className={cn(
-                "data-text rounded px-2 py-1 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring",
+                "rounded px-2 py-1 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring",
                 tf === timeframe
                   ? "bg-primary text-primary-foreground"
                   : "text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -621,18 +619,61 @@ function ChartCanvas({
 
   return (
     <div className="space-y-2">
-      <div
-        ref={priceContainerRef}
-        className="min-h-[360px]"
-        aria-label="Candlestick price chart"
-      />
-      {oscillatorSeries.length > 0 && (
+      <div className="relative">
         <div
-          ref={oscillatorContainerRef}
-          className="min-h-[140px]"
-          aria-label="Selected indicator chart"
+          ref={priceContainerRef}
+          className="min-h-[360px]"
+          aria-label="Candlestick price chart"
         />
+        {priceSeries.length > 0 && (
+          <ChartLegend series={priceSeries} theme={theme} />
+        )}
+      </div>
+      {oscillatorSeries.length > 0 && (
+        <div className="relative">
+          <div
+            ref={oscillatorContainerRef}
+            className="min-h-[140px]"
+            aria-label="Selected indicator chart"
+          />
+          <OscillatorLabel series={oscillatorSeries} />
+        </div>
       )}
+    </div>
+  );
+}
+
+function ChartLegend({
+  series,
+  theme,
+}: {
+  series: IndicatorSeries[];
+  theme: ReturnType<typeof useChartTheme>;
+}) {
+  return (
+    <div className="pointer-events-none absolute right-2 top-2 flex flex-col gap-1">
+      {series.map((s, i) => (
+        <div
+          key={s.key}
+          className="flex items-center gap-1.5 rounded bg-background/80 px-1.5 py-0.5 text-[11px] backdrop-blur-sm"
+        >
+          <span
+            className="h-2 w-2 shrink-0 rounded-full"
+            style={{ backgroundColor: theme.indicators[i % theme.indicators.length] }}
+            aria-hidden="true"
+          />
+          <span className="font-medium">{s.label}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function OscillatorLabel({ series }: { series: IndicatorSeries[] }) {
+  const label = series.map((s) => s.label).join(" · ");
+  return (
+    <div className="pointer-events-none absolute left-2 top-2 rounded bg-background/80 px-1.5 py-0.5 text-[11px] font-medium backdrop-blur-sm">
+      {label}
     </div>
   );
 }
@@ -640,16 +681,12 @@ function ChartCanvas({
 // --- supporting blocks ----------------------------------------------------
 
 function ChartDataSummary({
-  asset,
-  timeframe,
   candles,
   selectedCandle,
   priceSeries,
   oscillatorSeries,
   isRefreshing,
 }: {
-  asset: string | null;
-  timeframe: string;
   candles: ChartCandle[];
   selectedCandle: ChartCandle | null;
   priceSeries: IndicatorSeries[];
@@ -657,84 +694,17 @@ function ChartDataSummary({
   isRefreshing: boolean;
 }) {
   const activeSeries = [...priceSeries, ...oscillatorSeries];
-  const range = useMemo(() => {
-    if (candles.length === 0) return null;
-    let low = candles[0].low;
-    let high = candles[0].high;
-    for (const candle of candles) {
-      low = Math.min(low, candle.low);
-      high = Math.max(high, candle.high);
-    }
-    return { low, high };
-  }, [candles]);
 
   return (
-    <section
-      className="rounded-lg border bg-card p-4 text-xs"
-      aria-labelledby="chart-data-summary-heading"
-    >
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 id="chart-data-summary-heading" className="text-sm font-medium">
-          Chart data
-        </h3>
-        <span
-          className="data-text rounded-md border border-border bg-muted/40 px-2 py-1 text-muted-foreground"
-          role="status"
-        >
-          {isRefreshing ? "Refreshing" : `${candles.length} candles`}
-        </span>
-      </div>
-      <dl className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <SummaryItem label="Pair" value={asset ?? "Unknown"} />
-        <SummaryItem label="Timeframe" value={timeframe} isData />
-        <SummaryItem
-          label="Range"
-          value={
-            range
-              ? `${formatNumber(range.low)} to ${formatNumber(range.high)}`
-              : "Unknown"
-          }
-          isData
-        />
-        <SummaryItem
-          label="Indicators"
-          value={
-            activeSeries.length > 0
-              ? activeSeries.map((series) => series.label).join(", ")
-              : "None"
-          }
-        />
-      </dl>
+    <div className="mt-1 border-t border-border pt-3">
       {selectedCandle && <CandleReadout candle={selectedCandle} />}
+      <p className="mt-2 text-xs text-muted-foreground" role="status">
+        {isRefreshing ? "Refreshing…" : `${candles.length} candles loaded`}
+      </p>
       <ChartScreenReaderTable
         selectedCandle={selectedCandle}
         activeSeries={activeSeries}
       />
-    </section>
-  );
-}
-
-function SummaryItem({
-  label,
-  value,
-  isData = false,
-}: {
-  label: string;
-  value: string;
-  isData?: boolean;
-}) {
-  return (
-    <div className="min-w-0">
-      <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd
-        className={cn(
-          "mt-1 break-words text-sm text-foreground",
-          isData && "data-text",
-        )}
-        title={value}
-      >
-        {value}
-      </dd>
     </div>
   );
 }

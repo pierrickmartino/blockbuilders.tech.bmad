@@ -16,13 +16,14 @@ interface SentimentGaugeProps {
   status: "ok" | "partial" | "unavailable";
   formatter?: (v: number) => string;
   unit?: string;
+  subtext?: string;
 }
 
 function gaugeColor(pct: number): string {
   if (pct <= 25) return "bg-destructive";
   if (pct <= 45) return "bg-warning";
   if (pct <= 55) return "bg-primary";
-  if (pct <= 75) return "bg-primary";
+  if (pct <= 75) return "bg-success";
   return "bg-success";
 }
 
@@ -35,6 +36,7 @@ export function SentimentGauge({
   status,
   formatter = (v) => v.toFixed(0),
   unit,
+  subtext,
 }: SentimentGaugeProps) {
   if (status === "unavailable") {
     return (
@@ -78,8 +80,11 @@ export function SentimentGauge({
         )}
       </div>
 
-      <div className="data-text mb-2 text-lg font-semibold">
-        {displayValue}
+      <div className="mb-2">
+        <span className="data-text text-lg font-semibold">{displayValue}</span>
+        {subtext && (
+          <span className="ml-2 text-xs text-muted-foreground">{subtext}</span>
+        )}
       </div>
 
       <div
