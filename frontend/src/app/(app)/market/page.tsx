@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useMarketTickers } from "@/hooks/useMarketTickers";
 import { formatPrice, formatPercent, formatNumber, formatDateTime, formatVolatility } from "@/lib/format";
@@ -165,6 +165,7 @@ function TableSkeleton() {
 }
 
 export default function MarketPage() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [filter, setFilter] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("volume_24h");
@@ -172,6 +173,17 @@ export default function MarketPage() {
   const [inspectedAsset, setInspectedAsset] = useState<string | null>(
     searchParams.get("asset"),
   );
+
+  const handleSelectAsset = (pair: string | null) => {
+    setInspectedAsset(pair);
+    const params = new URLSearchParams(searchParams.toString());
+    if (pair) {
+      params.set("asset", pair);
+    } else {
+      params.delete("asset");
+    }
+    router.replace(`?${params.toString()}`, { scroll: false });
+  };
   const { tickers, asOf, isLoading, error, refresh } = useMarketTickers();
   const { timezone } = useDisplay();
   const searchStatusId = "market-search-status";
@@ -460,14 +472,14 @@ export default function MarketPage() {
                           "group cursor-pointer transition-colors hover:bg-muted/30",
                           ticker.pair === inspectedAsset && "bg-primary/5"
                         )}
-                        onClick={() => setInspectedAsset(ticker.pair)}
+                        onClick={() => handleSelectAsset(ticker.pair)}
                       >
                         <TableCell className="data-text max-w-40 font-medium">
                           <button
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              setInspectedAsset(ticker.pair);
+                              handleSelectAsset(ticker.pair);
                             }}
                             className="min-h-9 max-w-full truncate rounded-md text-left text-primary transition-colors hover:text-primary/80 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring"
                             aria-label={`Open chart for ${ticker.pair}`}
@@ -506,7 +518,7 @@ export default function MarketPage() {
                       <div className="mb-4 flex items-start justify-between gap-3">
                         <button
                           type="button"
-                          onClick={() => setInspectedAsset(ticker.pair)}
+                          onClick={() => handleSelectAsset(ticker.pair)}
                           className="data-text min-h-11 min-w-0 truncate rounded-md text-left text-lg font-medium text-primary hover:text-primary/80 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring"
                           aria-label={`Open chart for ${ticker.pair}`}
                           title={ticker.pair}
@@ -526,7 +538,7 @@ export default function MarketPage() {
                             type="button"
                             variant="outline"
                             size="icon-touch"
-                            onClick={() => setInspectedAsset(ticker.pair)}
+                            onClick={() => handleSelectAsset(ticker.pair)}
                             aria-label={`Open ${ticker.pair} chart`}
                           >
                             <BarChart3 className="h-4 w-4" aria-hidden="true" />
@@ -583,7 +595,7 @@ export default function MarketPage() {
 
         <MarketChartPanel
           asset={inspectedAsset}
-          onClose={() => setInspectedAsset(null)}
+          onClose={() => handleSelectAsset(null)}
         />
       </main>
     </TooltipProvider>

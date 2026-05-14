@@ -85,7 +85,11 @@ function StatusBadge({ alert }: { alert: AlertRule }) {
     return <Badge variant="outline">Inactive</Badge>;
   }
   if (isExpired(alert)) {
-    return <Badge variant="outline">Expired</Badge>;
+    return (
+      <Badge variant="outline" className="border-warning text-warning">
+        Expired
+      </Badge>
+    );
   }
   return (
     <Badge className="bg-success text-success-foreground hover:bg-success/90">
@@ -217,12 +221,12 @@ export default function AlertsPage() {
     }
   }, [error]);
 
-  // Triggered alerts go to History; the main tabs show only non-triggered
-  const priceAlerts = alerts.filter(
-    (a) => a.alert_type === "price" && !a.last_triggered_at,
-  );
+  // Active tabs show all managed alerts of each type (re-armed alerts remain
+  // active even after firing, so we partition by type — not by trigger state).
+  // History is a chronological log of every alert that has ever fired.
+  const priceAlerts = alerts.filter((a) => a.alert_type === "price");
   const performanceAlerts = alerts.filter(
-    (a) => a.alert_type === "performance" && !a.last_triggered_at,
+    (a) => a.alert_type === "performance",
   );
   const historyAlerts = alerts
     .filter((a) => !!a.last_triggered_at)
@@ -402,7 +406,7 @@ export default function AlertsPage() {
           <div
             ref={errorRef}
             role="alert"
-            aria-live="assertive"
+            aria-live="polite"
             className="flex items-start justify-between gap-2 rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive"
           >
             <span>{error}</span>
@@ -567,8 +571,7 @@ export default function AlertsPage() {
                           />
                         </TableHead>
                         <TableHead>Asset</TableHead>
-                        <TableHead>Condition</TableHead>
-                        <TableHead>Threshold</TableHead>
+                        <TableHead>Trigger</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Channels</TableHead>
                         <TableHead>Expires</TableHead>
@@ -596,10 +599,8 @@ export default function AlertsPage() {
                             <TableCell className="data-text font-medium">
                               {alert.asset}
                             </TableCell>
-                            <TableCell className="capitalize">
-                              {alert.direction}
-                            </TableCell>
-                            <TableCell className="data-text">
+                            <TableCell className="data-text capitalize">
+                              {alert.direction}{" "}
                               {formatAlertPrice(alert.threshold_price)} {quote}
                             </TableCell>
                             <TableCell>
@@ -758,11 +759,6 @@ export default function AlertsPage() {
 
           {/* ── Performance Alerts tab ── */}
           <TabsContent value="performance" className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Performance alerts are configured per strategy. Visit a
-              strategy&apos;s settings to manage its alert.
-            </p>
-
             {filteredPerformanceAlerts.length === 0 ? (
               <Card>
                 <CardContent className="flex flex-col items-center justify-center py-12 text-center">
@@ -962,7 +958,7 @@ export default function AlertsPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Type</TableHead>
+                        <TableHead>Alert Type</TableHead>
                         <TableHead>Asset / Strategy</TableHead>
                         <TableHead>Condition</TableHead>
                         <TableHead>Triggered</TableHead>
@@ -977,11 +973,8 @@ export default function AlertsPage() {
                         return (
                           <TableRow key={alert.id} className="hover:bg-muted/50">
                             <TableCell>
-                              <Badge
-                                className="bg-warning text-warning-foreground hover:bg-warning/90"
-                                aria-label="Triggered"
-                              >
-                                Triggered
+                              <Badge variant="secondary">
+                                {isPrice ? "Price" : "Performance"}
                               </Badge>
                             </TableCell>
                             <TableCell className="data-text font-medium">
@@ -989,7 +982,7 @@ export default function AlertsPage() {
                                 ? alert.asset
                                 : strategy?.name ?? "Unknown Strategy"}
                             </TableCell>
-                            <TableCell className="text-sm text-muted-foreground">
+                            <TableCell className="data-text text-sm text-muted-foreground capitalize">
                               {isPrice
                                 ? `${alert.direction} ${formatAlertPrice(alert.threshold_price)} ${getQuoteSymbol(alert.asset)}`
                                 : alert.threshold_pct
@@ -1056,7 +1049,7 @@ export default function AlertsPage() {
                                   ? alert.asset
                                   : strategy?.name ?? "Unknown Strategy"}
                               </p>
-                              <p className="text-sm text-muted-foreground capitalize">
+                              <p className="data-text text-sm text-muted-foreground capitalize">
                                 {isPrice
                                   ? `${alert.direction} ${formatAlertPrice(alert.threshold_price)} ${getQuoteSymbol(alert.asset)}`
                                   : alert.threshold_pct
@@ -1064,8 +1057,8 @@ export default function AlertsPage() {
                                     : "—"}
                               </p>
                             </div>
-                            <Badge className="bg-warning text-warning-foreground hover:bg-warning/90 shrink-0">
-                              Triggered
+                            <Badge variant="secondary" className="shrink-0">
+                              {isPrice ? "Price" : "Performance"}
                             </Badge>
                           </div>
                           <div className="mt-3 flex items-center justify-between">
@@ -1113,9 +1106,13 @@ export default function AlertsPage() {
         <Dialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Delete alert</DialogTitle>
+              <DialogTitle>
+                {deleteConfirm?.alert_type === "price"
+                  ? `Delete ${deleteConfirm.asset} ${deleteConfirm.direction} ${formatAlertPrice(deleteConfirm.threshold_price)} ${getQuoteSymbol(deleteConfirm.asset)}?`
+                  : "Delete alert?"}
+              </DialogTitle>
               <DialogDescription>
-                This alert will be removed and cannot be undone.
+                This alert will be permanently removed and cannot be undone.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>

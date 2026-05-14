@@ -16,6 +16,14 @@ const HEADING_ID = "market-sentiment-heading";
 const LONG_SHORT_COLOR = "hsl(var(--chart-1))";
 const FUNDING_COLOR = "hsl(var(--chart-2))";
 
+function getFearGreedZone(value: number): string {
+  if (value <= 25) return "Extreme Fear";
+  if (value <= 45) return "Fear";
+  if (value <= 55) return "Neutral";
+  if (value <= 75) return "Greed";
+  return "Extreme Greed";
+}
+
 const FEAR_GREED_HELP =
   "Aggregate index (0–100) measuring crypto market emotion. Below 25 = extreme fear; above 75 = extreme greed. Use as context, not a directional trade signal.";
 const LONG_SHORT_HELP =
@@ -145,6 +153,9 @@ export function MarketSentimentPanel({ asset }: MarketSentimentPanelProps) {
           max={100}
           status={sentiment.source_status.fear_greed}
           formatter={(v) => formatSentiment(v, "fear_greed")}
+          subtext={sentiment.fear_greed.value !== null
+            ? getFearGreedZone(sentiment.fear_greed.value)
+            : undefined}
         />
 
         <SentimentSparkline

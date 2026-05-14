@@ -19,7 +19,6 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
-import { Strategy } from "@/types/strategy";
 import { Settings, Palette, Mail, Shield } from "lucide-react";
 
 export default function PreferencesPage() {
@@ -45,16 +44,9 @@ export default function PreferencesPage() {
 
   // Email digest
   const [digestEnabled, setDigestEnabled] = useState(true);
-  const [strategies, setStrategies] = useState<Strategy[]>([]);
-  const [strategiesLoading, setStrategiesLoading] = useState(true);
-  const [strategiesError, setStrategiesError] = useState<string | null>(null);
-  const [pendingStrategyToggleIds, setPendingStrategyToggleIds] = useState<Set<string>>(
-    new Set()
-  );
 
   const digestRequestSeqRef = useRef(0);
   const committedDigestEnabledRef = useRef(true);
-  const pendingStrategyToggleIdsRef = useRef(new Set<string>());
 
   useEffect(() => {
     setAnalyticsConsent(getConsent());
@@ -86,28 +78,9 @@ export default function PreferencesPage() {
     }
   }, [setTimezone, setTheme]);
 
-  const fetchStrategies = useCallback(async () => {
-    setStrategiesLoading(true);
-    setStrategiesError(null);
-    try {
-      const data = await apiFetch<Strategy[]>("/strategies");
-      setStrategies(data);
-    } catch (err) {
-      setStrategiesError(
-        err instanceof ApiError ? err.message : "Couldn't load strategies"
-      );
-    } finally {
-      setStrategiesLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
     fetchProfile();
   }, [fetchProfile]);
-
-  useEffect(() => {
-    fetchStrategies();
-  }, [fetchStrategies]);
 
   const handleConsentChange = useCallback((accepted: boolean) => {
     setConsent(accepted);
@@ -208,47 +181,6 @@ export default function PreferencesPage() {
       toast.error(
         err instanceof ApiError ? err.message : "Failed to update digest preference"
       );
-    }
-  }
-
-  async function handleStrategyDigestToggle(strategyId: string, enabled: boolean) {
-    if (pendingStrategyToggleIdsRef.current.has(strategyId)) return;
-
-    const strategy = strategies.find((s) => s.id === strategyId);
-    if (!strategy) return;
-
-    const previousDigestEnabled = strategy.digest_email_enabled;
-    pendingStrategyToggleIdsRef.current.add(strategyId);
-    setPendingStrategyToggleIds((prev) => {
-      const next = new Set(prev);
-      next.add(strategyId);
-      return next;
-    });
-    setStrategies((prev) =>
-      prev.map((s) => (s.id === strategyId ? { ...s, digest_email_enabled: enabled } : s))
-    );
-
-    try {
-      await apiFetch(`/strategies/${strategyId}`, {
-        method: "PATCH",
-        body: JSON.stringify({ digest_email_enabled: enabled }),
-      });
-    } catch (err) {
-      setStrategies((prev) =>
-        prev.map((s) =>
-          s.id === strategyId ? { ...s, digest_email_enabled: previousDigestEnabled } : s
-        )
-      );
-      toast.error(
-        err instanceof ApiError ? err.message : "Failed to update strategy digest preference"
-      );
-    } finally {
-      pendingStrategyToggleIdsRef.current.delete(strategyId);
-      setPendingStrategyToggleIds((prev) => {
-        const next = new Set(prev);
-        next.delete(strategyId);
-        return next;
-      });
     }
   }
 
@@ -471,101 +403,35 @@ export default function PreferencesPage() {
               Control weekly strategy performance digest emails.
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex flex-col gap-3 rounded-lg border bg-muted/20 p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-                <div className="min-w-0">
-                  <div id="digest-global-label" className="text-sm font-medium">
-                    Weekly Strategy Digest
-                  </div>
-                  <p id="digest-global-desc" className="text-xs text-muted-foreground">
-                    Receive a weekly summary of your strategy performance by email.
-                  </p>
+          <CardContent className="space-y-3">
+            <div className="flex flex-col gap-3 rounded-lg border bg-muted/20 p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+              <div className="min-w-0">
+                <div id="digest-global-label" className="text-sm font-medium">
+                  Weekly Strategy Digest
                 </div>
-                <Switch
-                  id="digest-global"
-                  checked={digestEnabled}
-                  onCheckedChange={handleDigestGlobalToggle}
-                  aria-labelledby="digest-global-label"
-                  aria-describedby="digest-global-desc"
-                />
-              </div>
-
-              {!digestEnabled && (
-                <p className="text-xs text-muted-foreground">
-                  All digest emails are paused. Per-strategy preferences below are saved for
-                  when you re-enable.
+                <p id="digest-global-desc" className="mt-1 text-xs text-muted-foreground">
+                  Receive a weekly summary of your strategy performance by email.
                 </p>
-              )}
-
-              <div className="border-t pt-4">
-                <h4 className="mb-3 text-sm font-medium">Per-Strategy Digest</h4>
-                {strategiesLoading ? (
-                  <div className="space-y-2">
-                    {[1, 2, 3].map((i) => (
-                      <Skeleton key={i} className="h-8 w-full" />
-                    ))}
-                  </div>
-                ) : strategiesError ? (
-                  <div
-                    role="alert"
-                    className="flex flex-col gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <span className="min-w-0 break-words">
-                      Couldn&apos;t load strategies: {strategiesError}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={fetchStrategies}
-                      className="min-h-11 shrink-0 border-destructive/30 text-destructive hover:bg-destructive/10 sm:min-h-0"
-                    >
-                      Retry
-                    </Button>
-                  </div>
-                ) : strategies.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    No strategies yet.{" "}
-                    <Link href="/strategies" className="font-medium text-primary underline">
-                      Create one
-                    </Link>{" "}
-                    to control per-strategy digest preferences.
-                  </p>
-                ) : (
-                  <ul className="space-y-2">
-                    {strategies.map((s) => {
-                      const pending = pendingStrategyToggleIds.has(s.id);
-                      const labelId = `digest-strategy-${s.id}`;
-                      return (
-                        <li
-                          key={s.id}
-                          className={cn(
-                            "flex min-h-11 items-center justify-between gap-3 rounded-md border px-3 py-2 transition-opacity",
-                            pending && "opacity-60"
-                          )}
-                        >
-                          <label
-                            id={labelId}
-                            htmlFor={`digest-strategy-switch-${s.id}`}
-                            className="min-w-0 flex-1 cursor-pointer break-words text-sm"
-                          >
-                            {s.name}
-                          </label>
-                          <Switch
-                            id={`digest-strategy-switch-${s.id}`}
-                            checked={s.digest_email_enabled}
-                            disabled={pending}
-                            onCheckedChange={(v) => handleStrategyDigestToggle(s.id, v)}
-                            aria-labelledby={labelId}
-                            aria-busy={pending}
-                          />
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
               </div>
+              <Switch
+                id="digest-global"
+                checked={digestEnabled}
+                onCheckedChange={handleDigestGlobalToggle}
+                aria-labelledby="digest-global-label"
+                aria-describedby="digest-global-desc"
+              />
             </div>
+            <p className="text-xs text-muted-foreground">
+              To include or exclude individual strategies from the digest, open
+              the strategy and adjust its settings on the{" "}
+              <Link
+                href="/strategies"
+                className="font-medium text-primary underline"
+              >
+                Strategies
+              </Link>{" "}
+              page.
+            </p>
           </CardContent>
         </Card>
 

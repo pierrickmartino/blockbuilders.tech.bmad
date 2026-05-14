@@ -102,6 +102,9 @@ export default function ProfilePage() {
               <User className="h-4 w-4 text-muted-foreground" />
               <CardTitle className="text-base">Account</CardTitle>
             </div>
+            <CardDescription>
+              Your email address, plan tier, and account status.
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center gap-3">
@@ -127,12 +130,14 @@ export default function ProfilePage() {
               <div className="flex items-start gap-3 rounded-lg border border-primary/20 bg-primary/5 p-3">
                 <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                 <div>
-                  <Badge variant="secondary" className="mb-1.5">
+                  <Badge variant="default" className="mb-1.5">
                     Beta User: Grandfathered Perks
                   </Badge>
                   <p className="text-sm text-muted-foreground">
-                    +10 strategies and +50 backtests/day are already applied to
-                    your limits.{" "}
+                    <span className="font-mono tabular-nums">+10</span>{" "}
+                    strategies and{" "}
+                    <span className="font-mono tabular-nums">+50</span>{" "}
+                    backtests/day are already applied to your limits.{" "}
                     <a
                       href="/plan#billing"
                       className="font-medium text-primary underline"

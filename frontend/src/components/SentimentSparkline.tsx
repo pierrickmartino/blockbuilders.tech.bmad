@@ -19,9 +19,13 @@ interface SentimentSparklineProps {
 }
 
 function formatDate(isoDate: string): string {
-  // HistoryPoint.t is YYYY-MM-DD, rendered as a localized short date.
-  const parsed = new Date(isoDate);
-  if (Number.isNaN(parsed.getTime())) return isoDate;
+  // HistoryPoint.t is YYYY-MM-DD. Parse as local date to avoid UTC-midnight
+  // shift that causes western-hemisphere timezones to display the previous day.
+  const parts = isoDate.split("-");
+  if (parts.length !== 3) return isoDate;
+  const [y, m, d] = parts.map(Number);
+  if (!y || !m || !d) return isoDate;
+  const parsed = new Date(y, m - 1, d);
   return parsed.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 

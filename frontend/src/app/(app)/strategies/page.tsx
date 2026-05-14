@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { toast } from "sonner";
 import { apiFetch, ApiError } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
 import { useDisplay } from "@/context/display";
@@ -433,6 +434,7 @@ export default function StrategiesPage() {
         method: "POST",
       });
       await refreshStrategies();
+      toast.success("Strategy cloned", { description: "A copy has been added to your list." });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to clone strategy");
     } finally {
@@ -448,6 +450,7 @@ export default function StrategiesPage() {
         body: JSON.stringify({ is_archived: archive }),
       });
       await refreshStrategies();
+      toast.success(archive ? "Strategy archived" : "Strategy unarchived");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update strategy");
     } finally {
@@ -804,7 +807,10 @@ export default function StrategiesPage() {
       {/* Filter Controls */}
       <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/30 p-2 dark:bg-muted/10">
         <Select value={assetFilter} onValueChange={setAssetFilter}>
-          <SelectTrigger className="w-full sm:w-[150px]" aria-label="Filter by asset">
+          <SelectTrigger className="relative w-full sm:w-[150px]" aria-label="Filter by asset">
+            {assetFilter !== "all" && (
+              <span className="absolute right-6 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full bg-primary" aria-hidden="true" />
+            )}
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -818,7 +824,10 @@ export default function StrategiesPage() {
         </Select>
 
         <Select value={performanceFilter} onValueChange={(v) => setPerformanceFilter(v as PerformanceFilter)}>
-          <SelectTrigger className="w-full sm:w-[150px]" aria-label="Filter by performance">
+          <SelectTrigger className="relative w-full sm:w-[150px]" aria-label="Filter by performance">
+            {performanceFilter !== "all" && (
+              <span className="absolute right-6 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full bg-primary" aria-hidden="true" />
+            )}
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -829,7 +838,10 @@ export default function StrategiesPage() {
         </Select>
 
         <Select value={lastRunFilter} onValueChange={(v) => setLastRunFilter(v as LastRunFilter)}>
-          <SelectTrigger className="w-full sm:w-[150px]" aria-label="Filter by last run">
+          <SelectTrigger className="relative w-full sm:w-[150px]" aria-label="Filter by last run">
+            {lastRunFilter !== "all" && (
+              <span className="absolute right-6 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full bg-primary" aria-hidden="true" />
+            )}
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -1054,7 +1066,7 @@ export default function StrategiesPage() {
                             <Badge variant="secondary">Archived</Badge>
                           )}
                           {strategy.auto_update_enabled && (
-                            <Badge variant="outline">Monitor</Badge>
+                            <Badge variant="outline" title="Auto-update enabled: this strategy re-runs automatically">Monitor</Badge>
                           )}
                         </div>
                         {strategy.tags && strategy.tags.length > 0 && (
@@ -1102,7 +1114,7 @@ export default function StrategiesPage() {
                     <TableCell className="font-mono tabular-nums">
                       {formatMetric(strategy.latest_num_trades, "", 0)}
                     </TableCell>
-                    <TableCell className="text-muted-foreground">
+                    <TableCell className="font-mono tabular-nums text-muted-foreground">
                       {formatDate(strategy.last_run_at)}
                     </TableCell>
                     <TableCell className="text-right">
@@ -1175,7 +1187,7 @@ export default function StrategiesPage() {
                           <Badge variant="secondary">Archived</Badge>
                         )}
                         {strategy.auto_update_enabled && (
-                          <Badge variant="outline">Monitor: On</Badge>
+                          <Badge variant="outline" title="Auto-update enabled: this strategy re-runs automatically">Monitor</Badge>
                         )}
                         {strategy.tags?.map((tag) => (
                           <Badge key={tag.id} variant="outline" className="text-xs">
@@ -1269,7 +1281,7 @@ export default function StrategiesPage() {
                     })}
                   </div>
 
-                  <div className="text-sm text-muted-foreground">
+                  <div className="font-mono tabular-nums text-sm text-muted-foreground">
                     Last run: {formatDate(strategy.last_run_at)}
                   </div>
                 </CardContent>
