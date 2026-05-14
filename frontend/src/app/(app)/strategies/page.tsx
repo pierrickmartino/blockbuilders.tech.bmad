@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { apiFetch, ApiError } from "@/lib/api";
@@ -116,22 +117,23 @@ export default function StrategiesPage() {
     message: string;
   } | null>(null);
 
-  useEffect(() => {
-    const loadStrategies = async () => {
-      try {
-        const params = new URLSearchParams();
-        if (showArchived) params.set("include_archived", "true");
-        const data = await apiFetch<Strategy[]>(`/strategies/?${params}`);
-        setStrategies(data);
-        setError(null);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load strategies");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    loadStrategies();
+  const fetchStrategies = useCallback(async () => {
+    try {
+      const params = new URLSearchParams();
+      if (showArchived) params.set("include_archived", "true");
+      const data = await apiFetch<Strategy[]>(`/strategies/?${params}`);
+      setStrategies(data);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load strategies");
+    } finally {
+      setIsLoading(false);
+    }
   }, [showArchived]);
+
+  useEffect(() => {
+    fetchStrategies();
+  }, [fetchStrategies]);
 
   useEffect(() => {
     const loadTags = async () => {
@@ -146,17 +148,7 @@ export default function StrategiesPage() {
     apiFetch<ProfileResponse>("/users/me").then((data) => setUserPlan(data.plan)).catch(() => {});
   }, []);
 
-  const refreshStrategies = async () => {
-    try {
-      const params = new URLSearchParams();
-      if (showArchived) params.set("include_archived", "true");
-      const data = await apiFetch<Strategy[]>(`/strategies/?${params}`);
-      setStrategies(data);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load strategies");
-    }
-  };
+  const refreshStrategies = fetchStrategies;
 
   // Bulk selection helpers
   const handleSelectAll = (checked: boolean) => {
@@ -176,9 +168,16 @@ export default function StrategiesPage() {
     });
   };
 
+  const bulkResultTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const clearBulkResult = () => {
-    setTimeout(() => setBulkResult(null), 5000);
+    if (bulkResultTimerRef.current) clearTimeout(bulkResultTimerRef.current);
+    bulkResultTimerRef.current = setTimeout(() => setBulkResult(null), 5000);
   };
+
+  useEffect(() => () => {
+    if (bulkResultTimerRef.current) clearTimeout(bulkResultTimerRef.current);
+  }, []);
 
   // Bulk action handlers
   const handleBulkArchive = async () => {
@@ -927,7 +926,7 @@ export default function StrategiesPage() {
       </p>
 
       {selectedIds.size > 0 && (
-        <div className="sticky top-0 z-30 flex items-center justify-between rounded-lg border-2 border-primary/30 bg-background p-3 shadow-md">
+        <div className="sticky top-14 z-30 flex items-center justify-between rounded-lg border-2 border-primary/30 bg-background p-3 shadow-md">
           <span className="text-sm text-muted-foreground">
             {selectedIds.size} {selectedIds.size === 1 ? 'strategy' : 'strategies'} selected
           </span>
@@ -1056,12 +1055,12 @@ export default function StrategiesPage() {
                     <TableCell>
                       <div className="flex flex-col gap-2">
                         <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => router.push(`/strategies/${strategy.id}`)}
+                          <Link
+                            href={`/strategies/${strategy.id}`}
                             className="font-medium text-primary hover:underline"
                           >
                             {strategy.name}
-                          </button>
+                          </Link>
                           {strategy.is_archived && (
                             <Badge variant="secondary">Archived</Badge>
                           )}
@@ -1092,7 +1091,7 @@ export default function StrategiesPage() {
                     {(["30d", "60d", "90d", "1y"] as const).map((p) => {
                       const val = strategy[`return_${p}`];
                       return (
-                        <TableCell key={p} className={`font-mono text-xs tabular-nums text-center opacity-80 ${getReturnColorClass(val)}`}>
+                        <TableCell key={p} className={`font-mono text-xs tabular-nums text-center ${getReturnColorClass(val)}`}>
                           {formatMetric(val, "%")}
                         </TableCell>
                       );
@@ -1100,7 +1099,7 @@ export default function StrategiesPage() {
                     {isPremiumUser && (["2y", "3y"] as const).map((p) => {
                       const val = strategy[`return_${p}`];
                       return (
-                        <TableCell key={p} className={`font-mono text-xs tabular-nums text-center opacity-80 ${getReturnColorClass(val)}`}>
+                        <TableCell key={p} className={`font-mono text-xs tabular-nums text-center ${getReturnColorClass(val)}`}>
                           {formatMetric(val, "%")}
                         </TableCell>
                       );
@@ -1173,12 +1172,12 @@ export default function StrategiesPage() {
                 <CardContent className="p-4 pl-12">
                   <div className="mb-3 flex items-start justify-between">
                     <div className="min-w-0 flex-1">
-                      <button
-                        onClick={() => router.push(`/strategies/${strategy.id}`)}
+                      <Link
+                        href={`/strategies/${strategy.id}`}
                         className="font-semibold text-foreground hover:text-primary truncate block"
                       >
                         {strategy.name}
-                      </button>
+                      </Link>
                       <p className="text-sm text-muted-foreground">
                         {strategy.asset} • {strategy.timeframe}
                       </p>
@@ -1502,7 +1501,7 @@ export default function StrategiesPage() {
                   {importData.strategy.asset} • {importData.strategy.timeframe}
                 </div>
                 <div className="mt-2 text-xs text-muted-foreground">
-                  Exported: {new Date(importData.exported_at).toLocaleDateString()}
+                  Exported: {formatDateTime(importData.exported_at)}
                 </div>
               </div>
 

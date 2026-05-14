@@ -333,6 +333,23 @@ export default function PlanPage() {
             {/* Upgrade options — shown only to free users */}
             {profile?.plan.tier === "free" && (
               <div className="space-y-3">
+                {/* Free-tier baseline — anchors the comparison */}
+                <div className="rounded-lg border border-dashed bg-muted/10 px-4 py-3">
+                  <p className="text-xs font-medium text-muted-foreground">
+                    Your current Free plan includes:
+                  </p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    <span className="font-mono tabular-nums font-medium text-foreground">
+                      {profile.usage.strategies.limit}
+                    </span>{" "}
+                    strategies ·{" "}
+                    <span className="font-mono tabular-nums font-medium text-foreground">
+                      {profile.usage.backtests_today.limit}
+                    </span>{" "}
+                    backtests/day · 1 year of historical data
+                  </p>
+                </div>
+
                 {/* Pro — featured */}
                 <div className="rounded-lg border-2 border-primary bg-primary/5 p-5">
                   <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
