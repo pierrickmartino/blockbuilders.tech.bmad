@@ -29,6 +29,10 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          settings: |
+            {
+              "allowedTools": ["Read", "Write", "Glob", "Grep", "WebSearch", "WebFetch"]
+            }
           prompt: |
             Today is ${{ steps.ctx.outputs.date }}.
             Read AGENTS.md and docs/product/product.md.
