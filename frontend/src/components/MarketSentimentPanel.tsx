@@ -31,13 +31,16 @@ const LONG_SHORT_HELP =
 const FUNDING_HELP =
   "Periodic payment exchanged between long and short holders on perpetual contracts. Positive = longs pay shorts (market leaning long); negative = shorts pay longs.";
 
-function PanelHeader() {
+function PanelHeader({ asset }: { asset: string }) {
   return (
     <div className="border-b border-border p-4">
       <h2 id={HEADING_ID} className="text-base font-semibold">
         Market Mood
       </h2>
-      <p className="text-sm text-muted-foreground">Overall crypto sentiment — not pair-specific</p>
+      <p className="text-sm text-muted-foreground">
+        Fear &amp; Greed is global · Funding &amp; L/S ratio for{" "}
+        <span className="data-text font-medium text-foreground">{asset}</span>
+      </p>
     </div>
   );
 }
@@ -81,7 +84,7 @@ export function MarketSentimentPanel({ asset }: MarketSentimentPanelProps) {
   if (isLoading) {
     return (
       <section className={PANEL_CLASS} aria-labelledby={HEADING_ID} aria-busy="true">
-        <PanelHeader />
+        <PanelHeader asset={asset} />
         <div className="grid grid-cols-1 gap-3 p-4">
           {[0, 1, 2].map((i) => (
             <div
@@ -99,7 +102,7 @@ export function MarketSentimentPanel({ asset }: MarketSentimentPanelProps) {
   if (error && !sentiment) {
     return (
       <section className={PANEL_CLASS} aria-labelledby={HEADING_ID}>
-        <PanelHeader />
+        <PanelHeader asset={asset} />
         <div className="m-4 rounded-md border border-warning/30 bg-warning-soft p-3">
           <p className="text-sm text-warning-foreground">
             Market mood data is temporarily unavailable.
@@ -121,7 +124,7 @@ export function MarketSentimentPanel({ asset }: MarketSentimentPanelProps) {
 
   return (
     <section className={PANEL_CLASS} aria-labelledby={HEADING_ID}>
-      <PanelHeader />
+      <PanelHeader asset={asset} />
 
       {hasBackgroundError && (
         <div

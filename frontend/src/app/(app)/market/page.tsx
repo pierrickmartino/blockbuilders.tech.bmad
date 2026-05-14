@@ -589,7 +589,7 @@ export default function MarketPage() {
               </div>
             </section>
 
-            <MarketSentimentPanel asset="BTC/USDT" />
+            <MarketSentimentPanel asset={inspectedAsset ?? "BTC/USDT"} />
           </div>
         )}
 

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { apiFetch } from "@/lib/api";
-import { formatDateTime } from "@/lib/format";
+import { formatDateTime, formatRelativeTime } from "@/lib/format";
 import { useDisplay } from "@/context/display";
 import { AlertRule } from "@/types/alert";
 import { ALLOWED_ASSETS } from "@/types/strategy";
@@ -421,7 +421,11 @@ export default function AlertsPage() {
           </div>
         )}
 
-        <Tabs defaultValue="price" className="space-y-4">
+        <Tabs
+          defaultValue="price"
+          className="space-y-4"
+          onValueChange={() => clearSelection()}
+        >
           <TabsList>
             <TabsTrigger value="price" className="gap-0">
               Price Alerts
@@ -602,6 +606,12 @@ export default function AlertsPage() {
                             <TableCell className="data-text capitalize">
                               {alert.direction}{" "}
                               {formatAlertPrice(alert.threshold_price)} {quote}
+                              {alert.last_triggered_at && (
+                                <span className="mt-0.5 block text-xs font-normal normal-case text-muted-foreground">
+                                  Last fired:{" "}
+                                  {formatRelativeTime(alert.last_triggered_at)}
+                                </span>
+                              )}
                             </TableCell>
                             <TableCell>
                               <StatusBadge alert={alert} />
@@ -697,6 +707,12 @@ export default function AlertsPage() {
                                   {alert.direction}{" "}
                                   {formatAlertPrice(alert.threshold_price)} {quote}
                                 </p>
+                                {alert.last_triggered_at && (
+                                  <p className="data-text mt-0.5 text-xs text-muted-foreground">
+                                    Last fired:{" "}
+                                    {formatRelativeTime(alert.last_triggered_at)}
+                                  </p>
+                                )}
                               </div>
                             </div>
                             <StatusBadge alert={alert} />
@@ -934,7 +950,8 @@ export default function AlertsPage() {
           {/* ── History tab ── */}
           <TabsContent value="history" className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              All alerts that have fired, sorted by most recent.
+              A log of every alert that has fired, sorted by most recent.
+              Re-armed alerts still appear in their active tab.
             </p>
 
             {historyAlerts.length === 0 ? (
@@ -1109,6 +1126,8 @@ export default function AlertsPage() {
               <DialogTitle>
                 {deleteConfirm?.alert_type === "price"
                   ? `Delete ${deleteConfirm.asset} ${deleteConfirm.direction} ${formatAlertPrice(deleteConfirm.threshold_price)} ${getQuoteSymbol(deleteConfirm.asset)}?`
+                  : deleteConfirm?.strategy_id && strategies[deleteConfirm.strategy_id]
+                  ? `Delete alert for ${strategies[deleteConfirm.strategy_id].name}?`
                   : "Delete alert?"}
               </DialogTitle>
               <DialogDescription>

@@ -305,9 +305,7 @@ export default function PreferencesPage() {
                   className="font-mono"
                 />
                 <p id="slippage-help" className="mt-1 text-xs text-muted-foreground">
-                  Estimated gap between expected and actual fill price (e.g. 0.05 = 0.05%).
-                  Slippage is the difference between the price you expect and the price you
-                  actually get when an order fills. Leave blank to omit.
+                  Estimated gap between expected and actual fill price. Leave blank to omit. Max 5%.
                 </p>
                 {defaultsErrors.slippage && (
                   <p id="slippage-error" className="mt-1 text-xs text-destructive">
