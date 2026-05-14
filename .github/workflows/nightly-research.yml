@@ -7,7 +7,7 @@ on:
 permissions:
   contents: write
   issues: read
-  pull-requests: read
+  pull-requests: write
   id-token: write
 
 jobs:
@@ -49,12 +49,23 @@ jobs:
             Do not edit source code. Do not modify docs/product/product.md.
           claude_args: "--max-turns 30"
 
-      - name: Commit report
+      - name: Commit and open auto-merge PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPORT_DATE: ${{ steps.ctx.outputs.date }}
         run: |
+          BRANCH="bot/nightly-research-${REPORT_DATE}"
           git add docs/ai/nightly-research/ || true
           if git diff --cached --quiet; then
-            echo "No changes"
-          else
-            git commit -m "docs(ai): research ${{ steps.ctx.outputs.date }}"
-            git push
+            echo "No changes, skipping PR"
+            exit 0
           fi
+          git checkout -B "$BRANCH"
+          git commit -m "docs(ai): research ${REPORT_DATE}"
+          git push -u origin "$BRANCH"
+          PR_URL=$(gh pr create \
+            --title "docs(ai): research ${REPORT_DATE}" \
+            --body "Automated nightly research report for ${REPORT_DATE}." \
+            --base main \
+            --head "$BRANCH")
+          gh pr merge --auto --squash "$PR_URL"

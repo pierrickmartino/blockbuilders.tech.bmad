@@ -7,7 +7,7 @@ on:
 permissions:
   contents: write
   issues: read
-  pull-requests: read
+  pull-requests: write
   id-token: write
 
 jobs:
@@ -55,14 +55,27 @@ jobs:
             Run the /morning-report skill for ${{ steps.ctx.outputs.date }}.
           claude_args: "--max-turns 20"
 
-      - name: Commit and capture URL
+      - name: Commit and open auto-merge PR
         id: commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPORT_DATE: ${{ steps.ctx.outputs.date }}
+          SERVER_URL: ${{ github.server_url }}
+          REPOSITORY: ${{ github.repository }}
         run: |
+          BRANCH="bot/morning-report-${REPORT_DATE}"
           git add docs/ai/morning-reports/ .github/ai-context/ || true
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m "docs(ai): report ${{ steps.ctx.outputs.date }}"
-          git push
-          URL="${{ github.server_url }}/${{ github.repository }}/blob/main/docs/ai/morning-reports/${{ steps.ctx.outputs.date }}.md"
+          git checkout -B "$BRANCH"
+          git commit -m "docs(ai): report ${REPORT_DATE}"
+          git push -u origin "$BRANCH"
+          PR_URL=$(gh pr create \
+            --title "docs(ai): report ${REPORT_DATE}" \
+            --body "Automated morning report for ${REPORT_DATE}." \
+            --base main \
+            --head "$BRANCH")
+          gh pr merge --auto --squash "$PR_URL"
+          URL="${SERVER_URL}/${REPOSITORY}/blob/main/docs/ai/morning-reports/${REPORT_DATE}.md"
           echo "url=$URL" >> "$GITHUB_OUTPUT"
 
       - name: Post to Slack
