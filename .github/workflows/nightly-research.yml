@@ -26,14 +26,24 @@ jobs:
         id: ctx
         run: echo "date=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
 
+      # The action hardcodes enableAllProjectMcpServers:true which causes Claude
+      # to try all plugins from .claude/settings.json. Those servers are not
+      # installed on the runner, so every call gets denied (was 31-36 denials).
+      # Wiping to {} here prevents the plugin tools from appearing at all.
+      - name: Strip dev plugins from Claude project settings
+        run: echo '{}' > .claude/settings.json
+
       - name: Run Claude nightly research
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           settings: |
             {
-              "allowedTools": ["Read", "Write", "Glob", "Grep", "WebSearch", "WebFetch", "Bash"],
-              "enabledPlugins": {}
+              "allowedTools": [
+                "Read", "Write", "Edit", "Glob", "Grep",
+                "WebSearch", "WebFetch",
+                "Bash", "TodoWrite", "TodoRead"
+              ]
             }
           prompt: |
             Today is ${{ steps.ctx.outputs.date }}.
@@ -49,6 +59,7 @@ jobs:
             Security risks, Implementation references, Questions, Next actions.
             Do not edit source code. Do not modify docs/product/product.md.
           claude_args: "--max-turns 60"
+          show_full_output: "true"
 
       - name: Commit and open auto-merge PR
         env:
