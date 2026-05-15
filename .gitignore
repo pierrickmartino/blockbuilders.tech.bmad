@@ -56,6 +56,7 @@ env/
 .codex/*
 !.codex/prompts/
 !.codex/prompts/**
+.claude/settings.local.json
 
 # Docker
 docker-compose.override.yml
