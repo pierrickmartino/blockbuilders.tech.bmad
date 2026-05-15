@@ -32,7 +32,8 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           settings: |
             {
-              "allowedTools": ["Read", "Write", "Glob", "Grep", "WebSearch", "WebFetch"]
+              "allowedTools": ["Read", "Write", "Glob", "Grep", "WebSearch", "WebFetch", "Bash"],
+              "enabledPlugins": {}
             }
           prompt: |
             Today is ${{ steps.ctx.outputs.date }}.
@@ -47,7 +48,7 @@ jobs:
             Structure: Executive summary, Findings for active issues,
             Security risks, Implementation references, Questions, Next actions.
             Do not edit source code. Do not modify docs/product/product.md.
-          claude_args: "--max-turns 30"
+          claude_args: "--max-turns 60"
 
       - name: Commit and open auto-merge PR
         env:
