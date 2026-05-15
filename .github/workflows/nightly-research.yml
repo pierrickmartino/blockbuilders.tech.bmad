@@ -58,7 +58,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           REPORT_DATE: ${{ steps.ctx.outputs.date }}
+          REPO: ${{ github.repository }}
         run: |
+          # Re-authenticate: the action revokes its own app token at shutdown,
+          # so the remote URL it configured is dead by the time we push.
+          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git"
           BRANCH="bot/nightly-research-${REPORT_DATE}"
           git add docs/ai/nightly-research/ || true
           if git diff --cached --quiet; then
