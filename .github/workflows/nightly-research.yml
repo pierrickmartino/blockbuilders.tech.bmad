@@ -26,11 +26,8 @@ jobs:
         id: ctx
         run: echo "date=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
 
-      # The action hardcodes enableAllProjectMcpServers:true which causes Claude
-      # to try all plugins from .claude/settings.json. Those servers are not
-      # installed on the runner, so every call gets denied (was 31-36 denials).
-      # Wiping to {} here prevents the plugin tools from appearing at all.
-      - name: Strip dev plugins from Claude project settings
+      # Wipe project settings so CI starts with a clean slate.
+      - name: Strip dev-only Claude settings for CI
         run: echo '{}' > .claude/settings.json
 
       - name: Run Claude nightly research
@@ -39,11 +36,7 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           settings: |
             {
-              "allowedTools": [
-                "Read", "Write", "Edit", "Glob", "Grep",
-                "WebSearch", "WebFetch",
-                "Bash", "TodoWrite", "TodoRead"
-              ]
+              "permissionMode": "bypassPermissions"
             }
           prompt: |
             Today is ${{ steps.ctx.outputs.date }}.
