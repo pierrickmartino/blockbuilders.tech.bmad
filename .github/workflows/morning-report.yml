@@ -22,6 +22,9 @@ jobs:
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
+      - name: Strip dev-only Claude settings for CI
+        run: echo '{}' > .claude/settings.json
+
       - name: Build GitHub snapshot
         id: ctx
         env:
@@ -49,11 +52,11 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           settings: |
             {
-              "allowedTools": ["Read", "Write", "Glob", "Grep", "WebSearch", "WebFetch"]
+              "permissionMode": "bypassPermissions"
             }
           prompt: |
             Run the /morning-report skill for ${{ steps.ctx.outputs.date }}.
-          claude_args: "--max-turns 20"
+          claude_args: "--dangerously-skip-permissions --max-turns 20"
 
       - name: Commit and open auto-merge PR
         id: commit
@@ -63,6 +66,9 @@ jobs:
           SERVER_URL: ${{ github.server_url }}
           REPOSITORY: ${{ github.repository }}
         run: |
+          # Re-authenticate: the action revokes its own app token at shutdown,
+          # so the remote URL it configured is dead by the time we push.
+          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${REPOSITORY}.git"
           BRANCH="bot/morning-report-${REPORT_DATE}"
           git add docs/ai/morning-reports/ .github/ai-context/ || true
           if git diff --cached --quiet; then exit 0; fi
