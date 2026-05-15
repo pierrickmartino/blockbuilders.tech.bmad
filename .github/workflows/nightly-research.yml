@@ -51,7 +51,7 @@ jobs:
             Structure: Executive summary, Findings for active issues,
             Security risks, Implementation references, Questions, Next actions.
             Do not edit source code. Do not modify docs/product/product.md.
-          claude_args: "--max-turns 60"
+          claude_args: "--dangerously-skip-permissions --max-turns 60"
           show_full_output: "true"
 
       - name: Commit and open auto-merge PR
