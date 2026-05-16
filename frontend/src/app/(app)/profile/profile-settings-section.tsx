@@ -16,7 +16,11 @@ import {
 } from "@/components/ui/tooltip";
 import { HelpCircle } from "lucide-react";
 
-export function ProfileSettingsSection() {
+interface ProfileSettingsSectionProps {
+  onSettingsLoad?: (displayName: string | null) => void;
+}
+
+export function ProfileSettingsSection({ onSettingsLoad }: ProfileSettingsSectionProps) {
   const [settings, setSettings] = useState<ProfileSettings | null>(null);
   const [isPublic, setIsPublic] = useState(false);
   const [handle, setHandle] = useState("");
@@ -43,7 +47,8 @@ export function ProfileSettingsSection() {
     setShowStrategies(data.show_strategies);
     setShowContributions(data.show_contributions);
     setShowBadges(data.show_badges);
-  }, []);
+    onSettingsLoad?.(data.display_name);
+  }, [onSettingsLoad]);
 
   const fetchSettings = useCallback(async () => {
     setIsLoading(true);
@@ -62,6 +67,25 @@ export function ProfileSettingsSection() {
   useEffect(() => {
     fetchSettings();
   }, [fetchSettings]);
+
+  const isDirty =
+    settings !== null &&
+    (isPublic !== settings.is_public ||
+      handle !== (settings.handle ?? "") ||
+      displayName !== (settings.display_name ?? "") ||
+      bio !== (settings.bio ?? "") ||
+      showStrategies !== settings.show_strategies ||
+      showContributions !== settings.show_contributions ||
+      showBadges !== settings.show_badges);
+
+  useEffect(() => {
+    if (!isDirty) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [isDirty]);
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -136,7 +160,9 @@ export function ProfileSettingsSection() {
   const origin =
     typeof window !== "undefined" ? window.location.origin : "";
   const profileUrl =
-    settings?.handle && isPublic ? `${origin}/u/${settings.handle}` : null;
+    handle.trim().length >= 3 && isPublic
+      ? `${origin}/u/${handle.trim()}`
+      : null;
 
   return (
     <form onSubmit={handleSave} className="max-w-2xl space-y-4">
@@ -156,6 +182,12 @@ export function ProfileSettingsSection() {
           onCheckedChange={setIsPublic}
           aria-describedby="public-profile-desc"
         />
+      </div>
+
+      <div aria-live="polite" className="sr-only">
+        {isPublic
+          ? "Public profile fields expanded. Enter your handle, display name, and bio."
+          : ""}
       </div>
 
       {/* Progressive disclosure — profile fields only when public is on */}
@@ -285,10 +317,13 @@ export function ProfileSettingsSection() {
                 </span>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <HelpCircle
-                      className="ml-auto size-3.5 shrink-0 text-muted-foreground"
-                      aria-hidden="true"
-                    />
+                    <button
+                      type="button"
+                      className="ml-auto shrink-0 rounded text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      aria-label="About published strategies"
+                    >
+                      <HelpCircle className="size-3.5" aria-hidden="true" />
+                    </button>
                   </TooltipTrigger>
                   <TooltipContent id="show-strategies-desc" side="right">
                     Strategies you have marked as public will appear on your
@@ -309,10 +344,13 @@ export function ProfileSettingsSection() {
                 <span className="min-w-0 break-words">Contribution stats</span>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <HelpCircle
-                      className="ml-auto size-3.5 shrink-0 text-muted-foreground"
-                      aria-hidden="true"
-                    />
+                    <button
+                      type="button"
+                      className="ml-auto shrink-0 rounded text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      aria-label="About contribution stats"
+                    >
+                      <HelpCircle className="size-3.5" aria-hidden="true" />
+                    </button>
                   </TooltipTrigger>
                   <TooltipContent id="show-contributions-desc" side="right">
                     Displays the total number of backtests you have run and
@@ -333,10 +371,13 @@ export function ProfileSettingsSection() {
                 <span className="min-w-0 break-words">Badges</span>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <HelpCircle
-                      className="ml-auto size-3.5 shrink-0 text-muted-foreground"
-                      aria-hidden="true"
-                    />
+                    <button
+                      type="button"
+                      className="ml-auto shrink-0 rounded text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      aria-label="About badges"
+                    >
+                      <HelpCircle className="size-3.5" aria-hidden="true" />
+                    </button>
                   </TooltipTrigger>
                   <TooltipContent id="show-badges-desc" side="right">
                     Achievement badges earned for milestones like early access,
@@ -366,14 +407,19 @@ export function ProfileSettingsSection() {
         </>
       ) : (
         <p className="text-sm text-muted-foreground">
-          Enable public profile to configure your handle, bio, and visibility
-          settings.
+          Share your strategies with other traders. Enable your public profile
+          to get a shareable link and showcase your published work.
         </p>
       )}
 
-      <Button type="submit" disabled={isSaving}>
-        {isSaving ? "Saving..." : "Save Profile Settings"}
-      </Button>
+      <div className="flex items-center gap-3">
+        <Button type="submit" disabled={isSaving}>
+          {isSaving ? "Saving…" : "Save"}
+        </Button>
+        {isDirty && (
+          <span className="text-xs text-muted-foreground">Unsaved changes</span>
+        )}
+      </div>
     </form>
   );
 }

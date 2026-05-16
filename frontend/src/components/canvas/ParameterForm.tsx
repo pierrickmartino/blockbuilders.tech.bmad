@@ -1,9 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { Node } from "@xyflow/react";
 import { BlockType, getBlockMeta, ValidationError, TakeProfitLevel } from "@/types/canvas";
 import { cn } from "@/lib/utils";
-import { Trash2 } from "lucide-react";
+import { Trash2, ChevronDown } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -43,6 +44,9 @@ export default function ParameterForm({
   };
 
   const paramConfigs = getParamConfigs(blockType);
+  const standardParams = paramConfigs.filter((c) => !c.advanced);
+  const advancedParams = paramConfigs.filter((c) => c.advanced);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const renderParamInput = (key: string, value: unknown, config: ParamConfig) => {
     if (config.type === "number" && config.presets) {
@@ -283,7 +287,7 @@ export default function ParameterForm({
       ) : paramConfigs.length > 0 ? (
         <div className={cn("space-y-4", compact && "space-y-3")}>
           <div className="text-xs font-medium text-gray-500 dark:text-gray-400">Parameters</div>
-          {paramConfigs.map((config) => {
+          {standardParams.map((config) => {
             const tooltip = getTooltip(paramToGlossaryId(config.key));
             return (
               <div key={config.key} className="space-y-2">
@@ -305,6 +309,50 @@ export default function ParameterForm({
               </div>
             );
           })}
+          {advancedParams.length > 0 && (
+            <div className="border-t border-gray-100 dark:border-gray-800 pt-3">
+              <button
+                type="button"
+                onClick={() => setShowAdvanced((v) => !v)}
+                className="flex w-full items-center gap-1.5 text-xs font-medium text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors"
+              >
+                <ChevronDown
+                  className={cn(
+                    "h-3.5 w-3.5 flex-shrink-0 transition-transform duration-150",
+                    showAdvanced && "rotate-180"
+                  )}
+                  aria-hidden="true"
+                />
+                Advanced
+              </button>
+              {showAdvanced && (
+                <div className={cn("mt-3 space-y-4", compact && "space-y-3")}>
+                  {advancedParams.map((config) => {
+                    const tooltip = getTooltip(paramToGlossaryId(config.key));
+                    return (
+                      <div key={config.key} className="space-y-2">
+                        <label className="flex items-center gap-1 text-xs font-medium text-gray-600 dark:text-gray-300">
+                          <span title={tooltip?.short}>{config.label}</span>
+                          <InfoIcon
+                            tooltip={tooltip}
+                            className="flex-shrink-0"
+                          />
+                        </label>
+                        {renderParamInput(
+                          config.key,
+                          params[config.key] ?? config.defaultValue,
+                          config
+                        )}
+                        {config.help && (
+                          <p className="text-[10px] text-gray-400 dark:text-gray-500">{config.help}</p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       ) : (
         <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-4 text-center">

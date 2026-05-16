@@ -18,7 +18,6 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Layers,
-  Activity,
   Plus,
   ArrowRight,
   Copy,
@@ -391,6 +390,14 @@ export default function DashboardPage() {
     untestedStrategies.length,
     staleStrategies.length
   );
+  const latestResultHref = latestResultStrategy
+    ? `/strategies/${latestResultStrategy.id}/backtest`
+    : completedLatestBacktest
+      ? `/strategies/${completedLatestBacktest.strategy_id}/backtest`
+      : null;
+  const latestResultName =
+    latestResultStrategy?.name ??
+    (completedLatestBacktest ? formatAsset(completedLatestBacktest.asset) : null);
   const primaryStrategy = nextStrategy ?? latestResultStrategy ?? strategies[0];
   const primaryHref = strategiesLoadFailed
     ? "/dashboard"
@@ -572,6 +579,9 @@ export default function DashboardPage() {
                     validationTone.surface
                   )}
                 >
+                  <span className="font-mono text-[10px] leading-none text-muted-foreground/40 tabular-nums">
+                    01
+                  </span>
                   <dt
                     className={cn("text-xs font-medium", validationTone.label)}
                   >
@@ -599,10 +609,20 @@ export default function DashboardPage() {
                 </div>
                 <div
                   className={cn(
-                    "grid min-h-[4.5rem] content-start gap-1 px-3 py-3",
+                    "relative grid min-h-[4.5rem] content-start gap-1 px-3 py-3",
                     latestOutcomeTone.surface
                   )}
                 >
+                  {!isLoading && recentBacktestsLoaded && latestResultHref && (
+                    <Link
+                      href={latestResultHref}
+                      aria-label={`Open latest backtest result${latestResultName ? ` for ${latestResultName}` : ""}`}
+                      className="absolute inset-0 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus-ring rounded-sm"
+                    />
+                  )}
+                  <span className="font-mono text-[10px] leading-none text-muted-foreground/40 tabular-nums">
+                    02
+                  </span>
                   <dt
                     className={cn(
                       "text-xs font-medium",
@@ -627,6 +647,11 @@ export default function DashboardPage() {
                       "No result"
                     )}
                   </dd>
+                  {!isLoading && recentBacktestsLoaded && latestResultName && (
+                    <dd className="truncate text-xs leading-5 text-muted-foreground">
+                      {latestResultName}
+                    </dd>
+                  )}
                   <dd className="text-xs leading-5 text-muted-foreground">
                     {isLoading || !recentBacktestsLoaded ? (
                       <Skeleton className="h-4 w-32" />
@@ -641,6 +666,9 @@ export default function DashboardPage() {
                     untestedWorkTone.surface
                   )}
                 >
+                  <span className="font-mono text-[10px] leading-none text-muted-foreground/40 tabular-nums">
+                    03
+                  </span>
                   <dt
                     className={cn("text-xs font-medium", untestedWorkTone.label)}
                   >
@@ -777,9 +805,6 @@ export default function DashboardPage() {
                         className="absolute inset-0 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus-ring"
                       />
                       <div className="flex min-w-0 items-center gap-3">
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-primary/10 bg-primary/10 text-primary">
-                          <Activity className="h-4 w-4" aria-hidden="true" />
-                        </div>
                         <div className="min-w-0">
                           <p className="flex min-w-0 items-center gap-1.5 text-sm font-medium group-hover:text-primary">
                             {needsValidation(strategy) && (

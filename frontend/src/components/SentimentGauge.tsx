@@ -17,6 +17,7 @@ interface SentimentGaugeProps {
   formatter?: (v: number) => string;
   unit?: string;
   subtext?: string;
+  size?: "hero" | "default";
 }
 
 function gaugeColor(pct: number): string {
@@ -37,10 +38,14 @@ export function SentimentGauge({
   formatter = (v) => v.toFixed(0),
   unit,
   subtext,
+  size = "default",
 }: SentimentGaugeProps) {
+  const isHero = size === "hero";
+  const pad = isHero ? "p-4" : "p-3";
+
   if (status === "unavailable") {
     return (
-      <div className="p-3">
+      <div className={pad}>
         <div className="mb-2 text-sm font-medium text-muted-foreground">{label}</div>
         <Badge variant="outline" className="text-xs">Source unavailable</Badge>
       </div>
@@ -53,7 +58,7 @@ export function SentimentGauge({
   const displayValue = value !== null ? formatter(value) : "No score";
 
   return (
-    <div className={status === "partial" ? "p-3 opacity-80" : "p-3"}>
+    <div className={`${pad}${status === "partial" ? " opacity-80" : ""}`}>
       <div className="mb-2 flex min-w-0 items-center gap-2 text-sm font-semibold">
         <span className="min-w-0 break-words">{label}</span>
         {helpText && (
@@ -80,15 +85,24 @@ export function SentimentGauge({
         )}
       </div>
 
-      <div className="mb-2">
-        <span className="data-text text-lg font-semibold">{displayValue}</span>
-        {subtext && (
-          <span className="ml-2 text-xs text-muted-foreground">{subtext}</span>
-        )}
-      </div>
+      {isHero ? (
+        <div className="mb-3">
+          <span className="data-text text-3xl font-bold leading-none">{displayValue}</span>
+          {subtext && (
+            <p className="mt-1 text-sm font-semibold text-foreground">{subtext}</p>
+          )}
+        </div>
+      ) : (
+        <div className="mb-2">
+          <span className="data-text text-lg font-semibold">{displayValue}</span>
+          {subtext && (
+            <span className="ml-2 text-xs text-muted-foreground">{subtext}</span>
+          )}
+        </div>
+      )}
 
       <div
-        className="h-2 w-full rounded-full bg-muted"
+        className={`w-full rounded-full bg-muted ${isHero ? "h-2.5" : "h-2"}`}
         role="meter"
         aria-label={label}
         aria-valuenow={value ?? undefined}
@@ -97,7 +111,7 @@ export function SentimentGauge({
         aria-valuetext={displayValue}
       >
         <div
-          className={`${gaugeColor(clampedPct)} h-2 rounded-full transition-all`}
+          className={`${gaugeColor(clampedPct)} rounded-full transition-all ${isHero ? "h-2.5" : "h-2"}`}
           style={{ width: `${clampedPct}%` }}
         />
       </div>

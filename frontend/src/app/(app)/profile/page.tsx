@@ -20,6 +20,7 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<ProfileResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [publicDisplayName, setPublicDisplayName] = useState<string | null>(null);
 
   const fetchProfile = useCallback(async () => {
     setIsLoading(true);
@@ -81,17 +82,13 @@ export default function ProfilePage() {
     );
   }
 
-  const avatarInitial = profile?.email
-    ? profile.email[0].toUpperCase()
-    : "";
+  const avatarInitial =
+    (publicDisplayName ?? profile?.email ?? "")[0]?.toUpperCase() ?? "";
 
   return (
     <div className="container mx-auto max-w-4xl p-4 md:p-6">
       <div className="mb-6">
         <h1 className="text-2xl font-bold tracking-tight">Profile</h1>
-        <p className="mt-1 text-muted-foreground">
-          Manage your account and public profile.
-        </p>
       </div>
 
       <div className="space-y-6">
@@ -131,7 +128,7 @@ export default function ProfilePage() {
                 <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                 <div>
                   <Badge variant="default" className="mb-1.5">
-                    Beta User: Grandfathered Perks
+                    Founding Member Perks
                   </Badge>
                   <p className="text-sm text-muted-foreground">
                     <span className="font-mono tabular-nums">+10</span>{" "}
@@ -165,7 +162,7 @@ export default function ProfilePage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ProfileSettingsSection />
+            <ProfileSettingsSection onSettingsLoad={setPublicDisplayName} />
           </CardContent>
         </Card>
       </div>

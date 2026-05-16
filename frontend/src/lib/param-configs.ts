@@ -13,6 +13,7 @@ export interface ParamConfig {
   // Inspector Panel enhancements
   presets?: number[];        // Period preset values [14, 20, 50, 200]
   quickSwap?: boolean;       // Source quick-swap UI (close/prev_close)
+  advanced?: boolean;        // Hidden under "Advanced" disclosure by default
 }
 
 export function getParamConfigs(blockType: BlockType): ParamConfig[] {
@@ -140,6 +141,7 @@ export function getParamConfigs(blockType: BlockType): ParamConfig[] {
           defaultValue: 9,
           min: 1,
           max: 50,
+          advanced: true,
         },
       ];
     case "bollinger":
@@ -175,6 +177,7 @@ export function getParamConfigs(blockType: BlockType): ParamConfig[] {
           min: 0.5,
           max: 5,
           step: 0.5,
+          advanced: true,
         },
       ];
     case "atr":
@@ -218,6 +221,7 @@ export function getParamConfigs(blockType: BlockType): ParamConfig[] {
           min: 1,
           max: 20,
           help: "Smoothing period for %K (1-20)",
+          advanced: true,
         },
       ];
     case "adx":
@@ -257,6 +261,7 @@ export function getParamConfigs(blockType: BlockType): ParamConfig[] {
           defaultValue: 52,
           min: 1,
           max: 200,
+          advanced: true,
         },
         {
           key: "displacement",
@@ -266,6 +271,7 @@ export function getParamConfigs(blockType: BlockType): ParamConfig[] {
           min: 1,
           max: 100,
           help: "Forward displacement for cloud spans",
+          advanced: true,
         },
       ];
     case "obv":
