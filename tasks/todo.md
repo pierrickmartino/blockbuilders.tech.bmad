@@ -1,5 +1,26 @@
 # Tasks — in flight
 
+## FEAT-106 — JWT decode algorithm audit (implemented)
+
+Backend
+- [x] Confirmed `backend/app/core/security.py` is the only backend `jwt.decode()` call site and already passes `algorithms=[settings.jwt_algorithm]`
+- [x] Added inline comment documenting the explicit decode algorithm allowlist as algorithm-confusion mitigation
+- [x] Added `backend/tests/test_jwt_algorithm_enforcement.py` covering valid HS256 decode, RS256 rejection, unsigned `alg=none` rejection, and HTTP 401 from `/users/me` for a non-HS256 token
+
+Docs / tracking
+- [x] Added FEAT-106 follow-up note deferring long-term migration to `PyJWT >= 2.12.0` or `joserfc`
+- [x] Fixed FEAT-106 test-plan heading, feature-doc path, and pytest command references
+- [x] AC mapping covered: AC-001 by decode audit, AC-002 by rejection tests, AC-003 by valid HS256 regression, AC-004 by follow-up documentation
+
+Verification
+- [x] `cd backend && ../backend/.venv/bin/python -m pytest tests/test_jwt_algorithm_enforcement.py -v` passed: 4 passed
+- [x] `cd backend && ../backend/.venv/bin/python -m pytest tests/test_security.py -v` passed: 20 passed
+- [x] `cd backend && ../backend/.venv/bin/python -m pytest tests/ -v` passed: 258 passed
+- [x] `rg -n "jwt\.decode\(" backend` returned only `backend/app/core/security.py`
+- [x] `rg -n "long-term|migrate|python-jose|PyJWT|joserfc|algorithms=\[\"HS256\"\]" docs/features/FEAT-106-jwt-decode-algorithm-audit.md` passed
+
+---
+
 ## FEAT-105 — Pin Starlette patched version (done)
 
 Backend

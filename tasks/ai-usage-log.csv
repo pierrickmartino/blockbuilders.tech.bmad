@@ -1,2 +1,3 @@
 date,agent,model,task_type,issue_or_feature,branch,status,tokens_or_credits,prs_opened,tests_passed,blocked_reason,notes
 2026-05-16,Codex,GPT-5,implementation,FEAT-105,feat/FEAT-105-starlette-pin,implemented,unknown,1,"rg pin check passed; pip show starlette 0.52.1; backend pytest 254 passed",,"Pinned starlette>=0.49.1 in backend requirements; opened draft PR #323"
+2026-05-16,Codex,GPT-5,implementation,FEAT-106,codex/feat-106-jwt-algorithm-audit,implemented,unknown,0,"test_jwt_algorithm_enforcement.py 4 passed; test_security.py 20 passed; backend pytest tests/ 258 passed; jwt.decode audit passed; FEAT-106 doc rg passed",,"Added JWT algorithm enforcement regression tests, decode allowlist comment, follow-up doc note, and test-plan fixes"

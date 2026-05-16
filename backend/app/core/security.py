@@ -27,6 +27,7 @@ def create_access_token(user_id: str) -> str:
 
 def decode_access_token(token: str) -> str | None:
     try:
+        # FEAT-106: keep an explicit algorithm allowlist to prevent JWT algorithm confusion.
         payload = jwt.decode(
             token, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm]
         )
