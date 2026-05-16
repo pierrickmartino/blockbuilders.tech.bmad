@@ -1,5 +1,22 @@
 # Tasks — in flight
 
+## FEAT-107 — Pin Redis image version (done)
+
+Infra
+- [x] Pin `redis` service image in `docker-compose.yml` to `redis:7.4.6-alpine`
+- [x] Pin `redis` service image in `docker-compose.prod.yml` to `redis:7.4.6-alpine`
+
+Docs / tracking
+- [x] Fix FEAT-107 test-plan heading and TC-003 document paths
+
+Verification
+- [x] `rg -n "redis:7-alpine" docker-compose.yml docker-compose.prod.yml` returned zero matches
+- [x] `rg -n "redis:7\.4\.6-alpine" docker-compose.yml docker-compose.prod.yml` returned two matches
+- [x] `docker compose config | rg -n "image:\s*redis:7\.4\.6-alpine"` returned the resolved Redis image
+- [x] `rg -n "CVE|redis:7\.4\.6-alpine|verification|AC-00" docs/features/FEAT-107-pin-redis-image-version.md docs/testing/FEAT-107-test-plan.md` passed
+
+---
+
 ## FEAT-106 — JWT decode algorithm audit (implemented)
 
 Backend

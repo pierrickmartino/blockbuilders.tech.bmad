@@ -1,4 +1,4 @@
-# FEAT-105 Test Plan
+# FEAT-107 Test Plan
 
 ## Scope
 Validate that Docker Compose Redis image pinning is implemented and verifiable.
@@ -32,7 +32,7 @@ Validate that Docker Compose Redis image pinning is implemented and verifiable.
 - **Input:** Feature spec and test plan documents.
 - **Expected output:** Documents clearly state CVE-mitigation rationale and include repeatable verification commands.
 - **Command:**
-  - `rg -n "CVE|redis:7.4.6-alpine|verification|AC-00" docs/features/FEAT-105-pin-redis-image-version.md docs/testing/FEAT-105-test-plan.md`
+  - `rg -n "CVE|redis:7.4.6-alpine|verification|AC-00" docs/features/FEAT-107-pin-redis-image-version.md docs/testing/FEAT-107-test-plan.md`
 - **Verification steps (manual):**
   1. Open both documents.
   2. Confirm CVE/security rationale is present in the feature goal.
