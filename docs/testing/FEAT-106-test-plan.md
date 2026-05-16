@@ -1,4 +1,4 @@
-# FEAT-105 Test Plan
+# FEAT-106 Test Plan
 
 ## Scope
 Validate that JWT decode algorithm allowlisting is explicitly enforced across backend decode call sites and that existing HS256 auth behavior is preserved.
@@ -24,7 +24,7 @@ Validate that JWT decode algorithm allowlisting is explicitly enforced across ba
 - **Input:** Request to an authenticated backend endpoint using a JWT signed with a non-allowed algorithm.
 - **Expected output:** Unauthorized response (e.g., HTTP 401/403 per current auth behavior); token is not accepted.
 - **Command:**
-  - `cd backend && pytest tests/ -v`
+  - `cd backend && pytest tests/test_jwt_algorithm_enforcement.py -v`
 - **Verification steps (manual fallback if no explicit automated test exists):**
   1. Obtain/create a non-HS256 token fixture for local environment.
   2. Call an auth-protected endpoint with that token.
@@ -34,7 +34,7 @@ Validate that JWT decode algorithm allowlisting is explicitly enforced across ba
 - **Input:** Valid existing HS256 JWT from current login flow.
 - **Expected output:** Existing authenticated endpoints continue to authorize valid users without behavior changes.
 - **Command:**
-  - `cd backend && pytest tests/ -v`
+  - `cd backend && pytest tests/test_jwt_algorithm_enforcement.py -v`
 - **Verification steps:**
   1. Run backend tests.
   2. Confirm auth-related tests pass.
@@ -44,7 +44,7 @@ Validate that JWT decode algorithm allowlisting is explicitly enforced across ba
 - **Input:** Feature spec and issue context.
 - **Expected output:** Spec states short-term implementation scope is explicit algorithms on decode calls; long-term library migration is captured as follow-up and not in immediate implementation scope.
 - **Command:**
-  - `rg -n "long-term|migrate|python-jose|PyJWT|joserfc|algorithms=\[\"HS256\"\]" docs/features/FEAT-105-jwt-decode-algorithm-audit.md`
+  - `rg -n "long-term|migrate|python-jose|PyJWT|joserfc|algorithms=\[\"HS256\"\]" docs/features/FEAT-106-jwt-decode-algorithm-audit.md`
 - **Verification steps:**
   1. Confirm wording exists in the feature spec.
   2. Confirm no migration implementation work is required in this feature.
