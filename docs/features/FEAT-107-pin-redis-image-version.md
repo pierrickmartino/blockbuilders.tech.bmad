@@ -1,4 +1,4 @@
-## Status: Draft
+## Status: Approved
 ## Source issue: #315
 
 ## Goal (one paragraph)
@@ -45,4 +45,37 @@ None.
 - Does the repository include any additional environment-specific Compose files (e.g., CI overrides) that also define Redis and should be updated in the same change?
 - Should Dependabot or an equivalent process be configured to alert on pinned container image CVEs and patch updates?
 
-## Implementation Plan: Not produced in this step.
+## Implementation Plan
+_Produced by Claude. Approved: [approved]_
+
+<plan>
+
+1. **File:** `docker-compose.yml` (line 95)
+   - **Change:** Replace `image: redis:7-alpine` with `image: redis:7.4.6-alpine` for the `redis` service.
+   - **Scope:** Infra (dev Compose)
+   - **Alembic migration:** no
+   - **Order:** independent
+
+2. **File:** `docker-compose.prod.yml` (line 97)
+   - **Change:** Replace `image: redis:7-alpine` with `image: redis:7.4.6-alpine` for the `redis` service.
+   - **Scope:** Infra (prod-like Compose)
+   - **Alembic migration:** no
+   - **Order:** independent
+
+3. **File:** `docs/testing/FEAT-107-test-plan.md`
+   - **Change:** Fix header (currently says "FEAT-105") and correct TC-003 paths to reference `docs/features/FEAT-107-pin-redis-image-version.md` and `docs/testing/FEAT-107-test-plan.md`.
+   - **Scope:** Docs
+   - **Alembic migration:** no
+   - **Order:** independent
+
+4. **Verification (no file change — run after steps 1–3):**
+   - `rg -n "redis:7-alpine" docker-compose.yml docker-compose.prod.yml` → must return zero matches.
+   - `rg -n "redis:7\.4\.6-alpine" docker-compose.yml docker-compose.prod.yml` → must return two matches.
+   - `docker compose config | rg -n "image:\s*redis:7\.4\.6-alpine"` → at least one match.
+   - **Order:** after 1 and 2.
+
+**Resolved open questions:**
+- No additional environment-specific Compose files define Redis (repo scan: only `docker-compose.yml` and `docker-compose.prod.yml`).
+- Dependabot / image-CVE alerting is out of scope per the Non-goals section; track separately if desired.
+
+</plan>
