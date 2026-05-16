@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { X } from "lucide-react";
 import { apiFetch, ApiError } from "@/lib/api";
 import { ALLOWED_ASSETS, AllowedAsset } from "@/types/strategy";
 import { AlertRule, Direction } from "@/types/alert";
@@ -122,9 +123,17 @@ export default function CreatePriceAlertModal({ open, onOpenChange, onCreated }:
         {error && (
           <div
             role="alert"
-            className="rounded border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive"
+            className="flex items-start justify-between gap-2 rounded border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive"
           >
-            {error}
+            <span>{error}</span>
+            <button
+              type="button"
+              onClick={() => setError(null)}
+              aria-label="Dismiss error"
+              className="shrink-0 opacity-70 hover:opacity-100"
+            >
+              <X className="h-4 w-4" aria-hidden />
+            </button>
           </div>
         )}
 
@@ -171,8 +180,8 @@ export default function CreatePriceAlertModal({ open, onOpenChange, onCreated }:
             />
           </div>
 
-          <div className="space-y-3">
-            <p className="text-sm font-medium">Notifications</p>
+          <fieldset className="space-y-3">
+            <legend className="text-sm font-medium">Notifications</legend>
             <div className="space-y-2.5">
               <div className="flex items-center gap-2">
                 <Checkbox
@@ -206,16 +215,21 @@ export default function CreatePriceAlertModal({ open, onOpenChange, onCreated }:
               </div>
             </div>
             {notifyWebhook && (
-              <Input
-                id="webhook-url"
-                type="url"
-                value={webhookUrl}
-                onChange={(e) => setWebhookUrl(e.target.value)}
-                placeholder="https://your-webhook-url.com"
-                aria-label="Webhook URL"
-              />
+              <div className="space-y-2">
+                <Label htmlFor="webhook-url">Webhook URL</Label>
+                <Input
+                  id="webhook-url"
+                  type="url"
+                  value={webhookUrl}
+                  onChange={(e) => setWebhookUrl(e.target.value)}
+                  placeholder="https://your-webhook-url.com"
+                />
+                <p className="text-xs text-muted-foreground">
+                  HTTPS endpoint — receives a POST payload when the alert fires.
+                </p>
+              </div>
             )}
-          </div>
+          </fieldset>
 
           <div className="space-y-2">
             <Label htmlFor="expires">Expiration (optional)</Label>

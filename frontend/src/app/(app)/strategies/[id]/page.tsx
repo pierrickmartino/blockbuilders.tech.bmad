@@ -68,6 +68,7 @@ import { isInputElement } from "@/lib/keyboard-shortcuts";
 import { getFeatureFlag, CANVAS_FLAGS } from "@/lib/feature-flags";
 import { StrategyHeader } from "./_components/StrategyHeader";
 import { StrategySettingsSheet } from "./_components/StrategySettingsSheet";
+import { toast } from "sonner";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -757,6 +758,10 @@ export default function StrategyEditorPage({ params }: Props) {
 
   // Handle node deletion from properties panel
   const handleDeleteNode = (nodeId: string) => {
+    const deletedNode = nodes.find((node) => node.id === nodeId);
+    const deletedEdges = edges.filter(
+      (edge) => edge.source === nodeId || edge.target === nodeId
+    );
     const updatedNodes = nodes.filter((node) => node.id !== nodeId);
     const updatedEdges = edges.filter(
       (edge) => edge.source !== nodeId && edge.target !== nodeId
@@ -768,6 +773,24 @@ export default function StrategyEditorPage({ params }: Props) {
     setSelectedNodeId(null);
     setValidationErrors([]);
     setError(null);
+
+    if (deletedNode) {
+      const label = (deletedNode.data?.label as string | undefined) ?? "Block";
+      toast(`"${label}" deleted`, {
+        action: {
+          label: "Undo",
+          onClick: () => {
+            setNodes((prev) => [...prev, deletedNode]);
+            setEdges((prev) => [...prev, ...deletedEdges]);
+            scheduleSnapshot(
+              [...updatedNodes, deletedNode],
+              [...updatedEdges, ...deletedEdges]
+            );
+          },
+        },
+        duration: 5000,
+      });
+    }
   };
 
   // Handle selection changes (multi-select and single-select)

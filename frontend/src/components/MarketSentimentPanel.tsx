@@ -8,6 +8,7 @@ import type { MarketSentimentResponse } from "@/types/market";
 
 interface MarketSentimentPanelProps {
   asset: string;
+  isDefault?: boolean;
 }
 
 const PANEL_CLASS =
@@ -31,60 +32,57 @@ const LONG_SHORT_HELP =
 const FUNDING_HELP =
   "Periodic payment exchanged between long and short holders on perpetual contracts. Positive = longs pay shorts (market leaning long); negative = shorts pay longs.";
 
-function PanelHeader({ asset }: { asset: string }) {
+function StatusDot({ degraded }: { degraded: boolean }) {
+  if (!degraded) return null;
+  return (
+    <span
+      className="ml-auto inline-block h-2 w-2 shrink-0 rounded-full bg-warning"
+      title="Some sources delayed"
+      aria-label="Some data sources are delayed"
+    />
+  );
+}
+
+function PanelHeader({
+  asset,
+  isDefault,
+  degraded,
+}: {
+  asset: string;
+  isDefault?: boolean;
+  degraded: boolean;
+}) {
   return (
     <div className="border-b border-border p-4">
-      <h2 id={HEADING_ID} className="text-base font-semibold">
-        Market Mood
-      </h2>
-      <p className="text-sm text-muted-foreground">
-        Fear &amp; Greed is global · Funding &amp; L/S ratio for{" "}
-        <span className="data-text font-medium text-foreground">{asset}</span>
-      </p>
+      <div className="flex items-center gap-2">
+        <h2 id={HEADING_ID} className="text-base font-semibold">
+          Market Context
+        </h2>
+        <StatusDot degraded={degraded} />
+      </div>
+      {isDefault ? (
+        <p className="text-sm text-muted-foreground">
+          Showing{" "}
+          <span className="data-text font-medium text-foreground">BTC/USDT</span>{" "}
+          &middot; click a pair to update
+        </p>
+      ) : (
+        <p className="text-sm text-muted-foreground">
+          Fear &amp; Greed is global &middot; Funding &amp; L/S for{" "}
+          <span className="data-text font-medium text-foreground">{asset}</span>
+        </p>
+      )}
     </div>
   );
 }
 
-function SentimentNarrative({ sentiment }: { sentiment: MarketSentimentResponse }) {
-  const value = sentiment.fear_greed.value;
-  const statuses = Object.values(sentiment.source_status);
-  const anyDegraded = statuses.some((s) => s !== "ok");
-  const qualifier = anyDegraded ? "some sources are delayed" : "all sources current";
-
-  if (value === null) {
-    return <p>Sentiment score is unavailable right now.</p>;
-  }
-
-  if (value >= 60) {
-    return (
-      <p>
-        Market mood: <span className="font-medium text-foreground">Risk-on</span>. Use this as context, not a trade signal. {qualifier}.
-      </p>
-    );
-  }
-
-  if (value <= 40) {
-    return (
-      <p>
-        Market mood: <span className="font-medium text-foreground">Risk-off</span>. Use this as context, not a trade signal. {anyDegraded ? qualifier : "sources look cautious"}.
-      </p>
-    );
-  }
-
-  return (
-    <p>
-      Market mood: <span className="font-medium text-foreground">Neutral</span>. No strong directional bias from these sources.
-    </p>
-  );
-}
-
-export function MarketSentimentPanel({ asset }: MarketSentimentPanelProps) {
+export function MarketSentimentPanel({ asset, isDefault }: MarketSentimentPanelProps) {
   const { sentiment, isLoading, error, refresh } = useMarketSentiment(asset);
 
   if (isLoading) {
     return (
       <section className={PANEL_CLASS} aria-labelledby={HEADING_ID} aria-busy="true">
-        <PanelHeader asset={asset} />
+        <PanelHeader asset={asset} isDefault={isDefault} degraded={false} />
         <div className="grid grid-cols-1 gap-3 p-4">
           {[0, 1, 2].map((i) => (
             <div
@@ -102,7 +100,7 @@ export function MarketSentimentPanel({ asset }: MarketSentimentPanelProps) {
   if (error && !sentiment) {
     return (
       <section className={PANEL_CLASS} aria-labelledby={HEADING_ID}>
-        <PanelHeader asset={asset} />
+        <PanelHeader asset={asset} isDefault={isDefault} degraded={false} />
         <div className="m-4 rounded-md border border-warning/30 bg-warning-soft p-3">
           <p className="text-sm text-warning-foreground">
             Market mood data is temporarily unavailable.
@@ -120,34 +118,21 @@ export function MarketSentimentPanel({ asset }: MarketSentimentPanelProps) {
   }
 
   if (!sentiment) return null;
+
+  const statuses = Object.values(sentiment.source_status);
+  const anyDegraded = statuses.some((s) => s !== "ok");
   const hasBackgroundError = Boolean(error);
 
   return (
     <section className={PANEL_CLASS} aria-labelledby={HEADING_ID}>
-      <PanelHeader asset={asset} />
+      <PanelHeader
+        asset={asset}
+        isDefault={isDefault}
+        degraded={anyDegraded || hasBackgroundError}
+      />
 
-      {hasBackgroundError && (
-        <div
-          className="m-4 rounded-md border border-warning/30 bg-warning-soft p-3"
-          role="status"
-        >
-          <p className="text-sm font-medium text-warning-foreground">
-            Showing the latest sentiment data we have.
-          </p>
-          <p className="mt-1 break-words text-xs text-muted-foreground">
-            A background refresh failed. Retry when the connection is stable.
-          </p>
-          <button
-            type="button"
-            onClick={() => refresh()}
-            className="mt-2 min-h-9 rounded-md text-sm font-medium text-warning-foreground underline underline-offset-2 hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring"
-          >
-            Retry
-          </button>
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 divide-y divide-border bg-background md:grid-cols-3 md:divide-x md:divide-y-0 xl:grid-cols-1 xl:divide-x-0 xl:divide-y">
+      <div className="divide-y divide-border bg-background">
+        {/* Fear & Greed: hero row */}
         <SentimentGauge
           label="Fear & Greed Index"
           helpText={FEAR_GREED_HELP}
@@ -156,33 +141,48 @@ export function MarketSentimentPanel({ asset }: MarketSentimentPanelProps) {
           max={100}
           status={sentiment.source_status.fear_greed}
           formatter={(v) => formatSentiment(v, "fear_greed")}
-          subtext={sentiment.fear_greed.value !== null
-            ? getFearGreedZone(sentiment.fear_greed.value)
-            : undefined}
+          subtext={
+            sentiment.fear_greed.value !== null
+              ? getFearGreedZone(sentiment.fear_greed.value)
+              : undefined
+          }
+          size="hero"
         />
 
-        <SentimentSparkline
-          label="Long/Short Ratio (7d)"
-          helpText={LONG_SHORT_HELP}
-          history={sentiment.long_short_ratio.history}
-          status={sentiment.source_status.long_short_ratio}
-          color={LONG_SHORT_COLOR}
-          formatter={(v) => formatSentiment(v, "long_short_ratio")}
-        />
+        {/* Sparklines: subordinate 2-col row */}
+        <div className="grid grid-cols-2 divide-x divide-border">
+          <SentimentSparkline
+            label="Long/Short (7d)"
+            helpText={LONG_SHORT_HELP}
+            history={sentiment.long_short_ratio.history}
+            status={sentiment.source_status.long_short_ratio}
+            color={LONG_SHORT_COLOR}
+            formatter={(v) => formatSentiment(v, "long_short_ratio")}
+          />
 
-        <SentimentSparkline
-          label="Funding Rate (7d)"
-          helpText={FUNDING_HELP}
-          history={sentiment.funding.history}
-          status={sentiment.source_status.funding}
-          color={FUNDING_COLOR}
-          formatter={(v) => formatSentiment(v, "funding")}
-        />
+          <SentimentSparkline
+            label="Funding Rate (7d)"
+            helpText={FUNDING_HELP}
+            history={sentiment.funding.history}
+            status={sentiment.source_status.funding}
+            color={FUNDING_COLOR}
+            formatter={(v) => formatSentiment(v, "funding")}
+          />
+        </div>
       </div>
 
-      <div className="border-t border-border bg-muted/30 p-4 text-xs text-muted-foreground">
-        <SentimentNarrative sentiment={sentiment} />
-      </div>
+      {hasBackgroundError && (
+        <div className="border-t border-warning/20 bg-warning-soft/50 px-4 py-2 text-xs text-warning-foreground">
+          Showing cached data &middot;{" "}
+          <button
+            type="button"
+            onClick={() => refresh()}
+            className="underline underline-offset-2 hover:text-foreground focus-visible:outline-none"
+          >
+            Retry
+          </button>
+        </div>
+      )}
     </section>
   );
 }

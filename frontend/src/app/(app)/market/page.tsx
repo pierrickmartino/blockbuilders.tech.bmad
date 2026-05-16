@@ -50,7 +50,7 @@ function InfoTip({ text }: { text: string }) {
 }
 
 function SortIcon({ active, dir }: { active: boolean; dir: SortDir }) {
-  if (!active) return <ArrowUpDown className="inline-block ml-1 w-3 h-3 opacity-40" />;
+  if (!active) return <ArrowUpDown className="inline-block ml-1 w-3 h-3 text-muted-foreground" />;
   return dir === "asc"
     ? <ArrowUp className="inline-block ml-1 w-3 h-3" />
     : <ArrowDown className="inline-block ml-1 w-3 h-3" />;
@@ -228,6 +228,8 @@ export default function MarketPage() {
     { key: "volatility_percentile_1y", label: "Vol rank" },
   ];
 
+  const hasBackgroundError = Boolean(error && tickers.length > 0);
+
   const header = (
     <div className="flex flex-col gap-4 border-b border-border pb-5 sm:flex-row sm:items-end sm:justify-between">
       <div className="space-y-1">
@@ -237,7 +239,25 @@ export default function MarketPage() {
         </p>
         {asOf && (
           <p className="text-sm text-muted-foreground" aria-live="polite">
-            Last updated: <span className="data-text">{formatDateTime(asOf, timezone)}</span>
+            Last updated:{" "}
+            <span className="data-text">{formatDateTime(asOf, timezone)}</span>
+            {hasBackgroundError && (
+              <span
+                className="ml-2 inline-flex items-center gap-1 text-warning-foreground"
+                role="status"
+                aria-live="polite"
+              >
+                <span className="inline-block h-1.5 w-1.5 rounded-full bg-warning" aria-hidden="true" />
+                Stale data &middot;{" "}
+                <button
+                  type="button"
+                  onClick={() => refresh()}
+                  className="underline underline-offset-2 hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring"
+                >
+                  Retry
+                </button>
+              </span>
+            )}
           </p>
         )}
       </div>
@@ -308,34 +328,11 @@ export default function MarketPage() {
   const isEmpty = filteredTickers.length === 0;
   const totalCount = tickers.length;
   const shownCount = filteredTickers.length;
-  const hasBackgroundError = Boolean(error && tickers.length > 0);
 
   return (
     <TooltipProvider>
       <main className="container mx-auto max-w-7xl space-y-6 p-4 md:p-6">
         {header}
-
-        {hasBackgroundError && (
-          <div
-            className="rounded-lg border border-warning/30 bg-warning-soft p-3 text-sm"
-            role="status"
-          >
-            <p className="font-medium text-warning-foreground">
-              Showing the latest market data we have.
-            </p>
-            <p className="mt-1 break-words text-muted-foreground">
-              A background refresh failed. Check your connection or retry.
-            </p>
-            <Button
-              variant="outline"
-              size="sm"
-              className="mt-3"
-              onClick={() => refresh()}
-            >
-              Retry
-            </Button>
-          </div>
-        )}
 
         {isEmpty ? (
           <div className="rounded-lg border border-dashed p-8 text-center">
@@ -414,7 +411,7 @@ export default function MarketPage() {
                       <button
                         type="button"
                         onClick={() => toggleSort("pair")}
-                        className="inline-flex min-h-9 items-center rounded-md font-medium hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring"
+                        className="inline-flex min-h-9 items-center rounded-md px-2 font-medium hover:bg-muted/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring"
                         aria-label={sortLabel("pair", "pair", sortKey, sortDir)}
                       >
                         Pair<SortIcon active={sortKey === "pair"} dir={sortDir} />
@@ -424,7 +421,7 @@ export default function MarketPage() {
                       <button
                         type="button"
                         onClick={() => toggleSort("price")}
-                        className="inline-flex min-h-9 items-center rounded-md font-medium hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring"
+                        className="inline-flex min-h-9 items-center rounded-md px-2 font-medium hover:bg-muted/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring"
                         aria-label={sortLabel("price", "price", sortKey, sortDir)}
                       >
                         Price<SortIcon active={sortKey === "price"} dir={sortDir} />
@@ -434,7 +431,7 @@ export default function MarketPage() {
                       <button
                         type="button"
                         onClick={() => toggleSort("change_24h_pct")}
-                        className="inline-flex min-h-9 items-center rounded-md font-medium hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring"
+                        className="inline-flex min-h-9 items-center rounded-md px-2 font-medium hover:bg-muted/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring"
                         aria-label={sortLabel("24h change", "change_24h_pct", sortKey, sortDir)}
                       >
                         24h Change<SortIcon active={sortKey === "change_24h_pct"} dir={sortDir} />
@@ -444,7 +441,7 @@ export default function MarketPage() {
                       <button
                         type="button"
                         onClick={() => toggleSort("volume_24h")}
-                        className="inline-flex min-h-9 items-center rounded-md font-medium hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring"
+                        className="inline-flex min-h-9 items-center rounded-md px-2 font-medium hover:bg-muted/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring"
                         aria-label={sortLabel("24h volume", "volume_24h", sortKey, sortDir)}
                       >
                         24h Volume<SortIcon active={sortKey === "volume_24h"} dir={sortDir} />
@@ -454,7 +451,7 @@ export default function MarketPage() {
                       <button
                         type="button"
                         onClick={() => toggleSort("volatility_percentile_1y")}
-                        className="inline-flex min-h-9 items-center rounded-md font-medium hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring"
+                        className="inline-flex min-h-9 items-center rounded-md px-2 font-medium hover:bg-muted/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus-ring"
                         aria-label={sortLabel("1 year volatility rank", "volatility_percentile_1y", sortKey, sortDir)}
                       >
                         1Y Vol Rank<SortIcon active={sortKey === "volatility_percentile_1y"} dir={sortDir} />
@@ -537,11 +534,12 @@ export default function MarketPage() {
                           <Button
                             type="button"
                             variant="outline"
-                            size="icon-touch"
+                            size="sm"
                             onClick={() => handleSelectAsset(ticker.pair)}
                             aria-label={`Open ${ticker.pair} chart`}
                           >
                             <BarChart3 className="h-4 w-4" aria-hidden="true" />
+                            <span>Chart</span>
                           </Button>
                         </div>
                       </div>
@@ -589,7 +587,10 @@ export default function MarketPage() {
               </div>
             </section>
 
-            <MarketSentimentPanel asset={inspectedAsset ?? "BTC/USDT"} />
+            <MarketSentimentPanel
+              asset={inspectedAsset ?? "BTC/USDT"}
+              isDefault={inspectedAsset === null}
+            />
           </div>
         )}
 

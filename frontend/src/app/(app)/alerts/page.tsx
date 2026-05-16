@@ -56,6 +56,10 @@ import {
   X,
   BarChart3,
   History,
+  PauseCircle,
+  Clock,
+  CheckCircle2,
+  Info,
 } from "lucide-react";
 import CreatePriceAlertModal from "./create-price-alert-modal";
 
@@ -82,17 +86,24 @@ const formatAlertPrice = (price: number | undefined) => {
 
 function StatusBadge({ alert }: { alert: AlertRule }) {
   if (!alert.is_active) {
-    return <Badge variant="outline">Inactive</Badge>;
+    return (
+      <Badge variant="outline" className="gap-1">
+        <PauseCircle className="h-3 w-3" aria-hidden />
+        Inactive
+      </Badge>
+    );
   }
   if (isExpired(alert)) {
     return (
-      <Badge variant="outline" className="border-warning text-warning">
+      <Badge variant="outline" className="gap-1 border-warning text-warning">
+        <Clock className="h-3 w-3" aria-hidden />
         Expired
       </Badge>
     );
   }
   return (
-    <Badge className="bg-success text-success-foreground hover:bg-success/90">
+    <Badge className="gap-1 bg-success text-success-foreground hover:bg-success/90">
+      <CheckCircle2 className="h-3 w-3" aria-hidden />
       Active
     </Badge>
   );
@@ -406,7 +417,6 @@ export default function AlertsPage() {
           <div
             ref={errorRef}
             role="alert"
-            aria-live="polite"
             className="flex items-start justify-between gap-2 rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive"
           >
             <span>{error}</span>
@@ -429,11 +439,11 @@ export default function AlertsPage() {
           <TabsList>
             <TabsTrigger value="price" className="gap-0">
               Price Alerts
-              <TabCount count={priceAlerts.length} />
+              <TabCount count={filtersActive ? filteredPriceAlerts.length : priceAlerts.length} />
             </TabsTrigger>
             <TabsTrigger value="performance" className="gap-0">
               Performance Alerts
-              <TabCount count={performanceAlerts.length} />
+              <TabCount count={filtersActive ? filteredPerformanceAlerts.length : performanceAlerts.length} />
             </TabsTrigger>
             <TabsTrigger value="history" className="gap-0">
               History
@@ -515,7 +525,7 @@ export default function AlertsPage() {
                     Delete
                   </Button>
                   <Button variant="ghost" size="sm" onClick={clearSelection}>
-                    Clear
+                    Clear selection
                   </Button>
                 </div>
               </div>
@@ -775,6 +785,16 @@ export default function AlertsPage() {
 
           {/* ── Performance Alerts tab ── */}
           <TabsContent value="performance" className="space-y-4">
+            <div className="flex items-start gap-2 rounded-md bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
+              <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+              <span>
+                Performance alerts are configured per strategy.{" "}
+                <Link href="/strategies" className="underline hover:text-foreground">
+                  Go to Strategies
+                </Link>{" "}
+                to set up drawdown or entry/exit monitoring.
+              </span>
+            </div>
             {filteredPerformanceAlerts.length === 0 ? (
               <Card>
                 <CardContent className="flex flex-col items-center justify-center py-12 text-center">
@@ -949,11 +969,6 @@ export default function AlertsPage() {
 
           {/* ── History tab ── */}
           <TabsContent value="history" className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              A log of every alert that has fired, sorted by most recent.
-              Re-armed alerts still appear in their active tab.
-            </p>
-
             {historyAlerts.length === 0 ? (
               <Card>
                 <CardContent className="flex flex-col items-center justify-center py-12 text-center">

@@ -80,6 +80,7 @@ import { DrawdownSection } from "@/components/backtest/DrawdownSection";
 import { PositionAnalysisCard } from "@/components/backtest/PositionAnalysisCard";
 import { TradesSection } from "@/components/backtest/TradesSection";
 import { DistributionRow } from "@/components/backtest/DistributionRow";
+import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -540,6 +541,8 @@ export default function StrategyBacktestPage({ params }: Props) {
   const [showShortcutsModal, setShowShortcutsModal] = useState(false);
   const customFormRef = useRef<HTMLFormElement | null>(null);
   const runDetailsRef = useRef<HTMLElement | null>(null);
+  const [tier2Open, setTier2Open] = useState(false);
+  const [tier3Open, setTier3Open] = useState(false);
 
   // Summary card has its own key so scroll-based overlay dismissal doesn't hide it
   const [showSummaryCard, setShowSummaryCard] = useState(false);
@@ -1233,6 +1236,15 @@ export default function StrategyBacktestPage({ params }: Props) {
         {/* Results — only for completed runs, hidden in zero-trade narrative mode */}
         {selectedRun?.status === "completed" && !isZeroTradeNarrativeMode && selectedRun.summary && (
           <>
+            {/* Results boundary */}
+            <div className="flex items-center gap-3">
+              <div className="h-px flex-1 bg-border" />
+              <span className="font-mono text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                {selectedRunRange ?? "Results"}
+              </span>
+              <div className="h-px flex-1 bg-border" />
+            </div>
+
             {/* KPI Strip */}
             <KPIStrip
               summary={selectedRun.summary}
@@ -1367,153 +1379,195 @@ export default function StrategyBacktestPage({ params }: Props) {
               />
             </div>
 
-            {/* Drawdown */}
-            <DrawdownSection
-              drawdownData={drawdownData}
-              summary={selectedRun.summary}
-              isLoading={isLoadingEquityCurve}
-              error={equityCurveError}
-              onRetry={refetchEquityCurve}
-              timezone={timezone}
-              tickConfig={tickConfig}
-            />
+            {/* Tier 2 — Risk & Position Analysis */}
+            <button
+              type="button"
+              onClick={() => setTier2Open((v) => !v)}
+              className="flex w-full items-center gap-2 py-1 text-left"
+            >
+              <ChevronRight
+                className={cn(
+                  "h-3.5 w-3.5 flex-shrink-0 text-muted-foreground transition-transform duration-150",
+                  tier2Open && "rotate-90"
+                )}
+              />
+              <span className="font-mono text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                Risk &amp; Position Analysis
+              </span>
+            </button>
 
-            {/* Position + Seasonality */}
-            <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-              <PositionAnalysisCard trades={trades} timeframe={selectedRun.timeframe} />
+            {tier2Open && (
+              <div className="mt-1 space-y-5">
+                {/* Drawdown */}
+                <DrawdownSection
+                  drawdownData={drawdownData}
+                  summary={selectedRun.summary}
+                  isLoading={isLoadingEquityCurve}
+                  error={equityCurveError}
+                  onRetry={refetchEquityCurve}
+                  timezone={timezone}
+                  tickConfig={tickConfig}
+                />
 
-              {/* Seasonality (inline — kept in page) */}
-              <Tabs
-                value={periodType}
-                onValueChange={(value) => setPeriodType(value as PeriodType)}
-                className="overflow-hidden rounded border border-border bg-card"
-              >
-                <div className="flex flex-col gap-4 border-b border-border px-4 py-4 sm:px-6 lg:flex-row lg:items-start lg:justify-between">
-                  <div>
-                    <h2 className="text-[15px] font-semibold">Seasonality</h2>
-                    <p className="text-xs text-muted-foreground">Returns by calendar period</p>
-                  </div>
+                {/* Position + Seasonality */}
+                <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+                  <PositionAnalysisCard trades={trades} timeframe={selectedRun.timeframe} />
 
-                  <TabsList>
-                    <TabsTrigger value="month" className="text-xs">Month</TabsTrigger>
-                    <TabsTrigger value="quarter" className="text-xs">Quarter</TabsTrigger>
-                    <TabsTrigger value="weekday" className="text-xs">Weekday</TabsTrigger>
-                  </TabsList>
-                </div>
-
-                <div className="px-6 py-6">
-                  {trades.length === 0 ? (
-                    <p className="py-4 text-center text-sm text-muted-foreground">No trades available.</p>
-                  ) : (
-                    <div className="space-y-4">
-                      <div className="space-y-5">
-                        {seasonalityRows.map((row) => (
-                          <div
-                            key={row.year}
-                            className="grid grid-cols-[40px_minmax(0,1fr)] items-center"
-                          >
-                            <div className="text-xs font-semibold text-muted-foreground">
-                              {row.year}
-                            </div>
-
-                            <div className="overflow-x-auto pb-1">
-                              <div className={cn("grid gap-1.5", getSeasonalityGridClass(periodType))}>
-                                {row.buckets.map((bucket) => {
-                                  const cellStyle = getSeasonalityCellStyle(
-                                    bucket.avgReturn,
-                                    bucket.count,
-                                    seasonalityScaleMax
-                                  );
-
-                                  return (
-                                    <div
-                                      key={`${row.year}-${bucket.label}`}
-                                      className={cn(
-                                        "flex min-h-[52px] flex-col items-center justify-between rounded-lg border py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.22)]",
-                                        bucket.count === 0 && "shadow-none"
-                                      )}
-                                      style={cellStyle}
-                                      title={
-                                        bucket.count > 0
-                                          ? `${row.year} ${bucket.label}: ${formatPercent(bucket.avgReturn)} average across ${bucket.count} trades`
-                                          : `${row.year} ${bucket.label}: no trades`
-                                      }
-                                    >
-                                      {bucket.count > 0 ? (
-                                        <>
-                                          <div className="text-[10px] font-medium text-center">{bucket.label}</div>
-                                          <div className="text-xs font-semibold text-center">
-                                            {formatSeasonalityPercent(bucket.avgReturn)}
-                                          </div>
-                                        </>
-                                      ) : null}
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
+                  {/* Seasonality (inline — kept in page) */}
+                  <Tabs
+                    value={periodType}
+                    onValueChange={(value) => setPeriodType(value as PeriodType)}
+                    className="overflow-hidden rounded border border-border bg-card"
+                  >
+                    <div className="flex flex-col gap-4 border-b border-border px-4 py-4 sm:px-6 lg:flex-row lg:items-start lg:justify-between">
+                      <div>
+                        <h2 className="text-[15px] font-semibold">Seasonality</h2>
+                        <p className="text-xs text-muted-foreground">Returns by calendar period</p>
                       </div>
 
-                      <div className="flex flex-wrap items-center justify-end gap-2 text-xs text-muted-foreground">
-                        <span>{`< -5%`}</span>
-                        {[-1, -0.45, 0, 0.45, 1].map((multiplier, index) => (
-                          <span
-                            key={`${multiplier}-${index}`}
-                            className="inline-block h-4 w-6 rounded border"
-                            style={getSeasonalityCellStyle(multiplier * 5, multiplier === 0 ? 0 : 1, 5)}
-                          />
-                        ))}
-                        <span>{`> +5%`}</span>
-                      </div>
+                      <TabsList>
+                        <TabsTrigger value="month" className="text-xs">Month</TabsTrigger>
+                        <TabsTrigger value="quarter" className="text-xs">Quarter</TabsTrigger>
+                        <TabsTrigger value="weekday" className="text-xs">Weekday</TabsTrigger>
+                      </TabsList>
                     </div>
-                  )}
+
+                    <div className="px-6 py-6">
+                      {trades.length === 0 ? (
+                        <p className="py-4 text-center text-sm text-muted-foreground">No trades available.</p>
+                      ) : (
+                        <div className="space-y-4">
+                          <div className="space-y-5">
+                            {seasonalityRows.map((row) => (
+                              <div
+                                key={row.year}
+                                className="grid grid-cols-[40px_minmax(0,1fr)] items-center"
+                              >
+                                <div className="text-xs font-semibold text-muted-foreground">
+                                  {row.year}
+                                </div>
+
+                                <div className="overflow-x-auto pb-1">
+                                  <div className={cn("grid gap-1.5", getSeasonalityGridClass(periodType))}>
+                                    {row.buckets.map((bucket) => {
+                                      const cellStyle = getSeasonalityCellStyle(
+                                        bucket.avgReturn,
+                                        bucket.count,
+                                        seasonalityScaleMax
+                                      );
+
+                                      return (
+                                        <div
+                                          key={`${row.year}-${bucket.label}`}
+                                          className={cn(
+                                            "flex min-h-[52px] flex-col items-center justify-between rounded-lg border py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.22)]",
+                                            bucket.count === 0 && "shadow-none"
+                                          )}
+                                          style={cellStyle}
+                                          title={
+                                            bucket.count > 0
+                                              ? `${row.year} ${bucket.label}: ${formatPercent(bucket.avgReturn)} average across ${bucket.count} trades`
+                                              : `${row.year} ${bucket.label}: no trades`
+                                          }
+                                        >
+                                          {bucket.count > 0 ? (
+                                            <>
+                                              <div className="text-[10px] font-medium text-center">{bucket.label}</div>
+                                              <div className="text-xs font-semibold text-center">
+                                                {formatSeasonalityPercent(bucket.avgReturn)}
+                                              </div>
+                                            </>
+                                          ) : null}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+
+                          <div className="flex flex-wrap items-center justify-end gap-2 text-xs text-muted-foreground">
+                            <span>{`< -5%`}</span>
+                            {[-1, -0.45, 0, 0.45, 1].map((multiplier, index) => (
+                              <span
+                                key={`${multiplier}-${index}`}
+                                className="inline-block h-4 w-6 rounded border"
+                                style={getSeasonalityCellStyle(multiplier * 5, multiplier === 0 ? 0 : 1, 5)}
+                              />
+                            ))}
+                            <span>{`> +5%`}</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </Tabs>
                 </div>
-              </Tabs>
-            </div>
-
-            {/* Distribution charts */}
-            {trades.length >= 3 && (
-              <DistributionRow
-                returnDistribution={returnDistribution}
-                durationDistribution={durationDistribution}
-                totalTrades={trades.length}
-                durationDistributionTotal={durationDistributionTotal}
-                skewCallout={skewCallout}
-                skew={skew}
-              />
-            )}
-
-            {/* Trades table */}
-            {!isLoadingTrades && !tradesError && (
-              <TradesSection
-                trades={trades}
-                selectedRunId={selectedRunId!}
-                timezone={timezone}
-                onSelectTrade={setSelectedTradeIdx}
-                tradesCurrentPage={tradesCurrentPage}
-                tradesPageSize={tradesPageSize}
-                onPageChange={setTradesCurrentPage}
-                onPageSizeChange={setTradesPageSize}
-              />
-            )}
-
-            {isLoadingTrades && (
-              <div className="rounded border border-border bg-card px-4 py-8 text-center">
-                <p className="text-sm text-muted-foreground">Loading trades...</p>
               </div>
             )}
 
-            {tradesError && (
-              <div className="flex items-center gap-2 rounded border border-border bg-card px-4 py-4">
-                <p className="text-sm text-destructive">{tradesError}</p>
-                <Button variant="link" size="sm" onClick={refetchTrades} className="h-auto p-0">Retry</Button>
+            {/* Tier 3 — Distribution & Trades */}
+            <button
+              type="button"
+              onClick={() => setTier3Open((v) => !v)}
+              className="flex w-full items-center gap-2 py-1 text-left"
+            >
+              <ChevronRight
+                className={cn(
+                  "h-3.5 w-3.5 flex-shrink-0 text-muted-foreground transition-transform duration-150",
+                  tier3Open && "rotate-90"
+                )}
+              />
+              <span className="font-mono text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                Distribution &amp; Trades
+              </span>
+            </button>
+
+            {tier3Open && (
+              <div className="mt-1 space-y-5">
+                {/* Distribution charts */}
+                {trades.length >= 3 && (
+                  <DistributionRow
+                    returnDistribution={returnDistribution}
+                    durationDistribution={durationDistribution}
+                    totalTrades={trades.length}
+                    durationDistributionTotal={durationDistributionTotal}
+                    skewCallout={skewCallout}
+                    skew={skew}
+                  />
+                )}
+
+                {/* Trades table */}
+                {!isLoadingTrades && !tradesError && (
+                  <TradesSection
+                    trades={trades}
+                    selectedRunId={selectedRunId!}
+                    timezone={timezone}
+                    onSelectTrade={setSelectedTradeIdx}
+                    tradesCurrentPage={tradesCurrentPage}
+                    tradesPageSize={tradesPageSize}
+                    onPageChange={setTradesCurrentPage}
+                    onPageSizeChange={setTradesPageSize}
+                  />
+                )}
+
+                {isLoadingTrades && (
+                  <div className="rounded border border-border bg-card px-4 py-8 text-center">
+                    <p className="text-sm text-muted-foreground">Loading trades...</p>
+                  </div>
+                )}
+
+                {tradesError && (
+                  <div className="flex items-center gap-2 rounded border border-border bg-card px-4 py-4">
+                    <p className="text-sm text-destructive">{tradesError}</p>
+                    <Button variant="link" size="sm" onClick={refetchTrades} className="h-auto p-0">Retry</Button>
+                  </div>
+                )}
+
+                {/* Transaction Cost Analysis */}
+                <TransactionCostAnalysis summary={selectedRun.summary} />
               </div>
             )}
-
-            {/* Transaction Cost Analysis */}
-            <TransactionCostAnalysis summary={selectedRun.summary} />
           </>
         )}
       </div>

@@ -242,6 +242,16 @@ export function StrategyHeader({
             )}
           </div>
 
+          {/* Canvas health indicator */}
+          {validationErrors.length > 0 && (
+            <div className="flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700 dark:border-amber-700/50 dark:bg-amber-900/20 dark:text-amber-400">
+              <AlertCircle className="h-3 w-3 flex-shrink-0" aria-hidden="true" />
+              <span>
+                {validationErrors.length} error{validationErrors.length !== 1 ? "s" : ""}
+              </span>
+            </div>
+          )}
+
           {/* Save button */}
           <Button
             size="sm"

@@ -13,6 +13,12 @@ import { ALLOWED_ASSETS, Strategy, StrategyExportFile, StrategyTag, StrategyVers
 import type { PlanResponse, ProfileResponse } from "@/types/auth";
 import type { ValidationResponse } from "@/types/canvas";
 import NewStrategyModal from "./new-strategy-modal";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { StrategyWizard } from "./strategy-wizard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -81,10 +87,10 @@ export default function StrategiesPage() {
   const [strategies, setStrategies] = useState<Strategy[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
-  const [showArchived, setShowArchived] = useState(false);
-  const [sortField, setSortField] = useState<SortField>("total_return");
-  const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
+  const [search, setSearch] = useState(searchParams.get("q") ?? "");
+  const [showArchived, setShowArchived] = useState(searchParams.get("archived") === "true");
+  const [sortField, setSortField] = useState<SortField>((searchParams.get("sort") as SortField) ?? "total_return");
+  const [sortOrder, setSortOrder] = useState<SortOrder>((searchParams.get("order") as SortOrder) ?? "desc");
   const [showModal, setShowModal] = useState(false);
   const [showWizard, setShowWizard] = useState(isFirstRun);
   const [isSkipping, setIsSkipping] = useState(false);
@@ -99,11 +105,11 @@ export default function StrategiesPage() {
   const isPremiumUser = userPlan?.tier === "premium" || userPlan?.tier === "pro";
 
   // New filter states
-  const [assetFilter, setAssetFilter] = useState<string>("all");
-  const [performanceFilter, setPerformanceFilter] = useState<PerformanceFilter>("all");
-  const [lastRunFilter, setLastRunFilter] = useState<LastRunFilter>("all");
+  const [assetFilter, setAssetFilter] = useState<string>(searchParams.get("asset") ?? "all");
+  const [performanceFilter, setPerformanceFilter] = useState<PerformanceFilter>((searchParams.get("perf") as PerformanceFilter) ?? "all");
+  const [lastRunFilter, setLastRunFilter] = useState<LastRunFilter>((searchParams.get("run") as LastRunFilter) ?? "all");
   const [availableTags, setAvailableTags] = useState<StrategyTag[]>([]);
-  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>(searchParams.get("tags")?.split(",").filter(Boolean) ?? []);
 
   // Bulk selection state
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -149,6 +155,38 @@ export default function StrategiesPage() {
   }, []);
 
   const refreshStrategies = fetchStrategies;
+
+  // Sync filter + sort state to URL so the page is bookmarkable and back-nav preserves context
+  const urlSyncInitialized = useRef(false);
+  useEffect(() => {
+    if (!urlSyncInitialized.current) {
+      urlSyncInitialized.current = true;
+      return;
+    }
+    const params = new URLSearchParams();
+    if (isFirstRun) params.set("wizard", "true");
+    if (search) params.set("q", search);
+    if (showArchived) params.set("archived", "true");
+    if (sortField !== "total_return") params.set("sort", sortField);
+    if (sortOrder !== "desc") params.set("order", sortOrder);
+    if (assetFilter !== "all") params.set("asset", assetFilter);
+    if (performanceFilter !== "all") params.set("perf", performanceFilter);
+    if (lastRunFilter !== "all") params.set("run", lastRunFilter);
+    if (selectedTagIds.length > 0) params.set("tags", selectedTagIds.join(","));
+    const qs = params.toString();
+    router.replace(qs ? `/strategies?${qs}` : "/strategies", { scroll: false });
+  }, [search, showArchived, sortField, sortOrder, assetFilter, performanceFilter, lastRunFilter, selectedTagIds]);
+
+  const clearFilters = () => {
+    setSearch("");
+    setAssetFilter("all");
+    setPerformanceFilter("all");
+    setLastRunFilter("all");
+    setSelectedTagIds([]);
+    setShowArchived(false);
+  };
+
+  const hasActiveFilters = search || assetFilter !== "all" || performanceFilter !== "all" || lastRunFilter !== "all" || selectedTagIds.length > 0 || showArchived;
 
   // Bulk selection helpers
   const handleSelectAll = (checked: boolean) => {
@@ -625,7 +663,7 @@ export default function StrategiesPage() {
 
   const getReturnColorClass = (value: number | null | undefined): string => {
     if (value === null || value === undefined) return "text-foreground";
-    return value > 0 ? "text-green-600 dark:text-green-400" : value < 0 ? "text-red-600 dark:text-red-400" : "text-foreground";
+    return value > 0 ? "text-success" : value < 0 ? "text-destructive" : "text-foreground";
   };
 
   const SortIcon = ({ field }: { field: SortField }) => {
@@ -667,11 +705,20 @@ export default function StrategiesPage() {
   if (isLoading) {
     return (
       <main className="container mx-auto max-w-screen-2xl space-y-6 p-4 md:p-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3">
           <Skeleton className="h-8 w-40" />
-          <Skeleton className="h-9 w-32" />
+          <div className="flex gap-2">
+            <Skeleton className="h-9 w-24" />
+            <Skeleton className="h-9 w-20" />
+            <Skeleton className="h-9 w-32" />
+            <Skeleton className="h-9 w-32" />
+          </div>
         </div>
-        <Skeleton className="h-10 w-64" />
+        <div className="flex gap-2">
+          <Skeleton className="h-9 w-[150px]" />
+          <Skeleton className="h-9 w-[150px]" />
+          <Skeleton className="h-9 w-[150px]" />
+        </div>
         {/* Desktop table skeleton */}
         <div className="hidden space-y-2 md:block">
           <div className="flex gap-3 border-b pb-3">
@@ -706,10 +753,22 @@ export default function StrategiesPage() {
   }
 
   return (
+    <TooltipProvider>
     <main className="container mx-auto max-w-screen-2xl space-y-6 p-4 md:p-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold tracking-tight">Strategies</h1>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Search strategies..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 sm:w-56"
+              aria-label="Search strategies"
+            />
+          </div>
           <Button
             variant="outline"
             size="sm"
@@ -789,22 +848,8 @@ export default function StrategiesPage() {
         </div>
       )}
 
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative sm:w-64">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            type="text"
-            placeholder="Search strategies..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-            aria-label="Search strategies"
-          />
-        </div>
-      </div>
-
       {/* Filter Controls */}
-      <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/30 p-2 dark:bg-muted/10">
+      <div className="flex flex-wrap items-center gap-2">
         <Select value={assetFilter} onValueChange={setAssetFilter}>
           <SelectTrigger className="relative w-full sm:w-[150px]" aria-label="Filter by asset">
             {assetFilter !== "all" && (
@@ -900,30 +945,22 @@ export default function StrategiesPage() {
           Show archived
         </label>
 
-        {(search || assetFilter !== "all" || performanceFilter !== "all" || lastRunFilter !== "all" || selectedTagIds.length > 0 || showArchived) && (
+        {hasActiveFilters && (
           <Button
             variant="outline"
             size="sm"
-            onClick={() => {
-              setSearch("");
-              setAssetFilter("all");
-              setPerformanceFilter("all");
-              setLastRunFilter("all");
-              setSelectedTagIds([]);
-              setShowArchived(false);
-            }}
+            onClick={clearFilters}
           >
             Clear filters
           </Button>
         )}
+        <span className="ml-auto text-xs text-muted-foreground">
+          {hasActiveFilters
+            ? `Showing ${filteredAndSortedStrategies.length} of ${strategies.length} ${strategies.length === 1 ? "strategy" : "strategies"}`
+            : `${strategies.length} ${strategies.length === 1 ? "strategy" : "strategies"}`
+          }
+        </span>
       </div>
-
-      <p className="text-xs text-muted-foreground">
-        {(search || assetFilter !== "all" || performanceFilter !== "all" || lastRunFilter !== "all" || selectedTagIds.length > 0 || showArchived)
-          ? `Showing ${filteredAndSortedStrategies.length} of ${strategies.length} ${strategies.length === 1 ? "strategy" : "strategies"}`
-          : `${strategies.length} ${strategies.length === 1 ? "strategy" : "strategies"}`
-        }
-      </p>
 
       {selectedIds.size > 0 && (
         <div className="sticky top-14 z-30 flex items-center justify-between rounded-lg border-2 border-primary/30 bg-background p-3 shadow-md">
@@ -979,12 +1016,16 @@ export default function StrategiesPage() {
                 ? "Create your first strategy to get started."
                 : "No strategies match your search or filters."}
             </p>
-            {strategies.length === 0 && (
+            {strategies.length === 0 ? (
               <Button onClick={() => setShowModal(true)}>
                 <Plus className="mr-2 h-4 w-4" />
                 Create Strategy
               </Button>
-            )}
+            ) : hasActiveFilters ? (
+              <Button variant="outline" onClick={clearFilters}>
+                Clear filters
+              </Button>
+            ) : null}
           </CardContent>
         </Card>
       ) : (
@@ -1003,6 +1044,22 @@ export default function StrategiesPage() {
             )}
             <Table>
               <TableHeader>
+                <TableRow className="border-b-0 text-xs text-muted-foreground">
+                  <TableHead colSpan={4} />
+                  <TableHead
+                    colSpan={isPremiumUser ? 7 : 5}
+                    className="border-l border-border text-center font-normal"
+                  >
+                    Period Returns
+                  </TableHead>
+                  <TableHead
+                    colSpan={4}
+                    className="border-l border-border text-center font-normal"
+                  >
+                    Risk &amp; Activity
+                  </TableHead>
+                  <TableHead />
+                </TableRow>
                 <TableRow>
                   <TableHead className="w-12">
                     <Checkbox
@@ -1021,7 +1078,7 @@ export default function StrategiesPage() {
                   <SortableHeader field="name">Name</SortableHeader>
                   <SortableHeader field="asset">Asset</SortableHeader>
                   <TableHead>Timeframe</TableHead>
-                  <SortableHeader field="total_return">Total Return</SortableHeader>
+                  <SortableHeader field="total_return" className="border-l border-border">Total Return</SortableHeader>
                   {(["30d", "60d", "90d", "1y"] as const).map((p) => (
                     <SortableHeader key={p} field={`return_${p}` as SortField} className="text-center">
                       {p}
@@ -1032,7 +1089,16 @@ export default function StrategiesPage() {
                       {p}
                     </SortableHeader>
                   ))}
-                  <TableHead>Max DD</TableHead>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <TableHead className="cursor-default border-l border-border">
+                        Max DD
+                      </TableHead>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      Maximum Drawdown — the largest peak-to-trough loss during the period
+                    </TooltipContent>
+                  </Tooltip>
                   <TableHead>Win Rate</TableHead>
                   <TableHead>Trades</TableHead>
                   <SortableHeader field="last_run">Last Run</SortableHeader>
@@ -1065,7 +1131,14 @@ export default function StrategiesPage() {
                             <Badge variant="secondary">Archived</Badge>
                           )}
                           {strategy.auto_update_enabled && (
-                            <Badge variant="outline" title="Auto-update enabled: this strategy re-runs automatically">Monitor</Badge>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Badge variant="outline">Auto-run</Badge>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                This strategy re-runs automatically when new data is available
+                              </TooltipContent>
+                            </Tooltip>
                           )}
                         </div>
                         {strategy.tags && strategy.tags.length > 0 && (
@@ -1085,7 +1158,7 @@ export default function StrategiesPage() {
                     <TableCell className="text-muted-foreground">
                       {strategy.timeframe}
                     </TableCell>
-                    <TableCell className={`font-mono text-base font-semibold tabular-nums ${getReturnColorClass(strategy.latest_total_return_pct)}`}>
+                    <TableCell className={`border-l border-border font-mono text-base font-semibold tabular-nums ${getReturnColorClass(strategy.latest_total_return_pct)}`}>
                       {formatMetric(strategy.latest_total_return_pct, "%")}
                     </TableCell>
                     {(["30d", "60d", "90d", "1y"] as const).map((p) => {
@@ -1104,7 +1177,7 @@ export default function StrategiesPage() {
                         </TableCell>
                       );
                     })}
-                    <TableCell className="font-mono tabular-nums">
+                    <TableCell className="border-l border-border font-mono tabular-nums">
                       {formatMetric(strategy.latest_max_drawdown_pct, "%")}
                     </TableCell>
                     <TableCell className="font-mono tabular-nums">
@@ -1125,9 +1198,6 @@ export default function StrategiesPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => router.push(`/strategies/${strategy.id}`)}>
-                            Open
-                          </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => handleClone(strategy.id)}
                             disabled={actionLoading === strategy.id}
@@ -1186,7 +1256,14 @@ export default function StrategiesPage() {
                           <Badge variant="secondary">Archived</Badge>
                         )}
                         {strategy.auto_update_enabled && (
-                          <Badge variant="outline" title="Auto-update enabled: this strategy re-runs automatically">Monitor</Badge>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Badge variant="outline">Auto-run</Badge>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              This strategy re-runs automatically when new data is available
+                            </TooltipContent>
+                          </Tooltip>
                         )}
                         {strategy.tags?.map((tag) => (
                           <Badge key={tag.id} variant="outline" className="text-xs">
@@ -1203,9 +1280,6 @@ export default function StrategiesPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => router.push(`/strategies/${strategy.id}`)}>
-                          Open
-                        </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => handleClone(strategy.id)}
                           disabled={actionLoading === strategy.id}
@@ -1421,6 +1495,23 @@ export default function StrategiesPage() {
             <p className="text-sm text-muted-foreground">
               This will permanently delete all versions and backtest runs. This action cannot be undone.
             </p>
+            {(() => {
+              const toDelete = strategies.filter((s) => selectedIds.has(s.id));
+              const preview = toDelete.slice(0, 5);
+              const overflow = toDelete.length - preview.length;
+              return (
+                <div className="max-h-32 overflow-y-auto rounded border bg-muted/30 px-3 py-2">
+                  <ul className="space-y-0.5 text-sm">
+                    {preview.map((s) => (
+                      <li key={s.id} className="truncate text-foreground">{s.name}</li>
+                    ))}
+                    {overflow > 0 && (
+                      <li className="text-muted-foreground">+{overflow} more</li>
+                    )}
+                  </ul>
+                </div>
+              );
+            })()}
             <div className="space-y-1.5">
               <label htmlFor="delete-confirm-input" className="text-sm font-medium">
                 Type <span className="font-mono text-destructive">delete</span> to confirm
@@ -1524,5 +1615,6 @@ export default function StrategiesPage() {
         </DialogContent>
       </Dialog>
     </main>
+    </TooltipProvider>
   );
 }
