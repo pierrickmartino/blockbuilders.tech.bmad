@@ -1,5 +1,19 @@
 # Tasks — in flight
 
+## FEAT-105 — Pin Starlette patched version (done)
+
+Backend
+- [x] Add explicit `starlette>=0.49.1` directly after `fastapi==0.129.2` in `backend/requirements.txt`
+- [x] Verify no direct Starlette requirement constrains the backend below `0.49.1`
+
+Verification
+- [x] `backend/.venv/bin/python -m pip install -r backend/requirements.txt` completed; `starlette` resolved to `0.52.1`
+- [x] `rg "^starlette>=0\.49\.1$" backend/requirements.txt` passed
+- [x] `backend/.venv/bin/python -m pip show starlette` reported `Version: 0.52.1`
+- [x] `backend/.venv/bin/python -m pytest tests/ -v` passed: 254 passed, 34555 warnings
+
+---
+
 ## CI frontend test step fix (in flight)
 
 - [x] Write CI fix plan
