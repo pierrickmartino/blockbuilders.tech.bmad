@@ -90,4 +90,25 @@ None.
 - Should the toolbar show history depth counts or only enabled/disabled icons?
 - Should history be cleared after a successful save, or should users be able to undo changes made before the save while staying on the page?
 
-## Implementation Plan: Not produced in this step.
+## Implementation Plan
+_Produced by Claude. Approved: [pending]_
+
+<plan>
+Scope note: most of FEAT-111 is already in place (`frontend/src/lib/history-manager.ts`, toolbar + mobile buttons, 500ms debounced snapshot, keyboard-shortcut handler with `isInputElement` guard). The plan below closes the remaining spec gaps based on resolved open questions (Ctrl+Y dropped; viewport/selection not in history; no depth counts; history preserved across saves) and adds the missing automated tests.
+
+1. **frontend/src/lib/keyboard-shortcuts.ts** — Frontend. Remove the `["Cmd/Ctrl", "Y"]` alternative from the Redo `KEYBOARD_SHORTCUTS` entry so the shortcuts modal documents only `Cmd/Ctrl+Shift+Z`. Alembic migration: no. No order dependency.
+
+2. **frontend/src/app/(app)/strategies/[id]/page.tsx** — Frontend. In the `keydown` handler, drop the `(isMod && key === "y")` branch so Ctrl+Y no longer triggers redo (keeps AC-008 narrow and aligns with resolved open question). Alembic migration: no. Order: after step 1.
+
+3. **frontend/src/components/canvas/StrategyCanvas.tsx** — Frontend. Inside `handleNodesChange`, classify the incoming `changes` and only forward to the parent (i.e. trigger snapshot) when at least one change is structural — `add`, `remove`, `replace`, or a `position` change with `dragging === false`; suppress propagation for pure `select`/`dimensions`/in-flight `position` (dragging:true) changes by still applying them locally via `applyNodeChanges` but skipping the parent setter for selection-only batches, so viewport/selection noise never reaches history (AC-001/AC-004 + viewport decision). Alembic migration: no. No order dependency.
+
+4. **frontend/src/app/(app)/strategies/[id]/page.tsx** — Frontend. In `handleNodesChange`/`handleEdgesChange`, add a shallow equality guard (compare node ids+positions+data hashes and edge ids+endpoints) before calling `scheduleSnapshot`, so React Flow's idempotent re-emits during a single drag collapse to one snapshot once dragging completes (AC-004, AC-005). Alembic migration: no. Order: after step 3.
+
+5. **frontend/src/components/canvas/StrategyCanvas.tsx** — Frontend. Update the desktop toolbar Undo/Redo `title` and `aria-label` to render platform-correct text via `isMacPlatform()` ("⌘Z" vs "Ctrl+Z", "⌘⇧Z" vs "Ctrl+Shift+Z") and mirror the same in `MobileBottomBar.tsx` for accessible names (AC-002, AC-003, AC-007 disabled-state copy). Alembic migration: no. No order dependency.
+
+6. **frontend/src/lib/history-manager.test.ts** — Frontend (new test file). Add Jest/Vitest unit tests covering `resetHistory`, `pushSnapshot` (including `MAX_HISTORY_LENGTH` trim and future-clear on new change → AC-006), `undo`, `redo`, and `canUndo`/`canRedo` boundary conditions (AC-007). Alembic migration: no. Order: independent.
+
+7. **frontend/src/lib/keyboard-shortcuts.test.ts** — Frontend (new test file). Unit-test `isInputElement` for `<input>`, `<textarea>`, `contentEditable=true`, and non-editable elements to lock in the AC-008 guard. Alembic migration: no. Order: independent.
+
+8. **docs/features/FEAT-111-canvas-undo-redo.md** — Docs. After implementation, flip Status to In Progress, mark resolved Open Questions inline (Ctrl+Y: no; viewport: no; depth counts: no; clear-on-save: no), and link the new tests in a short "Verification" subsection. Alembic migration: no. Order: last.
+</plan>

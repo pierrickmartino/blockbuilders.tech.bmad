@@ -59,4 +59,43 @@ None.
 - Should the follow-up implementation use the patched 7.4.x line only, or should a newer supported Redis line be considered after compatibility review?
 - Should this verification result become a dedicated follow-up GitHub issue, or should issue #336 be converted into the implementation tracking issue after the spec is approved?
 
-## Implementation Plan: Not produced in this step.
+## Implementation Plan
+_Produced by Claude. Approved: [pending]_
+
+This is a verification-only, documentation-only feature. No source code, Compose files, dependencies, or migrations are changed. The "implementation" produces verification notes inside this spec file.
+
+1. **File:** `docs/features/FEAT-112-verify-redis-2026-cves.md`
+   **Change:** Add a `## Verification — Current Redis image tags` subsection enumerating every `image: redis:*` line found in `docker-compose.yml` (line 95) and `docker-compose.prod.yml` (line 97), confirming `redis:7.4.6-alpine` as the currently pinned tag in both Compose files.
+   **Layer:** Docs (infra-adjacent).
+   **Alembic migration required:** no.
+   **Order dependency:** must precede bullet 2.
+
+2. **File:** `docs/features/FEAT-112-verify-redis-2026-cves.md`
+   **Change:** Add a `## Verification — 2026 Redis server CVEs and patched 7.4.x release` subsection citing official Redis sources (Redis Community Edition 7.4 release notes page and/or `redis/redis` GitHub releases/advisories) listing the relevant 2026 CVE IDs, the affected Redis release line, and the patched Redis 7.4.x release tag, with URLs and a retrieval date.
+   **Layer:** Docs.
+   **Alembic migration required:** no.
+   **Order dependency:** depends on bullet 1; must precede bullet 3.
+
+3. **File:** `docs/features/FEAT-112-verify-redis-2026-cves.md`
+   **Change:** Add a `## Verification — Outcome` subsection that explicitly compares `redis:7.4.6-alpine` to the patched 7.4.x release identified in bullet 2 and states unambiguously whether the current image is patched or requires an update (satisfies AC-003).
+   **Layer:** Docs.
+   **Alembic migration required:** no.
+   **Order dependency:** depends on bullets 1 and 2; must precede bullet 4.
+
+4. **File:** `docs/features/FEAT-112-verify-redis-2026-cves.md`
+   **Change:** If bullet 3 concludes the image is behind, add a `## Verification — Nearest patched 7.4.x candidate and follow-up` subsection identifying the nearest patched Alpine image tag candidate (e.g. `redis:7.4.9-alpine`), noting Docker Hub registry availability must be confirmed separately, and requiring a follow-up implementation issue or feature before any Compose change (satisfies AC-004); if patched, record "no follow-up required" and skip the candidate tag.
+   **Layer:** Docs.
+   **Alembic migration required:** no.
+   **Order dependency:** depends on bullet 3.
+
+5. **File:** `docs/features/FEAT-112-verify-redis-2026-cves.md`
+   **Change:** Add a `## Verification — Scope reaffirmation` line restating that this feature covers the Redis server container image only and explicitly excludes `redis-py` client library migration and backend application code changes (satisfies AC-005), and resolve the three Open questions inline (patched 7.4.x line vs newer line, candidate tag acceptance, and follow-up issue routing decision).
+   **Layer:** Docs.
+   **Alembic migration required:** no.
+   **Order dependency:** last; depends on bullets 1–4.
+
+6. **File:** `docs/features/FEAT-112-verify-redis-2026-cves.md`
+   **Change:** Flip the `## Status` line from `Draft` to `Verified` and update the document to reflect completion of all five test cases in `docs/testing/FEAT-112-test-plan.md`.
+   **Layer:** Docs.
+   **Alembic migration required:** no.
+   **Order dependency:** final step.

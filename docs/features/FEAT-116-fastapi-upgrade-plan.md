@@ -70,4 +70,30 @@ Not applicable.
 - Should the implementation PR include a Docker Compose backend smoke test in addition to direct `uvicorn` startup verification?
 - If Starlette 1.0+ compatibility requires loosening the current explicit Starlette constraint, should that be handled inside the FastAPI upgrade PR or split into a separate prerequisite feature?
 
-## Implementation Plan: Not produced in this step.
+## Implementation Plan
+_Produced by Claude. Approved: [pending]_
+
+Note: FEAT-116 is a planning-only feature. Its deliverable is the FastAPI upgrade plan content authored inside this spec file. No backend/frontend source code, tests, migrations, or runtime configuration are modified. All bullets below edit `docs/features/FEAT-116-fastapi-upgrade-plan.md`. No Alembic migration is required for any bullet.
+
+Resolved open questions (from planning Q&A):
+- Target version: pin to FastAPI `0.136.1` exactly.
+- Smoke-test scope: include both direct `uvicorn` and Docker Compose backend startup verification.
+- Starlette constraint adjustment (if needed for Starlette 1.0+ compatibility): handled inside the FastAPI upgrade PR.
+
+Plan bullets (sequential — each appends/updates one section of this file):
+
+1. **`docs/features/FEAT-116-fastapi-upgrade-plan.md`** — Add `### Current-state audit` section listing exact pins for `fastapi==0.129.2`, `starlette>=0.49.1`, `uvicorn[standard]==0.32.1`, `httpx==0.27.0` from `backend/requirements.txt`, with the `rg` command used to extract them. (Backend planning doc. Migration: no. Order: 1.) — Satisfies AC-001.
+
+2. **`docs/features/FEAT-116-fastapi-upgrade-plan.md`** — Add `### Response-class audit` section recording the `rg "ORJSONResponse|UJSONResponse" backend/` result and stating remediation (none if no matches; otherwise list each file:line and required replacement). (Backend planning doc. Migration: no. Order: 2.) — Satisfies AC-002.
+
+3. **`docs/features/FEAT-116-fastapi-upgrade-plan.md`** — Add `### JSON request-client audit` section covering FastAPI 0.132 strict `Content-Type: application/json` behavior, with audit results across `backend/tests/`, RQ workers under `backend/app/workers/` (or equivalent), and internal HTTP callers (`httpx`/`requests`) in `backend/app/`; list any callers missing explicit JSON content-type headers and mark them for fixing during implementation. (Backend planning doc. Migration: no. Order: 3.) — Satisfies AC-003.
+
+4. **`docs/features/FEAT-116-fastapi-upgrade-plan.md`** — Add `### Starlette compatibility` section documenting current `starlette>=0.49.1` constraint, the version FastAPI 0.136.1 requires, and the decided handling: adjust the Starlette constraint inside the FastAPI upgrade PR (loosen/tighten/confirm) — explicitly not split into a prerequisite feature. (Backend planning doc. Migration: no. Order: 4.) — Satisfies AC-004.
+
+5. **`docs/features/FEAT-116-fastapi-upgrade-plan.md`** — Add `### Lifespan and startup audit` section covering existing lifespan or `@app.on_event` startup/shutdown handlers in `backend/app/main.py`, local `uvicorn app.main:app --reload`, production container startup via `backend/Dockerfile` + `backend/start_server.sh`, and `/health` accessibility post-upgrade. (Backend planning doc. Migration: no. Order: 5.) — Satisfies AC-005.
+
+6. **`docs/features/FEAT-116-fastapi-upgrade-plan.md`** — Add `### Implementation sequence and scope exclusions` section enumerating the bounded change set (bump `fastapi==0.136.1`, adjust Starlette constraint if required, apply only compatibility fixes surfaced by audits 2/3) and explicit exclusions: auth, billing, backtesting numerical logic, migrations, and unrelated dependency upgrades (uvicorn, RQ, redis-py, SQLModel, Alembic, httpx, python-jose). (Backend planning doc. Migration: no. Order: 6.) — Satisfies AC-006.
+
+7. **`docs/features/FEAT-116-fastapi-upgrade-plan.md`** — Add `### Verification and rollback` section with exact commands: `cd backend && pytest tests/ -v`, `cd backend && pip show fastapi starlette`, production-style `uvicorn app.main:app` health smoke (curl `/health`), Docker Compose backend smoke (`docker compose up backend` + `/health` curl), and a rollback path that reverts `backend/requirements.txt` to the prior FastAPI dependency state and rebuilds. (Backend planning doc. Migration: no. Order: 7.) — Satisfies AC-007.
+
+8. **`docs/features/FEAT-116-fastapi-upgrade-plan.md`** — Flip `## Status: Draft` to `## Status: Ready for implementation approval` and record the three resolved open questions inline under the existing `## Open questions` block. (Backend planning doc. Migration: no. Order: 8, final.) — Closes spec gates.

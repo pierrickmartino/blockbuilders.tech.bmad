@@ -87,4 +87,25 @@ None.
 - Should selecting a command also select the newly inserted node and open the existing parameter inspector, or only place the node on the canvas?
 - Should the command palette be guarded by an existing canvas feature flag, or should it ship as a default canvas enhancement?
 
-## Implementation Plan: Not produced in this step.
+## Implementation Plan
+_Produced by Claude. Approved: [pending]_
+
+Decisions resolved with product owner before planning:
+- Groups: Data (inputs), Indicators, Conditions (logic), Actions (signal + risk).
+- Post-insert behaviour: place the node only — no selection change, no inspector open.
+- Feature flag: none; ships as default canvas enhancement.
+- Dependency: add `cmdk` and the shadcn `Command` primitive (built on already-installed `@radix-ui/react-dialog`). Existing Radix Dialog + custom list cannot match cmdk's grouping/filtering/keyboard semantics without re-implementing it; this is the justified dependency the spec allows.
+
+1. **frontend/package.json** — Add `cmdk` to `dependencies` (latest stable matching React 19) so the shadcn `Command` primitive can be added. Frontend. Alembic migration: no. Order: 1 (blocks bullets 2, 6).
+2. **frontend/src/components/ui/command.tsx** *(new)* — Add the shadcn `Command` primitive (CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem) wrapping `cmdk` and the existing `@/components/ui/dialog`, styled with project tokens from `globals.css` / `docs/design-system.json`. Frontend. Alembic migration: no. Order: 2 (depends on 1; blocks 6).
+3. **frontend/src/lib/canvas-insertion.ts** *(new)* — Extract a pure helper `createNodeAtViewportCenter(blockMeta, reactFlowInstance)` that returns a new `Node` placed at the current viewport center with the same small random offset used today in `BlockLibrarySheet.handleBlockTap`, so command-palette and bottom-sheet insertion share identical placement semantics (satisfies AC-004, AC-005). Frontend. Alembic migration: no. Order: 3 (independent; blocks 4 and 6).
+4. **frontend/src/components/canvas/BlockLibrarySheet.tsx** — Refactor `handleBlockTap` (lines 174–212) to call the new `createNodeAtViewportCenter` helper instead of inlining the placement logic; no behaviour change (keeps AC-008 green). Frontend. Alembic migration: no. Order: 4 (depends on 3).
+5. **frontend/src/hooks/useCommandPaletteShortcut.ts** *(new)* — Custom hook that listens for Cmd+K (mac) / Ctrl+K (win/linux) on `window` and toggles an `open` setter, ignoring events whose `event.target` is an `<input>`, `<textarea>`, `[contenteditable]`, or any element inside the parameter inspector / palette search (satisfies AC-001 and AC-007). Frontend. Alembic migration: no. Order: 5 (independent; blocks 7).
+6. **frontend/src/components/canvas/CommandPalette.tsx** *(new)* — New modal component using the `Command` primitive from bullet 2. Reads `BLOCK_REGISTRY` from `@/types/canvas`, groups items as Data (`input`) / Indicators (`indicator`) / Conditions (`logic`) / Actions (`signal` + `risk`), uses block label + description + `PLAIN_LABEL_MAP` aliases as searchable keywords, renders an empty state when no match, and on selection calls `props.onAddNode(createNodeAtViewportCenter(blockMeta, reactFlowInstance))` then closes (covers AC-002, AC-003, AC-004, AC-005, AC-006). Frontend. Alembic migration: no. Order: 6 (depends on 2, 3).
+7. **frontend/src/app/(app)/strategies/[id]/page.tsx** — Import `CommandPalette` and `useCommandPaletteShortcut`; add `const [isCommandPaletteOpen, setCommandPaletteOpen] = useState(false)`; mount `<CommandPalette open={...} onOpenChange={...} reactFlowInstance={reactFlowRef} onAddNode={handleAddNode} />` next to the existing `BlockLibrarySheet` mount (~line 1283); register the shortcut hook. Reuses the existing `handleAddNode` (line 698) and `reactFlowRef` so no canvas state plumbing changes (satisfies AC-001, AC-006, AC-008). Frontend. Alembic migration: no. Order: 7 (depends on 5, 6).
+8. **frontend/src/components/canvas/CommandPalette.stories.tsx** *(new)* — Storybook story documenting the four groups, filtered states (e.g. `EMA`, `crossover`, `stop loss`), the empty state, and light + dark themes per `frontend/CLAUDE.md` Storybook rules. Frontend. Alembic migration: no. Order: 8 (depends on 6).
+
+Out-of-scope notes (consistent with spec Non-goals):
+- No backend changes, no API routes, no SQLModel/Alembic work.
+- No new canvas node types, no changes to `BLOCK_REGISTRY` content beyond reading it.
+- `BlockPalette.tsx` and `BlockLibrarySheet.tsx` keep working unchanged (bullet 4 is a pure extraction).

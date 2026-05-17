@@ -63,4 +63,26 @@ Not applicable.
 - Should maintainers require a narrowed route smoke checklist beyond the health endpoint before implementation is approved?
 - If uvicorn 0.47.0 introduces a transitive incompatibility, should the sprint target the newest compatible uvicorn release below 0.47.0 or pause for a broader FastAPI/Starlette upgrade plan?
 
-## Implementation Plan: Not produced in this step.
+## Implementation Plan
+_Produced by Claude. Approved: [pending]_
+<plan>
+
+1. **backend/requirements.txt** — Bump pin from `uvicorn[standard]==0.32.1` to `uvicorn[standard]==0.47.0`; leave every other line untouched. (Backend; Alembic migration: no; order: first — prerequisite for all validation steps.)
+
+2. **backend/requirements.txt** (fallback path, only if 0.47.0 has a transitive incompatibility per AC-001/edge cases) — Pin to the newest compatible `uvicorn[standard]` release below 0.47.0, document the chosen version and the blocker in the PR body. (Backend; Alembic migration: no; order: conditional, replaces step 1 only on failure.)
+
+3. **Clean install verification** — In a clean environment run `pip install -r backend/requirements.txt` to surface transitive conflicts before functional tests; capture output for the PR. (Backend; Alembic migration: no; order: after step 1/2, before steps 4–6.)
+
+4. **Backend test suite execution (TC-003 / AC-003)** — Run `cd backend && pytest tests/ -v` against the upgraded environment and attach the result to the PR; no source file changes. (Backend; Alembic migration: no; order: after step 3.)
+
+5. **Production-style startup smoke (TC-004 / AC-004)** — Execute the production-style `python -m uvicorn app.main:app --host 127.0.0.1 --port 8000` invocation, hit `/health`, capture log evidence. Confirms `backend/Dockerfile` CMD still works without source changes. (Backend; Alembic migration: no; order: after step 4.)
+
+6. **Reload-mode startup smoke (TC-005 / AC-005)** — Execute `python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8001`, hit `/health`, capture log evidence. Confirms `backend/start_server.sh` reload path still works without source changes. (Backend; Alembic migration: no; order: after step 5.)
+
+7. **PR body — compatibility notes (TC-002 / AC-002)** — Document upgrade-gap notes for FastAPI 0.129.2, Starlette `>=0.49.1`, reload behavior, and production container startup behavior; no source file changes. (Backend; Alembic migration: no; order: after steps 3–6.)
+
+8. **PR body — evidence + rollback path (TC-006 / AC-006)** — Include executed commands, smoke-test outputs, observed warnings vs. blocking regressions, and a rollback path limited to reverting the `backend/requirements.txt` pin to `0.32.1`. (Backend; Alembic migration: no; order: after step 7, final.)
+
+Out of scope per resolved open questions: no Docker Compose smoke test, no extended route checklist beyond `/health`. If 0.47.0 is incompatible, fall back to the newest compatible sub-0.47.0 release (not a broader FastAPI/Starlette upgrade).
+
+</plan>

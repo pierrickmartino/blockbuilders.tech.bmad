@@ -1,4 +1,4 @@
-## Status: Approved
+## Status: Implemented
 ## Source issue: #313
 ## Goal (one paragraph)
 Reduce backend denial-of-service risk by explicitly pinning a safe Starlette version in backend dependency definitions so Blockbuilders no longer inherits a vulnerable transitive Starlette release from FastAPI defaults, and can consistently install a patched version across local, CI, and containerized environments.

@@ -79,4 +79,40 @@ None.
 - What performance improvement threshold would justify taking on a major-version database upgrade?
 - Should a future implementation target PostgreSQL 18 directly or wait for a later patch release and managed-service support?
 
-## Implementation Plan: Not produced in this step.
+## Implementation Plan
+_Produced by Claude. Approved: [pending]_
+
+This feature is documentation-only (AC-008). All bullets edit Markdown under `docs/`; no source, migration, dependency, Docker Compose, or production configuration changes are permitted. "Backend or frontend" is marked "Docs" since neither application layer is touched.
+
+1. **File:** `docs/features/FEAT-114-evaluate-postgresql-18-backtest-workloads.md`
+   **Change:** Append `## Evaluation Notes` with a `### Current Repository PostgreSQL Versions` subsection that records the `postgres:16-alpine` tags in `docker-compose.yml:75` and `docker-compose.prod.yml:81` and explicitly flags any mismatch with `docs/product/product.md` without editing the product doc (AC-001 / TC-001).
+   **Layer:** Docs. **Alembic migration:** no. **Order:** first.
+
+2. **File:** `docs/features/FEAT-114-evaluate-postgresql-18-backtest-workloads.md`
+   **Change:** Append `### Production Database Version` subsection that either records the maintainer-confirmed deployed PostgreSQL version with its evidence source or marks it `blocked pending maintainer-provided access`, without inferring from local Compose files (AC-002 / TC-002).
+   **Layer:** Docs. **Alembic migration:** no. **Order:** after bullet 1.
+
+3. **File:** `docs/features/FEAT-114-evaluate-postgresql-18-backtest-workloads.md`
+   **Change:** Append `### Representative Benchmark Workloads` defining at least three stable scenarios — candle range reads, existing-candle lookup plus gap detection, and backtest run/history queries — describing query shapes and dataset assumptions only (AC-003 / TC-003).
+   **Layer:** Docs. **Alembic migration:** no. **Order:** after bullet 2.
+
+4. **File:** `docs/features/FEAT-114-evaluate-postgresql-18-backtest-workloads.md`
+   **Change:** Append `### Benchmark Methodology and Results` capturing PostgreSQL 18 vs current PostgreSQL line measurements on the same dataset, same query shapes, and same hardware class, with latency/throughput numbers per scenario, captured query plans, and noted limitations (cache state, dataset size, hardware) (AC-004 / TC-004).
+   **Layer:** Docs. **Alembic migration:** no. **Order:** after bullet 3.
+
+5. **File:** `docs/features/FEAT-114-evaluate-postgresql-18-backtest-workloads.md`
+   **Change:** Append `### PostgreSQL 18 Feature Review` covering `uuidv7()`, virtual generated columns, and native OAuth 2.0 authentication, each explicitly marked as future-only and out of this feature's scope (AC-005 / TC-005).
+   **Layer:** Docs. **Alembic migration:** no. **Order:** after bullet 4.
+
+6. **File:** `docs/features/FEAT-114-evaluate-postgresql-18-backtest-workloads.md`
+   **Change:** Append `### Compatibility Matrix` documenting status for Docker images, in-use PostgreSQL extensions, SQLModel, SQLAlchemy, Alembic, psycopg/other drivers, GitHub Actions CI services, backup tooling, restore procedures, and Docker Compose dev workflows; mark unknown/incompatible areas as risks or blockers (AC-006 / TC-006).
+   **Layer:** Docs. **Alembic migration:** no. **Order:** after bullet 5.
+
+7. **File:** `docs/features/FEAT-114-evaluate-postgresql-18-backtest-workloads.md`
+   **Change:** Append `### Recommendation, Risk, and Rollback` stating defer / continue benchmarking / propose separate human-approved implementation feature, with migration risk, rollback approach, and the explicit human-approval gates required by AGENTS.md risk-high policy (AC-007 / TC-007).
+   **Layer:** Docs. **Alembic migration:** no. **Order:** after bullet 6.
+
+8. **File:** `tasks/todo.md`
+   **Change:** Add a FEAT-114 entry pointing to the evaluation notes and run `git diff --name-only` as the final verification that only `docs/features/FEAT-114-evaluate-postgresql-18-backtest-workloads.md` (and this `tasks/todo.md` line) changed — no source, migration, dependency, Compose, or production config files (AC-008 / TC-008).
+   **Layer:** Docs. **Alembic migration:** no. **Order:** last.
+

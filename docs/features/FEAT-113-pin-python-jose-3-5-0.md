@@ -63,4 +63,21 @@ None.
 - Should issue #327 remain the only tracker for the longer-term `joserfc` migration, or should a new feature spec be created after this minimal pin lands?
 - Which auth/JWT test subset should be considered sufficient for approval if the full backend suite is slow in CI?
 
-## Implementation Plan: Not produced in this step.
+## Implementation Plan
+_Produced by Claude. Approved: [pending]_
+
+<plan>
+
+1. **`backend/requirements.txt`** — Update the direct dependency line `python-jose[cryptography]==3.3.0` to `python-jose[cryptography]==3.5.0` (exact pin, per TC-001 expectation); leave every other direct pin untouched. Backend. Alembic migration: no. Order dependency: must land before steps 2–5.
+
+2. **`backend/app/core/security.py`** — No code change; perform a read-only audit to confirm the single `jwt.decode(` call site (line 31) still explicitly passes `algorithms=[...]` (FEAT-106 mitigation preserved). Backend. Alembic migration: no. Order dependency: after step 1.
+
+3. **Repo-wide decode audit** — Run `rg -n "jwt\.decode\(" backend` and verify every match passes `algorithms=` (TC-003); no file edits expected. Backend. Alembic migration: no. Order dependency: after step 1.
+
+4. **Clean-install verification** — In a refreshed backend env, run `python -m pip install -r requirements.txt && python -m pip show python-jose` and confirm `Version: 3.5.0` (TC-002). If resolution fails on Python 3.12, stop and escalate (do not broaden the upgrade). Backend. Alembic migration: no. Order dependency: after step 1.
+
+5. **Auth/JWT regression run** — Execute `cd backend && pytest tests/test_jwt_algorithm_enforcement.py -v` and confirm HS256 acceptance, expiry handling, and non-allowed-algorithm rejection all pass (TC-004, TC-005). If any behavior diverges, stop for human review per AC-006. Backend. Alembic migration: no. Order dependency: after step 4.
+
+6. **PR / implementation notes** — In the PR description (and a brief note appended to this spec under verification evidence), record: risk-high human approval obtained, the `pip show` output, the pytest summary, and a reference that `joserfc` migration remains out of scope and tracked separately (issue #327). Backend (docs only). Alembic migration: no. Order dependency: after steps 4–5.
+
+</plan>
