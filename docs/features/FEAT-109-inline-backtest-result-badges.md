@@ -76,4 +76,29 @@ None.
 - Should this feature be controlled by an existing SmartCanvas/PostHog feature flag, and if so, what should the flag key be?
 - Should selecting a node always open the result Sheet when results exist, or should the user click the badge specifically to avoid interfering with parameter editing?
 
-## Implementation Plan: Not produced in this step.
+## Implementation Plan
+_Produced by Claude. Approved: [pending]_
+
+### Resolved open questions
+- Default badge metric: **Total return** (`total_return_pct`); fall back to status-only when missing.
+- Sheet scope: **Strategy-level results** — Sheet header shows the selected node label/status; body reuses existing strategy backtest result UI (summary metrics, equity curve chart, trade log) for the strategy's latest run. No per-node attribution.
+- Feature flag: **No flag**. Feature presence is controlled solely by availability of a latest backtest result for the strategy.
+- Sheet trigger: **Badge click only**. Node selection continues to drive existing parameter inspection/editing; Sheet opens only when the badge is clicked (or activated via keyboard).
+
+### Plan (frontend-only; no backend, no Alembic migration)
+
+1. **frontend/src/hooks/useLatestStrategyBacktest.ts** — New hook that fetches the strategy's most recent backtest run id + status + summary (via existing `/backtests` endpoints used by `useBacktestResults` and the backtest page), and exposes `{ run, status, summary, isLoading, error, refetch }` with lightweight polling while status is `pending`/`running`. Frontend. Alembic: no. Order: 1 (prerequisite for steps 2, 5, 6).
+
+2. **frontend/src/components/canvas/NodeResultBadge.tsx** — New compact badge component rendering pending/running/success/error visual states with optional `total_return_pct` metric, accessible name, keyboard-activatable, sized to coexist with compact-node mode, validation indicators, handles, and the health bar. Frontend. Alembic: no. Order: 2 (depends on step 1's status type only).
+
+3. **frontend/src/components/canvas/BaseNode.tsx** — Add optional `resultBadge?: ReactNode` prop and render it in a consistent corner that does not collide with `InfoIcon`, validation highlight, handles, or compact summary; eligibility (skip note/unsupported nodes) decided by the caller passing `undefined`. Frontend. Alembic: no. Order: 3 (depends on step 2).
+
+4. **frontend/src/components/canvas/StrategyCanvas.tsx** — Thread a new optional prop `nodeResultsByBlockId: Record<string, NodeResultState>` (and `onBadgeActivate: (blockId) => void`) down through React Flow `nodeTypes`/`data`, so each node component receives its result state and an activation callback; ineligible block types (NoteNode, unsupported) receive no state. Frontend. Alembic: no. Order: 4 (depends on step 3).
+
+5. **frontend/src/components/canvas/NodeResultSheet.tsx** — New right-side shadcn/ui `Sheet` wrapper that takes the selected node label + the latest strategy `BacktestStatusResponse` and reuses existing result presentation (summary metrics block, equity curve chart, trade log) with empty/loading/error states, Escape/outside-close, and mobile-responsive sizing without overlapping `MobileBottomBar`. Frontend. Alembic: no. Order: 5 (depends on step 1).
+
+6. **frontend/src/app/(app)/strategies/[id]/page.tsx** — Wire `useLatestStrategyBacktest` into the editor, compute `nodeResultsByBlockId` from the latest run (per-node entry only when block type is eligible), pass it plus the badge-activation handler into `SmartCanvas`, manage `activeResultBlockId` state, and render `NodeResultSheet` controlled by badge clicks; gracefully no-op when no run, loading fails, or feature is otherwise unusable (preserves AC-007). Frontend. Alembic: no. Order: 6 (depends on steps 1, 4, 5).
+
+7. **frontend/src/components/canvas/NodeResultBadge.stories.tsx** + **NodeResultSheet.stories.tsx** — Storybook coverage for badge states (pending/running/success-with-metric/success-no-metric/error) and Sheet states (loading/success/empty/error) per `frontend/CLAUDE.md` Storybook rules. Frontend. Alembic: no. Order: 7 (depends on steps 2, 5).
+
+8. **frontend/src/__tests__/NodeResultBadge.test.tsx** and **NodeResultSheet.test.tsx** — Unit tests covering badge state rendering, metric fallback, accessible name, keyboard activation, and Sheet open/close + state branches; mock `useLatestStrategyBacktest` where needed. Drives AC-001…AC-007 verification via `cd frontend && npm test && npm run lint && npm run build`. Frontend. Alembic: no. Order: 8 (depends on steps 2, 5, 6).

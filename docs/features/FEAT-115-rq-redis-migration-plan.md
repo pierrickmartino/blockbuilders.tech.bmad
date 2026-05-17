@@ -73,4 +73,22 @@ Not applicable.
 - Should FEAT-030 be blocked on this migration, or should it proceed with the current scheduler workaround and receive a follow-up refactor after RQ 2.x is adopted?
 - Should `SpawnWorker` be adopted immediately, or should the first migration preserve the current `Worker` behavior and evaluate `SpawnWorker` separately?
 
-## Implementation Plan: Not produced in this step.
+## Implementation Plan
+_Produced by Claude. Approved: [pending]_
+
+Decisions locked with maintainer before planning:
+- Target versions: `rq==2.7.0`, `redis==7.1.1`, `rq-scheduler==0.14.0` (exact pins).
+- Scheduler direction: keep `rq-scheduler` 0.14.x. Native RQ 2.x repeat jobs deferred to a separate feature.
+- Worker strategy: preserve current `Worker` class. `SpawnWorker` evaluated in a follow-up feature.
+- FEAT-030: not blocked on this migration; continues with current `rq-scheduler` workaround.
+- Validation scope: pytest + worker import + Docker Compose worker/scheduler smoke test.
+
+<plan>
+1. `docs/features/FEAT-115-rq-redis-migration-plan.md` — Append a "Migration Notes" subsection recording current vs. target versions, Python 3.12 compatibility, transitive constraints (incl. `fakeredis`), and the locked scheduler/worker/FEAT-030 decisions above. Backend (docs). Alembic: no. Order: 1.
+2. `backend/requirements.txt` — Update pins to `rq==2.7.0`, `redis==7.1.1`, `rq-scheduler==0.14.0`; bump `fakeredis` only if required for redis-py 7.x compatibility and justify the bump in the PR body. Backend. Alembic: no. Order: 2 (after 1).
+3. `backend/app/worker/main.py` — Adjust `Queue`, `Worker`, and `Scheduler` construction and Redis connection setup for RQ 2.x + redis-py 7.x API differences (decode_responses, connection class, Worker constructor kwargs); keep the existing `Worker` class. Backend. Alembic: no. Order: 3 (after 2).
+4. `backend/app/worker/jobs.py` — Audit enqueue and `scheduler.cron` / `scheduler.schedule` call sites for RQ 2.x and rq-scheduler 0.14.x signature changes; adjust call sites only, preserving job IDs and cron expressions. Backend. Alembic: no. Order: 3 (parallel with bullet 3).
+5. Backend Redis call sites (`backend/app/api/**`, cache, rate-limit, OAuth state, password-reset paths) — Update `from redis` / `Redis.from_url` usages for redis-py 7.x exception types, timeout, and response-decoding behavior; no behavior change beyond compatibility. Backend. Alembic: no. Order: 4 (after 2).
+6. `docker-compose.yml` and `docker-compose.prod.yml` — Verify the `worker` and `scheduler` service commands still resolve under the new pins; no Redis image tag change and no topology change. Backend (infra). Alembic: no. Order: 5 (after 3–5).
+7. `docs/features/FEAT-115-rq-redis-migration-plan.md` — Append a "Validation Evidence & Rollback" subsection with pytest summary, `python -c "from app.worker.main import run_worker, run_scheduler"` output, Docker Compose worker/scheduler smoke result, and rollback guidance (revert `backend/requirements.txt` pins; no data or schema changes to undo). Backend (docs). Alembic: no. Order: 6 (last).
+</plan>
