@@ -1,4 +1,4 @@
-# FEAT-108 Test Plan: Canvas Command Palette Node Insertion
+# FEAT-110 Test Plan: Canvas Command Palette Node Insertion
 
 ## Scope
 Validate that strategy builders can open a keyboard-first command palette from the canvas editor, search grouped node insertion commands, insert nodes with existing canvas semantics, and keep existing insertion paths intact.
