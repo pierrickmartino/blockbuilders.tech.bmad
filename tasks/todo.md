@@ -1,5 +1,22 @@
 # Tasks — in flight
 
+## FEAT-116 — FastAPI upgrade plan (done)
+
+Docs / verification
+- [x] Add current dependency pin audit for FastAPI, Starlette, uvicorn, and httpx
+- [x] Add response-class audit for `ORJSONResponse` / `UJSONResponse`
+- [x] Add JSON request-client audit across tests, worker code, and backend HTTP callers
+- [x] Add Starlette compatibility handling for FastAPI `0.136.1`
+- [x] Add lifespan/startup audit and `/health` smoke coverage
+- [x] Add bounded implementation sequence, exclusions, verification commands, and rollback path
+- [x] Resolve open questions inline in the feature spec
+
+Verification
+- [x] FEAT-116 test-plan `rg` commands passed for TC-001 through TC-007
+- [x] FastAPI `0.136.1` wheel metadata inspected; `Requires-Dist: starlette>=0.46.0`
+
+---
+
 ## FEAT-112 — Verify Redis 2026 CVE posture (done)
 
 Docs / verification
