@@ -1,5 +1,20 @@
 # Tasks — in flight
 
+## FEAT-108 — Uvicorn upgrade sprint (implemented)
+
+Backend dependency
+- [x] Pin `uvicorn[standard]` from `0.32.1` to `0.47.0` in `backend/requirements.txt`
+- [x] Leave unrelated backend dependency pins unchanged
+
+Verification
+- [x] Clean Python 3.12 venv install passed with `uvicorn 0.47.0`
+- [x] `cd backend && /tmp/feat-108-backend-venv/bin/python -m pytest tests/ -v` passed: 258 passed
+- [x] Production-style startup smoke passed on `127.0.0.1:8000`; `/health` returned 200
+- [x] Reload-mode startup smoke passed on `127.0.0.1:8001`; `/health` returned 200 and reload used WatchFiles
+- [x] Observed warnings were existing dependency/deprecation warnings, not uvicorn startup regressions
+
+---
+
 ## FEAT-117 — Batch frontend dependency updates (implemented)
 
 Frontend dependencies
