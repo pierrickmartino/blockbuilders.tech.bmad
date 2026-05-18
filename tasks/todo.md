@@ -1,5 +1,24 @@
 # Tasks — in flight
 
+## FEAT-117 — Batch frontend dependency updates (implemented)
+
+Frontend dependencies
+- [x] Pin `react` and `react-dom` to `19.2.6`
+- [x] Pin `tailwindcss` to `3.4.19` and keep Tailwind v3 config untouched
+- [x] Update `typescript` manifest constraint to `^5.9.0`
+- [x] Regenerate `frontend/package-lock.json` through `npm install`
+- [x] Make no source compatibility edits because lint and build passed
+
+Verification
+- [x] TC-001 manifest check passed for React and React DOM `19.2.6`
+- [x] TC-002 Tailwind v3 guard passed
+- [x] TC-003 TypeScript manifest and lockfile check passed with `typescript@5.9.3`
+- [x] TC-004 `npm ls react react-dom tailwindcss typescript --depth=0` passed
+- [x] TC-005 diff is limited to FEAT-117 spec approval metadata plus frontend package files
+- [x] TC-006 `npm run lint && npm run build` passed; lint exits 0 with existing warnings
+
+---
+
 ## FEAT-116 — FastAPI upgrade plan (done)
 
 Docs / verification
