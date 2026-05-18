@@ -59,4 +59,26 @@ The UI should behave the same after the dependency batch. Existing pages, strate
 ## Open questions
 - None.
 
-## Implementation Plan: Not produced in this step.
+## Implementation Plan
+_Produced by Claude. Approved: [pending]_
+
+<plan>
+
+1. **frontend/package.json** — Pin `react` and `react-dom` from `19.2.1` to `19.2.6` (exact, identical versions) in `dependencies`. *Frontend. Alembic migration: no. Order: must precede bullets 4–6.*
+
+2. **frontend/package.json** — Change `devDependencies.tailwindcss` from `^3.4.16` to exact `3.4.19`; leave `postcss`, `autoprefixer`, `tailwindcss-animate`, `tailwind.config.ts`, and `postcss.config.js` untouched (no v4 packages, no config rewrite). *Frontend. Alembic migration: no. Order: parallel with bullet 1.*
+
+3. **frontend/package.json** — Bump `devDependencies.typescript` constraint from `^5.7.2` to `^5.9.0` so npm resolves to a `5.9.x`. *Frontend. Alembic migration: no. Order: parallel with bullets 1–2.*
+
+4. **frontend/package-lock.json** — Regenerate via `npm install` (no `--force`, no `--legacy-peer-deps` unless a real peer conflict appears) so the lockfile resolves `react@19.2.6`, `react-dom@19.2.6`, `tailwindcss@3.4.19`, and `typescript@5.9.x`, with no unrelated dependency churn. *Frontend. Alembic migration: no. Order: after bullets 1–3.*
+
+5. **frontend/** (compatibility fixes only, conditional) — If `npm run lint` or `npm run build` fail after the upgrade, apply the smallest possible source edits (e.g., type-narrowing for TS 5.9 inference changes, React 19.2.6 type tweaks) strictly to restore green lint and build; no refactors, no behavior changes. *Frontend. Alembic migration: no. Order: after bullet 4; skip entirely if verification passes untouched.*
+
+6. **Verification** — Run `cd frontend && npm ls react react-dom tailwindcss typescript --depth=0`, then `npm run lint`, then `npm run build`; record results to satisfy TC-001 through TC-006. No new test script is added (per Non-goals and TC-006 manual note). *Frontend. Alembic migration: no. Order: last.*
+
+</plan>
+
+═════════════════════════════════════════════
+PLAN COMPLETE. Approve by adding agent-codex label.
+Codex Web will implement: $implement-feature FEAT-117
+═════════════════════════════════════════════
