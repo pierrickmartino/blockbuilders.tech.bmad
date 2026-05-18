@@ -7,7 +7,7 @@ description: >-
 ---
 
 Read AGENTS.md, CLAUDE.md, frontend/CLAUDE.md or backend/CLAUDE.md as needed.
-Read docs/features/$ARGUMENTS.md (especially the ## Implementation Plan section).
+Read docs/features/$ARGUMENTS*.md (especially the ## Implementation Plan section).
 Read docs/testing/$ARGUMENTS-test-plan.md.
 
 Required preconditions (stop if any are missing):
