@@ -1,7 +1,7 @@
 name: Nightly Research (Claude)
 on:
   schedule:
-    - cron: "0 21 * * *"  # 21:00 UTC = 23:00 Zurich summer
+    - cron: "0 23 * * *"  # 23:00 UTC = 23:00 Zurich summer
   workflow_dispatch:
 
 permissions:
