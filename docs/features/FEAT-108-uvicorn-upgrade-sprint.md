@@ -1,4 +1,4 @@
-## Status: Draft
+## Status: Approved
 ## Source issue: #341
 ## Goal (one paragraph)
 Upgrade the backend ASGI server dependency from `uvicorn[standard]==0.32.1` to `uvicorn[standard]==0.47.0` through a dedicated backend dependency sprint, preserving the existing FastAPI application behavior, local development reload workflow, production container startup command, and health-check accessibility while documenting compatibility findings across the version gap.
@@ -64,7 +64,7 @@ Not applicable.
 - If uvicorn 0.47.0 introduces a transitive incompatibility, should the sprint target the newest compatible uvicorn release below 0.47.0 or pause for a broader FastAPI/Starlette upgrade plan?
 
 ## Implementation Plan
-_Produced by Claude. Approved: [pending]_
+_Produced by Claude. Approved: [approved]_
 <plan>
 
 1. **backend/requirements.txt** — Bump pin from `uvicorn[standard]==0.32.1` to `uvicorn[standard]==0.47.0`; leave every other line untouched. (Backend; Alembic migration: no; order: first — prerequisite for all validation steps.)
