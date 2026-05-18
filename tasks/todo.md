@@ -1,5 +1,22 @@
 # Tasks — in flight
 
+## FEAT-112 — Verify Redis 2026 CVE posture (done)
+
+Docs / verification
+- [x] Confirm `docker-compose.yml` and `docker-compose.prod.yml` both pin `redis:7.4.6-alpine`
+- [x] Verify official Redis 7.4 release notes and `redis/redis` GitHub release identify `7.4.9` as the patched 7.4.x release for the 2026 Redis server CVEs
+- [x] Confirm `redis:7.4.9-alpine` is available as the nearest patched 7.4.x Alpine image candidate
+- [x] Record that Docker Compose image updates require a follow-up implementation issue or feature
+- [x] Mark FEAT-112 verification status as `Verified`
+
+Verification
+- [x] `rg -n "image:\s*redis:" docker-compose.yml docker-compose.prod.yml` returned both Redis image definitions
+- [x] Official Redis Community Edition 7.4 release notes checked on 2026-05-18
+- [x] `docker manifest inspect redis:7.4.9-alpine` confirmed the candidate tag is available
+- [x] FEAT-112 test-plan `rg` commands passed for TC-001 through TC-005
+
+---
+
 ## FEAT-107 — Pin Redis image version (done)
 
 Infra
