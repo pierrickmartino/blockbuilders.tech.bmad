@@ -1,4 +1,4 @@
-## Status: Draft
+## Status: Verified
 ## Source issue: #336
 
 ## Goal (one paragraph)
@@ -60,7 +60,7 @@ None.
 - Should this verification result become a dedicated follow-up GitHub issue, or should issue #336 be converted into the implementation tracking issue after the spec is approved?
 
 ## Implementation Plan
-_Produced by Claude. Approved: [pending]_
+_Produced by Claude. Approved: [approved]_
 
 This is a verification-only, documentation-only feature. No source code, Compose files, dependencies, or migrations are changed. The "implementation" produces verification notes inside this spec file.
 
@@ -99,3 +99,72 @@ This is a verification-only, documentation-only feature. No source code, Compose
    **Layer:** Docs.
    **Alembic migration required:** no.
    **Order dependency:** final step.
+
+## Verification — Current Redis image tags
+Retrieval date: 2026-05-18.
+
+Command run from the repository root:
+
+```bash
+rg -n "image:\s*redis:" docker-compose.yml docker-compose.prod.yml
+```
+
+Results:
+
+- `docker-compose.yml:95`: `image: redis:7.4.6-alpine`
+- `docker-compose.prod.yml:97`: `image: redis:7.4.6-alpine`
+
+Both repository Compose files that define a Redis service currently pin the Redis server container image to `redis:7.4.6-alpine`.
+
+## Verification — 2026 Redis server CVEs and patched 7.4.x release
+Retrieval date: 2026-05-18.
+
+Official sources checked:
+
+- Redis Community Edition 7.4 release notes: `https://redis.io/docs/latest/operate/oss_and_stack/stack-with-enterprise/release-notes/redisce/redisce-7.4-release-notes/`
+- Redis GitHub release `7.4.9`: `https://github.com/redis/redis/releases/tag/7.4.9`
+
+Both official Redis sources identify Redis Community Edition `7.4.9` as a security release for the Redis 7.4.x line. The relevant Redis server CVEs listed for `7.4.9` are:
+
+- `CVE-2026-23479`: Use-after-free in unblock client flow, potentially leading to remote code execution.
+- `CVE-2026-25243`: Invalid memory access in `RESTORE`, potentially leading to remote code execution.
+- `CVE-2026-23631`: Lua use-after-free, potentially leading to remote code execution.
+
+The patched Redis 7.4.x source release tag for these Redis server CVEs is `7.4.9`.
+
+## Verification — Outcome
+`redis:7.4.6-alpine` is older than the patched Redis 7.4.x release `7.4.9`.
+
+Outcome: the currently pinned image `redis:7.4.6-alpine` should be treated as not patched for the Redis server CVEs fixed in Redis Community Edition `7.4.9`. A newer Redis 7.4.x image tag is required before the repository's Redis server container image can be considered patched for `CVE-2026-23479`, `CVE-2026-25243`, and `CVE-2026-23631`.
+
+## Verification — Nearest patched 7.4.x candidate and follow-up
+Nearest patched 7.4.x Alpine image candidate: `redis:7.4.9-alpine`.
+
+Docker image availability was checked separately from Redis source release availability:
+
+```bash
+curl -fsSL https://registry.hub.docker.com/v2/repositories/library/redis/tags/7.4.9-alpine
+docker manifest inspect redis:7.4.9-alpine
+```
+
+Both checks confirmed that `redis:7.4.9-alpine` is available in the Docker registry as of 2026-05-18.
+
+No Docker Compose image change is made by this verification feature. A follow-up implementation issue or feature is required before changing `docker-compose.yml` or `docker-compose.prod.yml`.
+
+Resolved open questions:
+
+- `redis:7.4.9-alpine` is available and is the nearest patched 7.4.x Alpine candidate identified by this verification.
+- The follow-up should use the patched 7.4.x line unless a separate compatibility review explicitly approves a newer Redis line.
+- Issue `#336` should remain the verification tracking issue; the actual Compose image update should be handled by a dedicated follow-up implementation issue or feature.
+
+## Verification — Scope reaffirmation
+This feature verifies only the Redis server container image posture. It does not change `redis-py`, backend application code, FastAPI endpoints, SQLModel data models, migrations, Redis configuration, Redis authentication, Redis persistence, networking, queue usage, cache behavior, or Docker Compose files.
+
+## Verification — Test completion
+All five test cases in `docs/testing/FEAT-112-test-plan.md` were completed on 2026-05-18:
+
+- `TC-001`: Current Redis image tags identified in both Compose files.
+- `TC-002`: Official Redis sources identify `7.4.9` as the patched 7.4.x release for the relevant 2026 Redis server CVEs.
+- `TC-003`: Outcome states that `redis:7.4.6-alpine` requires a newer tag.
+- `TC-004`: Follow-up requirement and nearest patched 7.4.x candidate documented without changing Compose files.
+- `TC-005`: Redis server container-only scope reaffirmed, with `redis-py` and backend application code excluded.
