@@ -1,4 +1,4 @@
-## Status: Approved
+## Status: Implemented
 ## Source issue: #372
 ## Goal (one paragraph)
 Upgrade the backend FastAPI dependency from `0.129.2` to exactly `0.136.1` using the approved FEAT-116 plan as the implementation boundary, preserving existing API behavior while applying only compatibility fixes required by the audited FastAPI 0.130-0.136 risks. The implementation must keep current routes, auth requirements, request and response schemas, status-code behavior, startup behavior, health checks, and backtest behavior intact, with verification evidence before completion.

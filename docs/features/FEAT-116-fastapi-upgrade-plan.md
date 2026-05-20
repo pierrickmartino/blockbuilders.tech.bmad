@@ -1,4 +1,4 @@
-## Status: Approved
+## Status: Implemented
 ## Source issue: #330
 ## Goal (one paragraph)
 Create an implementation plan for upgrading the backend FastAPI dependency from `0.129.2` to the researched target `0.136.1`, after auditing the repo for known compatibility risks around response classes, stricter JSON content-type handling, Starlette constraints, lifespan behavior, test clients, RQ workers, and internal HTTP callers. The plan must preserve existing backend API behavior, avoid source-code changes in this step, and give maintainers enough verification and rollback detail to approve a later bounded dependency-upgrade implementation.
