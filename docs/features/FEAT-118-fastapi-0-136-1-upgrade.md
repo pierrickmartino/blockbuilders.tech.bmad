@@ -1,4 +1,4 @@
-## Status: Draft
+## Status: Approved
 ## Source issue: #372
 ## Goal (one paragraph)
 Upgrade the backend FastAPI dependency from `0.129.2` to exactly `0.136.1` using the approved FEAT-116 plan as the implementation boundary, preserving existing API behavior while applying only compatibility fixes required by the audited FastAPI 0.130-0.136 risks. The implementation must keep current routes, auth requirements, request and response schemas, status-code behavior, startup behavior, health checks, and backtest behavior intact, with verification evidence before completion.
@@ -74,4 +74,28 @@ Not applicable.
 ## Open questions
 - None.
 
-## Implementation Plan: Not produced in this step.
+## Implementation Plan
+_Produced by Claude. Approved: [approved]_
+
+1. **`backend/requirements.txt`** — change `fastapi==0.129.2` to `fastapi==0.136.1`; keep the existing `starlette>=0.49.1` constraint so pip resolves a Starlette compatible with FastAPI 0.136.1. _Backend. Alembic migration required: no. Order: must come first._
+
+2. **`backend/` (no expected source edits — audit gate)** — re-run TC-002 (`rg "ORJSONResponse|UJSONResponse" backend/`) and TC-003 (`rg "json=|Content-Type|application/json|\.post\(|data=json\.dumps" backend/tests backend/app`); current scan shows zero `ORJSONResponse`/`UJSONResponse` usages and zero raw `data=json.dumps` JSON callers, so no compat fixes are anticipated. If the audit surfaces a finding, the minimal compat fix is in scope per AC-004 and edits land under `backend/app/` or `backend/tests/` only. _Backend. Alembic migration required: no. Order: after step 1, before step 4._
+
+3. **`docs/features/FEAT-118-fastapi-0-136-1-upgrade.md`** — append a `## Rollback` section describing: revert `backend/requirements.txt` to `fastapi==0.129.2`, rebuild/reinstall backend dependencies, rerun `cd backend && pip show fastapi starlette`, and rerun the `GET /health` smoke check — wording must include the literal tokens `rollback`, `fastapi==0.129.2`, `pip show fastapi starlette`, and `/health` so TC-008 grep passes. _Backend (docs). Alembic migration required: no. Order: any time before PR submission._
+
+4. **Verification gate — TC-001 dependency state** — rebuild the backend env (`pip install -r backend/requirements.txt`) then run `cd backend && rg "^fastapi==0\.136\.1$|^starlette" requirements.txt && pip show fastapi starlette`. No file changes. _Backend. Alembic migration required: no. Order: after step 1._
+
+5. **Verification gate — TC-005 regression suite** — `cd backend && pytest tests/ -v` must pass; no test edits unless step 2's audit produced a real finding. _Backend. Alembic migration required: no. Order: after step 4._
+
+6. **Verification gate — TC-006 uvicorn `/health` smoke** — `cd backend && uvicorn app.main:app --host 127.0.0.1 --port 8001`, then in a second terminal `curl -f http://127.0.0.1:8001/health`. _Backend. Alembic migration required: no. Order: after step 5._
+
+7. **Verification gate — TC-007 Docker Compose `/health` smoke** — `docker compose up backend`, then in a second terminal `curl -f http://127.0.0.1:8000/health`. _Backend. Alembic migration required: no. Order: after step 6 (last gate before PR)._
+
+## Rollback
+
+To rollback this upgrade, restore the prior FastAPI dependency state:
+
+1. Revert `backend/requirements.txt`: change `fastapi==0.136.1` back to `fastapi==0.129.2`.
+2. Rebuild or reinstall backend dependencies: `pip install -r backend/requirements.txt`.
+3. Verify the restored state: `cd backend && pip show fastapi starlette`.
+4. Rerun the health smoke check: start the backend and confirm `GET /health` returns a successful response.
