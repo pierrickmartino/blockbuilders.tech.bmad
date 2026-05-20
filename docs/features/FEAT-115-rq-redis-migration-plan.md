@@ -1,4 +1,4 @@
-## Status: Draft
+## Status: Implemmented
 ## Source issue: #331
 ## Goal (one paragraph)
 Plan and bound the backend migration from `rq==1.16.2`, `redis==5.2.1`, and `rq-scheduler==0.13.1` to compatible current targets in the RQ 2.x, redis-py 7.x, and rq-scheduler 0.14.x lines, preserving existing queue, worker, scheduler, backtest, auto-update, data-quality, and price-alert behavior while documenting whether native RQ repeat jobs should replace or defer the current `rq-scheduler` usage.
@@ -74,7 +74,7 @@ Not applicable.
 - Should `SpawnWorker` be adopted immediately, or should the first migration preserve the current `Worker` behavior and evaluate `SpawnWorker` separately?
 
 ## Implementation Plan
-_Produced by Claude. Approved: [pending]_
+_Produced by Claude. Approved: [approved]_
 
 Decisions locked with maintainer before planning:
 - Target versions: `rq==2.7.0`, `redis==7.1.1`, `rq-scheduler==0.14.0` (exact pins).

@@ -1,5 +1,13 @@
 # Tasks — in flight
 
+## Frontend Docker Next/SWC mismatch fix (implemented)
+
+- [x] Diagnose Docker build failure caused by host `frontend/node_modules` overwriting image dependencies
+- [x] Add `frontend/.dockerignore` to keep local install/build artifacts out of Docker context
+- [x] Verify frontend Docker build no longer reports mismatched `@next/swc`
+
+---
+
 ## FEAT-113 — Migrate to joserfc (implemented)
 
 Backend

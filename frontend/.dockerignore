@@ -1,0 +1,13 @@
+node_modules
+.next
+.storybook
+storybook-static
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.next-dev.log
+.next-dev.err.log
+.env
+.env.*
+!.env.example
+tsconfig.tsbuildinfo
