@@ -68,6 +68,8 @@ import { isInputElement } from "@/lib/keyboard-shortcuts";
 import { getFeatureFlag, CANVAS_FLAGS } from "@/lib/feature-flags";
 import { StrategyHeader } from "./_components/StrategyHeader";
 import { StrategySettingsSheet } from "./_components/StrategySettingsSheet";
+import CommandPalette from "@/components/canvas/CommandPalette";
+import { useCommandPalette } from "@/hooks/use-command-palette";
 import { toast } from "sonner";
 
 interface Props {
@@ -96,6 +98,10 @@ export default function StrategyEditorPage({ params }: Props) {
 
   // Indicator palette mode (essentials vs all)
   const { mode: indicatorMode, toggle: toggleIndicatorMode } = useIndicatorMode(nodes);
+
+  // Command palette (⌘K)
+  const { open: paletteOpen, setOpen: setPaletteOpen, openWithTrigger: openPalette } =
+    useCommandPalette({ isMobileMode: isMobileCanvasMode, nodeCount: nodes.length });
 
   // Inline popover feature flag
   const [inlinePopoverEnabled, setInlinePopoverEnabled] = useState(false);
@@ -1237,6 +1243,15 @@ export default function StrategyEditorPage({ params }: Props) {
         onNotifyEmailChange={setNotifyEmail}
       />
 
+      {!isMobileCanvasMode && (
+        <CommandPalette
+          open={paletteOpen}
+          onOpenChange={setPaletteOpen}
+          onAddNode={handleAddNode}
+          reactFlowInstance={reactFlowRef.current}
+        />
+      )}
+
       {/* Main Content - Three Panel Layout */}
       <div className="flex flex-1 overflow-hidden">
         {/* Left Panel - Block Palette (hidden on mobile, drawer) */}
@@ -1321,6 +1336,7 @@ export default function StrategyEditorPage({ params }: Props) {
             onAutoArrange={handleAutoArrange}
             onTidyConnections={handleTidyConnections}
             onLayoutMenu={() => setShowLayoutMenu(true)}
+            onOpenCommandPalette={isMobileCanvasMode ? undefined : () => openPalette("chip-click")}
             inlinePopoverEnabled={inlinePopoverEnabled}
             popoverNodeId={inlinePopoverEnabled ? selectedNodeId : null}
             onPopoverParamsChange={inlinePopoverEnabled ? handleParamsChange : undefined}

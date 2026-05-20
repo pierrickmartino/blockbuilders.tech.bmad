@@ -65,6 +65,7 @@ export interface StrategyCanvasProps {
   onPopoverDeleteNode?: (nodeId: string) => void;
   onPopoverClose?: () => void;
   popoverValidationErrors?: ValidationError[];
+  onOpenCommandPalette?: () => void;
 }
 
 type ConnectionState =
@@ -96,6 +97,7 @@ function CanvasInner({
   onPopoverDeleteNode,
   onPopoverClose,
   popoverValidationErrors,
+  onOpenCommandPalette,
 }: StrategyCanvasProps) {
   const edgeTypes = {
     deletable: DeleteButtonEdge,
@@ -336,6 +338,16 @@ function CanvasInner({
             size={1.2}
             color={chartTheme.grid}
           />
+          {!isMobileMode && nodes.length === 0 && onOpenCommandPalette && (
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+              <p className="text-sm text-slate-400 dark:text-slate-500 select-none">
+                Drag a block from the left panel, or press{" "}
+                <kbd className="rounded border border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800 px-1 py-0.5 text-xs font-mono">
+                  ⌘K
+                </kbd>
+              </p>
+            </div>
+          )}
           {!isMobileMode && (
             <Controls>
               <ControlButton
@@ -391,6 +403,16 @@ function CanvasInner({
                   <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
                 </svg>
               </ControlButton>
+              {onOpenCommandPalette && (
+                <ControlButton
+                  onClick={onOpenCommandPalette}
+                  title="Insert node (⌘K)"
+                >
+                  <span className="text-[10px] font-semibold leading-none tracking-tight">
+                    ⌘K
+                  </span>
+                </ControlButton>
+              )}
               {(onAutoArrange || onTidyConnections) && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
