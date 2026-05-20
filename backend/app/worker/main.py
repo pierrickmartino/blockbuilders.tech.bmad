@@ -17,7 +17,7 @@ redis_conn = Redis.from_url(settings.redis_url)
 def run_worker():
     """Run the RQ worker to process jobs."""
     queues = [Queue("default", connection=redis_conn)]
-    worker = Worker(queues, connection=redis_conn)
+    worker = Worker(queues)
     worker.work()
 
 
@@ -25,7 +25,7 @@ def run_scheduler():
     """Run the scheduler for periodic jobs."""
     logger.info("Initializing scheduler...")
 
-    scheduler = Scheduler(connection=redis_conn)
+    scheduler = Scheduler(queue_name="default", connection=redis_conn)
 
     # Cancel existing scheduled jobs to avoid duplicates on restart
     for job in scheduler.get_jobs():

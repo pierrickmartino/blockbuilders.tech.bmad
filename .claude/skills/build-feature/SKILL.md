@@ -1,6 +1,10 @@
 ---
 name: build-feature
-description: Implement one FEAT-XXX slice for Blockbuilders using Sonnet. Reads the Implementation Plan section from the spec file. NEVER re-plans. NEVER asks architectural questions. Usage: /build-feature FEAT-XXX <backend|frontend|both>
+description: >- 
+  Implement one FEAT-XXX slice for Blockbuilders using Sonnet. 
+  Reads the Implementation Plan section from the spec file. 
+  NEVER re-plans. NEVER asks architectural questions. 
+  Usage: /build-feature FEAT-XXX <backend|frontend|both>
 ---
 
 You are running as Claude Sonnet. Your only job is to implement the plan that Opus wrote. Do not re-plan. Do not ask architectural questions.
@@ -12,7 +16,7 @@ Read in this order:
   2. CLAUDE.md
   3. backend/CLAUDE.md (if scope includes backend)
   4. frontend/CLAUDE.md (if scope includes frontend)
-  5. docs/features/$FEAT.md — read the ## Implementation Plan section carefully
+  5. docs/features/$FEAT*.md — read the ## Implementation Plan section carefully
   6. docs/testing/$FEAT-test-plan.md
 
 The second argument ($SCOPE) is: backend, frontend, or both.
