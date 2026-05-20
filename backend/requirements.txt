@@ -2,7 +2,7 @@ pandas==3.0.2
 numpy==2.4.4
 pandas-ta-classic==0.5.44
 
-fastapi==0.129.2
+fastapi==0.136.1
 starlette>=0.49.1
 uvicorn[standard]==0.47.0
 sqlmodel==0.0.38
