@@ -4,6 +4,10 @@ import InfoIcon from "@/components/InfoIcon";
 import { blockToGlossaryId, getTooltip } from "@/lib/tooltip-content";
 import { cn } from "@/lib/utils";
 import { categoryStyles } from "@/lib/category-styles";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useReadinessSafe } from "@/context/ReadinessContext";
+import type { RollupStatus } from "@/lib/readiness-rollup";
+import type { HealthBarState } from "@/lib/health-bar-evaluator";
 
 interface BaseNodeProps {
   id?: string;
@@ -19,6 +23,7 @@ interface BaseNodeProps {
   isCompact?: boolean;
   isExpanded?: boolean;
   summary?: string;
+  hideReadiness?: boolean;
 }
 
 // Helper function to separate React Flow Handles from other content
@@ -105,6 +110,51 @@ function CategoryIcon({ category }: { category: string }) {
 }
 
 
+const ROLLUP_DOT_CLASS: Record<RollupStatus, string> = {
+  ready: "bg-emerald-500 dark:bg-emerald-400",
+  warning: "bg-amber-500 dark:bg-amber-400",
+  issue: "bg-rose-500 dark:bg-rose-400",
+};
+
+const ROLLUP_LABEL: Record<RollupStatus, string> = {
+  ready: "Strategy ready",
+  warning: "Strategy warning",
+  issue: "Strategy issue",
+};
+
+const TOOLTIP_LABELS: Record<
+  "entry" | "exit" | "risk",
+  Record<string, string>
+> = {
+  entry: { complete: "Entry ready", incomplete: "Entry needed", warning: "Entry issue" },
+  exit: { complete: "Exit ready", incomplete: "Exit needed", warning: "Exit issue" },
+  risk: { complete: "Risk managed", incomplete: "Risk needed", warning: "No risk management" },
+};
+
+function ReadinessDot({ segments, rollup }: { segments: HealthBarState; rollup: RollupStatus }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span
+          role="status"
+          aria-label={`readiness: ${ROLLUP_LABEL[rollup]}`}
+          className={cn(
+            "inline-flex h-2 w-2 flex-shrink-0 cursor-default rounded-full",
+            ROLLUP_DOT_CLASS[rollup]
+          )}
+        />
+      </TooltipTrigger>
+      <TooltipContent side="top" className="text-xs">
+        <div className="flex flex-col gap-1">
+          {(["entry", "exit", "risk"] as const).map((seg) => (
+            <span key={seg}>{TOOLTIP_LABELS[seg][segments[seg]]}</span>
+          ))}
+        </div>
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
 export default function BaseNode({
   label,
   selected,
@@ -118,6 +168,7 @@ export default function BaseNode({
   isCompact = false,
   isExpanded = false,
   summary,
+  hideReadiness = false,
 }: BaseNodeProps) {
   const styles = categoryStyles[category];
   const tooltip = blockType ? getTooltip(blockToGlossaryId(blockType)) : null;
@@ -126,6 +177,8 @@ export default function BaseNode({
   const displayLabel = showCompact && summary ? summary : label;
   const glossaryTooltip = tooltip?.long || tooltip?.short;
   const headerTitle = glossaryTooltip || (showCompact ? label : undefined);
+  const readiness = useReadinessSafe();
+  const showReadinessDot = !hasError && !hideReadiness && readiness !== null;
 
   return (
     <div
@@ -198,6 +251,11 @@ export default function BaseNode({
         >
           {styles.label}
         </span>
+
+        {/* Readiness dot */}
+        {showReadinessDot && (
+          <ReadinessDot rollup={readiness.rollup} segments={readiness.segments} />
+        )}
       </div>
 
       {/* Content / params */}
