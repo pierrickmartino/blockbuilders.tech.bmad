@@ -25,7 +25,7 @@ Validate the migration from `python-jose` to `joserfc 1.6.5`, confirm `python-jo
 ### TC-002 (AC-002): Clean dependency install resolves joserfc 1.6.5
 - **Input:** Backend Python environment installing dependencies from the updated manifest.
 - **Expected output:** `joserfc` installs successfully and `pip show joserfc` reports `Version: 1.6.5`. `python-jose` should not be installed.
-- **Exact command:** `cd backend && python -m pip install -r requirements.txt && python -m pip show joserfc && python -m pip show python-jose`
+- **Exact command:** `cd backend && python -m pip install -r requirements.txt && python -m pip show joserfc`, then run `python -m pip show python-jose`
 - **Verification steps:**
   1. Run the command in a clean or refreshed backend environment.
   2. Confirm `joserfc` installation succeeds with version `1.6.5`.
@@ -33,12 +33,13 @@ Validate the migration from `python-jose` to `joserfc 1.6.5`, confirm `python-jo
 
 ### TC-003 (AC-003): JWT usage migrated to joserfc with explicit algorithms
 - **Input:** Current backend source tree after the migration.
-- **Expected output:** Imports use `joserfc` and every `jwt.decode(` call explicitly includes an `algorithms=` (or equivalent restricted set) argument.
-- **Exact command:** `grep -r "joserfc" backend && grep -r "jwt\.decode" backend`
+- **Expected output:** Imports use `joserfc`, raw `python-jose` imports are absent, and every `jwt_decode(` call explicitly includes an `algorithms=` (or equivalent restricted set) argument.
+- **Exact command:** `rg -n "from jose|python-jose|joserfc|jwt_decode\\(|algorithms=\\[settings\\.jwt_algorithm\\]" backend`
 - **Verification steps:**
   1. Run the commands from the repository root.
   2. Confirm `joserfc` is imported where JWT operations occur.
-  3. Confirm each decode call explicitly restricts algorithms to the expected set (e.g., `["HS256"]`).
+  3. Confirm no `from jose` or `python-jose` backend usage remains.
+  4. Confirm each decode call explicitly restricts algorithms to the expected set (e.g., `["HS256"]`).
 
 ### TC-004 (AC-004): Existing HS256 auth and expiry behavior still pass
 - **Input:** Backend auth and JWT tests after installing the updated dependency.

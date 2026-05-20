@@ -1,4 +1,4 @@
-## Status: Draft
+## Status: Implemented
 ## Source issue: #335
 ## Goal (one paragraph)
 Migrate the backend JWT library from `python-jose[cryptography]==3.3.0` to `joserfc 1.6.5`. The previously proposed target of `python-jose 3.5.0` is invalid as that version does not exist and the library is considered abandoned. This migration removes the known CVE-2024-33663 exposure while preserving the existing HS256 token format, authentication flows, expiry behavior, and FEAT-106 runtime mitigation that explicitly allowlists the expected decode algorithm.
@@ -61,18 +61,20 @@ None.
 - Should we use `joserfc`'s high-level `JWT` registry or lower-level `jws` modules for our specific HS256 needs?
 
 ## Implementation Plan
-_Produced by Claude. Approved: [pending]_
+_Produced by Claude. Approved: [approved]_
 
 <plan>
 
-1. **`backend/requirements.txt`** — Remove `python-jose[cryptography]==3.3.0` and add `joserfc==1.6.5`.
+Scope audit: only two files import `jose` — `backend/app/core/security.py` (prod encode/decode) and `backend/tests/test_jwt_algorithm_enforcement.py` (forges RS256 + unsigned tokens to verify rejection). Decisions confirmed: use the high-level `joserfc.jwt` API for production; use `joserfc` for RS256 forging in tests (no second JWT lib). FEAT-106 explicit `algorithms=[settings.jwt_algorithm]` allowlist is preserved on every decode.
 
-2. **`backend/app/core/security.py`** — Update imports from `jose` to `joserfc`. Refactor `create_access_token` and `decode_token` (or equivalent) to use `joserfc.jwt.encode` and `joserfc.jwt.decode`.
+1. **`backend/requirements.txt`** — Replace `python-jose[cryptography]==3.3.0` with `joserfc==1.6.5`, leaving every other pin untouched. Backend. Alembic migration: no. Order: must land first so subsequent edits resolve imports.
 
-3. **Algorithm Allowlist (FEAT-106)** — Ensure the `joserfc.jwt.decode` call explicitly restricts algorithms to `[settings.JWT_ALGORITHM]` (e.g., `["HS256"]`).
+2. **`backend/app/core/security.py`** — Replace `from jose import JWTError, jwt` with `from joserfc import jwk`, `from joserfc.jwt import encode as jwt_encode, decode as jwt_decode, JWTClaimsRegistry`, and `from joserfc.errors import JoseError`; import the HMAC secret with `jwk.import_key(settings.jwt_secret_key, "oct")`; rewrite `create_access_token` to call `jwt_encode({"alg": settings.jwt_algorithm}, {"sub": user_id, "exp": int(expire.timestamp())}, key)`; rewrite `decode_access_token` to call `jwt_decode(token, key, algorithms=[settings.jwt_algorithm])`, validate `exp`/`iat`/`nbf` via `JWTClaimsRegistry().validate(decoded.claims)`, return `decoded.claims.get("sub")`, and return `None` on any `JoseError`. Backend. Alembic migration: no. Depends on bullet 1.
 
-4. **Error Handling** — Map `jose.JWTError` and specific exception handling to `joserfc` exception equivalents (e.g., `joserfc.errors.JoseError`).
+3. **`backend/tests/test_jwt_algorithm_enforcement.py`** — Replace `from jose import jwt` with `from joserfc.jwt import encode as jwt_encode` and `from joserfc.jwk import RSAKey`; coerce `_claims()` `exp` to `int(expire.timestamp())` (joserfc requires numeric claims); refactor `_rs256_token` to import the private key with `RSAKey.import_key(RS256_PRIVATE_KEY)` and call `jwt_encode({"alg": "RS256"}, _claims(user_id), key)`; leave `_unsigned_token` hand-rolled (joserfc refuses `alg: none`); keep all three rejection assertions and the HS256 acceptance assertion unchanged. Backend. Alembic migration: no. Depends on bullet 1.
 
-5. **Verification** — Run full backend auth suite: `cd backend && pytest tests/test_jwt_algorithm_enforcement.py -v` and any other relevant security tests.
+4. **`tasks/todo.md`** — Add a FEAT-113 entry recording the migration scope (security.py + algorithm-enforcement test), the verification command `cd backend && pytest tests/test_jwt_algorithm_enforcement.py tests/test_security.py tests/test_api_auth.py -v`, and an explicit AC-006 human-approval checkbox. Backend (docs). Alembic migration: no. Depends on bullets 2 and 3.
+
+5. **`tasks/lessons.md`** — Append a short note that `python-jose` is abandoned and that `joserfc.jwt.decode` requires explicit `algorithms=` exactly like the FEAT-106 allowlist, and that `exp` must be an int unix timestamp under joserfc. Backend (docs). Alembic migration: no. Depends on bullet 2.
 
 </plan>

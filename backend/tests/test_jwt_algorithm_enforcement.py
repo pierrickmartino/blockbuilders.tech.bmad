@@ -7,7 +7,8 @@ from uuid import uuid4
 
 import pytest
 from fastapi.testclient import TestClient
-from jose import jwt
+from joserfc.jwt import encode as jwt_encode
+from joserfc.jwk import RSAKey
 from sqlalchemy.pool import StaticPool
 from sqlmodel import Session, SQLModel, create_engine
 
@@ -99,11 +100,12 @@ def existing_user(session: Session) -> User:
 
 def _claims(user_id: str) -> dict[str, object]:
     expire = datetime.now(timezone.utc) + timedelta(days=1)
-    return {"sub": user_id, "exp": expire}
+    return {"sub": user_id, "exp": int(expire.timestamp())}
 
 
 def _rs256_token(user_id: str) -> str:
-    return jwt.encode(_claims(user_id), RS256_PRIVATE_KEY, algorithm="RS256")
+    key = RSAKey.import_key(RS256_PRIVATE_KEY)
+    return jwt_encode({"alg": "RS256"}, _claims(user_id), key)
 
 
 def _unsigned_token(user_id: str) -> str:
