@@ -3,7 +3,9 @@ import secrets
 from typing import TYPE_CHECKING
 
 import bcrypt
-from jose import JWTError, jwt
+from joserfc import jwk
+from joserfc.jwt import encode as jwt_encode, decode as jwt_decode, JWTClaimsRegistry
+from joserfc.errors import JoseError
 
 from app.core.config import settings
 
@@ -21,18 +23,22 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 def create_access_token(user_id: str) -> str:
     expire = datetime.now(timezone.utc) + timedelta(days=settings.jwt_expire_days)
-    payload = {"sub": user_id, "exp": expire}
-    return jwt.encode(payload, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
+    key = jwk.import_key(settings.jwt_secret_key, "oct")
+    return jwt_encode(
+        {"alg": settings.jwt_algorithm},
+        {"sub": user_id, "exp": int(expire.timestamp())},
+        key,
+    )
 
 
 def decode_access_token(token: str) -> str | None:
     try:
+        key = jwk.import_key(settings.jwt_secret_key, "oct")
         # FEAT-106: keep an explicit algorithm allowlist to prevent JWT algorithm confusion.
-        payload = jwt.decode(
-            token, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm]
-        )
-        return payload.get("sub")
-    except JWTError:
+        decoded = jwt_decode(token, key, algorithms=[settings.jwt_algorithm])
+        JWTClaimsRegistry().validate(decoded.claims)
+        return decoded.claims.get("sub")
+    except JoseError:
         return None
 
 

@@ -1,4 +1,4 @@
-## Status: Approved
+## Status: Implemented
 ## Source issue: #341
 ## Goal (one paragraph)
 Upgrade the backend ASGI server dependency from `uvicorn[standard]==0.32.1` to `uvicorn[standard]==0.47.0` through a dedicated backend dependency sprint, preserving the existing FastAPI application behavior, local development reload workflow, production container startup command, and health-check accessibility while documenting compatibility findings across the version gap.

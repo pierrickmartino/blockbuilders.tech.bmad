@@ -1,5 +1,30 @@
 # Tasks — in flight
 
+## Frontend Docker Next/SWC mismatch fix (implemented)
+
+- [x] Diagnose Docker build failure caused by host `frontend/node_modules` overwriting image dependencies
+- [x] Add `frontend/.dockerignore` to keep local install/build artifacts out of Docker context
+- [x] Verify frontend Docker build no longer reports mismatched `@next/swc`
+
+---
+
+## FEAT-113 — Migrate to joserfc (implemented)
+
+Backend
+- [x] Replace `python-jose[cryptography]==3.3.0` with `joserfc==1.6.5` in `backend/requirements.txt`
+- [x] Rewrite `backend/app/core/security.py` to use `joserfc.jwt.encode/decode` and `joserfc.jwk.import_key`; `JWTClaimsRegistry` validates exp/iat/nbf; every decode path passes `algorithms=[settings.jwt_algorithm]` per FEAT-106
+- [x] Rewrite `backend/tests/test_jwt_algorithm_enforcement.py` to use `joserfc.jwt.encode` and `joserfc.jwk.RSAKey` for RS256 forgery; `_unsigned_token` stays hand-rolled
+
+Verification command: `cd backend && python -m pytest tests/test_jwt_algorithm_enforcement.py tests/test_security.py tests/test_api_auth.py -v`
+
+AC-006 human-approval checkbox: [ ] Maintainer must verify `python-jose` is removed from the installed environment before merging (`pip show python-jose` should report "not found").
+
+Verification
+- [x] `python -m pytest tests/test_jwt_algorithm_enforcement.py tests/test_security.py -v` → 24 passed
+- [x] `python -m pytest tests/ --ignore=tests/test_billing.py -q` → 245 passed, 8 warnings
+
+---
+
 ## FEAT-108 — Uvicorn upgrade sprint (implemented)
 
 Backend dependency

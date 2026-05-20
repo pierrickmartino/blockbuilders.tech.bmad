@@ -1,4 +1,4 @@
-## Status: Approved
+## Status: Implemented
 ## Source issue: #337
 ## Goal (one paragraph)
 Batch the low-risk frontend dependency maintenance updates identified by nightly research into one bounded frontend dependency PR: upgrade `react` and `react-dom` from `19.2.1` to `19.2.6`, keep Tailwind CSS on v3 while moving from the current `^3.4.16` constraint to `3.4.19`, and manually adopt TypeScript 5.9 from the current `^5.7.2` constraint. The work preserves the existing frontend behavior and treats any source edits as compatibility fixes only if the dependency update exposes build, lint, or type failures.
