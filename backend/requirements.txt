@@ -8,9 +8,9 @@ uvicorn[standard]==0.47.0
 sqlmodel==0.0.38
 alembic==1.18.4
 psycopg2-binary>=2.9.10
-redis==5.2.1
-rq==1.16.2
-rq-scheduler==0.13.1
+redis==7.1.1
+rq==2.7.0
+rq-scheduler==0.14.0
 pydantic-settings==2.6.1
 bcrypt==4.2.0
 joserfc==1.6.5
@@ -27,4 +27,4 @@ pytest==8.3.4
 pytest-asyncio==0.24.0
 pytest-cov==6.0.0
 pytest-env==1.1.5
-fakeredis==2.26.2
+fakeredis==2.30.3
