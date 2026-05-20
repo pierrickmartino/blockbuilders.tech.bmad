@@ -94,7 +94,7 @@ services:
     restart: always
 
   redis:
-    image: redis:7.4.6-alpine
+    image: redis:7.4.9-alpine
     volumes:
       - redis_data:/data
     healthcheck:
