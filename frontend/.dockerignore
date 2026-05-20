@@ -1,16 +1,21 @@
 node_modules
 .next
-out
-coverage
-
-.env
-.env.*
-!.env.example
+.storybook
+storybook-static
 
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+
+.next-dev.log
+.next-dev.err.log
+.env
+.env.*
+!.env.example
+tsconfig.tsbuildinfo
+out
+coverage
 
 .git
 .gitignore

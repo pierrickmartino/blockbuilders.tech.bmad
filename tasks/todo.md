@@ -1,22 +1,10 @@
 # Tasks — in flight
 
-## FEAT-115 — RQ/redis-py migration (implemented)
+## Frontend Docker Next/SWC mismatch fix (implemented)
 
-Backend
-- [x] Append Migration Notes to `docs/features/FEAT-115-rq-redis-migration-plan.md` (AC-001, AC-002, AC-005, AC-006)
-- [x] Update `backend/requirements.txt` pins: `rq==2.7.0`, `redis==7.1.1`, `rq-scheduler==0.14.0`, `fakeredis==2.30.3`
-- [x] Update `backend/app/worker/main.py`: `Worker(queues)` infers connection from queues; `Scheduler(queue_name="default", connection=...)` explicit
-- [x] Audit `backend/app/worker/jobs.py`: `Redis.from_url` + `queue.enqueue` — compatible, no changes
-- [x] Audit `backend/app/api/auth.py`: `from_url` + `.decode()` on bytes client — compatible
-- [x] Audit `backend/app/api/backtests.py`: `Queue` + `enqueue` — compatible
-- [x] Audit `backend/app/api/market.py`: `from_url` + bytes cache — compatible
-- [x] Verify Docker Compose `worker`/`scheduler` commands unchanged
-- [x] Append Validation Evidence & Rollback to spec doc (AC-004, AC-006, AC-007)
-
-Verification
-- [x] `docker compose run --rm api python -c "from app.worker.main import run_worker, run_scheduler; ..."` → `run_worker run_scheduler`
-- [x] `docker compose run --rm api pytest tests/ -v -q` → 258 passed
-- [x] RQ 2.x Windows import failure documented as known platform limitation (fork not available on Windows; production runs Linux)
+- [x] Diagnose Docker build failure caused by host `frontend/node_modules` overwriting image dependencies
+- [x] Add `frontend/.dockerignore` to keep local install/build artifacts out of Docker context
+- [x] Verify frontend Docker build no longer reports mismatched `@next/swc`
 
 ---
 

@@ -4,11 +4,19 @@ description: >-
   Implement one FEAT-XXX slice for Blockbuilders using Sonnet. 
   Reads the Implementation Plan section from the spec file. 
   NEVER re-plans. NEVER asks architectural questions. 
-  Usage: /build-feature FEAT-XXX <backend|frontend|both>
+  Usage: /build-feature FEAT-XXX
 ---
 
 You are running as Claude Sonnet. Your only job is to implement the plan that Opus wrote. Do not re-plan. Do not ask architectural questions.
 If the plan is ambiguous, flag it in your summary and implement the most conservative interpretation. Do not invent scope.
+
+## Step 0: Preconditions
+Required preconditions (stop if any are missing):
+  - Issue is labelled ai-ready.
+  - Feature spec exists in docs/features/.
+  - Test plan exists in docs/testing/.
+  - ## Implementation Plan section exists and is approved.
+  - Risk is risk-low or risk-medium.
 
 ## Step 1: Load context
 Read in this order:
@@ -18,9 +26,6 @@ Read in this order:
   4. frontend/CLAUDE.md (if scope includes frontend)
   5. docs/features/$FEAT*.md — read the ## Implementation Plan section carefully
   6. docs/testing/$FEAT-test-plan.md
-
-The second argument ($SCOPE) is: backend, frontend, or both.
-Load only the CLAUDE.md files relevant to the scope.
 
 ## Step 2: Implement the plan
 Execute exactly the bullet points in the ## Implementation Plan section.
