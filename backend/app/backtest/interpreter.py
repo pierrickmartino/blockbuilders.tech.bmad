@@ -4,7 +4,7 @@ from typing import Any, Optional
 
 from app.models.candle import Candle
 from app.backtest.errors import StrategyInvalidError
-from app.backtest import indicators
+from app.backtest.indicator_registry import INDICATOR_REGISTRY, IndicatorContext
 
 
 @dataclass
@@ -125,111 +125,9 @@ def interpret_strategy(
             result = [None] + closes[:-1]
             block_outputs[block_id]["output"] = result
 
-        elif block_type == "sma":
-            # Get price source from params (defaults to close for backward compatibility)
-            source = params.get("source", "close")
-            input_data = candle_data.get(source, closes)
-            period = int(params.get("period", 20))
-            result = indicators.sma(input_data, period)
-            block_outputs[block_id]["output"] = result
-
-        elif block_type == "ema":
-            # Get price source from params (defaults to close for backward compatibility)
-            source = params.get("source", "close")
-            input_data = candle_data.get(source, closes)
-            period = int(params.get("period", 20))
-            result = indicators.ema(input_data, period)
-            block_outputs[block_id]["output"] = result
-
-        elif block_type == "rsi":
-            # Get price source from params (defaults to close for backward compatibility)
-            source = params.get("source", "close")
-            input_data = candle_data.get(source, closes)
-            period = int(params.get("period", 14))
-            result = indicators.rsi(input_data, period)
-            block_outputs[block_id]["output"] = result
-
-        elif block_type == "macd":
-            # Get price source from params (defaults to close for backward compatibility)
-            source = params.get("source", "close")
-            input_data = candle_data.get(source, closes)
-            fast = int(params.get("fast_period", 12))
-            slow = int(params.get("slow_period", 26))
-            signal = int(params.get("signal_period", 9))
-            macd_line, signal_line, histogram = indicators.macd(input_data, fast, slow, signal)
-            block_outputs[block_id]["macd"] = macd_line
-            block_outputs[block_id]["signal"] = signal_line
-            block_outputs[block_id]["histogram"] = histogram
-            block_outputs[block_id]["output"] = macd_line  # Default output
-
-        elif block_type == "bollinger":
-            # Get price source from params (defaults to close for backward compatibility)
-            source = params.get("source", "close")
-            input_data = candle_data.get(source, closes)
-            period = int(params.get("period", 20))
-            std_dev = float(params.get("stddev", 2.0))
-            upper, middle, lower = indicators.bollinger(input_data, period, std_dev)
-            block_outputs[block_id]["upper"] = upper
-            block_outputs[block_id]["middle"] = middle
-            block_outputs[block_id]["lower"] = lower
-            block_outputs[block_id]["output"] = middle  # Default output
-
-        elif block_type == "atr":
-            # ATR uses high/low/close internally - no source selection
-            period = int(params.get("period", 14))
-            result = indicators.atr(highs, lows, closes, period)
-            block_outputs[block_id]["output"] = result
-
-        elif block_type == "stochastic":
-            k_period = int(params.get("k_period", 14))
-            d_period = int(params.get("d_period", 3))
-            smooth = int(params.get("smooth", 3))
-            k_line, d_line = indicators.stochastic(highs, lows, closes, k_period, d_period, smooth)
-            block_outputs[block_id]["k"] = k_line
-            block_outputs[block_id]["d"] = d_line
-            block_outputs[block_id]["output"] = k_line  # Default output
-
-        elif block_type == "adx":
-            period = int(params.get("period", 14))
-            adx_line, plus_di, minus_di = indicators.adx(highs, lows, closes, period)
-            block_outputs[block_id]["adx"] = adx_line
-            block_outputs[block_id]["plus_di"] = plus_di
-            block_outputs[block_id]["minus_di"] = minus_di
-            block_outputs[block_id]["output"] = adx_line  # Default output
-
-        elif block_type == "ichimoku":
-            conversion = int(params.get("conversion", 9))
-            base = int(params.get("base", 26))
-            span_b = int(params.get("span_b", 52))
-            displacement = int(params.get("displacement", 26))
-            conv_line, base_line, span_a, span_b_line = indicators.ichimoku(
-                highs, lows, closes, conversion, base, span_b, displacement
-            )
-            block_outputs[block_id]["conversion"] = conv_line
-            block_outputs[block_id]["base"] = base_line
-            block_outputs[block_id]["span_a"] = span_a
-            block_outputs[block_id]["span_b"] = span_b_line
-            block_outputs[block_id]["output"] = conv_line  # Default output
-
-        elif block_type == "obv":
-            result = indicators.obv(closes, volumes)
-            block_outputs[block_id]["output"] = result
-
-        elif block_type == "fibonacci":
-            lookback = int(params.get("lookback", 50))
-            level_236, level_382, level_5, level_618, level_786 = indicators.fibonacci_retracements(
-                highs, lows, lookback
-            )
-            block_outputs[block_id]["level_236"] = level_236
-            block_outputs[block_id]["level_382"] = level_382
-            block_outputs[block_id]["level_5"] = level_5
-            block_outputs[block_id]["level_618"] = level_618
-            block_outputs[block_id]["level_786"] = level_786
-            block_outputs[block_id]["output"] = level_5  # Default to 0.5 level
-
-        elif block_type == "price_variation_pct":
-            result = indicators.price_variation_pct(closes)
-            block_outputs[block_id]["output"] = result
+        elif block_type in INDICATOR_REGISTRY:
+            ctx = IndicatorContext(candle_data=candle_data, params=params, n=n)
+            block_outputs[block_id] = INDICATOR_REGISTRY[block_type](ctx)
 
         elif block_type == "compare":
             # Support both current (left/right) and legacy (a/b) compare ports.
