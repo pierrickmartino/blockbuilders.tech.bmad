@@ -1,3 +1,4 @@
+// Canvas annotation, not in BLOCK_REGISTRY; intentionally not factory-migrated.
 import { NodeProps } from "@xyflow/react";
 import BaseNode from "../BaseNode";
 
