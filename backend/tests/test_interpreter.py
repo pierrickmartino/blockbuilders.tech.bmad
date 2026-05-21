@@ -92,3 +92,91 @@ def test_compare_supports_legacy_word_operator_below_for_entry_signal():
     signals = interpret_strategy(definition, candles)
 
     assert any(signals.entry_long)
+
+
+def make_uptrend_candles(count: int = 60) -> list[Candle]:
+    """Create candles with monotonically increasing closes."""
+    start = datetime(2024, 1, 1, tzinfo=timezone.utc)
+    candles: list[Candle] = []
+    price = 50.0
+    for i in range(count):
+        close = price + 1.0
+        candles.append(
+            Candle(
+                id=uuid4(),
+                asset="BTC/USDT",
+                timeframe="1d",
+                timestamp=start + timedelta(days=i),
+                open=price,
+                high=close + 0.5,
+                low=price - 0.5,
+                close=close,
+                volume=1000.0,
+            )
+        )
+        price = close
+    return candles
+
+
+def test_macd_signal_port_produces_entry_via_registry():
+    """MACD block exposes 'signal' port that can wire into compare."""
+    candles = make_uptrend_candles(60)
+    definition = {
+        "blocks": [
+            {"id": "macd-1", "type": "macd", "params": {"fast_period": 12, "slow_period": 26, "signal_period": 9}},
+            {"id": "const-1", "type": "constant", "params": {"value": 0}},
+            {"id": "cmp-1", "type": "compare", "params": {"operator": ">"}},
+            {"id": "entry-1", "type": "entry_signal", "params": {}},
+        ],
+        "connections": [
+            {"from": {"block_id": "macd-1", "port": "signal"}, "to": {"block_id": "cmp-1", "port": "left"}},
+            {"from": {"block_id": "const-1", "port": "output"}, "to": {"block_id": "cmp-1", "port": "right"}},
+            {"from": {"block_id": "cmp-1", "port": "output"}, "to": {"block_id": "entry-1", "port": "signal"}},
+        ],
+    }
+
+    signals = interpret_strategy(definition, candles)
+
+    # signal series should be a real list of bools, not all-None
+    assert isinstance(signals.entry_long, list)
+    assert len(signals.entry_long) == len(candles)
+
+
+def test_bollinger_lower_port_triggers_entry_on_price_below_band():
+    """Bollinger block exposes 'lower' port; price below lower band triggers entry."""
+    candles = make_descending_candles(60)
+    definition = {
+        "blocks": [
+            {"id": "price-1", "type": "price", "params": {"source": "close"}},
+            {"id": "boll-1", "type": "bollinger", "params": {"period": 20, "stddev": 2.0}},
+            {"id": "cmp-1", "type": "compare", "params": {"operator": "<"}},
+            {"id": "entry-1", "type": "entry_signal", "params": {}},
+        ],
+        "connections": [
+            {"from": {"block_id": "price-1", "port": "output"}, "to": {"block_id": "cmp-1", "port": "left"}},
+            {"from": {"block_id": "boll-1", "port": "lower"}, "to": {"block_id": "cmp-1", "port": "right"}},
+            {"from": {"block_id": "cmp-1", "port": "output"}, "to": {"block_id": "entry-1", "port": "signal"}},
+        ],
+    }
+
+    signals = interpret_strategy(definition, candles)
+
+    assert isinstance(signals.entry_long, list)
+    assert len(signals.entry_long) == len(candles)
+
+
+def test_all_registry_indicator_types_produce_output_list():
+    """Every indicator in INDICATOR_REGISTRY can be used as a block in a strategy."""
+    from app.backtest.indicator_registry import INDICATOR_REGISTRY
+
+    candles = make_uptrend_candles(60)
+    for indicator_type in INDICATOR_REGISTRY:
+        definition = {
+            "blocks": [
+                {"id": f"{indicator_type}-1", "type": indicator_type, "params": {}},
+                {"id": "entry-1", "type": "entry_signal", "params": {}},
+            ],
+            "connections": [],
+        }
+        signals = interpret_strategy(definition, candles)
+        assert isinstance(signals.entry_long, list), f"{indicator_type} did not produce entry_long list"
