@@ -618,7 +618,7 @@ def _build_exit_explanation(
         summary = "Trailing stop triggered"
     elif exit_reason == "time_exit":
         summary = "Time exit: maximum hold duration reached"
-    elif exit_reason == "max_drawdown":
+    elif exit_reason == "max_dd":
         summary = "Max drawdown threshold hit"
     else:
         summary = f"Exit: {exit_reason}"

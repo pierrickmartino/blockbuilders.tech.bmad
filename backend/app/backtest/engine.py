@@ -6,6 +6,11 @@ import math
 
 from app.models.candle import Candle
 from app.backtest.interpreter import StrategySignals, TakeProfitLevel
+from app.backtest.exit_conditions import (
+    EXIT_PRIORITY_SEQUENCE,
+    PositionContext,
+    apply_take_profit_ladder,
+)
 
 
 @dataclass
@@ -269,77 +274,56 @@ def run_backtest(
             exit_price_raw: Optional[float] = None
             exit_reason = ""
 
-            # Priority 1: Stop Loss (full exit)
-            if can_exit and sl_price is not None and candle.low <= sl_price:
-                exit_price_raw = sl_price
-                exit_reason = "sl"
-                full_exit = True
+            if can_exit:
+                ctx = PositionContext(
+                    candle=candle,
+                    entry_price=entry_price,
+                    sl_price=sl_price,
+                    highest_close_since_entry=highest_close_since_entry,
+                    bars_in_trade=bars_in_trade,
+                    tp_levels=tp_levels,
+                    position_size=position_size,
+                    initial_qty=initial_qty,
+                    trailing_stop_threshold=trailing_stop_threshold,
+                    max_dd_threshold=max_dd_threshold,
+                    time_exit_threshold=time_exit_threshold,
+                    exit_signal=exit_signal,
+                )
 
-            # Priority 2: Trailing Stop (full exit)
-            if can_exit and not full_exit and trailing_stop_threshold is not None:
-                trailing_stop_price = highest_close_since_entry * (1 - trailing_stop_threshold / 100)
-                if candle.low <= trailing_stop_price:
-                    exit_price_raw = trailing_stop_price
-                    exit_reason = "trailing_stop"
-                    full_exit = True
+                # Iterate priority sequence; first match wins
+                for condition in EXIT_PRIORITY_SEQUENCE:
+                    decision = condition.check(ctx)
+                    if decision is not None:
+                        exit_price_raw = decision.exit_price_raw
+                        exit_reason = decision.reason
+                        full_exit = True
+                        break
 
-            # Priority 3: Max Drawdown (full exit)
-            if can_exit and not full_exit and max_dd_threshold is not None:
-                trade_drawdown = (entry_price - candle.close) / entry_price * 100
-                if trade_drawdown >= max_dd_threshold:
-                    exit_price_raw = candle.close
-                    exit_reason = "max_dd"
-                    full_exit = True
-
-            # Priority 4: Time Exit (full exit)
-            if can_exit and not full_exit and time_exit_threshold is not None:
-                if bars_in_trade >= time_exit_threshold:
-                    exit_price_raw = candle.close
-                    exit_reason = "time_exit"
-                    full_exit = True
-
-            # Priority 5: Signal Exit (full exit of remaining)
-            if can_exit and not full_exit and exit_signal and position_size > 0:
-                exit_price_raw = candle.close
-                exit_reason = "signal"
-                full_exit = True
-
-            # Priority 6: Take Profit (partial exits, in ascending order)
-            if can_exit and not full_exit and tp_levels:
-                # Sort by profit_pct ascending and process
-                for level in sorted(tp_levels, key=lambda x: x.profit_pct):
-                    if not level.triggered and candle.high >= level.price:
-                        # Calculate qty to close
-                        qty_to_close = min(
-                            initial_qty * level.close_pct / 100,
-                            position_size
+                # Take profit (partial exits) only if no full exit fired
+                if not full_exit:
+                    for partial in apply_take_profit_ladder(ctx):
+                        trade, pnl = _create_trade(
+                            qty=partial.qty,
+                            exit_price_raw=partial.exit_price_raw,
+                            exit_reason="tp",
+                            entry_price=entry_price,
+                            entry_time=entry_time,
+                            exit_timestamp=candle.timestamp,
+                            sl_price=sl_price,
+                            tp_levels=tp_levels,
+                            peak_high=peak_high,
+                            peak_high_ts=peak_high_ts,
+                            trough_low=trough_low,
+                            trough_low_ts=trough_low_ts,
+                            slippage_rate=slippage_rate,
+                            fee_rate=fee_rate,
+                            spread_rate=spread_rate,
                         )
-                        if qty_to_close > 0:
-                            trade, pnl = _create_trade(
-                                qty=qty_to_close,
-                                exit_price_raw=level.price,
-                                exit_reason="tp",
-                                entry_price=entry_price,
-                                entry_time=entry_time,
-                                exit_timestamp=candle.timestamp,
-                                sl_price=sl_price,
-                                tp_levels=tp_levels,
-                                peak_high=peak_high,
-                                peak_high_ts=peak_high_ts,
-                                trough_low=trough_low,
-                                trough_low_ts=trough_low_ts,
-                                slippage_rate=slippage_rate,
-                                fee_rate=fee_rate,
-                                spread_rate=spread_rate,
-                            )
-                            trades.append(trade)
-                            equity += pnl
-                            position_size -= qty_to_close
-                            level.triggered = True
-
-                        # Check if position fully closed
+                        trades.append(trade)
+                        equity += pnl
+                        position_size -= partial.qty
+                        tp_levels[partial.level_index].triggered = True
                         if position_size <= 0:
-                            full_exit = True
                             break
 
             # Execute full exit if triggered by SL, trailing stop, max DD, time exit, or signal
