@@ -1,4 +1,4 @@
-## Status: Draft
+## Status: Implemented
 ## Source issue: #340
 ## Goal (one paragraph)
 Make the latest backtest outcome visible directly on the strategy canvas so traders can review a strategy without leaving the visual editor. Each eligible canvas node should show a compact status badge for the most recent relevant backtest state, and selecting a node with available result context should open a right-side Sheet drawer that keeps the canvas visible while showing deeper result details such as metrics, charts, and trades tied to that node context where available.

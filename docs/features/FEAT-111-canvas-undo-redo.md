@@ -1,4 +1,4 @@
-## Status: Draft
+## Status: Implemented
 ## Source issue: #338
 ## Goal (one paragraph)
 Give strategy builders reliable undo and redo controls in the canvas editor so they can recover from common editing mistakes, reverse recent graph changes, and reapply reverted changes without leaving the strategy builder or losing the current canvas context.

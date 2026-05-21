@@ -1,4 +1,4 @@
-## Status: Draft
+## Status: Implemented
 ## Source issue: #339
 ## Goal (one paragraph)
 Give strategy builders a keyboard-first way to insert canvas nodes by opening a command palette with Cmd+K on macOS or Ctrl+K on Windows/Linux, searching available node types, and selecting a result that adds the chosen node to the current strategy canvas without leaving the editor flow.
