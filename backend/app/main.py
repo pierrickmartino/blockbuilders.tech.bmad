@@ -3,9 +3,11 @@ import time
 
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from app.core.config import settings
 from app.core.logging import setup_logging, correlation_id_var, generate_correlation_id
+from app.services.exceptions import DomainError
 
 setup_logging()
 
@@ -28,6 +30,12 @@ from app.api.usage import router as usage_router
 from app.api.users import router as users_router
 
 app = FastAPI()
+
+
+@app.exception_handler(DomainError)
+async def domain_error_handler(request: Request, exc: DomainError) -> JSONResponse:
+    return JSONResponse(status_code=exc.status_code, content=exc.detail())
+
 
 app.add_middleware(
     CORSMiddleware,
