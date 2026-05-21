@@ -798,3 +798,155 @@ class TestEdgeCases:
         assert result.num_trades == 1
         # With 50% position and ~8% gain, final balance should reflect that
         # Not 100% of gain
+
+
+class TestGoldenSnapshot:
+    """Golden snapshot tests locking down run_backtest observable output.
+
+    These tests capture exact baseline values from the current engine on two
+    broad synthetic scenarios so that any silent behaviour change introduced
+    during downstream refactoring immediately shows up as a test failure.
+
+    Rounding contract:
+    - BacktestResult summary fields and trade cost fields are already rounded
+      to 2 dp by the engine, so we use exact equality on them.
+    - Per-trade pnl / exit_price are unrounded; we use pytest.approx(rel=1e-9)
+      to tolerate ULP-level float arithmetic differences without masking real
+      logic drift.
+    - The equity curve is also compared with pytest.approx(rel=1e-9) to survive
+      any future reordering of arithmetic operations.
+    """
+
+    def test_snapshot_tp_partials_and_signal_exit(self):
+        """Snapshot: two entries; first exits via two TP partials, second via signal."""
+        candles = [
+            make_candle( 1, 1000, 1050,  980, 1020),  # entry1 signal
+            make_candle( 2, 1000, 1040,  990, 1030),  # entry1 at open=1000
+            make_candle( 3, 1030, 1060, 1020, 1055),  # high=1060 > TP1=1050 (5 %)
+            make_candle( 4, 1055, 1120, 1050, 1100),  # high=1120 > TP2=1100 (10 %)
+            make_candle( 5, 1100, 1130, 1090, 1110),
+            make_candle( 6, 1110, 1140, 1100, 1120),
+            make_candle( 7, 1120, 1150, 1110, 1130),  # entry2 signal
+            make_candle( 8, 1130, 1160, 1120, 1140),  # entry2 at open=1130
+            make_candle( 9, 1140, 1170, 1130, 1150),
+            make_candle(10, 1150, 1180, 1140, 1160),  # exit signal
+            make_candle(11, 1160, 1190, 1150, 1170),  # exit at close=1170
+            make_candle(12, 1170, 1200, 1160, 1180),
+        ]
+        signals = make_signals(
+            entry_long=[True,  False, False, False, False, False, True,  False, False, False, False, False],
+            exit_long= [False, False, False, False, False, False, False, False, False, True,  False, False],
+            position_size_pct=100.0,
+            take_profit_levels=[
+                TakeProfitLevel(profit_pct=5.0,  close_pct=50),
+                TakeProfitLevel(profit_pct=10.0, close_pct=50),
+            ],
+        )
+
+        result = run_backtest(
+            candles=candles,
+            signals=signals,
+            initial_balance=10000.0,
+            fee_rate=0.001,
+            slippage_rate=0.0005,
+            spread_rate=0.0002,
+        )
+
+        # --- summary fields (already rounded by engine) ---
+        assert result.num_trades == 3
+        assert result.final_balance == 10982.55
+        assert result.total_return_pct == 9.83
+        assert result.win_rate_pct == 100.0
+        assert result.gross_return_usd == 1050.47
+        assert result.total_costs_usd == 67.92
+        assert result.total_fees_usd == 42.45
+        assert result.total_slippage_usd == 21.23
+        assert result.total_spread_usd == 4.24
+        assert result.max_drawdown_pct == 0.16
+
+        # --- per-trade exit path ---
+        assert result.trades[0].exit_reason == "tp"
+        assert result.trades[0].exit_time == datetime(2024, 1, 3, tzinfo=timezone.utc)
+        assert result.trades[1].exit_reason == "tp"
+        assert result.trades[1].exit_time == datetime(2024, 1, 4, tzinfo=timezone.utc)
+        assert result.trades[2].exit_reason == "signal"
+        assert result.trades[2].exit_time == datetime(2024, 1, 10, tzinfo=timezone.utc)
+
+        # --- per-trade pnl / exit_price (unrounded) ---
+        assert result.trades[0].pnl == pytest.approx(241.60341223750166, rel=1e-9)
+        assert result.trades[1].pnl == pytest.approx(491.2035747250011,  rel=1e-9)
+        assert result.trades[2].pnl == pytest.approx(249.74132487167816, rel=1e-9)
+        assert result.trades[0].exit_price == pytest.approx(1049.9986770002758, rel=1e-9)
+        assert result.trades[1].exit_price == pytest.approx(1099.9986140002889, rel=1e-9)
+        assert result.trades[2].exit_price == pytest.approx(1158.144753942,     rel=1e-9)
+
+        # --- equity curve (approx to survive ULP-level arithmetic drift) ---
+        equity_values = [pt["equity"] for pt in result.equity_curve]
+        assert equity_values == pytest.approx(
+            [10183.70, 10283.54, 10508.17, 10732.81, 10732.81, 10732.81,
+             10715.65, 10810.48, 10905.31, 10982.55, 10982.55, 10982.55],
+            rel=1e-9,
+        )
+
+    def test_snapshot_sl_and_trailing_stop_interplay(self):
+        """Snapshot: two entries; first exits via trailing stop, second via stop loss."""
+        candles = [
+            make_candle( 1, 2000, 2050, 1980, 2020),  # entry1 signal
+            make_candle( 2, 2000, 2050, 1990, 2030),  # entry1 at open=2000; SL=1802.9, trail=8 %
+            make_candle( 3, 2030, 2200, 2020, 2180),  # peak 2200; trailing floor rises to 2024
+            make_candle( 4, 2180, 2220, 2020, 2100),  # peak 2220; trailing floor 2042; low 2020 safe
+            make_candle( 5, 2100, 2180, 1950, 1960),  # low=1950 < trailing floor → trailing_stop
+            make_candle( 6, 1960, 2000, 1930, 1970),
+            make_candle( 7, 1970, 2020, 1950, 1990),  # entry2 signal
+            make_candle( 8, 2000, 2010, 1700, 1750),  # entry2 at open=2000; same-candle guard active
+            make_candle( 9, 1750, 1800, 1700, 1720),  # low=1700 < SL=1802.9 → sl
+            make_candle(10, 1720, 1760, 1690, 1710),
+        ]
+        signals = make_signals(
+            entry_long=[True,  False, False, False, False, False, True,  False, False, False],
+            exit_long= [False, False, False, False, False, False, False, False, False, False],
+            position_size_pct=100.0,
+            stop_loss_pct=10.0,
+            trailing_stop_pct=8.0,
+        )
+
+        result = run_backtest(
+            candles=candles,
+            signals=signals,
+            initial_balance=10000.0,
+            fee_rate=0.001,
+            slippage_rate=0.0005,
+            spread_rate=0.0002,
+        )
+
+        # --- summary fields (already rounded by engine) ---
+        assert result.num_trades == 2
+        assert result.final_balance == 8981.98
+        assert result.total_return_pct == -10.18
+        assert result.win_rate_pct == 0.0
+        assert result.gross_return_usd == -955.65
+        assert result.total_costs_usd == 62.37
+        assert result.total_fees_usd == 38.98
+        assert result.total_slippage_usd == 19.49
+        assert result.total_spread_usd == 3.90
+        assert result.max_drawdown_pct == 19.76
+
+        # --- per-trade exit path ---
+        assert result.trades[0].exit_reason == "trailing_stop"
+        assert result.trades[0].exit_time == datetime(2024, 1, 5, tzinfo=timezone.utc)
+        assert result.trades[1].exit_reason == "sl"
+        assert result.trades[1].exit_time == datetime(2024, 1, 9, tzinfo=timezone.utc)
+
+        # --- per-trade pnl / exit_price (unrounded) ---
+        assert result.trades[0].pnl == pytest.approx(-4.038318866103752,   rel=1e-9)
+        assert result.trades[1].pnl == pytest.approx(-1013.9845057464562,  rel=1e-9)
+        assert result.trades[0].exit_price == pytest.approx(2002.39234353972,     rel=1e-9)
+        assert result.trades[1].exit_price == pytest.approx(1799.9977320004725,   rel=1e-9)
+
+        # --- equity curve (approx to survive ULP-level arithmetic drift) ---
+        equity_values = [pt["equity"] for pt in result.equity_curve]
+        assert equity_values == pytest.approx(
+            [10083.86, 10133.78, 10882.58, 10483.22, 9995.96,
+              9995.96,  9930.09,  8732.49,  8981.98,  8981.98],
+            rel=1e-9,
+        )
