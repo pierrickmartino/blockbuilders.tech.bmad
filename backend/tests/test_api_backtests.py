@@ -204,7 +204,7 @@ def test_batch_backtest_all_skipped_returns_null_batch_id(
     token = _login_and_get_token(client, user.email)
 
     monkeypatch.setattr(
-        "app.api.backtests.get_effective_limits",
+        "app.services.backtest_service.get_effective_limits",
         lambda *args, **kwargs: {
             "max_backtests_per_day": 0,
             "max_history_days": 3650,

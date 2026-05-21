@@ -71,94 +71,6 @@ PERIOD_DAYS: dict[str, int] = {
 PREMIUM_ONLY_PERIODS = {"2y", "3y"}
 
 
-def _resolve_rates(
-    user: User,
-    fee_rate: float | None,
-    slippage_rate: float | None,
-    spread_rate: float | None,
-) -> tuple[float, float, float]:
-    """Resolve fee/slippage/spread rates from request, user defaults, or global defaults."""
-    resolved_fee = fee_rate if fee_rate is not None else (
-        user.default_fee_percent if user.default_fee_percent is not None else settings.default_fee_rate
-    )
-    resolved_slippage = slippage_rate if slippage_rate is not None else (
-        user.default_slippage_percent if user.default_slippage_percent is not None else settings.default_slippage_rate
-    )
-    resolved_spread = spread_rate if spread_rate is not None else (
-        user.default_spread_percent if user.default_spread_percent is not None else settings.default_spread_rate
-    )
-    return resolved_fee, resolved_slippage, resolved_spread
-
-
-def _create_single_run(
-    user: User,
-    strategy: Strategy,
-    latest_version: StrategyVersion,
-    session: Session,
-    date_from: datetime,
-    date_to: datetime,
-    fee_rate: float,
-    slippage_rate: float,
-    spread_rate: float,
-    force_refresh_prices: bool = False,
-    batch_id: UUID | None = None,
-    period_key: str | None = None,
-) -> BacktestRun:
-    """Create a BacktestRun record and enqueue the worker job."""
-    run = BacktestRun(
-        user_id=user.id,
-        strategy_id=strategy.id,
-        strategy_version_id=latest_version.id,
-        status="pending",
-        asset=strategy.asset,
-        timeframe=strategy.timeframe,
-        date_from=date_from,
-        date_to=date_to,
-        initial_balance=settings.default_initial_balance,
-        fee_rate=fee_rate,
-        slippage_rate=slippage_rate,
-        spread_rate=spread_rate,
-        batch_id=batch_id,
-        period_key=period_key,
-    )
-    session.add(run)
-    session.commit()
-    session.refresh(run)
-
-    try:
-        queue = get_redis_queue()
-        request_correlation_id = correlation_id_var.get("") or None
-        queue.enqueue(
-            "app.worker.jobs.run_backtest_job",
-            str(run.id),
-            force_refresh_prices,
-            request_correlation_id,
-            job_timeout=300,
-        )
-        logger.info(
-            "backtest_enqueued",
-            extra={
-                "run_id": str(run.id),
-                "strategy_id": str(strategy.id),
-                "user_id": str(user.id),
-                "asset": strategy.asset,
-                "timeframe": strategy.timeframe,
-                "batch_id": str(batch_id) if batch_id else None,
-                "period_key": period_key,
-            },
-        )
-    except Exception:
-        run.status = "failed"
-        run.error_message = "Failed to queue backtest job"
-        session.add(run)
-        session.commit()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to queue backtest job",
-        )
-    return run
-
-
 def _build_status_response(
     run: BacktestRun, session: Session
 ) -> BacktestStatusResponse:
@@ -447,26 +359,12 @@ def create_batch_backtest(
     if not strategy:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Strategy not found")
 
-    latest_version = session.exec(
-        select(StrategyVersion)
-        .where(StrategyVersion.strategy_id == strategy.id)
-        .order_by(StrategyVersion.version_number.desc())
-    ).first()
-    if not latest_version:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Strategy has no saved versions")
+    version = backtest_service.latest_version(strategy, session)
 
-    # Plan tier checks
     is_premium = user.plan_tier in ("premium", "pro")
     effective_limits = get_effective_limits(user.plan_tier, user.user_tier)
-    today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
-    today_count = session.exec(
-        select(func.count(BacktestRun.id)).where(
-            BacktestRun.user_id == user.id,
-            BacktestRun.created_at >= today_start,
-        )
-    ).one()
 
-    fee_rate, slippage_rate, spread_rate = _resolve_rates(
+    fee_rate, slippage_rate, spread_rate = backtest_service.resolve_rates(
         user, data.fee_rate, data.slippage_rate, data.spread_rate,
     )
 
@@ -474,8 +372,8 @@ def create_batch_backtest(
     now = datetime.now(timezone.utc)
     results: list[BatchRunResult] = []
     queued = 0
+    correlation_id = correlation_id_var.get("") or None
 
-    # Sort periods shortest to longest
     sorted_periods = sorted(data.periods, key=lambda p: PERIOD_DAYS.get(p, 0))
 
     for period in sorted_periods:
@@ -484,48 +382,72 @@ def create_batch_backtest(
             results.append(BatchRunResult(period_key=period, status="skipped", skip_reason=f"Unknown period: {period}"))
             continue
 
-        # Premium-only gate
         if period in PREMIUM_ONLY_PERIODS and not is_premium:
             results.append(BatchRunResult(period_key=period, status="skipped", skip_reason="Upgrade to Pro or Premium to access this period."))
             continue
 
-        # Historical depth check
         if days > effective_limits["max_history_days"]:
             results.append(BatchRunResult(period_key=period, status="skipped", skip_reason=f"Period exceeds your plan's {effective_limits['max_history_days']}-day history limit. Upgrade for longer history."))
             continue
 
-        # Daily limit check
-        current_total = today_count + queued
-        use_credit = False
-        if current_total >= effective_limits["max_backtests_per_day"]:
-            if user.backtest_credit_balance > 0:
-                use_credit = True
-            else:
-                results.append(BatchRunResult(period_key=period, status="skipped", skip_reason="Daily backtest limit reached. Purchase credits or try again tomorrow."))
-                continue
+        limit_state = backtest_service.check_daily_limit(user, session, projected_count=queued)
+        if limit_state == backtest_service.LimitState.OVER_NO_CREDIT:
+            results.append(BatchRunResult(period_key=period, status="skipped", skip_reason="Daily backtest limit reached. Purchase credits or try again tomorrow."))
+            continue
 
         date_to = now
         date_from = now - timedelta(days=days)
         if batch_id is None:
             batch_id = uuid4()
 
-        run = _create_single_run(
-            user, strategy, latest_version, session,
+        run, job_spec = backtest_service.build_run(
+            user, strategy, version, session,
             date_from, date_to, fee_rate, slippage_rate, spread_rate,
+            correlation_id,
             batch_id=batch_id, period_key=period,
         )
 
-        if use_credit:
+        if limit_state == backtest_service.LimitState.OVER_USING_CREDIT:
             user.backtest_credit_balance -= 1
             session.add(user)
+
+        session.commit()
+
+        try:
+            queue = get_redis_queue()
+            queue.enqueue(
+                "app.worker.jobs.run_backtest_job",
+                job_spec.run_id,
+                job_spec.force_refresh_prices,
+                job_spec.correlation_id,
+                job_timeout=300,
+            )
+            logger.info(
+                "backtest_enqueued",
+                extra={
+                    "run_id": job_spec.run_id,
+                    "strategy_id": str(strategy.id),
+                    "user_id": str(user.id),
+                    "asset": strategy.asset,
+                    "timeframe": strategy.timeframe,
+                    "batch_id": str(batch_id),
+                    "period_key": period,
+                },
+            )
+        except Exception:
+            run.status = "failed"
+            run.error_message = "Failed to queue backtest job"
+            session.add(run)
             session.commit()
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to queue backtest job",
+            )
 
         queued += 1
         results.append(BatchRunResult(period_key=period, run_id=run.id, status="pending"))
 
     if queued == 0 and results:
-        # All periods were skipped, so there is no persisted batch to poll.
-        # Return skip reasons with a null batch_id instead of a dangling UUID.
         return BatchBacktestCreateResponse(batch_id=None, runs=results)
 
     return BatchBacktestCreateResponse(batch_id=batch_id, runs=results)
