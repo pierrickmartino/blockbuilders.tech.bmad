@@ -237,6 +237,121 @@ describe("migrated node acceptance criteria", () => {
   });
 });
 
+describe("outlier node body escape hatch — acceptance criteria", () => {
+  it("AndNode renders 'AND' glyph in body (in addition to the label)", async () => {
+    const { nodeTypes } = await import("../nodes");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const Component = nodeTypes["and"] as React.ComponentType<any>;
+    renderNode(Component);
+    // Registry label "AND" appears once in header; body glyph adds a second occurrence
+    expect(screen.getAllByText("AND").length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("OrNode renders 'OR' glyph in body (in addition to the label)", async () => {
+    const { nodeTypes } = await import("../nodes");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const Component = nodeTypes["or"] as React.ComponentType<any>;
+    renderNode(Component);
+    expect(screen.getAllByText("OR").length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("NotNode renders 'NOT' glyph in body (in addition to the label)", async () => {
+    const { nodeTypes } = await import("../nodes");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const Component = nodeTypes["not"] as React.ComponentType<any>;
+    renderNode(Component);
+    expect(screen.getAllByText("NOT").length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("CompareNode defaults to '>' when no operator param", async () => {
+    const { nodeTypes } = await import("../nodes");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const Component = nodeTypes["compare"] as React.ComponentType<any>;
+    renderNode(Component, { params: {} });
+    expect(screen.getByText(">")).toBeInTheDocument();
+  });
+
+  it("CompareNode renders custom operator from params", async () => {
+    const { nodeTypes } = await import("../nodes");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const Component = nodeTypes["compare"] as React.ComponentType<any>;
+    renderNode(Component, { params: { operator: "<=" } });
+    expect(screen.getByText("<=")).toBeInTheDocument();
+  });
+
+  it("CrossoverNode renders 'Above' when direction is crosses_above", async () => {
+    const { nodeTypes } = await import("../nodes");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const Component = nodeTypes["crossover"] as React.ComponentType<any>;
+    renderNode(Component, { params: { direction: "crosses_above" } });
+    expect(screen.getByText("Above")).toBeInTheDocument();
+  });
+
+  it("CrossoverNode renders 'Below' when direction is crosses_below", async () => {
+    const { nodeTypes } = await import("../nodes");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const Component = nodeTypes["crossover"] as React.ComponentType<any>;
+    renderNode(Component, { params: { direction: "crosses_below" } });
+    expect(screen.getByText("Below")).toBeInTheDocument();
+  });
+
+  it("CrossoverNode renders 'Below' when direction is 'below'", async () => {
+    const { nodeTypes } = await import("../nodes");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const Component = nodeTypes["crossover"] as React.ComponentType<any>;
+    renderNode(Component, { params: { direction: "below" } });
+    expect(screen.getByText("Below")).toBeInTheDocument();
+  });
+
+  it("EntrySignalNode renders 'Buy when signal is true'", async () => {
+    const { nodeTypes } = await import("../nodes");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const Component = nodeTypes["entry_signal"] as React.ComponentType<any>;
+    renderNode(Component);
+    expect(screen.getByText("Buy when signal is true")).toBeInTheDocument();
+  });
+
+  it("ExitSignalNode renders 'Sell when signal is true'", async () => {
+    const { nodeTypes } = await import("../nodes");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const Component = nodeTypes["exit_signal"] as React.ComponentType<any>;
+    renderNode(Component);
+    expect(screen.getByText("Sell when signal is true")).toBeInTheDocument();
+  });
+
+  it("TakeProfitNode renders a default level row when no params provided", async () => {
+    const { nodeTypes } = await import("../nodes");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const Component = nodeTypes["take_profit"] as React.ComponentType<any>;
+    renderNode(Component, { params: {} });
+    expect(screen.getByText(/Level 1:/)).toBeInTheDocument();
+  });
+
+  it("TakeProfitNode renders multiple rows from params.levels array", async () => {
+    const { nodeTypes } = await import("../nodes");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const Component = nodeTypes["take_profit"] as React.ComponentType<any>;
+    renderNode(Component, {
+      params: {
+        levels: [
+          { profit_pct: 5, close_pct: 50 },
+          { profit_pct: 10, close_pct: 100 },
+        ],
+      },
+    });
+    expect(screen.getByText(/Level 1:/)).toBeInTheDocument();
+    expect(screen.getByText(/Level 2:/)).toBeInTheDocument();
+  });
+
+  it("TakeProfitNode falls back to take_profit_pct scalar form", async () => {
+    const { nodeTypes } = await import("../nodes");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const Component = nodeTypes["take_profit"] as React.ComponentType<any>;
+    renderNode(Component, { params: { take_profit_pct: 7 } });
+    expect(screen.getByText(/Level 1: 7% @ 100%/)).toBeInTheDocument();
+  });
+});
+
 describe("nodeSmoke — all BLOCK_REGISTRY entries render without throw", () => {
   const registryEntries = BLOCK_REGISTRY.filter(
     // NoteNode is a free-form text block excluded from the registry smoke test;
