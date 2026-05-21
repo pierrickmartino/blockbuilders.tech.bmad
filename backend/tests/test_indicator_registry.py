@@ -1,5 +1,6 @@
 import pytest
 
+from app.backtest.errors import StrategyInvalidError
 from app.backtest.indicator_registry import INDICATOR_REGISTRY, IndicatorContext
 
 KNOWN_INDICATOR_TYPES = {
@@ -66,3 +67,49 @@ def test_adapter_port_shape(indicator_type: str) -> None:
     for key, value in result.items():
         assert isinstance(value, list), f"{indicator_type}.{key} is not a list"
         assert len(value) == n, f"{indicator_type}.{key} has length {len(value)}, expected {n}"
+
+
+# ---------------------------------------------------------------------------
+# source_series() strict validation (issue #406)
+# ---------------------------------------------------------------------------
+
+def _make_candle_data(n: int = 10) -> dict[str, list]:
+    closes = [float(100 + i) for i in range(n)]
+    return {
+        "open": closes[:],
+        "high": [c + 1.0 for c in closes],
+        "low": [c - 1.0 for c in closes],
+        "close": closes[:],
+        "volume": [1000.0] * n,
+        "prev_close": [c - 0.5 for c in closes],
+    }
+
+
+def test_source_series_defaults_to_close() -> None:
+    candle_data = _make_candle_data()
+    ctx = IndicatorContext(candle_data=candle_data, params={}, n=10)
+    assert ctx.source_series() == candle_data["close"]
+
+
+@pytest.mark.parametrize("source", ["open", "high", "low", "close", "volume", "prev_close"])
+def test_source_series_valid_sources(source: str) -> None:
+    candle_data = _make_candle_data()
+    ctx = IndicatorContext(candle_data=candle_data, params={"source": source}, n=10)
+    assert ctx.source_series() == candle_data[source]
+
+
+def test_source_series_raises_on_unknown_source() -> None:
+    candle_data = _make_candle_data()
+    ctx = IndicatorContext(candle_data=candle_data, params={"source": "typo"}, n=10)
+    with pytest.raises(StrategyInvalidError) as exc_info:
+        ctx.source_series()
+    assert "typo" in str(exc_info.value)
+
+
+def test_source_series_error_message_lists_valid_sources() -> None:
+    candle_data = _make_candle_data()
+    ctx = IndicatorContext(candle_data=candle_data, params={"source": "bad_source"}, n=10)
+    with pytest.raises(StrategyInvalidError) as exc_info:
+        ctx.source_series()
+    assert exc_info.value.user_message is not None
+    assert "close" in exc_info.value.user_message

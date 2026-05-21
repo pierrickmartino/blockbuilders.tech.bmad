@@ -4,6 +4,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 from . import indicators
+from .errors import StrategyInvalidError
 
 
 @dataclass(frozen=True)
@@ -13,9 +14,13 @@ class IndicatorContext:
     n: int
 
     def source_series(self, default: str = "close") -> list:
-        closes = self.candle_data.get("close", [])
         source = self.params.get("source", default)
-        return self.candle_data.get(source, closes)
+        if source not in self.candle_data:
+            raise StrategyInvalidError(
+                f"Unknown price source: {source!r}",
+                f"Invalid strategy: unknown price source '{source}'. Use one of: open, high, low, close, prev_close, volume.",
+            )
+        return self.candle_data[source]
 
 
 def _sma_adapter(ctx: IndicatorContext) -> dict[str, list]:
