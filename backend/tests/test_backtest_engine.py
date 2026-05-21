@@ -950,3 +950,178 @@ class TestGoldenSnapshot:
               9995.96,  9930.09,  8732.49,  8981.98,  8981.98],
             rel=1e-9,
         )
+
+
+class TestCrossConditionSnapshot:
+    """Golden snapshot tests for exit-priority interactions between conditions on the same bar.
+
+    Each scenario exercises a specific priority pairing not covered by TestExitPriority:
+      - SL beats TP (multi-level ladder, SL bar produces no partial TP records)
+      - Trailing stop fires on residual position after a prior partial TP
+      - Time exit beats a simultaneous exit signal (priority 4 vs 5)
+
+    Rounding contract: same as TestGoldenSnapshot — summary fields use exact equality,
+    per-trade pnl / exit_price use pytest.approx(rel=1e-9).
+    """
+
+    def test_snapshot_sl_beats_multi_tp_ladder_same_bar(self):
+        """SL fires on a bar that would also hit all three TP levels; no partial TP trades created."""
+        candles = [
+            make_candle(1, 100, 105,  98, 102),  # entry signal
+            make_candle(2, 100, 101,  99, 100),  # entry at open=100
+            make_candle(3, 100, 120,  85, 110),  # low=85 hits SL=~95; high=120 would hit all TPs
+        ]
+        signals = make_signals(
+            entry_long=[True, False, False],
+            exit_long=[False] * 3,
+            stop_loss_pct=5.0,
+            take_profit_levels=[
+                TakeProfitLevel(profit_pct=5.0,  close_pct=33),
+                TakeProfitLevel(profit_pct=10.0, close_pct=33),
+                TakeProfitLevel(profit_pct=15.0, close_pct=34),
+            ],
+        )
+
+        result = run_backtest(
+            candles=candles,
+            signals=signals,
+            initial_balance=10000.0,
+            fee_rate=0.001,
+            slippage_rate=0.0005,
+            spread_rate=0.0002,
+        )
+
+        # --- summary fields ---
+        assert result.num_trades == 1
+        assert result.final_balance == 9484.81
+        assert result.total_return_pct == -5.15
+        assert result.win_rate_pct == 0.0
+        assert result.gross_return_usd == -484.02
+        assert result.total_costs_usd == 31.17
+        assert result.total_fees_usd == 19.48
+        assert result.total_slippage_usd == 9.74
+        assert result.total_spread_usd == 1.95
+        assert result.max_drawdown_pct == 6.86
+
+        # --- priority winner: SL, not any TP level ---
+        assert result.trades[0].exit_reason == "sl"
+        assert result.trades[0].exit_time == datetime(2024, 1, 3, tzinfo=timezone.utc)
+
+        # --- per-trade pnl / exit_price ---
+        assert result.trades[0].pnl == pytest.approx(-515.1938254749975, rel=1e-9)
+        assert result.trades[0].exit_price == pytest.approx(94.99988030002496, rel=1e-9)
+
+        # --- equity curve ---
+        equity_values = [pt["equity"] for pt in result.equity_curve]
+        assert equity_values == pytest.approx([10183.7, 9984.02, 9484.81], rel=1e-9)
+
+    def test_snapshot_trailing_stop_on_residual_after_partial_tp(self):
+        """Partial TP closes 50 % of position; trailing stop closes the remainder on a later bar."""
+        candles = [
+            make_candle(1, 100, 105,  98, 102),  # entry signal
+            make_candle(2, 100, 101,  99, 100),  # entry at open=100
+            make_candle(3, 100, 115, 105, 112),  # high=115 hits TP~110; low=105 above trailing floor=100.8
+            make_candle(4, 112, 135, 118, 130),  # new high; trailing floor rises to 117; low=118 safe
+            make_candle(5, 130, 133, 115, 116),  # low=115 < trailing floor=117 → trailing stop fires
+            make_candle(6, 116, 120, 113, 115),  # post-close bar (position already flat)
+        ]
+        signals = make_signals(
+            entry_long=[True, False, False, False, False, False],
+            exit_long=[False] * 6,
+            trailing_stop_pct=10.0,
+            take_profit_levels=[
+                TakeProfitLevel(profit_pct=10.0, close_pct=50),
+            ],
+        )
+
+        result = run_backtest(
+            candles=candles,
+            signals=signals,
+            initial_balance=10000.0,
+            fee_rate=0.001,
+            slippage_rate=0.0005,
+            spread_rate=0.0002,
+        )
+
+        # --- summary fields ---
+        assert result.num_trades == 2
+        assert result.final_balance == 11322.51
+        assert result.total_return_pct == 13.23
+        assert result.win_rate_pct == 100.0
+        assert result.gross_return_usd == 1356.63
+        assert result.total_costs_usd == 34.12
+        assert result.total_fees_usd == 21.32
+        assert result.total_slippage_usd == 10.67
+        assert result.total_spread_usd == 2.13
+        assert result.max_drawdown_pct == 5.49
+
+        # --- priority sequence: TP partial on bar 3, trailing stop on bar 5 ---
+        assert result.trades[0].exit_reason == "tp"
+        assert result.trades[0].exit_time == datetime(2024, 1, 3, tzinfo=timezone.utc)
+        assert result.trades[1].exit_reason == "trailing_stop"
+        assert result.trades[1].exit_time == datetime(2024, 1, 5, tzinfo=timezone.utc)
+
+        # --- per-trade pnl / exit_price ---
+        assert result.trades[0].pnl == pytest.approx(491.2035747250012,   rel=1e-9)
+        assert result.trades[1].pnl == pytest.approx(831.3099156993716,   rel=1e-9)
+        assert result.trades[0].exit_price == pytest.approx(109.99986140002889, rel=1e-9)
+        assert result.trades[1].exit_price == pytest.approx(116.81287604415002, rel=1e-9)
+
+        # --- equity curve ---
+        equity_values = [pt["equity"] for pt in result.equity_curve]
+        assert equity_values == pytest.approx(
+            [10183.7, 9984.02, 11082.25, 11980.82, 11322.51, 11322.51],
+            rel=1e-9,
+        )
+
+    def test_snapshot_time_exit_beats_signal_same_bar(self):
+        """Time exit (priority 4) fires when bars_in_trade reaches threshold even though
+        exit_signal is also True on that bar (signal has priority 5)."""
+        candles = [
+            make_candle(1, 100, 105,  98, 102),  # entry signal
+            make_candle(2, 100, 101,  99, 100),  # entry at open=100; bars_in_trade=1
+            make_candle(3, 100, 101,  99, 100),  # bars_in_trade=2
+            make_candle(4, 100, 101,  99, 100),  # bars_in_trade=3 → time_exit fires; exit_signal also True
+            make_candle(5, 100, 101,  99, 100),  # post-close bar
+        ]
+        signals = make_signals(
+            entry_long=[True, False, False, False, False],
+            exit_long=[False, False, False, True, False],  # exit signal also fires on bar 4
+            time_exit_bars=3,
+        )
+
+        result = run_backtest(
+            candles=candles,
+            signals=signals,
+            initial_balance=10000.0,
+            fee_rate=0.001,
+            slippage_rate=0.0005,
+            spread_rate=0.0002,
+        )
+
+        # --- summary fields ---
+        assert result.num_trades == 1
+        assert result.final_balance == 9968.05
+        assert result.total_return_pct == -0.32
+        assert result.win_rate_pct == 0.0
+        assert result.gross_return_usd == 0.0
+        assert result.total_costs_usd == 31.95
+        assert result.total_fees_usd == 19.97
+        assert result.total_slippage_usd == 9.98
+        assert result.total_spread_usd == 2.0
+        assert result.max_drawdown_pct == 2.12
+
+        # --- priority winner: time_exit, not signal ---
+        assert result.trades[0].exit_reason == "time_exit"
+        assert result.trades[0].exit_time == datetime(2024, 1, 4, tzinfo=timezone.utc)
+
+        # --- per-trade pnl / exit_price ---
+        assert result.trades[0].pnl == pytest.approx(-31.948862052358564, rel=1e-9)
+        assert result.trades[0].exit_price == pytest.approx(99.84006499499999, rel=1e-9)
+
+        # --- equity curve ---
+        equity_values = [pt["equity"] for pt in result.equity_curve]
+        assert equity_values == pytest.approx(
+            [10183.7, 9984.02, 9984.02, 9968.05, 9968.05],
+            rel=1e-9,
+        )
