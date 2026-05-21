@@ -23,6 +23,7 @@ from app.models.shared_backtest_link import SharedBacktestLink
 from app.models.strategy import Strategy
 from app.models.strategy_version import StrategyVersion
 from app.models.user import User, UserTier
+import app.services.backtest_service as backtest_service
 from app.backtest.data_quality import query_metrics_for_range, compute_completeness_metrics
 from app.backtest.storage import download_json
 from app.backtest.explanation import build_trade_explanation
@@ -247,7 +248,6 @@ def create_backtest(
     session: Session = Depends(get_session),
 ) -> BacktestCreateResponse:
     """Create a new backtest run and enqueue it for processing."""
-    # Verify strategy exists and belongs to user
     strategy = session.exec(
         select(Strategy).where(
             Strategy.id == data.strategy_id,
@@ -255,10 +255,7 @@ def create_backtest(
         )
     ).first()
     if not strategy:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Strategy not found",
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Strategy not found")
 
     # Force-refresh of cached OHLCV is restricted to grandfathered beta users.
     if data.force_refresh_prices and user.user_tier != UserTier.BETA:
@@ -267,84 +264,58 @@ def create_backtest(
             detail="Force refresh prices is only available for Beta User — Grandfathered Perks Applied.",
         )
 
-    # Check daily backtest limit based on plan tier
-    effective_limits = get_effective_limits(user.plan_tier, user.user_tier)
-    today_start = datetime.now(timezone.utc).replace(
-        hour=0, minute=0, second=0, microsecond=0
-    )
-    today_count = session.exec(
-        select(func.count(BacktestRun.id)).where(
-            BacktestRun.user_id == user.id,
-            BacktestRun.created_at >= today_start,
-        )
-    ).one()
-    use_credit = False
-    if today_count >= effective_limits["max_backtests_per_day"]:
-        if user.backtest_credit_balance > 0:
-            use_credit = True
-        else:
-            existing_notification = session.exec(
-                select(Notification).where(
-                    Notification.user_id == user.id,
-                    Notification.type == "usage_limit_reached",
-                    Notification.is_read == False,  # noqa: E712
-                    Notification.created_at >= today_start,
-                )
-            ).first()
-            if not existing_notification:
-                notification = Notification(
-                    user_id=user.id,
-                    type="usage_limit_reached",
-                    title="Daily backtest limit reached",
-                    body=f"You've reached your daily limit of {effective_limits['max_backtests_per_day']} backtests. Purchase backtest credits or upgrade your plan.",
-                )
-                session.add(notification)
-                session.commit()
+    use_credit = backtest_service.enforce_daily_limit(user, session)
+    backtest_service.enforce_history_depth(user, data.date_from, data.date_to)
+    version = backtest_service.latest_version(strategy, session)
 
-            tomorrow = today_start + timedelta(days=1)
-            raise HTTPException(
-                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail=f"Daily backtest limit reached ({effective_limits['max_backtests_per_day']}). Purchase credits or resets at {tomorrow.isoformat()}.",
-            )
-
-    # Check historical data depth limit
-    date_range_days = (data.date_to - data.date_from).days
-    if date_range_days > effective_limits["max_history_days"]:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Date range exceeds your plan's historical data limit ({effective_limits['max_history_days']} days). Upgrade to access longer history.",
-        )
-
-    # Get latest version
-    latest_version = session.exec(
-        select(StrategyVersion)
-        .where(StrategyVersion.strategy_id == strategy.id)
-        .order_by(StrategyVersion.version_number.desc())
-    ).first()
-    if not latest_version:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Strategy has no saved versions",
-        )
-
-    fee_rate, slippage_rate, spread_rate = _resolve_rates(
+    fee_rate, slippage_rate, spread_rate = backtest_service.resolve_rates(
         user, data.fee_rate, data.slippage_rate, data.spread_rate,
     )
 
-    run = _create_single_run(
-        user, strategy, latest_version, session,
+    correlation_id = correlation_id_var.get("") or None
+    run, job_spec = backtest_service.build_run(
+        user, strategy, version, session,
         data.date_from, data.date_to,
         fee_rate, slippage_rate, spread_rate,
+        correlation_id,
         force_refresh_prices=data.force_refresh_prices,
     )
 
     if use_credit:
         user.backtest_credit_balance -= 1
         session.add(user)
-        session.commit()
+
+    session.commit()
+
+    try:
+        queue = get_redis_queue()
+        queue.enqueue(
+            "app.worker.jobs.run_backtest_job",
+            job_spec.run_id,
+            job_spec.force_refresh_prices,
+            job_spec.correlation_id,
+            job_timeout=300,
+        )
         logger.info(
-            "User %s used backtest credit (balance: %s)",
-            user.id, user.backtest_credit_balance,
+            "backtest_enqueued",
+            extra={
+                "run_id": job_spec.run_id,
+                "strategy_id": str(strategy.id),
+                "user_id": str(user.id),
+                "asset": strategy.asset,
+                "timeframe": strategy.timeframe,
+                "batch_id": None,
+                "period_key": None,
+            },
+        )
+    except Exception:
+        run.status = "failed"
+        run.error_message = "Failed to queue backtest job"
+        session.add(run)
+        session.commit()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to queue backtest job",
         )
 
     return BacktestCreateResponse(run_id=run.id, status=run.status)
