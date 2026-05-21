@@ -66,6 +66,11 @@ describe("distributeHandleY", () => {
     const { distributeHandleY } = await getFactory();
     expect(distributeHandleY(4)).toEqual([24, 42, 60, 78]);
   });
+
+  it("returns [22, 37, 52, 67, 82] for count 5", async () => {
+    const { distributeHandleY } = await getFactory();
+    expect(distributeHandleY(5)).toEqual([22, 37, 52, 67, 82]);
+  });
 });
 
 describe("CATEGORY_HANDLE_COLOR", () => {
@@ -187,6 +192,48 @@ describe("createBlockNode — handle count from registry", () => {
     const { container } = renderNode(CompareNode);
     expect(container.querySelectorAll('[data-handletype="target"]')).toHaveLength(2);
     expect(container.querySelectorAll('[data-handletype="source"]')).toHaveLength(1);
+  });
+});
+
+describe("migrated node acceptance criteria", () => {
+  it("ConstantNode with value=0 displays 'Value: 0' (not the registry default)", async () => {
+    const { nodeTypes } = await import("../nodes");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const Component = nodeTypes["constant"] as React.ComponentType<any>;
+    renderNode(Component, { params: { value: 0 } });
+    expect(screen.getByText(/Value: 0/)).toBeInTheDocument();
+  });
+
+  it("FibonacciNode renders 5 output handles", async () => {
+    const { nodeTypes } = await import("../nodes");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const Component = nodeTypes["fibonacci"] as React.ComponentType<any>;
+    const { container } = renderNode(Component);
+    expect(container.querySelectorAll('[data-handletype="source"]')).toHaveLength(5);
+  });
+
+  it("MacdNode uses abbreviated param labels (Fast/Slow/Signal), not title-cased (Fast Period/...)", async () => {
+    const { nodeTypes } = await import("../nodes");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const Component = nodeTypes["macd"] as React.ComponentType<any>;
+    renderNode(Component);
+    expect(screen.getByText(/Fast:/)).toBeInTheDocument();
+    expect(screen.getByText(/Slow:/)).toBeInTheDocument();
+    expect(screen.getByText(/Signal:/)).toBeInTheDocument();
+    expect(screen.queryByText(/Fast Period:/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Slow Period:/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Signal Period:/)).not.toBeInTheDocument();
+  });
+
+  it("IchimokuNode uses abbreviated labels Conv/Displ (not Conversion/Displacement)", async () => {
+    const { nodeTypes } = await import("../nodes");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const Component = nodeTypes["ichimoku"] as React.ComponentType<any>;
+    renderNode(Component);
+    expect(screen.getByText(/Conv:/)).toBeInTheDocument();
+    expect(screen.getByText(/Displ:/)).toBeInTheDocument();
+    expect(screen.queryByText(/Conversion:/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Displacement:/)).not.toBeInTheDocument();
   });
 });
 

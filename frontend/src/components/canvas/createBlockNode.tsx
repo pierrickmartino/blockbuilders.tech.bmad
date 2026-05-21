@@ -9,6 +9,7 @@ const HANDLE_Y_POSITIONS: Record<number, number[]> = {
   2: [38, 66],
   3: [32, 52, 72],
   4: [24, 42, 60, 78],
+  5: [22, 37, 52, 67, 82],
 };
 
 export function distributeHandleY(count: number): number[] {
