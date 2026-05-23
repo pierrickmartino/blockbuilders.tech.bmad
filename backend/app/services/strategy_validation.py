@@ -27,58 +27,6 @@ def validate_block_params(block: Block) -> list[ValidationError]:
             )
         return errors
 
-    if block.type == "bollinger":
-        period = params.get("period", 0)
-        if not isinstance(period, (int, float)) or not 1 <= period <= 500:
-            user_msg, help_link = get_error_message("INVALID_PERIOD", min_val=1, max_val=500)
-            errors.append(
-                ValidationError(
-                    block_id=block.id,
-                    code="INVALID_PERIOD",
-                    message=f"Period must be 1-500, got {period}",
-                    user_message=user_msg,
-                    help_link=help_link,
-                )
-            )
-
-    if block.type == "macd":
-        fast = params.get("fast_period", 0)
-        slow = params.get("slow_period", 0)
-        signal = params.get("signal_period", 0)
-        if not isinstance(fast, (int, float)) or not 1 <= fast <= 50:
-            user_msg, help_link = get_error_message("INVALID_PARAM", param_name="MACD fast period", min_val=1, max_val=50)
-            errors.append(
-                ValidationError(
-                    block_id=block.id,
-                    code="INVALID_PARAM",
-                    message=f"MACD fast period must be 1-50, got {fast}",
-                    user_message=user_msg,
-                    help_link=help_link,
-                )
-            )
-        if not isinstance(slow, (int, float)) or not 1 <= slow <= 200:
-            user_msg, help_link = get_error_message("INVALID_PARAM", param_name="MACD slow period", min_val=1, max_val=200)
-            errors.append(
-                ValidationError(
-                    block_id=block.id,
-                    code="INVALID_PARAM",
-                    message=f"MACD slow period must be 1-200, got {slow}",
-                    user_message=user_msg,
-                    help_link=help_link,
-                )
-            )
-        if not isinstance(signal, (int, float)) or not 1 <= signal <= 50:
-            user_msg, help_link = get_error_message("INVALID_PARAM", param_name="MACD signal period", min_val=1, max_val=50)
-            errors.append(
-                ValidationError(
-                    block_id=block.id,
-                    code="INVALID_PARAM",
-                    message=f"MACD signal period must be 1-50, got {signal}",
-                    user_message=user_msg,
-                    help_link=help_link,
-                )
-            )
-
     if block.type == "position_size":
         value = params.get("value", 0)
         if not isinstance(value, (int, float)) or not 1 <= value <= 100:

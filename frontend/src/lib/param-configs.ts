@@ -123,84 +123,83 @@ export function getParamConfigs(blockType: BlockType): ParamConfig[] {
         },
       ];
     }
-    case "macd":
+    case "macd": {
+      const spec = getCatalogueBlock("macd")!;
+      const sourceParam = spec.params.find((p) => p.name === "source")!;
+      const fastParam = spec.params.find((p) => p.name === "fast_period")!;
+      const slowParam = spec.params.find((p) => p.name === "slow_period")!;
+      const signalParam = spec.params.find((p) => p.name === "signal_period")!;
       return [
         {
           key: "source",
           label: "Price Source",
           type: "select",
-          defaultValue: "close",
-          quickSwap: true,  // Enable quick-swap UI
-          options: [
-            { value: "open", label: "Open" },
-            { value: "high", label: "High" },
-            { value: "low", label: "Low" },
-            { value: "close", label: "Close" },
-            { value: "prev_close", label: "Previous Close" },
-          ],
+          defaultValue: sourceParam.default as string,
+          quickSwap: true,
+          options: (sourceParam.options ?? []).map((v) => ({ value: v, label: v.charAt(0).toUpperCase() + v.slice(1).replace("_", " ") })),
         },
         {
           key: "fast_period",
           label: "Fast Period",
           type: "number",
-          defaultValue: 12,
-          min: 1,
-          max: 50,
+          defaultValue: fastParam.default as number,
+          min: fastParam.min,
+          max: fastParam.max,
         },
         {
           key: "slow_period",
           label: "Slow Period",
           type: "number",
-          defaultValue: 26,
-          min: 1,
-          max: 200,
+          defaultValue: slowParam.default as number,
+          min: slowParam.min,
+          max: slowParam.max,
         },
         {
           key: "signal_period",
           label: "Signal Period",
           type: "number",
-          defaultValue: 9,
-          min: 1,
-          max: 50,
+          defaultValue: signalParam.default as number,
+          min: signalParam.min,
+          max: signalParam.max,
           advanced: true,
         },
       ];
-    case "bollinger":
+    }
+    case "bollinger": {
+      const spec = getCatalogueBlock("bollinger")!;
+      const sourceParam = spec.params.find((p) => p.name === "source")!;
+      const periodParam = spec.params.find((p) => p.name === "period")!;
+      const stddevParam = spec.params.find((p) => p.name === "stddev")!;
       return [
         {
           key: "source",
           label: "Price Source",
           type: "select",
-          defaultValue: "close",
-          quickSwap: true,  // Enable quick-swap UI
-          options: [
-            { value: "open", label: "Open" },
-            { value: "high", label: "High" },
-            { value: "low", label: "Low" },
-            { value: "close", label: "Close" },
-            { value: "prev_close", label: "Previous Close" },
-          ],
+          defaultValue: sourceParam.default as string,
+          quickSwap: true,
+          options: (sourceParam.options ?? []).map((v) => ({ value: v, label: v.charAt(0).toUpperCase() + v.slice(1).replace("_", " ") })),
         },
         {
           key: "period",
           label: "Period",
           type: "number",
-          defaultValue: 20,
-          min: 1,
-          max: 500,
-          presets: [14, 20, 50, 200],  // Period presets
+          defaultValue: periodParam.default as number,
+          min: periodParam.min,
+          max: periodParam.max,
+          presets: [14, 20, 50, 200],
         },
         {
           key: "stddev",
           label: "Std Dev",
           type: "number",
-          defaultValue: 2,
-          min: 0.5,
-          max: 5,
+          defaultValue: stddevParam.default as number,
+          min: stddevParam.min,
+          max: stddevParam.max,
           step: 0.5,
           advanced: true,
         },
       ];
+    }
     case "atr": {
       const spec = getCatalogueBlock("atr")!;
       const periodParam = spec.params.find((p) => p.name === "period")!;
@@ -216,49 +215,57 @@ export function getParamConfigs(blockType: BlockType): ParamConfig[] {
         },
       ];
     }
-    case "stochastic":
+    case "stochastic": {
+      const spec = getCatalogueBlock("stochastic")!;
+      const kParam = spec.params.find((p) => p.name === "k_period")!;
+      const dParam = spec.params.find((p) => p.name === "d_period")!;
+      const smoothParam = spec.params.find((p) => p.name === "smooth")!;
       return [
         {
           key: "k_period",
           label: "%K Period",
           type: "number",
-          defaultValue: 14,
-          min: 1,
-          max: 100,
-          help: "Fast stochastic period (1-100)",
+          defaultValue: kParam.default as number,
+          min: kParam.min,
+          max: kParam.max,
+          help: `Fast stochastic period (${kParam.min}-${kParam.max})`,
         },
         {
           key: "d_period",
           label: "%D Period",
           type: "number",
-          defaultValue: 3,
-          min: 1,
-          max: 50,
-          help: "Slow stochastic period (1-50)",
+          defaultValue: dParam.default as number,
+          min: dParam.min,
+          max: dParam.max,
+          help: `Slow stochastic period (${dParam.min}-${dParam.max})`,
         },
         {
           key: "smooth",
           label: "Smoothing",
           type: "number",
-          defaultValue: 3,
-          min: 1,
-          max: 20,
-          help: "Smoothing period for %K (1-20)",
+          defaultValue: smoothParam.default as number,
+          min: smoothParam.min,
+          max: smoothParam.max,
+          help: `Smoothing period for %K (${smoothParam.min}-${smoothParam.max})`,
           advanced: true,
         },
       ];
-    case "adx":
+    }
+    case "adx": {
+      const spec = getCatalogueBlock("adx")!;
+      const periodParam = spec.params.find((p) => p.name === "period")!;
       return [
         {
           key: "period",
           label: "Period",
           type: "number",
-          defaultValue: 14,
-          min: 1,
-          max: 100,
-          help: "ADX calculation period (1-100)",
+          defaultValue: periodParam.default as number,
+          min: periodParam.min,
+          max: periodParam.max,
+          help: `ADX calculation period (${periodParam.min}-${periodParam.max})`,
         },
       ];
+    }
     case "ichimoku": {
       const spec = getCatalogueBlock("ichimoku")!;
       const p = (name: string) => spec.params.find((param) => param.name === name)!;

@@ -214,6 +214,144 @@ export const CATALOGUE_BLOCKS: CatalogueBlockSpec[] = [
   [],
   },
   {
+    type: "macd",
+    category: "indicator",
+    label: "MACD",
+    inputs: [],
+    outputs: [{"name": "output", "label": "Output (MACD Line)"}, {"name": "macd", "label": "MACD Line"}, {"name": "signal", "label": "Signal Line"}, {"name": "histogram", "label": "Histogram"}],
+    params:
+  [
+      {
+          "name": "source",
+          "label": "Price Source",
+          "kind": "enum",
+          "default": "close",
+          "options": [
+              "open",
+              "high",
+              "low",
+              "close",
+              "prev_close"
+          ]
+      },
+      {
+          "name": "fast_period",
+          "label": "Fast Period",
+          "kind": "int",
+          "default": 12,
+          "min": 1,
+          "max": 50
+      },
+      {
+          "name": "slow_period",
+          "label": "Slow Period",
+          "kind": "int",
+          "default": 26,
+          "min": 1,
+          "max": 200
+      },
+      {
+          "name": "signal_period",
+          "label": "Signal Period",
+          "kind": "int",
+          "default": 9,
+          "min": 1,
+          "max": 50
+      }
+  ],
+  },
+  {
+    type: "bollinger",
+    category: "indicator",
+    label: "Bollinger Bands",
+    inputs: [],
+    outputs: [{"name": "output", "label": "Output (Middle Band)"}, {"name": "upper", "label": "Upper Band"}, {"name": "middle", "label": "Middle Band"}, {"name": "lower", "label": "Lower Band"}],
+    params:
+  [
+      {
+          "name": "source",
+          "label": "Price Source",
+          "kind": "enum",
+          "default": "close",
+          "options": [
+              "open",
+              "high",
+              "low",
+              "close",
+              "prev_close"
+          ]
+      },
+      {
+          "name": "period",
+          "label": "Period",
+          "kind": "int",
+          "default": 20,
+          "min": 1,
+          "max": 500
+      },
+      {
+          "name": "stddev",
+          "label": "Std Dev Multiplier",
+          "kind": "float",
+          "default": 2.0,
+          "min": 0.5,
+          "max": 5.0
+      }
+  ],
+  },
+  {
+    type: "stochastic",
+    category: "indicator",
+    label: "Stochastic Oscillator",
+    inputs: [],
+    outputs: [{"name": "output", "label": "Output (%K)"}, {"name": "k", "label": "%K Line"}, {"name": "d", "label": "%D Line"}],
+    params:
+  [
+      {
+          "name": "k_period",
+          "label": "K Period",
+          "kind": "int",
+          "default": 14,
+          "min": 1,
+          "max": 100
+      },
+      {
+          "name": "d_period",
+          "label": "D Period",
+          "kind": "int",
+          "default": 3,
+          "min": 1,
+          "max": 50
+      },
+      {
+          "name": "smooth",
+          "label": "Smooth K",
+          "kind": "int",
+          "default": 3,
+          "min": 1,
+          "max": 20
+      }
+  ],
+  },
+  {
+    type: "adx",
+    category: "indicator",
+    label: "ADX",
+    inputs: [],
+    outputs: [{"name": "output", "label": "Output (ADX)"}, {"name": "adx", "label": "ADX"}, {"name": "plus_di", "label": "+DI"}, {"name": "minus_di", "label": "-DI"}],
+    params:
+  [
+      {
+          "name": "period",
+          "label": "Period",
+          "kind": "int",
+          "default": 14,
+          "min": 1,
+          "max": 100
+      }
+  ],
+  },
+  {
     type: "ichimoku",
     category: "indicator",
     label: "Ichimoku Cloud",
