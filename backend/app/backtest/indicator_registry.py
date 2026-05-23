@@ -23,12 +23,6 @@ class IndicatorContext:
         return self.candle_data[source]
 
 
-def _sma_adapter(ctx: IndicatorContext) -> dict[str, list]:
-    period = int(ctx.params.get("period", 20))
-    result = indicators.sma(ctx.source_series(), period)
-    return {"output": result}
-
-
 def _ema_adapter(ctx: IndicatorContext) -> dict[str, list]:
     period = int(ctx.params.get("period", 20))
     result = indicators.ema(ctx.source_series(), period)
@@ -155,7 +149,6 @@ def _price_variation_pct_adapter(ctx: IndicatorContext) -> dict[str, list]:
 
 
 INDICATOR_REGISTRY: dict[str, Callable[[IndicatorContext], dict[str, list]]] = {
-    "sma": _sma_adapter,
     "ema": _ema_adapter,
     "rsi": _rsi_adapter,
     "macd": _macd_adapter,

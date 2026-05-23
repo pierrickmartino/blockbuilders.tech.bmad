@@ -4,7 +4,7 @@ from app.backtest.errors import StrategyInvalidError
 from app.backtest.indicator_registry import INDICATOR_REGISTRY, IndicatorContext
 
 KNOWN_INDICATOR_TYPES = {
-    "sma",
+    # "sma" migrated to app.backtest.catalogue — no longer in INDICATOR_REGISTRY
     "ema",
     "rsi",
     "macd",

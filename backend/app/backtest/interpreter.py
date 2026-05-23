@@ -5,6 +5,8 @@ from typing import Any, Optional
 from app.models.candle import Candle
 from app.backtest.errors import StrategyInvalidError
 from app.backtest.indicator_registry import INDICATOR_REGISTRY, IndicatorContext
+from app.backtest.catalogue import lookup as catalogue_lookup
+from app.backtest.catalogue.types import BlockContext
 
 
 @dataclass
@@ -124,6 +126,14 @@ def interpret_strategy(
             # Previous candle close: null for first candle, then close[t-1]
             result = [None] + closes[:-1]
             block_outputs[block_id]["output"] = result
+
+        elif (catalogue_handler := catalogue_lookup(block_type)) is not None:
+            resolved_inputs = {
+                port: get_block_output(*src)
+                for port, src in inputs.items()
+            }
+            ctx = BlockContext(candle_data=candle_data, params=params, inputs=resolved_inputs, n=n)
+            block_outputs[block_id] = catalogue_handler.compute(ctx)
 
         elif block_type in INDICATOR_REGISTRY:
             ctx = IndicatorContext(candle_data=candle_data, params=params, n=n)

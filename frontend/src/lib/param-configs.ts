@@ -1,3 +1,4 @@
+import { getCatalogueBlock } from "@/generated/blocks";
 import { BlockType } from "@/types/canvas";
 
 export interface ParamConfig {
@@ -47,7 +48,31 @@ export function getParamConfigs(blockType: BlockType): ParamConfig[] {
           help: "Fixed numeric value (-1M to 1M)",
         },
       ];
-    case "sma":
+    case "sma": {
+      const smaSpec = getCatalogueBlock("sma")!;
+      const periodParam = smaSpec.params.find((p) => p.name === "period")!;
+      const sourceParam = smaSpec.params.find((p) => p.name === "source")!;
+      return [
+        {
+          key: "source",
+          label: "Price Source",
+          type: "select",
+          defaultValue: sourceParam.default as string,
+          quickSwap: true,
+          options: (sourceParam.options ?? []).map((v) => ({ value: v, label: v.charAt(0).toUpperCase() + v.slice(1) })),
+        },
+        {
+          key: "period",
+          label: "Period",
+          type: "number",
+          defaultValue: periodParam.default as number,
+          min: periodParam.min,
+          max: periodParam.max,
+          presets: [14, 20, 50, 200],
+          help: `Number of candles (${periodParam.min}-${periodParam.max})`,
+        },
+      ];
+    }
     case "ema":
       return [
         {
@@ -55,7 +80,7 @@ export function getParamConfigs(blockType: BlockType): ParamConfig[] {
           label: "Price Source",
           type: "select",
           defaultValue: "close",
-          quickSwap: true,  // Enable quick-swap UI
+          quickSwap: true,
           options: [
             { value: "open", label: "Open" },
             { value: "high", label: "High" },
@@ -71,7 +96,7 @@ export function getParamConfigs(blockType: BlockType): ParamConfig[] {
           defaultValue: 20,
           min: 1,
           max: 500,
-          presets: [14, 20, 50, 200],  // Period presets
+          presets: [14, 20, 50, 200],
           help: "Number of candles (1-500)",
         },
       ];

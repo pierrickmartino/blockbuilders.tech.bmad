@@ -135,14 +135,23 @@ function ReadinessDot({ segments, rollup }: { segments: HealthBarState; rollup: 
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <span
-          role="status"
-          aria-label={`readiness: ${ROLLUP_LABEL[rollup]}`}
-          className={cn(
-            "inline-flex h-2 w-2 flex-shrink-0 cursor-default rounded-full",
-            ROLLUP_DOT_CLASS[rollup]
-          )}
-        />
+        <span className="relative inline-flex h-2 w-2 flex-shrink-0">
+          <span
+            aria-hidden="true"
+            className={cn(
+              "absolute inset-0 rounded-full opacity-75 motion-safe:animate-ping",
+              ROLLUP_DOT_CLASS[rollup]
+            )}
+          />
+          <span
+            role="status"
+            aria-label={`readiness: ${ROLLUP_LABEL[rollup]}`}
+            className={cn(
+              "relative inline-flex h-2 w-2 cursor-default rounded-full",
+              ROLLUP_DOT_CLASS[rollup]
+            )}
+          />
+        </span>
       </TooltipTrigger>
       <TooltipContent side="top" className="text-xs">
         <div className="flex flex-col gap-1">

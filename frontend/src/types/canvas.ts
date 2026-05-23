@@ -1,3 +1,5 @@
+import { getCatalogueBlock } from "@/generated/blocks";
+
 // Block categories
 export type BlockCategory = "input" | "indicator" | "logic" | "signal" | "risk";
 
@@ -284,16 +286,19 @@ export const BLOCK_REGISTRY: BlockMeta[] = [
     outputs: ["output"],
     defaultParams: {},
   },
-  // Indicators
-  {
-    type: "sma",
-    category: "indicator",
-    label: "SMA",
-    description: "Simple Moving Average",
-    inputs: [],
-    outputs: ["output"],
-    defaultParams: { source: "close", period: 20 },
-  },
+  // Indicators — sma is catalogue-managed; entry derived from generated/blocks.ts
+  (() => {
+    const spec = getCatalogueBlock("sma")!;
+    return {
+      type: "sma" as BlockType,
+      category: spec.category as BlockCategory,
+      label: spec.label,
+      description: "Simple Moving Average",
+      inputs: spec.inputs.map((p) => p.name),
+      outputs: spec.outputs.map((p) => p.name),
+      defaultParams: Object.fromEntries(spec.params.map((p) => [p.name, p.default])),
+    };
+  })(),
   {
     type: "ema",
     category: "indicator",

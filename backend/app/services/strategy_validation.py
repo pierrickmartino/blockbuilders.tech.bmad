@@ -2,6 +2,7 @@
 
 Zero I/O, zero DB, zero HTTP — safe to unit test without any app context.
 """
+from app.backtest.catalogue import lookup as catalogue_lookup
 from app.schemas.strategy import Block, StrategyDefinitionValidate, ValidationError
 from app.validation.error_messages import get_error_message
 
@@ -10,6 +11,21 @@ def validate_block_params(block: Block) -> list[ValidationError]:
     """Validate block parameters are within allowed ranges."""
     errors: list[ValidationError] = []
     params = block.params
+
+    handler = catalogue_lookup(block.type)
+    if handler is not None:
+        issues = handler.validate(params)
+        for issue in issues:
+            errors.append(
+                ValidationError(
+                    block_id=block.id,
+                    code=issue.code,
+                    message=issue.message,
+                    user_message=issue.user_message,
+                    help_link=issue.help_link,
+                )
+            )
+        return errors
 
     if block.type == "constant":
         value = params.get("value", 0)
@@ -36,7 +52,7 @@ def validate_block_params(block: Block) -> list[ValidationError]:
                 )
             )
 
-    if block.type in ("sma", "ema", "bollinger", "atr"):
+    if block.type in ("ema", "bollinger", "atr"):
         period = params.get("period", 0)
         if not isinstance(period, (int, float)) or not 1 <= period <= 500:
             user_msg, help_link = get_error_message("INVALID_PERIOD", min_val=1, max_val=500)
