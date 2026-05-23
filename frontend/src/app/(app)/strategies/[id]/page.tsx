@@ -3,7 +3,7 @@
 import { useEffect, useState, use, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Node, Edge, ReactFlowInstance } from "@xyflow/react";
+import { Node, Edge, ReactFlowInstance, useNodesInitialized } from "@xyflow/react";
 import { apiFetch } from "@/lib/api";
 import {
   trackEvent,
@@ -31,7 +31,7 @@ import {
   generateBlockId,
   tidyConnections,
 } from "@/lib/canvas-utils";
-import { autoArrangeLayout } from "@/lib/layout-algorithm";
+import { arrangeNodes } from "@/lib/layout-algorithm";
 import { copyToClipboard, pasteFromClipboard } from "@/lib/clipboard-utils";
 import {
   resetHistory,
@@ -912,25 +912,28 @@ export default function StrategyEditorPage({ params }: Props) {
   }, []);
 
   // Handle auto-arrange layout
-  const handleAutoArrange = useCallback(async (direction: "LR" | "TB") => {
-    // Apply layout algorithm
-    const newPositions = await autoArrangeLayout(nodes, edges, direction);
+  const handleAutoArrange = useCallback(async () => {
+    const dims = new Map<string, { width: number; height: number }>();
+    for (const node of nodes) {
+      const internal = reactFlowRef.current?.getInternalNode(node.id);
+      const measured = internal?.measured;
+      if (measured?.width && measured?.height) {
+        dims.set(node.id, { width: measured.width, height: measured.height });
+      }
+    }
 
-    // Update nodes with new positions
+    const newPositions = await arrangeNodes(nodes, edges, dims);
     const updatedNodes = nodes.map(node => ({
       ...node,
-      position: newPositions.get(node.id) || node.position
+      position: newPositions.get(node.id) || node.position,
     }));
 
-    // Update state and history
     setNodes(updatedNodes);
     scheduleSnapshot(updatedNodes, edges);
 
-    // Fit view with animation (respect reduced-motion preference)
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     reactFlowRef.current?.fitView({ padding: 0.2, duration: reduceMotion ? 0 : 300 });
 
-    // Close mobile sheet if open
     setShowLayoutMenu(false);
   }, [nodes, edges, scheduleSnapshot]);
 
@@ -1387,18 +1390,11 @@ export default function StrategyEditorPage({ params }: Props) {
             </SheetHeader>
             <div className="mt-4 space-y-2">
               <Button
-                onClick={() => handleAutoArrange("LR")}
+                onClick={handleAutoArrange}
                 className="w-full"
                 variant="outline"
               >
-                Arrange: Left → Right
-              </Button>
-              <Button
-                onClick={() => handleAutoArrange("TB")}
-                className="w-full"
-                variant="outline"
-              >
-                Arrange: Top → Bottom
+                Auto-arrange
               </Button>
               <Button
                 onClick={handleTidyConnections}
