@@ -4,6 +4,8 @@ Discovery is via explicit imports (not autodiscovery).
 """
 from __future__ import annotations
 
+from app.backtest.catalogue.signal.entry_signal import EntrySignalHandler
+from app.backtest.catalogue.signal.exit_signal import ExitSignalHandler
 from app.backtest.catalogue.logic.and_ import AndHandler
 from app.backtest.catalogue.logic.compare import CompareHandler
 from app.backtest.catalogue.logic.crossover import CrossoverHandler
@@ -49,6 +51,8 @@ CATALOGUE: dict[str, BlockHandler] = {
     "and": AndHandler(),
     "or": OrHandler(),
     "not": NotHandler(),
+    "entry_signal": EntrySignalHandler(),
+    "exit_signal": ExitSignalHandler(),
 }
 
 

@@ -492,6 +492,24 @@ export const CATALOGUE_BLOCKS: CatalogueBlockSpec[] = [
     params:
   [],
   },
+  {
+    type: "entry_signal",
+    category: "signal",
+    label: "Entry Signal",
+    inputs: [{"name": "signal", "label": "Signal"}],
+    outputs: [{"name": "output", "label": "Output"}],
+    params:
+  [],
+  },
+  {
+    type: "exit_signal",
+    category: "signal",
+    label: "Exit Signal",
+    inputs: [{"name": "signal", "label": "Signal"}],
+    outputs: [{"name": "output", "label": "Output"}],
+    params:
+  [],
+  },
 ];
 
 export function getCatalogueBlock(type: string): CatalogueBlockSpec | undefined {

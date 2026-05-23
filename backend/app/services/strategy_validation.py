@@ -6,6 +6,11 @@ from app.backtest.catalogue import lookup as catalogue_lookup
 from app.schemas.strategy import Block, StrategyDefinitionValidate, ValidationError
 from app.validation.error_messages import get_error_message
 
+_ENTRY_SIGNAL_TYPES: frozenset[str] = frozenset({"entry_signal"})
+_EXIT_SIGNAL_TYPES: frozenset[str] = frozenset({"exit_signal"})
+_SIGNAL_BLOCK_TYPES: frozenset[str] = _ENTRY_SIGNAL_TYPES | _EXIT_SIGNAL_TYPES
+_SIGNAL_TYPE_LABELS: dict[str, str] = {"entry_signal": "Entry Signal", "exit_signal": "Exit Signal"}
+
 
 def validate_block_params(block: Block) -> list[ValidationError]:
     """Validate block parameters are within allowed ranges."""
@@ -225,9 +230,9 @@ def collect_validation_errors(definition: StrategyDefinitionValidate) -> list[Va
 
     connected_targets = {conn.to_port.block_id for conn in definition.connections}
     for block in definition.blocks:
-        if block.type in ("entry_signal", "exit_signal"):
+        if block.type in _SIGNAL_BLOCK_TYPES:
             if block.id not in connected_targets:
-                signal_type = "Entry Signal" if block.type == "entry_signal" else "Exit Signal"
+                signal_type = _SIGNAL_TYPE_LABELS.get(block.type, block.type)
                 user_msg, help_link = get_error_message("UNCONNECTED_SIGNAL", signal_type=signal_type)
                 errors.append(
                     ValidationError(
