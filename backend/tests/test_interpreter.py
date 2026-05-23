@@ -165,23 +165,6 @@ def test_bollinger_lower_port_triggers_entry_on_price_below_band():
     assert len(signals.entry_long) == len(candles)
 
 
-def test_all_registry_indicator_types_produce_output_list():
-    """Every indicator in INDICATOR_REGISTRY can be used as a block in a strategy."""
-    from app.backtest.indicator_registry import INDICATOR_REGISTRY
-
-    candles = make_uptrend_candles(60)
-    for indicator_type in INDICATOR_REGISTRY:
-        definition = {
-            "blocks": [
-                {"id": f"{indicator_type}-1", "type": indicator_type, "params": {}},
-                {"id": "entry-1", "type": "entry_signal", "params": {}},
-            ],
-            "connections": [],
-        }
-        signals = interpret_strategy(definition, candles)
-        assert isinstance(signals.entry_long, list), f"{indicator_type} did not produce entry_long list"
-
-
 # ---------------------------------------------------------------------------
 # End-to-end integration: one test per indicator, full strategy chain
 #   price source → indicator → comparator → entry_signal

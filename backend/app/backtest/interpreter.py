@@ -4,7 +4,11 @@ from typing import Any, Optional
 
 from app.models.candle import Candle
 from app.backtest.errors import StrategyInvalidError
-from app.backtest.indicator_registry import INDICATOR_REGISTRY, IndicatorContext
+from app.backtest.catalogue import lookup as catalogue_lookup
+from app.backtest.catalogue.types import BlockContext
+
+_ENTRY_SIGNAL_TYPES: frozenset[str] = frozenset({"entry_signal"})
+_EXIT_SIGNAL_TYPES: frozenset[str] = frozenset({"exit_signal"})
 
 
 @dataclass
@@ -107,64 +111,13 @@ def interpret_strategy(
             block_outputs[block_id] = {}
 
         # Evaluate based on block type
-        if block_type == "price":
-            source = params.get("source", "close")
-            result = candle_data.get(source, closes)
-            block_outputs[block_id]["output"] = result
-
-        elif block_type == "volume":
-            block_outputs[block_id]["output"] = volumes
-
-        elif block_type == "constant":
-            value = float(params.get("value", 0.0))
-            result = [value] * n  # Repeat constant for all candles
-            block_outputs[block_id]["output"] = result
-
-        elif block_type == "yesterday_close":
-            # Previous candle close: null for first candle, then close[t-1]
-            result = [None] + closes[:-1]
-            block_outputs[block_id]["output"] = result
-
-        elif block_type in INDICATOR_REGISTRY:
-            ctx = IndicatorContext(candle_data=candle_data, params=params, n=n)
-            block_outputs[block_id] = INDICATOR_REGISTRY[block_type](ctx)
-
-        elif block_type == "compare":
-            # Support both current (left/right) and legacy (a/b) compare ports.
-            left = _get_input_any(inputs, ["left", "a"], get_block_output, [0.0] * n)
-            right = _get_input_any(inputs, ["right", "b"], get_block_output, [0.0] * n)
-            operator = params.get("operator", ">")
-            result = _compare(left, right, operator, n)
-            block_outputs[block_id]["output"] = result
-
-        elif block_type == "crossover":
-            fast = _get_input(inputs, "fast", get_block_output, [0.0] * n)
-            slow = _get_input(inputs, "slow", get_block_output, [0.0] * n)
-            direction = params.get("direction", "crosses_above")
-            result = _crossover(fast, slow, direction, n)
-            block_outputs[block_id]["output"] = result
-
-        elif block_type == "and":
-            a = _get_input(inputs, "a", get_block_output, [False] * n)
-            b = _get_input(inputs, "b", get_block_output, [False] * n)
-            result = [_to_bool(av) and _to_bool(bv) for av, bv in zip(a, b)]
-            block_outputs[block_id]["output"] = result
-
-        elif block_type == "or":
-            a = _get_input(inputs, "a", get_block_output, [False] * n)
-            b = _get_input(inputs, "b", get_block_output, [False] * n)
-            result = [_to_bool(av) or _to_bool(bv) for av, bv in zip(a, b)]
-            block_outputs[block_id]["output"] = result
-
-        elif block_type == "not":
-            input_data = _get_input(inputs, "input", get_block_output, [False] * n)
-            result = [not _to_bool(v) for v in input_data]
-            block_outputs[block_id]["output"] = result
-
-        elif block_type in ("entry_signal", "exit_signal"):
-            signal_input = _get_input(inputs, "signal", get_block_output, [False] * n)
-            result = [_to_bool(v) for v in signal_input]
-            block_outputs[block_id]["output"] = result
+        if (catalogue_handler := catalogue_lookup(block_type)) is not None:
+            resolved_inputs = {
+                port: get_block_output(*src)
+                for port, src in inputs.items()
+            }
+            ctx = BlockContext(candle_data=candle_data, params=params, inputs=resolved_inputs, n=n)
+            block_outputs[block_id] = catalogue_handler.compute(ctx)
 
         elif block_type in ("position_size", "take_profit", "stop_loss", "max_drawdown", "time_exit", "trailing_stop"):
             # Risk blocks don't produce time series output
@@ -192,9 +145,9 @@ def interpret_strategy(
         block_type = block["type"]
         params = block.get("params", {})
 
-        if block_type == "entry_signal":
+        if block_type in _ENTRY_SIGNAL_TYPES:
             entry_blocks.append(block["id"])
-        elif block_type == "exit_signal":
+        elif block_type in _EXIT_SIGNAL_TYPES:
             exit_blocks.append(block["id"])
         elif block_type == "position_size":
             position_size_pct = float(params.get("value", 100))
@@ -267,20 +220,6 @@ def _get_input(
     return default
 
 
-def _get_input_any(
-    inputs: dict[str, tuple[str, str]],
-    ports: list[str],
-    get_fn: callable,
-    default: list[Any],
-) -> list[Any]:
-    """Get input data from the first matching port, or return default."""
-    for port in ports:
-        if port in inputs:
-            from_block, from_port = inputs[port]
-            return get_fn(from_block, from_port)
-    return default
-
-
 def _to_bool(value: Any) -> bool:
     """Convert value to boolean."""
     if value is None:
@@ -292,90 +231,3 @@ def _to_bool(value: Any) -> bool:
     return bool(value)
 
 
-def _compare(
-    left: list[Any],
-    right: list[Any],
-    operator: str,
-    n: int,
-) -> list[bool]:
-    """Compare two series with given operator."""
-    normalized_operator = _normalize_compare_operator(operator)
-    result = []
-    for i in range(n):
-        l_val = left[i] if i < len(left) else None
-        r_val = right[i] if i < len(right) else None
-
-        if l_val is None or r_val is None:
-            result.append(False)
-            continue
-
-        if normalized_operator == ">":
-            result.append(l_val > r_val)
-        elif normalized_operator == "<":
-            result.append(l_val < r_val)
-        elif normalized_operator == ">=":
-            result.append(l_val >= r_val)
-        elif normalized_operator == "<=":
-            result.append(l_val <= r_val)
-        else:
-            result.append(False)
-
-    return result
-
-
-def _normalize_compare_operator(operator: Any) -> Optional[str]:
-    """Normalize compare operators across legacy and current formats."""
-    if not isinstance(operator, str):
-        return None
-
-    normalized = operator.strip().lower()
-    operator_map = {
-        ">": ">",
-        "above": ">",
-        "gt": ">",
-        "greater_than": ">",
-        "<": "<",
-        "below": "<",
-        "lt": "<",
-        "less_than": "<",
-        ">=": ">=",
-        "gte": ">=",
-        "at_or_above": ">=",
-        "greater_than_or_equal": ">=",
-        "<=": "<=",
-        "lte": "<=",
-        "at_or_below": "<=",
-        "less_than_or_equal": "<=",
-    }
-    return operator_map.get(normalized)
-
-
-def _crossover(
-    fast: list[Any],
-    slow: list[Any],
-    direction: str,
-    n: int,
-) -> list[bool]:
-    """Detect crossover between two series."""
-    result = [False]  # First candle can't have crossover
-
-    for i in range(1, n):
-        fast_prev = fast[i - 1] if i - 1 < len(fast) else None
-        fast_curr = fast[i] if i < len(fast) else None
-        slow_prev = slow[i - 1] if i - 1 < len(slow) else None
-        slow_curr = slow[i] if i < len(slow) else None
-
-        if any(v is None for v in [fast_prev, fast_curr, slow_prev, slow_curr]):
-            result.append(False)
-            continue
-
-        if direction == "crosses_above":
-            # Fast was below or equal slow, now above
-            crossed = fast_prev <= slow_prev and fast_curr > slow_curr
-        else:  # crosses_below
-            # Fast was above or equal slow, now below
-            crossed = fast_prev >= slow_prev and fast_curr < slow_curr
-
-        result.append(crossed)
-
-    return result

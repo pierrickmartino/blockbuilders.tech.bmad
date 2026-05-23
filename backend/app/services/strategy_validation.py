@@ -2,8 +2,14 @@
 
 Zero I/O, zero DB, zero HTTP — safe to unit test without any app context.
 """
+from app.backtest.catalogue import lookup as catalogue_lookup
 from app.schemas.strategy import Block, StrategyDefinitionValidate, ValidationError
 from app.validation.error_messages import get_error_message
+
+_ENTRY_SIGNAL_TYPES: frozenset[str] = frozenset({"entry_signal"})
+_EXIT_SIGNAL_TYPES: frozenset[str] = frozenset({"exit_signal"})
+_SIGNAL_BLOCK_TYPES: frozenset[str] = _ENTRY_SIGNAL_TYPES | _EXIT_SIGNAL_TYPES
+_SIGNAL_TYPE_LABELS: dict[str, str] = {"entry_signal": "Entry Signal", "exit_signal": "Exit Signal"}
 
 
 def validate_block_params(block: Block) -> list[ValidationError]:
@@ -11,96 +17,20 @@ def validate_block_params(block: Block) -> list[ValidationError]:
     errors: list[ValidationError] = []
     params = block.params
 
-    if block.type == "constant":
-        value = params.get("value", 0)
-        if not isinstance(value, (int, float)):
-            user_msg, help_link = get_error_message("INVALID_VALUE", min_val=-1_000_000, max_val=1_000_000)
+    handler = catalogue_lookup(block.type)
+    if handler is not None:
+        issues = handler.validate(params)
+        for issue in issues:
             errors.append(
                 ValidationError(
                     block_id=block.id,
-                    code="INVALID_VALUE",
-                    message=f"Constant value must be a number, got {type(value).__name__}",
-                    user_message=user_msg,
-                    help_link=help_link,
+                    code=issue.code,
+                    message=issue.message,
+                    user_message=issue.user_message,
+                    help_link=issue.help_link,
                 )
             )
-        elif not -1_000_000 <= value <= 1_000_000:
-            user_msg, help_link = get_error_message("INVALID_VALUE", min_val=-1_000_000, max_val=1_000_000)
-            errors.append(
-                ValidationError(
-                    block_id=block.id,
-                    code="INVALID_VALUE",
-                    message=f"Constant value must be between -1,000,000 and 1,000,000, got {value}",
-                    user_message=user_msg,
-                    help_link=help_link,
-                )
-            )
-
-    if block.type in ("sma", "ema", "bollinger", "atr"):
-        period = params.get("period", 0)
-        if not isinstance(period, (int, float)) or not 1 <= period <= 500:
-            user_msg, help_link = get_error_message("INVALID_PERIOD", min_val=1, max_val=500)
-            errors.append(
-                ValidationError(
-                    block_id=block.id,
-                    code="INVALID_PERIOD",
-                    message=f"Period must be 1-500, got {period}",
-                    user_message=user_msg,
-                    help_link=help_link,
-                )
-            )
-
-    if block.type == "rsi":
-        period = params.get("period", 0)
-        if not isinstance(period, (int, float)) or not 2 <= period <= 100:
-            user_msg, help_link = get_error_message("INVALID_PERIOD", min_val=2, max_val=100)
-            errors.append(
-                ValidationError(
-                    block_id=block.id,
-                    code="INVALID_PERIOD",
-                    message=f"RSI period must be 2-100, got {period}",
-                    user_message=user_msg,
-                    help_link=help_link,
-                )
-            )
-
-    if block.type == "macd":
-        fast = params.get("fast_period", 0)
-        slow = params.get("slow_period", 0)
-        signal = params.get("signal_period", 0)
-        if not isinstance(fast, (int, float)) or not 1 <= fast <= 50:
-            user_msg, help_link = get_error_message("INVALID_PARAM", param_name="MACD fast period", min_val=1, max_val=50)
-            errors.append(
-                ValidationError(
-                    block_id=block.id,
-                    code="INVALID_PARAM",
-                    message=f"MACD fast period must be 1-50, got {fast}",
-                    user_message=user_msg,
-                    help_link=help_link,
-                )
-            )
-        if not isinstance(slow, (int, float)) or not 1 <= slow <= 200:
-            user_msg, help_link = get_error_message("INVALID_PARAM", param_name="MACD slow period", min_val=1, max_val=200)
-            errors.append(
-                ValidationError(
-                    block_id=block.id,
-                    code="INVALID_PARAM",
-                    message=f"MACD slow period must be 1-200, got {slow}",
-                    user_message=user_msg,
-                    help_link=help_link,
-                )
-            )
-        if not isinstance(signal, (int, float)) or not 1 <= signal <= 50:
-            user_msg, help_link = get_error_message("INVALID_PARAM", param_name="MACD signal period", min_val=1, max_val=50)
-            errors.append(
-                ValidationError(
-                    block_id=block.id,
-                    code="INVALID_PARAM",
-                    message=f"MACD signal period must be 1-50, got {signal}",
-                    user_message=user_msg,
-                    help_link=help_link,
-                )
-            )
+        return errors
 
     if block.type == "position_size":
         value = params.get("value", 0)
@@ -300,9 +230,9 @@ def collect_validation_errors(definition: StrategyDefinitionValidate) -> list[Va
 
     connected_targets = {conn.to_port.block_id for conn in definition.connections}
     for block in definition.blocks:
-        if block.type in ("entry_signal", "exit_signal"):
+        if block.type in _SIGNAL_BLOCK_TYPES:
             if block.id not in connected_targets:
-                signal_type = "Entry Signal" if block.type == "entry_signal" else "Exit Signal"
+                signal_type = _SIGNAL_TYPE_LABELS.get(block.type, block.type)
                 user_msg, help_link = get_error_message("UNCONNECTED_SIGNAL", signal_type=signal_type)
                 errors.append(
                     ValidationError(

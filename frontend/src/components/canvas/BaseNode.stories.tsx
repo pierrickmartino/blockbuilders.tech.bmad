@@ -1,6 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { ReactFlowProvider } from "@xyflow/react";
+import type { Node, Edge } from "@xyflow/react";
 import BaseNode from "./BaseNode";
+import { ReadinessProvider } from "@/context/ReadinessContext";
 
 const meta = {
   title: "Canvas/BaseNode",
@@ -108,6 +110,55 @@ export const MobileMode: Story = {
     blockType: "stop_loss",
     isMobileMode: true,
   },
+};
+
+const readyNodes: Node[] = [
+  { id: "es1", type: "entry_signal", position: { x: 0, y: 0 }, data: {} },
+  { id: "xs1", type: "exit_signal", position: { x: 0, y: 0 }, data: {} },
+  { id: "r1", type: "stop_loss", position: { x: 0, y: 0 }, data: {} },
+  { id: "logic1", type: "logic", position: { x: 0, y: 0 }, data: {} },
+];
+const readyEdges: Edge[] = [
+  { id: "e1", source: "logic1", target: "es1" },
+  { id: "e2", source: "logic1", target: "xs1" },
+];
+
+const warningNodes: Node[] = [
+  { id: "es1", type: "entry_signal", position: { x: 0, y: 0 }, data: {} },
+  { id: "xs1", type: "exit_signal", position: { x: 0, y: 0 }, data: {} },
+  { id: "logic1", type: "logic", position: { x: 0, y: 0 }, data: {} },
+];
+const warningEdges: Edge[] = [
+  { id: "e1", source: "logic1", target: "es1" },
+  { id: "e2", source: "logic1", target: "xs1" },
+];
+
+export const ReadinessStatePulse: Story = {
+  args: { label: "Signal", selected: false, category: "signal" },
+  render: () => (
+    <ReactFlowProvider>
+      <div className="flex flex-wrap gap-8 p-8 bg-slate-50 dark:bg-slate-900 items-start">
+        <div className="flex flex-col gap-2 items-center">
+          <span className="text-xs text-slate-500">Ready (emerald)</span>
+          <ReadinessProvider nodes={readyNodes} edges={readyEdges}>
+            <BaseNode label="Entry Signal" selected={false} category="signal" blockType="entry_signal" />
+          </ReadinessProvider>
+        </div>
+        <div className="flex flex-col gap-2 items-center">
+          <span className="text-xs text-slate-500">Warning (amber)</span>
+          <ReadinessProvider nodes={warningNodes} edges={warningEdges}>
+            <BaseNode label="Entry Signal" selected={false} category="signal" blockType="entry_signal" />
+          </ReadinessProvider>
+        </div>
+        <div className="flex flex-col gap-2 items-center">
+          <span className="text-xs text-slate-500">Issue (rose)</span>
+          <ReadinessProvider nodes={[]} edges={[]}>
+            <BaseNode label="Entry Signal" selected={false} category="signal" blockType="entry_signal" />
+          </ReadinessProvider>
+        </div>
+      </div>
+    </ReactFlowProvider>
+  ),
 };
 
 export const AllCategories: Story = {
