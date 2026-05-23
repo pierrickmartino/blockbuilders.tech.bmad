@@ -109,25 +109,7 @@ def interpret_strategy(
             block_outputs[block_id] = {}
 
         # Evaluate based on block type
-        if block_type == "price":
-            source = params.get("source", "close")
-            result = candle_data.get(source, closes)
-            block_outputs[block_id]["output"] = result
-
-        elif block_type == "volume":
-            block_outputs[block_id]["output"] = volumes
-
-        elif block_type == "constant":
-            value = float(params.get("value", 0.0))
-            result = [value] * n  # Repeat constant for all candles
-            block_outputs[block_id]["output"] = result
-
-        elif block_type == "yesterday_close":
-            # Previous candle close: null for first candle, then close[t-1]
-            result = [None] + closes[:-1]
-            block_outputs[block_id]["output"] = result
-
-        elif (catalogue_handler := catalogue_lookup(block_type)) is not None:
+        if (catalogue_handler := catalogue_lookup(block_type)) is not None:
             resolved_inputs = {
                 port: get_block_output(*src)
                 for port, src in inputs.items()

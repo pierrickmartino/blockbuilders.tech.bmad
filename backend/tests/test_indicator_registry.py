@@ -4,18 +4,12 @@ from app.backtest.errors import StrategyInvalidError
 from app.backtest.indicator_registry import INDICATOR_REGISTRY, IndicatorContext
 
 KNOWN_INDICATOR_TYPES = {
-    # "sma" migrated to app.backtest.catalogue — no longer in INDICATOR_REGISTRY
-    "ema",
-    "rsi",
+    # "sma", "ema", "rsi", "atr", "obv", "ichimoku", "fibonacci", "price_variation_pct"
+    # migrated to app.backtest.catalogue — no longer in INDICATOR_REGISTRY
     "macd",
     "bollinger",
-    "atr",
     "stochastic",
     "adx",
-    "ichimoku",
-    "obv",
-    "fibonacci",
-    "price_variation_pct",
 }
 
 NON_INDICATOR_TYPES = {

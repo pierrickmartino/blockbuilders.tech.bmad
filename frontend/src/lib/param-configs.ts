@@ -19,35 +19,35 @@ export interface ParamConfig {
 
 export function getParamConfigs(blockType: BlockType): ParamConfig[] {
   switch (blockType) {
-    case "price":
+    case "price": {
+      const spec = getCatalogueBlock("price")!;
+      const sourceParam = spec.params.find((p) => p.name === "source")!;
       return [
         {
           key: "source",
           label: "Price Source",
           type: "select",
-          defaultValue: "close",
-          options: [
-            { value: "open", label: "Open" },
-            { value: "high", label: "High" },
-            { value: "low", label: "Low" },
-            { value: "close", label: "Close" },
-            { value: "prev_close", label: "Previous Close" },
-          ],
+          defaultValue: sourceParam.default as string,
+          options: (sourceParam.options ?? []).map((v) => ({ value: v, label: v.charAt(0).toUpperCase() + v.slice(1).replace("_", " ") })),
         },
       ];
-    case "constant":
+    }
+    case "constant": {
+      const spec = getCatalogueBlock("constant")!;
+      const valueParam = spec.params.find((p) => p.name === "value")!;
       return [
         {
           key: "value",
           label: "Value",
           type: "number",
-          defaultValue: 0,
-          min: -1000000,
-          max: 1000000,
+          defaultValue: valueParam.default as number,
+          min: valueParam.min,
+          max: valueParam.max,
           step: 0.01,
-          help: "Fixed numeric value (-1M to 1M)",
+          help: `Fixed numeric value (${valueParam.min} to ${valueParam.max})`,
         },
       ];
+    }
     case "sma": {
       const smaSpec = getCatalogueBlock("sma")!;
       const periodParam = smaSpec.params.find((p) => p.name === "period")!;
@@ -73,60 +73,56 @@ export function getParamConfigs(blockType: BlockType): ParamConfig[] {
         },
       ];
     }
-    case "ema":
+    case "ema": {
+      const spec = getCatalogueBlock("ema")!;
+      const periodParam = spec.params.find((p) => p.name === "period")!;
+      const sourceParam = spec.params.find((p) => p.name === "source")!;
       return [
         {
           key: "source",
           label: "Price Source",
           type: "select",
-          defaultValue: "close",
+          defaultValue: sourceParam.default as string,
           quickSwap: true,
-          options: [
-            { value: "open", label: "Open" },
-            { value: "high", label: "High" },
-            { value: "low", label: "Low" },
-            { value: "close", label: "Close" },
-            { value: "prev_close", label: "Previous Close" },
-          ],
+          options: (sourceParam.options ?? []).map((v) => ({ value: v, label: v.charAt(0).toUpperCase() + v.slice(1).replace("_", " ") })),
         },
         {
           key: "period",
           label: "Period",
           type: "number",
-          defaultValue: 20,
-          min: 1,
-          max: 500,
+          defaultValue: periodParam.default as number,
+          min: periodParam.min,
+          max: periodParam.max,
           presets: [14, 20, 50, 200],
-          help: "Number of candles (1-500)",
+          help: `Number of candles (${periodParam.min}-${periodParam.max})`,
         },
       ];
-    case "rsi":
+    }
+    case "rsi": {
+      const spec = getCatalogueBlock("rsi")!;
+      const periodParam = spec.params.find((p) => p.name === "period")!;
+      const sourceParam = spec.params.find((p) => p.name === "source")!;
       return [
         {
           key: "source",
           label: "Price Source",
           type: "select",
-          defaultValue: "close",
-          quickSwap: true,  // Enable quick-swap UI
-          options: [
-            { value: "open", label: "Open" },
-            { value: "high", label: "High" },
-            { value: "low", label: "Low" },
-            { value: "close", label: "Close" },
-            { value: "prev_close", label: "Previous Close" },
-          ],
+          defaultValue: sourceParam.default as string,
+          quickSwap: true,
+          options: (sourceParam.options ?? []).map((v) => ({ value: v, label: v.charAt(0).toUpperCase() + v.slice(1).replace("_", " ") })),
         },
         {
           key: "period",
           label: "Period",
           type: "number",
-          defaultValue: 14,
-          min: 2,
-          max: 100,
-          presets: [14, 20, 50],  // Period presets
-          help: "RSI period (2-100)",
+          defaultValue: periodParam.default as number,
+          min: periodParam.min,
+          max: periodParam.max,
+          presets: [14, 20, 50],
+          help: `RSI period (${periodParam.min}-${periodParam.max})`,
         },
       ];
+    }
     case "macd":
       return [
         {
@@ -205,19 +201,21 @@ export function getParamConfigs(blockType: BlockType): ParamConfig[] {
           advanced: true,
         },
       ];
-    case "atr":
-      // ATR uses high/low/close internally - no source selection needed
+    case "atr": {
+      const spec = getCatalogueBlock("atr")!;
+      const periodParam = spec.params.find((p) => p.name === "period")!;
       return [
         {
           key: "period",
           label: "Period",
           type: "number",
-          defaultValue: 14,
-          min: 1,
-          max: 500,
+          defaultValue: periodParam.default as number,
+          min: periodParam.min,
+          max: periodParam.max,
           help: "Uses High/Low/Close for True Range",
         },
       ];
+    }
     case "stochastic":
       return [
         {
@@ -261,58 +259,33 @@ export function getParamConfigs(blockType: BlockType): ParamConfig[] {
           help: "ADX calculation period (1-100)",
         },
       ];
-    case "ichimoku":
+    case "ichimoku": {
+      const spec = getCatalogueBlock("ichimoku")!;
+      const p = (name: string) => spec.params.find((param) => param.name === name)!;
       return [
-        {
-          key: "conversion",
-          label: "Conversion Period",
-          type: "number",
-          defaultValue: 9,
-          min: 1,
-          max: 100,
-        },
-        {
-          key: "base",
-          label: "Base Period",
-          type: "number",
-          defaultValue: 26,
-          min: 1,
-          max: 200,
-        },
-        {
-          key: "span_b",
-          label: "Span B Period",
-          type: "number",
-          defaultValue: 52,
-          min: 1,
-          max: 200,
-          advanced: true,
-        },
-        {
-          key: "displacement",
-          label: "Displacement",
-          type: "number",
-          defaultValue: 26,
-          min: 1,
-          max: 100,
-          help: "Forward displacement for cloud spans",
-          advanced: true,
-        },
+        { key: "conversion", label: "Conversion Period", type: "number", defaultValue: p("conversion").default as number, min: p("conversion").min, max: p("conversion").max },
+        { key: "base", label: "Base Period", type: "number", defaultValue: p("base").default as number, min: p("base").min, max: p("base").max },
+        { key: "span_b", label: "Span B Period", type: "number", defaultValue: p("span_b").default as number, min: p("span_b").min, max: p("span_b").max, advanced: true },
+        { key: "displacement", label: "Displacement", type: "number", defaultValue: p("displacement").default as number, min: p("displacement").min, max: p("displacement").max, help: "Forward displacement for cloud spans", advanced: true },
       ];
+    }
     case "obv":
       return [];
-    case "fibonacci":
+    case "fibonacci": {
+      const spec = getCatalogueBlock("fibonacci")!;
+      const lookbackParam = spec.params.find((p) => p.name === "lookback")!;
       return [
         {
           key: "lookback",
           label: "Lookback Period",
           type: "number",
-          defaultValue: 50,
-          min: 10,
-          max: 500,
-          help: "Period to find high/low range (10-500)",
+          defaultValue: lookbackParam.default as number,
+          min: lookbackParam.min,
+          max: lookbackParam.max,
+          help: `Period to find high/low range (${lookbackParam.min}-${lookbackParam.max})`,
         },
       ];
+    }
     case "price_variation_pct":
       return [];
     case "compare":

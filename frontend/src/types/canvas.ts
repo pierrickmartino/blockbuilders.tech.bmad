@@ -239,84 +239,30 @@ export interface BlockMeta {
 }
 
 // Block registry with all available blocks
+// Catalogue-managed blocks are derived from generated/blocks.ts
+function _catalogueEntry(type: string, description: string): BlockMeta {
+  const spec = getCatalogueBlock(type)!;
+  return {
+    type: type as BlockType,
+    category: spec.category as BlockCategory,
+    label: spec.label,
+    description,
+    inputs: spec.inputs.map((p) => p.name),
+    outputs: spec.outputs.map((p) => p.name),
+    defaultParams: Object.fromEntries(spec.params.map((p) => [p.name, p.default])),
+  };
+}
+
 export const BLOCK_REGISTRY: BlockMeta[] = [
-  // Inputs
-  {
-    type: "price",
-    category: "input",
-    label: "Price",
-    description: "OHLCV price data",
-    inputs: [],
-    outputs: ["output"],
-    defaultParams: { source: "close" },
-  },
-  {
-    type: "volume",
-    category: "input",
-    label: "Volume",
-    description: "Trading volume",
-    inputs: [],
-    outputs: ["output"],
-    defaultParams: {},
-  },
-  {
-    type: "constant",
-    category: "input",
-    label: "Constant",
-    description: "Fixed numeric value",
-    inputs: [],
-    outputs: ["output"],
-    defaultParams: { value: 0 },
-  },
-  {
-    type: "yesterday_close",
-    category: "input",
-    label: "Yesterday Close",
-    description: "Previous candle close price",
-    inputs: [],
-    outputs: ["output"],
-    defaultParams: {},
-  },
-  {
-    type: "price_variation_pct",
-    category: "input",
-    label: "Price Variation %",
-    description: "% change from previous close",
-    inputs: [],
-    outputs: ["output"],
-    defaultParams: {},
-  },
-  // Indicators — sma is catalogue-managed; entry derived from generated/blocks.ts
-  (() => {
-    const spec = getCatalogueBlock("sma")!;
-    return {
-      type: "sma" as BlockType,
-      category: spec.category as BlockCategory,
-      label: spec.label,
-      description: "Simple Moving Average",
-      inputs: spec.inputs.map((p) => p.name),
-      outputs: spec.outputs.map((p) => p.name),
-      defaultParams: Object.fromEntries(spec.params.map((p) => [p.name, p.default])),
-    };
-  })(),
-  {
-    type: "ema",
-    category: "indicator",
-    label: "EMA",
-    description: "Exponential Moving Average",
-    inputs: [],
-    outputs: ["output"],
-    defaultParams: { source: "close", period: 20 },
-  },
-  {
-    type: "rsi",
-    category: "indicator",
-    label: "RSI",
-    description: "Relative Strength Index",
-    inputs: [],
-    outputs: ["output"],
-    defaultParams: { source: "close", period: 14 },
-  },
+  // Inputs — catalogue-managed
+  _catalogueEntry("price", "OHLCV price data"),
+  _catalogueEntry("volume", "Trading volume"),
+  _catalogueEntry("constant", "Fixed numeric value"),
+  _catalogueEntry("yesterday_close", "Previous candle close price"),
+  // Indicators — catalogue-managed
+  _catalogueEntry("sma", "Simple Moving Average"),
+  _catalogueEntry("ema", "Exponential Moving Average"),
+  _catalogueEntry("rsi", "Relative Strength Index"),
   {
     type: "macd",
     category: "indicator",
@@ -335,15 +281,7 @@ export const BLOCK_REGISTRY: BlockMeta[] = [
     outputs: ["upper", "middle", "lower"],
     defaultParams: { source: "close", period: 20, stddev: 2 },
   },
-  {
-    type: "atr",
-    category: "indicator",
-    label: "ATR",
-    description: "Average True Range (uses High/Low/Close)",
-    inputs: [],
-    outputs: ["output"],
-    defaultParams: { period: 14 },
-  },
+  _catalogueEntry("atr", "Average True Range (uses High/Low/Close)"),
   {
     type: "stochastic",
     category: "indicator",
@@ -362,33 +300,10 @@ export const BLOCK_REGISTRY: BlockMeta[] = [
     outputs: ["adx", "plus_di", "minus_di"],
     defaultParams: { period: 14 },
   },
-  {
-    type: "ichimoku",
-    category: "indicator",
-    label: "Ichimoku Cloud",
-    description: "Ichimoku Cloud indicator",
-    inputs: [],
-    outputs: ["conversion", "base", "span_a", "span_b"],
-    defaultParams: { conversion: 9, base: 26, span_b: 52, displacement: 26 },
-  },
-  {
-    type: "obv",
-    category: "indicator",
-    label: "OBV",
-    description: "On-Balance Volume",
-    inputs: [],
-    outputs: ["output"],
-    defaultParams: {},
-  },
-  {
-    type: "fibonacci",
-    category: "indicator",
-    label: "Fibonacci",
-    description: "Fibonacci Retracement Levels",
-    inputs: [],
-    outputs: ["level_236", "level_382", "level_5", "level_618", "level_786"],
-    defaultParams: { lookback: 50 },
-  },
+  _catalogueEntry("ichimoku", "Ichimoku Cloud indicator"),
+  _catalogueEntry("obv", "On-Balance Volume"),
+  _catalogueEntry("fibonacci", "Fibonacci Retracement Levels"),
+  _catalogueEntry("price_variation_pct", "% change from previous close"),
   // Logic
   {
     type: "compare",

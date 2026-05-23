@@ -62,7 +62,7 @@ def emit_typescript() -> str:
         "",
         "export interface CatalogueBlockSpec {",
         "  type: string;",
-        "  category: 'indicator' | 'logic' | 'signal' | 'risk';",
+        "  category: 'input' | 'indicator' | 'logic' | 'signal' | 'risk';",
         "  label: string;",
         "  inputs: { name: string; label: string }[];",
         "  outputs: { name: string; label: string }[];",

@@ -30,7 +30,7 @@ class PortSpec:
 @dataclass(frozen=True)
 class BlockSpec:
     type: str
-    category: Literal["indicator", "logic", "signal", "risk"]
+    category: Literal["input", "indicator", "logic", "signal", "risk"]
     label: str
     inputs: tuple[PortSpec, ...]
     outputs: tuple[PortSpec, ...]

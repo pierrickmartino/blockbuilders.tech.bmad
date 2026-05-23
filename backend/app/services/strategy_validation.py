@@ -27,32 +27,7 @@ def validate_block_params(block: Block) -> list[ValidationError]:
             )
         return errors
 
-    if block.type == "constant":
-        value = params.get("value", 0)
-        if not isinstance(value, (int, float)):
-            user_msg, help_link = get_error_message("INVALID_VALUE", min_val=-1_000_000, max_val=1_000_000)
-            errors.append(
-                ValidationError(
-                    block_id=block.id,
-                    code="INVALID_VALUE",
-                    message=f"Constant value must be a number, got {type(value).__name__}",
-                    user_message=user_msg,
-                    help_link=help_link,
-                )
-            )
-        elif not -1_000_000 <= value <= 1_000_000:
-            user_msg, help_link = get_error_message("INVALID_VALUE", min_val=-1_000_000, max_val=1_000_000)
-            errors.append(
-                ValidationError(
-                    block_id=block.id,
-                    code="INVALID_VALUE",
-                    message=f"Constant value must be between -1,000,000 and 1,000,000, got {value}",
-                    user_message=user_msg,
-                    help_link=help_link,
-                )
-            )
-
-    if block.type in ("ema", "bollinger", "atr"):
+    if block.type == "bollinger":
         period = params.get("period", 0)
         if not isinstance(period, (int, float)) or not 1 <= period <= 500:
             user_msg, help_link = get_error_message("INVALID_PERIOD", min_val=1, max_val=500)
@@ -61,20 +36,6 @@ def validate_block_params(block: Block) -> list[ValidationError]:
                     block_id=block.id,
                     code="INVALID_PERIOD",
                     message=f"Period must be 1-500, got {period}",
-                    user_message=user_msg,
-                    help_link=help_link,
-                )
-            )
-
-    if block.type == "rsi":
-        period = params.get("period", 0)
-        if not isinstance(period, (int, float)) or not 2 <= period <= 100:
-            user_msg, help_link = get_error_message("INVALID_PERIOD", min_val=2, max_val=100)
-            errors.append(
-                ValidationError(
-                    block_id=block.id,
-                    code="INVALID_PERIOD",
-                    message=f"RSI period must be 2-100, got {period}",
                     user_message=user_msg,
                     help_link=help_link,
                 )

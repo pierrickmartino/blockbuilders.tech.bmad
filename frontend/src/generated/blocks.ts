@@ -13,7 +13,7 @@ export interface CatalogueParamSpec {
 
 export interface CatalogueBlockSpec {
   type: string;
-  category: 'indicator' | 'logic' | 'signal' | 'risk';
+  category: 'input' | 'indicator' | 'logic' | 'signal' | 'risk';
   label: string;
   inputs: { name: string; label: string }[];
   outputs: { name: string; label: string }[];
@@ -21,6 +21,66 @@ export interface CatalogueBlockSpec {
 }
 
 export const CATALOGUE_BLOCKS: CatalogueBlockSpec[] = [
+  {
+    type: "price",
+    category: "input",
+    label: "Price",
+    inputs: [],
+    outputs: [{"name": "output", "label": "Output"}],
+    params:
+  [
+      {
+          "name": "source",
+          "label": "Price Source",
+          "kind": "enum",
+          "default": "close",
+          "options": [
+              "open",
+              "high",
+              "low",
+              "close",
+              "prev_close",
+              "volume"
+          ]
+      }
+  ],
+  },
+  {
+    type: "volume",
+    category: "input",
+    label: "Volume",
+    inputs: [],
+    outputs: [{"name": "output", "label": "Output"}],
+    params:
+  [],
+  },
+  {
+    type: "constant",
+    category: "input",
+    label: "Constant",
+    inputs: [],
+    outputs: [{"name": "output", "label": "Output"}],
+    params:
+  [
+      {
+          "name": "value",
+          "label": "Value",
+          "kind": "float",
+          "default": 0.0,
+          "min": -1000000,
+          "max": 1000000
+      }
+  ],
+  },
+  {
+    type: "yesterday_close",
+    category: "input",
+    label: "Yesterday Close",
+    inputs: [],
+    outputs: [{"name": "output", "label": "Output"}],
+    params:
+  [],
+  },
   {
     type: "sma",
     category: "indicator",
@@ -50,6 +110,166 @@ export const CATALOGUE_BLOCKS: CatalogueBlockSpec[] = [
               "prev_close",
               "volume"
           ]
+      }
+  ],
+  },
+  {
+    type: "ema",
+    category: "indicator",
+    label: "EMA",
+    inputs: [],
+    outputs: [{"name": "output", "label": "Output"}],
+    params:
+  [
+      {
+          "name": "period",
+          "label": "Period",
+          "kind": "int",
+          "default": 20,
+          "min": 1,
+          "max": 500
+      },
+      {
+          "name": "source",
+          "label": "Source",
+          "kind": "enum",
+          "default": "close",
+          "options": [
+              "open",
+              "high",
+              "low",
+              "close",
+              "prev_close",
+              "volume"
+          ]
+      }
+  ],
+  },
+  {
+    type: "rsi",
+    category: "indicator",
+    label: "RSI",
+    inputs: [],
+    outputs: [{"name": "output", "label": "Output"}],
+    params:
+  [
+      {
+          "name": "period",
+          "label": "Period",
+          "kind": "int",
+          "default": 14,
+          "min": 2,
+          "max": 100
+      },
+      {
+          "name": "source",
+          "label": "Source",
+          "kind": "enum",
+          "default": "close",
+          "options": [
+              "open",
+              "high",
+              "low",
+              "close",
+              "prev_close",
+              "volume"
+          ]
+      }
+  ],
+  },
+  {
+    type: "atr",
+    category: "indicator",
+    label: "ATR",
+    inputs: [],
+    outputs: [{"name": "output", "label": "Output"}],
+    params:
+  [
+      {
+          "name": "period",
+          "label": "Period",
+          "kind": "int",
+          "default": 14,
+          "min": 1,
+          "max": 500
+      }
+  ],
+  },
+  {
+    type: "obv",
+    category: "indicator",
+    label: "OBV",
+    inputs: [],
+    outputs: [{"name": "output", "label": "Output"}],
+    params:
+  [],
+  },
+  {
+    type: "price_variation_pct",
+    category: "indicator",
+    label: "Price Variation %",
+    inputs: [],
+    outputs: [{"name": "output", "label": "Output"}],
+    params:
+  [],
+  },
+  {
+    type: "ichimoku",
+    category: "indicator",
+    label: "Ichimoku Cloud",
+    inputs: [],
+    outputs: [{"name": "output", "label": "Output"}, {"name": "conversion", "label": "Conversion"}, {"name": "base", "label": "Base"}, {"name": "span_a", "label": "Span A"}, {"name": "span_b", "label": "Span B"}],
+    params:
+  [
+      {
+          "name": "conversion",
+          "label": "Conversion Period",
+          "kind": "int",
+          "default": 9,
+          "min": 1,
+          "max": 100
+      },
+      {
+          "name": "base",
+          "label": "Base Period",
+          "kind": "int",
+          "default": 26,
+          "min": 1,
+          "max": 200
+      },
+      {
+          "name": "span_b",
+          "label": "Span B Period",
+          "kind": "int",
+          "default": 52,
+          "min": 1,
+          "max": 200
+      },
+      {
+          "name": "displacement",
+          "label": "Displacement",
+          "kind": "int",
+          "default": 26,
+          "min": 1,
+          "max": 100
+      }
+  ],
+  },
+  {
+    type: "fibonacci",
+    category: "indicator",
+    label: "Fibonacci",
+    inputs: [],
+    outputs: [{"name": "output", "label": "Output (50%)"}, {"name": "level_236", "label": "23.6%"}, {"name": "level_382", "label": "38.2%"}, {"name": "level_5", "label": "50%"}, {"name": "level_618", "label": "61.8%"}, {"name": "level_786", "label": "78.6%"}],
+    params:
+  [
+      {
+          "name": "lookback",
+          "label": "Lookback Period",
+          "kind": "int",
+          "default": 50,
+          "min": 10,
+          "max": 500
       }
   ],
   },
