@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { Node, Edge } from "@xyflow/react";
-import { arrangeNodes } from "../layout-algorithm";
+import { arrangeNodes, getElk } from "../layout-algorithm";
 
 const MIN_NODE_WIDTH = 160;
 const MIN_NODE_HEIGHT = 60;
@@ -21,6 +21,19 @@ function makeEdge(source: string, target: string): Edge {
     target,
   };
 }
+
+describe("getElk", () => {
+  it("returns a Promise", () => {
+    const result = getElk();
+    expect(result).toBeInstanceOf(Promise);
+  });
+
+  it("caches: second call returns the same promise", () => {
+    const p1 = getElk();
+    const p2 = getElk();
+    expect(p1).toBe(p2);
+  });
+});
 
 describe("arrangeNodes", () => {
   it("empty input returns empty map", async () => {

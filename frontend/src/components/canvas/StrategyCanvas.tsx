@@ -25,6 +25,7 @@ import { nodeTypes } from "./nodes";
 import DeleteButtonEdge, { DeleteButtonEdgeData } from "./edges/DeleteButtonEdge";
 import { BlockMeta, BlockType, getBlockMeta, ValidationError } from "@/types/canvas";
 import { generateBlockId } from "@/lib/canvas-utils";
+import { applyArrangeTransition } from "@/lib/arrange-transition";
 import { useChartTheme } from "@/lib/chart-theme";
 import type { CanvasFlags } from "@/lib/feature-flags";
 import { MobileBottomBar } from "./MobileBottomBar";
@@ -37,6 +38,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Loader2 } from "lucide-react";
 
 export type CanvasEdge = Edge<DeleteButtonEdgeData, "deletable">;
 
@@ -56,6 +58,7 @@ export interface StrategyCanvasProps {
   onInit?: (instance: ReactFlowInstance<Node, CanvasEdge>) => void;
   onNodeClick?: (nodeId: string) => void;
   onAutoArrange?: () => void;
+  isArranging?: boolean;
   onTidyConnections?: () => void;
   onLayoutMenu?: () => void;
   canvasFlags?: Partial<CanvasFlags>;
@@ -88,6 +91,7 @@ function CanvasInner({
   onInit: onInitProp,
   onNodeClick: onNodeClickProp,
   onAutoArrange,
+  isArranging,
   onTidyConnections,
   onLayoutMenu,
   canvasFlags,
@@ -417,25 +421,33 @@ function CanvasInner({
               {onAutoArrange && (
                 <ControlButton
                   title="Auto-arrange"
-                  onClick={onAutoArrange}
-                  disabled={!nodesInitialized}
-                  style={{ opacity: nodesInitialized ? 1 : 0.4, cursor: nodesInitialized ? "pointer" : "not-allowed" }}
+                  onClick={() => {
+                    const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+                    applyArrangeTransition(canvasContainerRef.current, prefersReduced);
+                    onAutoArrange();
+                  }}
+                  disabled={!nodesInitialized || isArranging}
+                  style={{ opacity: (nodesInitialized && !isArranging) ? 1 : 0.4, cursor: (nodesInitialized && !isArranging) ? "pointer" : "not-allowed" }}
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="h-4 w-4"
-                  >
-                    <rect x="3" y="3" width="7" height="7" />
-                    <rect x="14" y="3" width="7" height="7" />
-                    <rect x="14" y="14" width="7" height="7" />
-                    <rect x="3" y="14" width="7" height="7" />
-                  </svg>
+                  {isArranging ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="h-4 w-4"
+                    >
+                      <rect x="3" y="3" width="7" height="7" />
+                      <rect x="14" y="3" width="7" height="7" />
+                      <rect x="14" y="14" width="7" height="7" />
+                      <rect x="3" y="14" width="7" height="7" />
+                    </svg>
+                  )}
                 </ControlButton>
               )}
               {onTidyConnections && (

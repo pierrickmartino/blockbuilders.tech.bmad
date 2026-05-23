@@ -1,11 +1,18 @@
-import type { Node, Edge } from "@xyflow/react";
-import ELK from "elkjs/lib/elk.bundled.js";
+import type ELKConstructor from "elkjs/lib/elk.bundled.js";
+
+type ELKInstance = InstanceType<typeof ELKConstructor>;
 
 const MIN_NODE_WIDTH = 160;
 const MIN_NODE_HEIGHT = 60;
 const GRID_SNAP = 15;
 
-const elk = new ELK();
+let elkPromise: Promise<ELKInstance> | null = null;
+
+export const getElk = (): Promise<ELKInstance> => {
+  return (elkPromise ??= import("elkjs/lib/elk.bundled.js").then(
+    (m) => new m.default()
+  ));
+};
 
 /**
  * Arrange non-note nodes left-to-right using ELK layered algorithm.
@@ -13,8 +20,8 @@ const elk = new ELK();
  * positions via `newPositions.get(id) || node.position`.
  */
 export async function arrangeNodes(
-  nodes: Node[],
-  edges: Edge[],
+  nodes: import("@xyflow/react").Node[],
+  edges: import("@xyflow/react").Edge[],
   dimensions: Map<string, { width: number; height: number }>
 ): Promise<Map<string, { x: number; y: number }>> {
   const contentNodes = nodes.filter((n) => n.type !== "note");
@@ -55,6 +62,7 @@ export async function arrangeNodes(
     })),
   };
 
+  const elk = await getElk();
   const layout = await elk.layout(graph);
   return extractPositions(layout);
 }

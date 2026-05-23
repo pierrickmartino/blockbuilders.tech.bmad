@@ -124,6 +124,7 @@ export default function StrategyEditorPage({ params }: Props) {
   // Mobile drawer state
   const [showProperties, setShowProperties] = useState(false);
   const [showLayoutMenu, setShowLayoutMenu] = useState(false);
+  const [isArranging, setIsArranging] = useState(false);
   const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(false);
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(false);
 
@@ -913,28 +914,33 @@ export default function StrategyEditorPage({ params }: Props) {
 
   // Handle auto-arrange layout
   const handleAutoArrange = useCallback(async () => {
-    const dims = new Map<string, { width: number; height: number }>();
-    for (const node of nodes) {
-      const internal = reactFlowRef.current?.getInternalNode(node.id);
-      const measured = internal?.measured;
-      if (measured?.width && measured?.height) {
-        dims.set(node.id, { width: measured.width, height: measured.height });
+    setIsArranging(true);
+    try {
+      const dims = new Map<string, { width: number; height: number }>();
+      for (const node of nodes) {
+        const internal = reactFlowRef.current?.getInternalNode(node.id);
+        const measured = internal?.measured;
+        if (measured?.width && measured?.height) {
+          dims.set(node.id, { width: measured.width, height: measured.height });
+        }
       }
+
+      const newPositions = await arrangeNodes(nodes, edges, dims);
+      const updatedNodes = nodes.map(node => ({
+        ...node,
+        position: newPositions.get(node.id) || node.position,
+      }));
+
+      setNodes(updatedNodes);
+      scheduleSnapshot(updatedNodes, edges);
+
+      const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      reactFlowRef.current?.fitView({ padding: 0.2, duration: reduceMotion ? 0 : 300 });
+
+      setShowLayoutMenu(false);
+    } finally {
+      setIsArranging(false);
     }
-
-    const newPositions = await arrangeNodes(nodes, edges, dims);
-    const updatedNodes = nodes.map(node => ({
-      ...node,
-      position: newPositions.get(node.id) || node.position,
-    }));
-
-    setNodes(updatedNodes);
-    scheduleSnapshot(updatedNodes, edges);
-
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    reactFlowRef.current?.fitView({ padding: 0.2, duration: reduceMotion ? 0 : 300 });
-
-    setShowLayoutMenu(false);
   }, [nodes, edges, scheduleSnapshot]);
 
   // Handle tidy connections
@@ -1337,6 +1343,7 @@ export default function StrategyEditorPage({ params }: Props) {
             onInit={(instance) => (reactFlowRef.current = instance)}
             onNodeClick={handleNodeClick}
             onAutoArrange={handleAutoArrange}
+            isArranging={isArranging}
             onTidyConnections={handleTidyConnections}
             onLayoutMenu={() => setShowLayoutMenu(true)}
             onOpenCommandPalette={isMobileCanvasMode ? undefined : () => openPalette("chip-click")}
@@ -1393,8 +1400,13 @@ export default function StrategyEditorPage({ params }: Props) {
                 onClick={handleAutoArrange}
                 className="w-full"
                 variant="outline"
+                disabled={isArranging}
               >
-                Auto-arrange
+                {isArranging ? (
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Arranging…</>
+                ) : (
+                  "Auto-arrange"
+                )}
               </Button>
               <Button
                 onClick={handleTidyConnections}
