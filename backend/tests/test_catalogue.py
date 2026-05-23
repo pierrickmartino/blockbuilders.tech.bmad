@@ -235,21 +235,7 @@ def test_validator_uses_catalogue_for_sma_valid_period():
     assert validate_block_params(block) == []
 
 
-# ── Cycle 6: CI gate — disjoint type sets ─────────────────────────────────────
-
-def test_catalogue_and_indicator_registry_have_disjoint_types():
-    """sma must appear in catalogue only — not in INDICATOR_REGISTRY."""
-    from app.backtest.catalogue import CATALOGUE
-    from app.backtest.indicator_registry import INDICATOR_REGISTRY
-
-    catalogue_types = set(CATALOGUE.keys())
-    registry_types = set(INDICATOR_REGISTRY.keys())
-    overlap = catalogue_types & registry_types
-    assert overlap == set(), (
-        f"Types appear in both catalogue and INDICATOR_REGISTRY: {overlap}. "
-        "Each block type must live in exactly one place."
-    )
-
+# ── Cycle 6: CI gate — interpreter and validator purity ───────────────────────
 
 def test_catalogue_types_not_in_interpreter_elif():
     """Interpreter must not have explicit elif arms for catalogue-registered types."""

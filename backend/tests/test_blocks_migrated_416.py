@@ -370,14 +370,6 @@ def test_all_migrated_blocks_in_catalogue():
         assert handler.spec.type == block_type
 
 
-def test_migrated_blocks_not_in_indicator_registry():
-    from app.backtest.catalogue import CATALOGUE
-    from app.backtest.indicator_registry import INDICATOR_REGISTRY
-
-    overlap = set(CATALOGUE.keys()) & set(INDICATOR_REGISTRY.keys())
-    assert overlap == set(), f"Blocks appear in both catalogue and registry: {overlap}"
-
-
 # ── Cycle 5: interpreter dispatches migrated blocks via catalogue ─────────────
 
 def test_interpreter_dispatches_price_via_catalogue():

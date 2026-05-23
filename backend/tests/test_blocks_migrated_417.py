@@ -281,13 +281,6 @@ def test_all_417_blocks_in_catalogue():
         assert handler.spec.type == block_type
 
 
-def test_417_blocks_not_in_indicator_registry():
-    from app.backtest.catalogue import CATALOGUE
-    from app.backtest.indicator_registry import INDICATOR_REGISTRY
-    overlap = set(CATALOGUE.keys()) & set(INDICATOR_REGISTRY.keys())
-    assert overlap == set(), f"Blocks appear in both catalogue and registry: {overlap}"
-
-
 # ── Validator uses catalogue for new blocks ───────────────────────────────────
 
 def test_validator_uses_catalogue_for_macd_cross_param():

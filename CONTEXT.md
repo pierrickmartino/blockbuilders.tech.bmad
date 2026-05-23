@@ -34,9 +34,10 @@ exactly when discussing refactors.
   exist. Authored in Python under
   `backend/app/backtest/catalogue/`, one file per block.
   Projects to the frontend via a CI codegen step that emits
-  `frontend/src/generated/blocks.ts`. Replaces the prior
-  triplication across `canvas.ts`, `interpreter.py`, and
-  `indicator_registry.py`.
+  `frontend/src/generated/blocks.ts`. Risk blocks (`position_size`,
+  `take_profit`, `stop_loss`, `max_drawdown`, `time_exit`,
+  `trailing_stop`) are handled inline in the interpreter as
+  configuration, not computation, and are out of catalogue scope.
 - **BlockSpec** — the declarative description of one block:
   identity (`type`, `category`, `label`), interface
   (`inputs`, `outputs`, `params`), and behavior reference. Pure

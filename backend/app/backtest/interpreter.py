@@ -4,7 +4,6 @@ from typing import Any, Optional
 
 from app.models.candle import Candle
 from app.backtest.errors import StrategyInvalidError
-from app.backtest.indicator_registry import INDICATOR_REGISTRY, IndicatorContext
 from app.backtest.catalogue import lookup as catalogue_lookup
 from app.backtest.catalogue.types import BlockContext
 
@@ -119,10 +118,6 @@ def interpret_strategy(
             }
             ctx = BlockContext(candle_data=candle_data, params=params, inputs=resolved_inputs, n=n)
             block_outputs[block_id] = catalogue_handler.compute(ctx)
-
-        elif block_type in INDICATOR_REGISTRY:
-            ctx = IndicatorContext(candle_data=candle_data, params=params, n=n)
-            block_outputs[block_id] = INDICATOR_REGISTRY[block_type](ctx)
 
         elif block_type in ("position_size", "take_profit", "stop_loss", "max_drawdown", "time_exit", "trailing_stop"):
             # Risk blocks don't produce time series output
