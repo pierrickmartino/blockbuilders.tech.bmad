@@ -3,7 +3,7 @@
 import { useEffect, useState, use, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Node, Edge, ReactFlowInstance, useNodesInitialized } from "@xyflow/react";
+import { Node, Edge, ReactFlowInstance } from "@xyflow/react";
 import { apiFetch } from "@/lib/api";
 import {
   trackEvent,
@@ -31,7 +31,6 @@ import {
   generateBlockId,
   tidyConnections,
 } from "@/lib/canvas-utils";
-import { arrangeNodes } from "@/lib/layout-algorithm";
 import { copyToClipboard, pasteFromClipboard } from "@/lib/clipboard-utils";
 import {
   resetHistory,
@@ -49,6 +48,7 @@ import BlockPalette from "@/components/canvas/BlockPalette";
 import BlockLibrarySheet from "@/components/canvas/BlockLibrarySheet";
 import { useIndicatorMode } from "@/hooks/useIndicatorMode";
 import { useSnapshotScheduler } from "@/hooks/use-snapshot-scheduler";
+import { useAutoArrange } from "@/hooks/use-auto-arrange";
 import InspectorPanel from "@/components/canvas/InspectorPanel";
 import { Button } from "@/components/ui/button";
 import {
@@ -123,12 +123,14 @@ export default function StrategyEditorPage({ params }: Props) {
   // Mobile drawer state
   const [showProperties, setShowProperties] = useState(false);
   const [showLayoutMenu, setShowLayoutMenu] = useState(false);
-  const [isArranging, setIsArranging] = useState(false);
   const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(false);
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(false);
 
   // ReactFlow instance ref for block library sheet
   const reactFlowRef = useRef<ReactFlowInstance<Node, CanvasEdge> | null>(null);
+
+  // Canvas container ref (forwarded from StrategyCanvas for arrange transitions)
+  const canvasContainerRef = useRef<HTMLElement | null>(null);
 
   // Editable name state
   const [editingName, setEditingName] = useState(false);
@@ -715,6 +717,22 @@ export default function StrategyEditorPage({ params }: Props) {
     autosaveTimerRef,
   } = useSnapshotScheduler(isApplyingHistoryRef, setHistory, triggerAutosave);
 
+  const {
+    isArranging,
+    handleAutoArrange,
+  } = useAutoArrange({
+    nodes,
+    edges,
+    strategyId: id,
+    userId: user?.id,
+    reactFlowRef,
+    canvasContainerRef,
+    flushSnapshot,
+    commitSnapshot,
+    setNodes,
+    setShowLayoutMenu,
+  });
+
   // Handle parameter changes from properties panel
   const handleParamsChange = (nodeId: string, params: Record<string, unknown>) => {
     setNodes((currentNodes) => {
@@ -888,38 +906,6 @@ export default function StrategyEditorPage({ params }: Props) {
       return next;
     });
   }, []);
-
-  // Handle auto-arrange layout
-  const handleAutoArrange = useCallback(async () => {
-    setIsArranging(true);
-    try {
-      const dims = new Map<string, { width: number; height: number }>();
-      for (const node of nodes) {
-        const internal = reactFlowRef.current?.getInternalNode(node.id);
-        const measured = internal?.measured;
-        if (measured?.width && measured?.height) {
-          dims.set(node.id, { width: measured.width, height: measured.height });
-        }
-      }
-
-      const newPositions = await arrangeNodes(nodes, edges, dims);
-      const updatedNodes = nodes.map(node => ({
-        ...node,
-        position: newPositions.get(node.id) || node.position,
-      }));
-
-      flushSnapshot();
-      commitSnapshot(updatedNodes, edges);
-      setNodes(updatedNodes);
-
-      const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      reactFlowRef.current?.fitView({ padding: 0.2, duration: reduceMotion ? 0 : 300 });
-
-      setShowLayoutMenu(false);
-    } finally {
-      setIsArranging(false);
-    }
-  }, [nodes, edges, flushSnapshot, commitSnapshot]);
 
   // Handle tidy connections
   const handleTidyConnections = useCallback(() => {
@@ -1323,6 +1309,7 @@ export default function StrategyEditorPage({ params }: Props) {
             onNodeClick={handleNodeClick}
             onAutoArrange={handleAutoArrange}
             isArranging={isArranging}
+            onContainerMount={(el) => { canvasContainerRef.current = el; }}
             onTidyConnections={handleTidyConnections}
             onLayoutMenu={() => setShowLayoutMenu(true)}
             onOpenCommandPalette={isMobileCanvasMode ? undefined : () => openPalette("chip-click")}

@@ -25,7 +25,6 @@ import { nodeTypes } from "./nodes";
 import DeleteButtonEdge, { DeleteButtonEdgeData } from "./edges/DeleteButtonEdge";
 import { BlockMeta, BlockType, getBlockMeta, ValidationError } from "@/types/canvas";
 import { generateBlockId } from "@/lib/canvas-utils";
-import { applyArrangeTransition } from "@/lib/arrange-transition";
 import { useChartTheme } from "@/lib/chart-theme";
 import type { CanvasFlags } from "@/lib/feature-flags";
 import { MobileBottomBar } from "./MobileBottomBar";
@@ -61,6 +60,7 @@ export interface StrategyCanvasProps {
   isArranging?: boolean;
   onTidyConnections?: () => void;
   onLayoutMenu?: () => void;
+  onContainerMount?: (el: HTMLDivElement | null) => void;
   canvasFlags?: Partial<CanvasFlags>;
   inlinePopoverEnabled?: boolean;
   popoverNodeId?: string | null;
@@ -94,6 +94,7 @@ function CanvasInner({
   isArranging,
   onTidyConnections,
   onLayoutMenu,
+  onContainerMount,
   canvasFlags,
   inlinePopoverEnabled,
   popoverNodeId,
@@ -295,7 +296,10 @@ function CanvasInner({
         </div>
       )}
       <div
-        ref={canvasContainerRef}
+        ref={(el) => {
+          canvasContainerRef.current = el;
+          onContainerMount?.(el);
+        }}
         className={`relative flex-1 overflow-hidden rounded-xl border border-border bg-secondary shadow-sm ${isMobileMode ? "pb-14" : ""}`}
       >
         <ReactFlow<Node, CanvasEdge>
@@ -422,8 +426,6 @@ function CanvasInner({
                 <ControlButton
                   title="Auto-arrange"
                   onClick={() => {
-                    const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-                    applyArrangeTransition(canvasContainerRef.current, prefersReduced);
                     onAutoArrange();
                   }}
                   disabled={!nodesInitialized || isArranging}
