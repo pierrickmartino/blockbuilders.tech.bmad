@@ -411,6 +411,87 @@ export const CATALOGUE_BLOCKS: CatalogueBlockSpec[] = [
       }
   ],
   },
+  {
+    type: "compare",
+    category: "logic",
+    label: "Compare",
+    inputs: [{"name": "left", "label": "Left"}, {"name": "right", "label": "Right"}],
+    outputs: [{"name": "output", "label": "Output"}],
+    params:
+  [
+      {
+          "name": "operator",
+          "label": "Operator",
+          "kind": "enum",
+          "default": ">",
+          "options": [
+              ">",
+              "above",
+              "gt",
+              "greater_than",
+              "<",
+              "below",
+              "lt",
+              "less_than",
+              ">=",
+              "gte",
+              "at_or_above",
+              "greater_than_or_equal",
+              "<=",
+              "lte",
+              "at_or_below",
+              "less_than_or_equal"
+          ]
+      }
+  ],
+  },
+  {
+    type: "crossover",
+    category: "logic",
+    label: "Crossover",
+    inputs: [{"name": "fast", "label": "Fast"}, {"name": "slow", "label": "Slow"}],
+    outputs: [{"name": "output", "label": "Output"}],
+    params:
+  [
+      {
+          "name": "direction",
+          "label": "Direction",
+          "kind": "enum",
+          "default": "crosses_above",
+          "options": [
+              "crosses_above",
+              "crosses_below"
+          ]
+      }
+  ],
+  },
+  {
+    type: "and",
+    category: "logic",
+    label: "AND",
+    inputs: [{"name": "a", "label": "A"}, {"name": "b", "label": "B"}],
+    outputs: [{"name": "output", "label": "Output"}],
+    params:
+  [],
+  },
+  {
+    type: "or",
+    category: "logic",
+    label: "OR",
+    inputs: [{"name": "a", "label": "A"}, {"name": "b", "label": "B"}],
+    outputs: [{"name": "output", "label": "Output"}],
+    params:
+  [],
+  },
+  {
+    type: "not",
+    category: "logic",
+    label: "NOT",
+    inputs: [{"name": "input", "label": "Input"}],
+    outputs: [{"name": "output", "label": "Output"}],
+    params:
+  [],
+  },
 ];
 
 export function getCatalogueBlock(type: string): CatalogueBlockSpec | undefined {

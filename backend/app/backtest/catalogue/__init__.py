@@ -4,6 +4,11 @@ Discovery is via explicit imports (not autodiscovery).
 """
 from __future__ import annotations
 
+from app.backtest.catalogue.logic.and_ import AndHandler
+from app.backtest.catalogue.logic.compare import CompareHandler
+from app.backtest.catalogue.logic.crossover import CrossoverHandler
+from app.backtest.catalogue.logic.not_ import NotHandler
+from app.backtest.catalogue.logic.or_ import OrHandler
 from app.backtest.catalogue.indicators.adx import AdxHandler
 from app.backtest.catalogue.indicators.atr import AtrHandler
 from app.backtest.catalogue.indicators.bollinger import BollingerHandler
@@ -39,6 +44,11 @@ CATALOGUE: dict[str, BlockHandler] = {
     "adx": AdxHandler(),
     "ichimoku": IchimokuHandler(),
     "fibonacci": FibonacciHandler(),
+    "compare": CompareHandler(),
+    "crossover": CrossoverHandler(),
+    "and": AndHandler(),
+    "or": OrHandler(),
+    "not": NotHandler(),
 }
 
 
