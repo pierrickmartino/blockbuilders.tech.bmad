@@ -35,7 +35,6 @@ import { arrangeNodes } from "@/lib/layout-algorithm";
 import { copyToClipboard, pasteFromClipboard } from "@/lib/clipboard-utils";
 import {
   resetHistory,
-  pushSnapshot,
   undo,
   redo,
   canUndo,
@@ -49,6 +48,7 @@ import SmartCanvas, { CanvasEdge } from "@/components/canvas/SmartCanvas";
 import BlockPalette from "@/components/canvas/BlockPalette";
 import BlockLibrarySheet from "@/components/canvas/BlockLibrarySheet";
 import { useIndicatorMode } from "@/hooks/useIndicatorMode";
+import { useSnapshotScheduler } from "@/hooks/use-snapshot-scheduler";
 import InspectorPanel from "@/components/canvas/InspectorPanel";
 import { Button } from "@/components/ui/button";
 import {
@@ -118,7 +118,6 @@ export default function StrategyEditorPage({ params }: Props) {
 
   // History state
   const [history, setHistory] = useState<HistoryState>(() => resetHistory([], []));
-  const snapshotTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isApplyingHistoryRef = useRef(false);
 
   // Mobile drawer state
@@ -147,7 +146,6 @@ export default function StrategyEditorPage({ params }: Props) {
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const [lastSavedNodesSnapshot, setLastSavedNodesSnapshot] = useState<string>('');
   const [lastSavedEdgesSnapshot, setLastSavedEdgesSnapshot] = useState<string>('');
-  const autosaveTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [relativeTimestamp, setRelativeTimestamp] = useState<string>('');
 
   // Settings Sheet control state
@@ -709,34 +707,13 @@ export default function StrategyEditorPage({ params }: Props) {
     []
   );
 
-  // Debounced snapshot for history + autosave
-  const scheduleSnapshot = useCallback((newNodes: Node[], newEdges: Edge[]) => {
-    if (isApplyingHistoryRef.current) return;
-
-    // Clear existing timers
-    if (snapshotTimerRef.current) {
-      clearTimeout(snapshotTimerRef.current);
-      snapshotTimerRef.current = null;
-    }
-    if (autosaveTimerRef.current) {
-      clearTimeout(autosaveTimerRef.current);
-      autosaveTimerRef.current = null;
-    }
-
-    // Schedule history snapshot (500ms)
-    snapshotTimerRef.current = setTimeout(() => {
-      snapshotTimerRef.current = null;
-      if (isApplyingHistoryRef.current) return;
-      setHistory((h) => pushSnapshot(h, newNodes, newEdges));
-    }, 500);
-
-    // Schedule autosave (10 seconds)
-    autosaveTimerRef.current = setTimeout(() => {
-      autosaveTimerRef.current = null;
-      if (isApplyingHistoryRef.current) return;
-      triggerAutosave(newNodes, newEdges);
-    }, 10000);
-  }, [triggerAutosave]);
+  const {
+    scheduleSnapshot,
+    flushSnapshot,
+    commitSnapshot,
+    snapshotTimerRef,
+    autosaveTimerRef,
+  } = useSnapshotScheduler(isApplyingHistoryRef, setHistory, triggerAutosave);
 
   // Handle parameter changes from properties panel
   const handleParamsChange = (nodeId: string, params: Record<string, unknown>) => {
@@ -931,8 +908,9 @@ export default function StrategyEditorPage({ params }: Props) {
         position: newPositions.get(node.id) || node.position,
       }));
 
+      flushSnapshot();
+      commitSnapshot(updatedNodes, edges);
       setNodes(updatedNodes);
-      scheduleSnapshot(updatedNodes, edges);
 
       const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       reactFlowRef.current?.fitView({ padding: 0.2, duration: reduceMotion ? 0 : 300 });
@@ -941,15 +919,16 @@ export default function StrategyEditorPage({ params }: Props) {
     } finally {
       setIsArranging(false);
     }
-  }, [nodes, edges, scheduleSnapshot]);
+  }, [nodes, edges, flushSnapshot, commitSnapshot]);
 
   // Handle tidy connections
   const handleTidyConnections = useCallback(() => {
     const tidiedEdges = tidyConnections(edges);
+    flushSnapshot();
+    commitSnapshot(nodes, tidiedEdges);
     setEdges(tidiedEdges);
-    scheduleSnapshot(nodes, tidiedEdges);
     setShowLayoutMenu(false);
-  }, [nodes, edges, scheduleSnapshot]);
+  }, [nodes, edges, flushSnapshot, commitSnapshot]);
 
   // Update expanded nodes when display mode changes
   useEffect(() => {
