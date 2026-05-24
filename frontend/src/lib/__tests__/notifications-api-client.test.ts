@@ -70,5 +70,74 @@ describe("NotificationsApiClient", () => {
 
       expect(result).toEqual(mockData);
     });
+
+    it("appends archived=true to the query string", async () => {
+      await NotificationsApiClient.list({ archived: true });
+
+      expect(mockApiFetch).toHaveBeenCalledWith(
+        expect.stringContaining("archived=true")
+      );
+    });
+
+    it("omits archived=false from query string", async () => {
+      await NotificationsApiClient.list({ archived: false });
+
+      const url = mockApiFetch.mock.calls[0][0] as string;
+      expect(url).not.toContain("archived");
+    });
+  });
+
+  describe("archive()", () => {
+    it("calls POST /notifications/{id}/archive", async () => {
+      const mockApiFetchVoid = vi.mocked(api.apiFetchVoid);
+      await NotificationsApiClient.archive("abc-123");
+
+      expect(mockApiFetchVoid).toHaveBeenCalledWith(
+        "/notifications/abc-123/archive",
+        expect.objectContaining({ method: "POST" })
+      );
+    });
+  });
+
+  describe("unarchive()", () => {
+    it("calls POST /notifications/{id}/unarchive", async () => {
+      const mockApiFetchVoid = vi.mocked(api.apiFetchVoid);
+      await NotificationsApiClient.unarchive("abc-456");
+
+      expect(mockApiFetchVoid).toHaveBeenCalledWith(
+        "/notifications/abc-456/unarchive",
+        expect.objectContaining({ method: "POST" })
+      );
+    });
+  });
+
+  describe("bulkAcknowledge()", () => {
+    it("calls POST /notifications/bulk-acknowledge with ids body", async () => {
+      const mockApiFetchVoid = vi.mocked(api.apiFetchVoid);
+      await NotificationsApiClient.bulkAcknowledge(["id1", "id2"]);
+
+      expect(mockApiFetchVoid).toHaveBeenCalledWith(
+        "/notifications/bulk-acknowledge",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({ ids: ["id1", "id2"] }),
+        })
+      );
+    });
+  });
+
+  describe("bulkArchive()", () => {
+    it("calls POST /notifications/bulk-archive with ids body", async () => {
+      const mockApiFetchVoid = vi.mocked(api.apiFetchVoid);
+      await NotificationsApiClient.bulkArchive(["id1", "id2"]);
+
+      expect(mockApiFetchVoid).toHaveBeenCalledWith(
+        "/notifications/bulk-archive",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({ ids: ["id1", "id2"] }),
+        })
+      );
+    });
   });
 });

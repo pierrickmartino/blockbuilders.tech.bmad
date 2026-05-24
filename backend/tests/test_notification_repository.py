@@ -145,3 +145,170 @@ class TestListForUser:
         result = NotificationRepository.list_for_user(session, user.id, offset=0, limit=25, read_state="all")
 
         assert result.total == 2
+
+
+class TestArchiveOne:
+    def test_archive_sets_all_three_fields(self, session: Session):
+        user = make_user(session)
+        n = make_notification(session, user, is_read=False)
+
+        result = NotificationRepository.archive_one(session, n.id, user.id)
+
+        assert result is True
+        session.refresh(n)
+        assert n.archived_at is not None
+        assert n.is_read is True
+        assert n.acknowledged_at is not None
+
+    def test_archive_is_idempotent_on_already_archived(self, session: Session):
+        user = make_user(session)
+        n = make_notification(session, user, archived=True, is_read=True)
+
+        result = NotificationRepository.archive_one(session, n.id, user.id)
+
+        assert result is True
+        session.refresh(n)
+        assert n.archived_at is not None
+        assert n.is_read is True
+
+    def test_archive_cross_user_returns_false(self, session: Session):
+        user_a = make_user(session)
+        user_b = make_user(session)
+        n = make_notification(session, user_a)
+
+        result = NotificationRepository.archive_one(session, n.id, user_b.id)
+
+        assert result is False
+        session.refresh(n)
+        assert n.archived_at is None
+
+
+class TestUnarchiveOne:
+    def test_unarchive_clears_archived_at(self, session: Session):
+        user = make_user(session)
+        n = make_notification(session, user, archived=True)
+
+        result = NotificationRepository.unarchive_one(session, n.id, user.id)
+
+        assert result is True
+        session.refresh(n)
+        assert n.archived_at is None
+
+    def test_unarchive_leaves_is_read_alone(self, session: Session):
+        user = make_user(session)
+        n = make_notification(session, user, archived=True, is_read=True)
+
+        NotificationRepository.unarchive_one(session, n.id, user.id)
+
+        session.refresh(n)
+        assert n.is_read is True
+
+    def test_unarchive_cross_user_returns_false(self, session: Session):
+        user_a = make_user(session)
+        user_b = make_user(session)
+        n = make_notification(session, user_a, archived=True)
+
+        result = NotificationRepository.unarchive_one(session, n.id, user_b.id)
+
+        assert result is False
+
+
+class TestBulkAcknowledgeIds:
+    def test_bulk_acknowledge_marks_ids_as_read(self, session: Session):
+        user = make_user(session)
+        n1 = make_notification(session, user, is_read=False)
+        n2 = make_notification(session, user, is_read=False)
+
+        NotificationRepository.bulk_acknowledge_ids(session, user.id, [n1.id, n2.id])
+
+        session.refresh(n1)
+        session.refresh(n2)
+        assert n1.is_read is True
+        assert n2.is_read is True
+
+    def test_bulk_acknowledge_ignores_foreign_user_ids(self, session: Session):
+        user_a = make_user(session)
+        user_b = make_user(session)
+        n = make_notification(session, user_b, is_read=False)
+
+        NotificationRepository.bulk_acknowledge_ids(session, user_a.id, [n.id])
+
+        session.refresh(n)
+        assert n.is_read is False
+
+    def test_bulk_acknowledge_is_idempotent(self, session: Session):
+        user = make_user(session)
+        n = make_notification(session, user, is_read=True)
+
+        NotificationRepository.bulk_acknowledge_ids(session, user.id, [n.id])
+
+        session.refresh(n)
+        assert n.is_read is True
+
+
+class TestBulkArchiveIds:
+    def test_bulk_archive_applies_archive_implies_read(self, session: Session):
+        user = make_user(session)
+        n1 = make_notification(session, user, is_read=False)
+        n2 = make_notification(session, user, is_read=False)
+
+        NotificationRepository.bulk_archive_ids(session, user.id, [n1.id, n2.id])
+
+        session.refresh(n1)
+        session.refresh(n2)
+        assert n1.archived_at is not None
+        assert n1.is_read is True
+        assert n2.archived_at is not None
+        assert n2.is_read is True
+
+    def test_bulk_archive_ignores_foreign_user_ids(self, session: Session):
+        user_a = make_user(session)
+        user_b = make_user(session)
+        n = make_notification(session, user_b)
+
+        NotificationRepository.bulk_archive_ids(session, user_a.id, [n.id])
+
+        session.refresh(n)
+        assert n.archived_at is None
+
+
+class TestListForUserArchivedParam:
+    def test_archived_true_returns_only_archived_rows(self, session: Session):
+        user = make_user(session)
+        make_notification(session, user)
+        make_notification(session, user, archived=True)
+
+        result = NotificationRepository.list_for_user(session, user.id, archived=True)
+
+        assert len(result.items) == 1
+
+    def test_archived_false_excludes_archived_rows(self, session: Session):
+        user = make_user(session)
+        make_notification(session, user)
+        make_notification(session, user, archived=True)
+
+        result = NotificationRepository.list_for_user(session, user.id, archived=False)
+
+        assert len(result.items) == 1
+
+    def test_archived_rows_ordered_by_archived_at_desc(self, session: Session):
+        from datetime import timedelta
+
+        user = make_user(session)
+        now = datetime.now(timezone.utc)
+        old = Notification(
+            id=uuid4(), user_id=user.id, type="info", title="Old", body="B",
+            archived_at=now - timedelta(hours=2),
+        )
+        new_ = Notification(
+            id=uuid4(), user_id=user.id, type="info", title="New", body="B",
+            archived_at=now,
+        )
+        session.add(old)
+        session.add(new_)
+        session.commit()
+
+        result = NotificationRepository.list_for_user(session, user.id, archived=True)
+
+        assert result.items[0].title == "New"
+        assert result.items[1].title == "Old"

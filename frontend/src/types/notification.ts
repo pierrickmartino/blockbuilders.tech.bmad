@@ -14,6 +14,7 @@ export interface Notification {
   link_url: string | null;
   is_read: boolean;
   created_at: string;
+  archived_at: string | null;
 }
 
 export interface NotificationListResponse {
@@ -24,8 +25,11 @@ export interface NotificationListResponse {
 
 export type ReadState = "all" | "unread" | "read";
 
+export type Tab = "inbox" | "archived";
+
 export interface NotificationFilters {
   read_state?: ReadState;
   offset?: number;
   limit?: number;
+  archived?: boolean;
 }

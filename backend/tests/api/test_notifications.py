@@ -108,3 +108,144 @@ class TestListNotificationsData:
 
         body = res.json()
         assert body["total"] == 1
+
+    def test_archived_true_returns_only_archived(self, client, auth_headers, session, user):
+        from datetime import datetime, timezone
+
+        session.add(Notification(user_id=user.id, type="info", title="Active", body="B"))
+        session.add(Notification(
+            user_id=user.id,
+            type="info",
+            title="Archived",
+            body="B",
+            archived_at=datetime.now(timezone.utc),
+        ))
+        session.commit()
+
+        res = client.get("/notifications/?archived=true", headers=auth_headers)
+
+        body = res.json()
+        assert body["total"] == 1
+        assert body["items"][0]["title"] == "Archived"
+
+
+class TestArchiveEndpoint:
+    def test_archive_returns_204(self, client, auth_headers, session, user):
+        n = Notification(user_id=user.id, type="info", title="T", body="B")
+        session.add(n)
+        session.commit()
+
+        res = client.post(f"/notifications/{n.id}/archive", headers=auth_headers)
+
+        assert res.status_code == 204
+
+    def test_archive_cross_user_returns_404(self, client, auth_headers, session):
+        from app.models.user import PlanTier, UserTier
+        from app.core.security import hash_password
+        other = __import__("app.models.user", fromlist=["User"]).User(
+            id=uuid4(),
+            email="other@example.com",
+            password_hash=hash_password("Pass123!"),
+            plan_tier=PlanTier.FREE,
+            user_tier=__import__("app.models.user", fromlist=["UserTier"]).UserTier.STANDARD,
+        )
+        session.add(other)
+        session.commit()
+        n = Notification(user_id=other.id, type="info", title="T", body="B")
+        session.add(n)
+        session.commit()
+
+        res = client.post(f"/notifications/{n.id}/archive", headers=auth_headers)
+
+        assert res.status_code == 404
+
+
+class TestUnarchiveEndpoint:
+    def test_unarchive_returns_204(self, client, auth_headers, session, user):
+        from datetime import datetime, timezone
+        n = Notification(
+            user_id=user.id, type="info", title="T", body="B",
+            archived_at=datetime.now(timezone.utc),
+        )
+        session.add(n)
+        session.commit()
+
+        res = client.post(f"/notifications/{n.id}/unarchive", headers=auth_headers)
+
+        assert res.status_code == 204
+
+    def test_unarchive_cross_user_returns_404(self, client, auth_headers, session):
+        from datetime import datetime, timezone
+        from app.models.user import PlanTier, UserTier
+        from app.core.security import hash_password
+        other = __import__("app.models.user", fromlist=["User"]).User(
+            id=uuid4(),
+            email="other2@example.com",
+            password_hash=hash_password("Pass123!"),
+            plan_tier=PlanTier.FREE,
+            user_tier=UserTier.STANDARD,
+        )
+        session.add(other)
+        session.commit()
+        n = Notification(
+            user_id=other.id, type="info", title="T", body="B",
+            archived_at=datetime.now(timezone.utc),
+        )
+        session.add(n)
+        session.commit()
+
+        res = client.post(f"/notifications/{n.id}/unarchive", headers=auth_headers)
+
+        assert res.status_code == 404
+
+
+class TestBulkAcknowledgeEndpoint:
+    def test_bulk_acknowledge_returns_204(self, client, auth_headers, session, user):
+        n1 = Notification(user_id=user.id, type="info", title="T1", body="B")
+        n2 = Notification(user_id=user.id, type="info", title="T2", body="B")
+        session.add(n1)
+        session.add(n2)
+        session.commit()
+
+        res = client.post(
+            "/notifications/bulk-acknowledge",
+            headers=auth_headers,
+            json={"ids": [str(n1.id), str(n2.id)]},
+        )
+
+        assert res.status_code == 204
+
+    def test_bulk_acknowledge_empty_ids_returns_204(self, client, auth_headers):
+        res = client.post(
+            "/notifications/bulk-acknowledge",
+            headers=auth_headers,
+            json={"ids": []},
+        )
+
+        assert res.status_code == 204
+
+
+class TestBulkArchiveEndpoint:
+    def test_bulk_archive_returns_204(self, client, auth_headers, session, user):
+        n1 = Notification(user_id=user.id, type="info", title="T1", body="B")
+        n2 = Notification(user_id=user.id, type="info", title="T2", body="B")
+        session.add(n1)
+        session.add(n2)
+        session.commit()
+
+        res = client.post(
+            "/notifications/bulk-archive",
+            headers=auth_headers,
+            json={"ids": [str(n1.id), str(n2.id)]},
+        )
+
+        assert res.status_code == 204
+
+    def test_bulk_archive_empty_ids_returns_204(self, client, auth_headers):
+        res = client.post(
+            "/notifications/bulk-archive",
+            headers=auth_headers,
+            json={"ids": []},
+        )
+
+        assert res.status_code == 204
