@@ -50,6 +50,12 @@ export function useSnapshotScheduler(
     clearTimeout(snapshotTimerRef.current);
     snapshotTimerRef.current = null;
 
+    // Cancel the paired autosave timer so stale pre-flush state is never persisted.
+    if (autosaveTimerRef.current) {
+      clearTimeout(autosaveTimerRef.current);
+      autosaveTimerRef.current = null;
+    }
+
     const { nodes, edges } = pendingSnapshotRef.current;
     pendingSnapshotRef.current = null;
 
@@ -58,12 +64,22 @@ export function useSnapshotScheduler(
   }, [isApplyingHistoryRef, setHistory]);
 
   // Push a snapshot immediately, bypassing the debounce path entirely.
+  // Also arms a fresh autosave timer so layout-only commits are never silently dropped.
   const commitSnapshot = useCallback(
     (nodes: Node[], edges: Edge[]) => {
       if (isApplyingHistoryRef.current) return;
       setHistory((h) => pushSnapshot(h, nodes, edges));
+
+      if (autosaveTimerRef.current) {
+        clearTimeout(autosaveTimerRef.current);
+      }
+      autosaveTimerRef.current = setTimeout(() => {
+        autosaveTimerRef.current = null;
+        if (isApplyingHistoryRef.current) return;
+        triggerAutosave(nodes, edges);
+      }, 10000);
     },
-    [isApplyingHistoryRef, setHistory]
+    [isApplyingHistoryRef, setHistory, triggerAutosave]
   );
 
   return {
