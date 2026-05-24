@@ -19,4 +19,13 @@ export interface Notification {
 export interface NotificationListResponse {
   items: Notification[];
   unread_count: number;
+  total: number;
+}
+
+export type ReadState = "all" | "unread" | "read";
+
+export interface NotificationFilters {
+  read_state?: ReadState;
+  offset?: number;
+  limit?: number;
 }

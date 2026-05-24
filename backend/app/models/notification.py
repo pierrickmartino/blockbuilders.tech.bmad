@@ -17,3 +17,4 @@ class Notification(SQLModel, table=True):
     is_read: bool = Field(default=False)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     acknowledged_at: Optional[datetime] = None
+    archived_at: Optional[datetime] = None

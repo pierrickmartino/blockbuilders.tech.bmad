@@ -4,7 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 import { Bell } from "lucide-react";
 import { useNotifications } from "@/hooks/useNotifications";
-import { formatDateTime } from "@/lib/format";
 import { useDisplay } from "@/context/display";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,15 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
-/**
- * Validate that a notification link is a safe internal link.
- * Only allows relative paths starting with /.
- */
-function isValidInternalLink(url: string | null | undefined): url is string {
-  if (!url) return false;
-  return url.startsWith("/") && !url.startsWith("//");
-}
+import { NotificationRow } from "@/components/NotificationRow";
 
 export default function NotificationBell() {
   const {
@@ -154,97 +145,15 @@ export default function NotificationBell() {
               <p className="mt-1 text-xs">Notifications appear here when backtests complete or alerts trigger.</p>
             </div>
           ) : (
-            notifications.map((notification) => {
-              const isLink = isValidInternalLink(notification.link_url);
-              const rowClass = `group relative border-b p-3 outline-none transition-colors hover:bg-accent focus-visible:bg-accent ${
-                notification.is_read ? "bg-transparent" : "bg-accent/30"
-              }`;
-
-              const inner = (
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      {!notification.is_read && (
-                        <span
-                          className="h-2 w-2 shrink-0 rounded-full bg-primary"
-                          aria-hidden="true"
-                        />
-                      )}
-                      <p
-                        className={`line-clamp-1 text-sm ${
-                          notification.is_read ? "font-medium text-muted-foreground" : "font-semibold"
-                        }`}
-                      >
-                        {notification.title}
-                      </p>
-                      {!notification.is_read && (
-                        <span className="sr-only">Unread</span>
-                      )}
-                    </div>
-                    <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
-                      {notification.body}
-                    </p>
-                    <p className="data-text mt-1 text-xs text-muted-foreground">
-                      {formatDateTime(notification.created_at, timezone)}
-                    </p>
-                  </div>
-                  {!notification.is_read && (
-                    <button
-                      type="button"
-                      onClick={(e) => handleMarkItemRead(e, notification.id)}
-                      className="shrink-0 rounded px-2 py-1 text-xs text-muted-foreground opacity-0 transition-opacity hover:text-foreground focus-visible:opacity-100 focus-visible:ring-1 focus-visible:ring-focus-ring group-hover:opacity-100"
-                      aria-label={`Mark "${notification.title}" as read`}
-                    >
-                      Mark read
-                    </button>
-                  )}
-                </div>
-              );
-
-              const commonProps = {
-                role: "listitem",
-                "aria-label": `${notification.title}${
-                  notification.is_read ? "" : ", unread"
-                }`,
-              } as const;
-
-              if (isLink) {
-                const href = notification.link_url as string;
-                return (
-                  <Link
-                    key={notification.id}
-                    href={href}
-                    className={`block ${rowClass}`}
-                    onClick={() =>
-                      handleRowActivate(notification.id, notification.is_read)
-                    }
-                    {...commonProps}
-                  >
-                    {inner}
-                  </Link>
-                );
-              }
-
-              return (
-                <div
-                  key={notification.id}
-                  tabIndex={0}
-                  className={`cursor-pointer ${rowClass}`}
-                  onClick={() =>
-                    handleRowActivate(notification.id, notification.is_read)
-                  }
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      handleRowActivate(notification.id, notification.is_read);
-                    }
-                  }}
-                  {...commonProps}
-                >
-                  {inner}
-                </div>
-              );
-            })
+            notifications.map((notification) => (
+              <NotificationRow
+                key={notification.id}
+                notification={notification}
+                timezone={timezone}
+                onActivate={handleRowActivate}
+                onMarkRead={handleMarkItemRead}
+              />
+            ))
           )}
         </div>
         {notifications.length > 0 && (
