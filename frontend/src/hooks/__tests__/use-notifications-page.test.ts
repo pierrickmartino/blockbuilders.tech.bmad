@@ -333,4 +333,162 @@ describe("useNotificationsPage", () => {
     expect(result.current.notifications.find((n) => n.id === "1")).toBeUndefined();
     expect(result.current.selectedIds.size).toBe(0);
   });
+
+  // New filter tests
+  it("initializes typeFilter as empty array", async () => {
+    const { result } = renderHook(() => useNotificationsPage());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.typeFilter).toEqual([]);
+  });
+
+  it("setTypeFilter re-fetches with types in the list call", async () => {
+    const { result } = renderHook(() => useNotificationsPage());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    act(() => {
+      result.current.setTypeFilter(["alert", "system"]);
+    });
+
+    await waitFor(() =>
+      expect(mockList).toHaveBeenCalledWith(
+        expect.objectContaining({ types: ["alert", "system"], offset: 0 })
+      )
+    );
+  });
+
+  it("setTypeFilter resets offset and clears selection", async () => {
+    const { result } = renderHook(() => useNotificationsPage());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    act(() => result.current.toggleSelect("1"));
+    act(() => result.current.setTypeFilter(["alert"]));
+
+    expect(result.current.selectedIds.size).toBe(0);
+  });
+
+  it("initializes dateFrom as empty string", async () => {
+    const { result } = renderHook(() => useNotificationsPage());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.dateFrom).toBe("");
+  });
+
+  it("setDateFrom re-fetches with from param", async () => {
+    const { result } = renderHook(() => useNotificationsPage());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    act(() => {
+      result.current.setDateFrom("2024-01-01");
+    });
+
+    await waitFor(() =>
+      expect(mockList).toHaveBeenCalledWith(
+        expect.objectContaining({ from: "2024-01-01" })
+      )
+    );
+  });
+
+  it("initializes dateTo as empty string", async () => {
+    const { result } = renderHook(() => useNotificationsPage());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.dateTo).toBe("");
+  });
+
+  it("setDateTo re-fetches with to param", async () => {
+    const { result } = renderHook(() => useNotificationsPage());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    act(() => {
+      result.current.setDateTo("2024-12-31");
+    });
+
+    await waitFor(() =>
+      expect(mockList).toHaveBeenCalledWith(
+        expect.objectContaining({ to: "2024-12-31" })
+      )
+    );
+  });
+
+  it("initializes searchQuery as empty string", async () => {
+    const { result } = renderHook(() => useNotificationsPage());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.searchQuery).toBe("");
+  });
+
+  it("setSearchQuery updates searchQuery immediately", async () => {
+    const { result } = renderHook(() => useNotificationsPage());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    vi.useFakeTimers();
+    try {
+      act(() => {
+        result.current.setSearchQuery("BTC");
+      });
+
+      expect(result.current.searchQuery).toBe("BTC");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("setSearchQuery debounces fetch by 250ms", async () => {
+    const { result } = renderHook(() => useNotificationsPage());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    vi.useFakeTimers();
+    try {
+      const callsBefore = mockList.mock.calls.length;
+
+      act(() => {
+        result.current.setSearchQuery("BTC");
+      });
+
+      // Not yet called synchronously
+      expect(mockList.mock.calls.length).toBe(callsBefore);
+
+      // Advance timer past debounce
+      await act(async () => {
+        vi.advanceTimersByTime(300);
+      });
+
+      expect(mockList).toHaveBeenCalledWith(
+        expect.objectContaining({ q: "BTC" })
+      );
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("newNotificationsBanner shows when unread_count increases between polls", async () => {
+    const { result } = renderHook(() => useNotificationsPage());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.newNotificationsBannerCount).toBe(0);
+
+    mockList.mockResolvedValueOnce({ ...pageOne, unread_count: 5 });
+    await act(async () => {
+      await result.current.pollUnreadCount();
+    });
+
+    expect(result.current.newNotificationsBannerCount).toBeGreaterThan(0);
+  });
+
+  it("dismissing the banner on refresh clears newNotificationsBannerCount", async () => {
+    const { result } = renderHook(() => useNotificationsPage());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    mockList.mockResolvedValueOnce({ ...pageOne, unread_count: 5 });
+    await act(async () => {
+      await result.current.pollUnreadCount();
+    });
+    expect(result.current.newNotificationsBannerCount).toBeGreaterThan(0);
+
+    act(() => result.current.refresh());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.newNotificationsBannerCount).toBe(0);
+  });
 });

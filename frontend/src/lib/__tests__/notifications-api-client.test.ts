@@ -85,6 +85,52 @@ describe("NotificationsApiClient", () => {
       const url = mockApiFetch.mock.calls[0][0] as string;
       expect(url).not.toContain("archived");
     });
+
+    it("appends repeated type params for each type value", async () => {
+      await NotificationsApiClient.list({ types: ["alert", "system"] });
+
+      const url = mockApiFetch.mock.calls[0][0] as string;
+      expect(url).toContain("type=alert");
+      expect(url).toContain("type=system");
+    });
+
+    it("omits type param when types array is empty", async () => {
+      await NotificationsApiClient.list({ types: [] });
+
+      const url = mockApiFetch.mock.calls[0][0] as string;
+      expect(url).not.toContain("type=");
+    });
+
+    it("appends from param when provided", async () => {
+      await NotificationsApiClient.list({ from: "2024-01-01" });
+
+      expect(mockApiFetch).toHaveBeenCalledWith(
+        expect.stringContaining("from=2024-01-01")
+      );
+    });
+
+    it("appends to param when provided", async () => {
+      await NotificationsApiClient.list({ to: "2024-12-31" });
+
+      expect(mockApiFetch).toHaveBeenCalledWith(
+        expect.stringContaining("to=2024-12-31")
+      );
+    });
+
+    it("appends q param when provided", async () => {
+      await NotificationsApiClient.list({ q: "BTC" });
+
+      expect(mockApiFetch).toHaveBeenCalledWith(
+        expect.stringContaining("q=BTC")
+      );
+    });
+
+    it("omits q param when q is empty string", async () => {
+      await NotificationsApiClient.list({ q: "" });
+
+      const url = mockApiFetch.mock.calls[0][0] as string;
+      expect(url).not.toContain("q=");
+    });
   });
 
   describe("archive()", () => {

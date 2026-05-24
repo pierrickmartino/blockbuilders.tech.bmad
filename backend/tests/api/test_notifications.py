@@ -129,6 +129,99 @@ class TestListNotificationsData:
         assert body["items"][0]["title"] == "Archived"
 
 
+class TestNewFilterParamsContract:
+    def test_q_param_accepted(self, client, auth_headers):
+        res = client.get("/notifications/?q=BTC", headers=auth_headers)
+
+        assert res.status_code == 200
+
+    def test_type_param_single_accepted(self, client, auth_headers):
+        res = client.get("/notifications/?type=alert", headers=auth_headers)
+
+        assert res.status_code == 200
+
+    def test_type_param_multiple_accepted(self, client, auth_headers):
+        res = client.get("/notifications/?type=alert&type=system", headers=auth_headers)
+
+        assert res.status_code == 200
+
+    def test_from_param_accepted(self, client, auth_headers):
+        res = client.get("/notifications/?from=2024-01-01", headers=auth_headers)
+
+        assert res.status_code == 200
+
+    def test_to_param_accepted(self, client, auth_headers):
+        res = client.get("/notifications/?to=2024-12-31", headers=auth_headers)
+
+        assert res.status_code == 200
+
+    def test_invalid_from_returns_422(self, client, auth_headers):
+        res = client.get("/notifications/?from=not-a-date", headers=auth_headers)
+
+        assert res.status_code == 422
+
+    def test_invalid_to_returns_422(self, client, auth_headers):
+        res = client.get("/notifications/?to=not-a-date", headers=auth_headers)
+
+        assert res.status_code == 422
+
+
+class TestNewFilterParamsData:
+    def test_q_filters_by_title(self, client, auth_headers, session, user):
+        session.add(Notification(user_id=user.id, type="info", title="BTC alert", body="B"))
+        session.add(Notification(user_id=user.id, type="info", title="ETH news", body="B"))
+        session.commit()
+
+        res = client.get("/notifications/?q=BTC", headers=auth_headers)
+
+        body = res.json()
+        assert body["total"] == 1
+        assert body["items"][0]["title"] == "BTC alert"
+
+    def test_type_filter_returns_matching_type(self, client, auth_headers, session, user):
+        session.add(Notification(user_id=user.id, type="alert", title="A", body="B"))
+        session.add(Notification(user_id=user.id, type="system", title="C", body="D"))
+        session.commit()
+
+        res = client.get("/notifications/?type=alert", headers=auth_headers)
+
+        body = res.json()
+        assert body["total"] == 1
+
+    def test_combined_unread_type_q_filters(self, client, auth_headers, session, user):
+        session.add(Notification(
+            user_id=user.id, type="alert", title="BTC drop", body="B", is_read=False,
+        ))
+        session.add(Notification(
+            user_id=user.id, type="system", title="BTC system", body="B", is_read=False,
+        ))
+        session.add(Notification(
+            user_id=user.id, type="alert", title="ETH alert", body="B", is_read=False,
+        ))
+        session.commit()
+
+        res = client.get(
+            "/notifications/?read_state=unread&type=alert&q=BTC",
+            headers=auth_headers,
+        )
+
+        body = res.json()
+        assert body["total"] == 1
+        assert body["items"][0]["title"] == "BTC drop"
+
+    def test_total_reflects_filtered_count(self, client, auth_headers, session, user):
+        session.add(Notification(user_id=user.id, type="alert", title="A1", body="B"))
+        session.add(Notification(user_id=user.id, type="alert", title="A2", body="B"))
+        session.add(Notification(user_id=user.id, type="system", title="S1", body="B"))
+        session.commit()
+
+        res = client.get("/notifications/?limit=1&type=alert", headers=auth_headers)
+
+        body = res.json()
+        assert body["total"] == 2
+        assert len(body["items"]) == 1
+
+
 class TestArchiveEndpoint:
     def test_archive_returns_204(self, client, auth_headers, session, user):
         n = Notification(user_id=user.id, type="info", title="T", body="B")

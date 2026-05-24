@@ -32,4 +32,8 @@ export interface NotificationFilters {
   offset?: number;
   limit?: number;
   archived?: boolean;
+  types?: string[];
+  from?: string;
+  to?: string;
+  q?: string;
 }

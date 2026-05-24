@@ -17,6 +17,18 @@ export const NotificationsApiClient = {
     if (filters.archived) {
       params.set("archived", "true");
     }
+    for (const t of filters.types ?? []) {
+      params.append("type", t);
+    }
+    if (filters.from) {
+      params.set("from", filters.from);
+    }
+    if (filters.to) {
+      params.set("to", filters.to);
+    }
+    if (filters.q) {
+      params.set("q", filters.q);
+    }
 
     const qs = params.toString();
     const url = qs ? `/notifications/?${qs}` : "/notifications/";

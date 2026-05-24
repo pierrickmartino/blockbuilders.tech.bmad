@@ -272,6 +272,208 @@ class TestBulkArchiveIds:
         assert n.archived_at is None
 
 
+class TestListForUserSearchFilter:
+    def test_q_matches_title(self, session: Session):
+        user = make_user(session)
+        session.add(Notification(user_id=user.id, type="info", title="BTC alert", body="body"))
+        session.add(Notification(user_id=user.id, type="info", title="ETH update", body="body"))
+        session.commit()
+
+        result = NotificationRepository.list_for_user(session, user.id, q="BTC")
+
+        assert result.total == 1
+        assert result.items[0].title == "BTC alert"
+
+    def test_q_matches_body(self, session: Session):
+        user = make_user(session)
+        session.add(Notification(user_id=user.id, type="info", title="T1", body="bitcoin transaction"))
+        session.add(Notification(user_id=user.id, type="info", title="T2", body="unrelated"))
+        session.commit()
+
+        result = NotificationRepository.list_for_user(session, user.id, q="bitcoin")
+
+        assert result.total == 1
+
+    def test_q_is_case_insensitive(self, session: Session):
+        user = make_user(session)
+        session.add(Notification(user_id=user.id, type="info", title="btc price drop", body="body"))
+        session.commit()
+
+        result = NotificationRepository.list_for_user(session, user.id, q="BTC")
+
+        assert result.total == 1
+
+    def test_q_no_match_returns_empty(self, session: Session):
+        user = make_user(session)
+        session.add(Notification(user_id=user.id, type="info", title="ETH alert", body="body"))
+        session.commit()
+
+        result = NotificationRepository.list_for_user(session, user.id, q="XYZ_NOT_FOUND")
+
+        assert result.total == 0
+
+    def test_q_none_skips_search_filter(self, session: Session):
+        user = make_user(session)
+        session.add(Notification(user_id=user.id, type="info", title="A", body="B"))
+        session.add(Notification(user_id=user.id, type="alert", title="C", body="D"))
+        session.commit()
+
+        result = NotificationRepository.list_for_user(session, user.id, q=None)
+
+        assert result.total == 2
+
+
+class TestListForUserTypeFilter:
+    def test_single_type_filters_correctly(self, session: Session):
+        user = make_user(session)
+        session.add(Notification(user_id=user.id, type="alert", title="A", body="B"))
+        session.add(Notification(user_id=user.id, type="system", title="C", body="D"))
+        session.commit()
+
+        result = NotificationRepository.list_for_user(session, user.id, types=["alert"])
+
+        assert result.total == 1
+        assert result.items[0].type == "alert"
+
+    def test_multiple_types_or_combined(self, session: Session):
+        user = make_user(session)
+        session.add(Notification(user_id=user.id, type="alert", title="A", body="B"))
+        session.add(Notification(user_id=user.id, type="system", title="C", body="D"))
+        session.add(Notification(user_id=user.id, type="info", title="E", body="F"))
+        session.commit()
+
+        result = NotificationRepository.list_for_user(session, user.id, types=["alert", "system"])
+
+        assert result.total == 2
+
+    def test_unknown_type_returns_empty(self, session: Session):
+        user = make_user(session)
+        session.add(Notification(user_id=user.id, type="info", title="A", body="B"))
+        session.commit()
+
+        result = NotificationRepository.list_for_user(session, user.id, types=["unknown_type"])
+
+        assert result.total == 0
+
+    def test_empty_types_list_skips_type_filter(self, session: Session):
+        user = make_user(session)
+        session.add(Notification(user_id=user.id, type="alert", title="A", body="B"))
+        session.add(Notification(user_id=user.id, type="system", title="C", body="D"))
+        session.commit()
+
+        result = NotificationRepository.list_for_user(session, user.id, types=[])
+
+        assert result.total == 2
+
+
+class TestListForUserDateRangeFilter:
+    def test_from_dt_excludes_earlier_notifications(self, session: Session):
+        from datetime import timedelta
+
+        user = make_user(session)
+        now = datetime.now(timezone.utc)
+        old = Notification(
+            user_id=user.id, type="info", title="Old", body="B",
+            created_at=now - timedelta(days=10),
+        )
+        recent = Notification(
+            user_id=user.id, type="info", title="Recent", body="B",
+            created_at=now - timedelta(days=1),
+        )
+        session.add(old)
+        session.add(recent)
+        session.commit()
+
+        result = NotificationRepository.list_for_user(
+            session, user.id, from_dt=now - timedelta(days=3)
+        )
+
+        assert result.total == 1
+        assert result.items[0].title == "Recent"
+
+    def test_to_dt_excludes_later_notifications(self, session: Session):
+        from datetime import timedelta
+
+        user = make_user(session)
+        now = datetime.now(timezone.utc)
+        old = Notification(
+            user_id=user.id, type="info", title="Old", body="B",
+            created_at=now - timedelta(days=10),
+        )
+        recent = Notification(
+            user_id=user.id, type="info", title="Recent", body="B",
+            created_at=now,
+        )
+        session.add(old)
+        session.add(recent)
+        session.commit()
+
+        result = NotificationRepository.list_for_user(
+            session, user.id, to_dt=now - timedelta(days=3)
+        )
+
+        assert result.total == 1
+        assert result.items[0].title == "Old"
+
+    def test_from_dt_and_to_dt_range(self, session: Session):
+        from datetime import timedelta
+
+        user = make_user(session)
+        now = datetime.now(timezone.utc)
+        session.add(Notification(
+            user_id=user.id, type="info", title="In range", body="B",
+            created_at=now - timedelta(days=5),
+        ))
+        session.add(Notification(
+            user_id=user.id, type="info", title="Too old", body="B",
+            created_at=now - timedelta(days=20),
+        ))
+        session.add(Notification(
+            user_id=user.id, type="info", title="Too new", body="B",
+            created_at=now,
+        ))
+        session.commit()
+
+        result = NotificationRepository.list_for_user(
+            session,
+            user.id,
+            from_dt=now - timedelta(days=10),
+            to_dt=now - timedelta(days=1),
+        )
+
+        assert result.total == 1
+        assert result.items[0].title == "In range"
+
+
+class TestListForUserCombinedFilters:
+    def test_combined_unread_type_and_q(self, session: Session):
+        user = make_user(session)
+        # Match: unread, type=alert, title contains BTC
+        session.add(Notification(
+            user_id=user.id, type="alert", title="BTC price drop", body="body", is_read=False,
+        ))
+        # No match: read
+        session.add(Notification(
+            user_id=user.id, type="alert", title="BTC news", body="body", is_read=True,
+        ))
+        # No match: wrong type
+        session.add(Notification(
+            user_id=user.id, type="system", title="BTC system msg", body="body", is_read=False,
+        ))
+        # No match: wrong q
+        session.add(Notification(
+            user_id=user.id, type="alert", title="ETH alert", body="body", is_read=False,
+        ))
+        session.commit()
+
+        result = NotificationRepository.list_for_user(
+            session, user.id, read_state="unread", types=["alert"], q="BTC"
+        )
+
+        assert result.total == 1
+        assert result.items[0].title == "BTC price drop"
+
+
 class TestListForUserArchivedParam:
     def test_archived_true_returns_only_archived_rows(self, session: Session):
         user = make_user(session)

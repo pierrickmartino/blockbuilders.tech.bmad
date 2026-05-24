@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { NotificationsApiClient } from "@/lib/notifications-api-client";
 import type { Notification, ReadState, Tab } from "@/types/notification";
 
 const PAGE_SIZE = 25;
+const SEARCH_DEBOUNCE_MS = 250;
 
 interface UseNotificationsPageReturn {
   notifications: Notification[];
@@ -15,10 +16,20 @@ interface UseNotificationsPageReturn {
   isLoading: boolean;
   error: string | null;
   selectedIds: Set<string>;
+  typeFilter: string[];
+  dateFrom: string;
+  dateTo: string;
+  searchQuery: string;
+  newNotificationsBannerCount: number;
   setTab: (tab: Tab) => void;
   setReadState: (state: ReadState) => void;
+  setTypeFilter: (types: string[]) => void;
+  setDateFrom: (from: string) => void;
+  setDateTo: (to: string) => void;
+  setSearchQuery: (q: string) => void;
   loadMore: () => void;
   refresh: () => void;
+  pollUnreadCount: () => void;
   markAsRead: (id: string) => void;
   archive: (id: string) => void;
   unarchive: (id: string) => void;
@@ -48,6 +59,13 @@ export function useNotificationsPage(): UseNotificationsPageReturn {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [typeFilter, setTypeFilterLocal] = useState<string[]>([]);
+  const [dateFrom, setDateFromLocal] = useState("");
+  const [dateTo, setDateToLocal] = useState("");
+  const [searchQuery, setSearchQueryLocal] = useState("");
+  const [newNotificationsBannerCount, setNewNotificationsBannerCount] = useState(0);
+  const baseUnreadCountRef = useRef<number | null>(null);
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const syncUrl = useCallback(
     (t: Tab, rs: ReadState, off: number) => {
@@ -62,7 +80,13 @@ export function useNotificationsPage(): UseNotificationsPageReturn {
   );
 
   const fetchPage = useCallback(
-    async (t: Tab, rs: ReadState, off: number, append: boolean) => {
+    async (
+      t: Tab,
+      rs: ReadState,
+      off: number,
+      append: boolean,
+      filters?: { types?: string[]; from?: string; to?: string; q?: string },
+    ) => {
       setIsLoading(true);
       setError(null);
       try {
@@ -71,8 +95,15 @@ export function useNotificationsPage(): UseNotificationsPageReturn {
           offset: off,
           limit: PAGE_SIZE,
           archived: t === "archived",
+          types: filters?.types,
+          from: filters?.from || undefined,
+          to: filters?.to || undefined,
+          q: filters?.q || undefined,
         });
         setTotal(data.total);
+        if (baseUnreadCountRef.current === null) {
+          baseUnreadCountRef.current = data.unread_count;
+        }
         setUnreadCount(data.unread_count);
         setNotifications((prev) => (append ? [...prev, ...data.items] : data.items));
       } catch {
@@ -84,8 +115,13 @@ export function useNotificationsPage(): UseNotificationsPageReturn {
     []
   );
 
+  const currentFilters = useCallback(
+    () => ({ types: typeFilter, from: dateFrom, to: dateTo, q: searchQuery }),
+    [typeFilter, dateFrom, dateTo, searchQuery]
+  );
+
   useEffect(() => {
-    fetchPage(tab, readState, offset, false);
+    fetchPage(tab, readState, offset, false, currentFilters());
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const setTab = useCallback(
@@ -95,9 +131,9 @@ export function useNotificationsPage(): UseNotificationsPageReturn {
       setNotifications([]);
       setSelectedIds(new Set());
       syncUrl(t, readState, 0);
-      fetchPage(t, readState, 0, false);
+      fetchPage(t, readState, 0, false, currentFilters());
     },
-    [readState, fetchPage, syncUrl]
+    [readState, fetchPage, syncUrl, currentFilters]
   );
 
   const setReadState = useCallback(
@@ -107,9 +143,9 @@ export function useNotificationsPage(): UseNotificationsPageReturn {
       setNotifications([]);
       setSelectedIds(new Set());
       syncUrl(tab, rs, 0);
-      fetchPage(tab, rs, 0, false);
+      fetchPage(tab, rs, 0, false, currentFilters());
     },
-    [tab, fetchPage, syncUrl]
+    [tab, fetchPage, syncUrl, currentFilters]
   );
 
   const loadMore = useCallback(() => {
@@ -117,14 +153,70 @@ export function useNotificationsPage(): UseNotificationsPageReturn {
     setOffset(next);
     setSelectedIds(new Set());
     syncUrl(tab, readState, next);
-    fetchPage(tab, readState, next, true);
-  }, [offset, tab, readState, fetchPage, syncUrl]);
+    fetchPage(tab, readState, next, true, currentFilters());
+  }, [offset, tab, readState, fetchPage, syncUrl, currentFilters]);
 
   const refresh = useCallback(() => {
     setOffset(0);
+    setNewNotificationsBannerCount(0);
+    baseUnreadCountRef.current = null;
     syncUrl(tab, readState, 0);
-    fetchPage(tab, readState, 0, false);
-  }, [tab, readState, fetchPage, syncUrl]);
+    fetchPage(tab, readState, 0, false, currentFilters());
+  }, [tab, readState, fetchPage, syncUrl, currentFilters]);
+
+  const setTypeFilter = useCallback(
+    (types: string[]) => {
+      setTypeFilterLocal(types);
+      setOffset(0);
+      setSelectedIds(new Set());
+      fetchPage(tab, readState, 0, false, { types, from: dateFrom, to: dateTo, q: searchQuery });
+    },
+    [tab, readState, fetchPage, dateFrom, dateTo, searchQuery]
+  );
+
+  const setDateFrom = useCallback(
+    (from: string) => {
+      setDateFromLocal(from);
+      setOffset(0);
+      fetchPage(tab, readState, 0, false, { types: typeFilter, from, to: dateTo, q: searchQuery });
+    },
+    [tab, readState, fetchPage, typeFilter, dateTo, searchQuery]
+  );
+
+  const setDateTo = useCallback(
+    (to: string) => {
+      setDateToLocal(to);
+      setOffset(0);
+      fetchPage(tab, readState, 0, false, { types: typeFilter, from: dateFrom, to, q: searchQuery });
+    },
+    [tab, readState, fetchPage, typeFilter, dateFrom, searchQuery]
+  );
+
+  const setSearchQuery = useCallback(
+    (q: string) => {
+      setSearchQueryLocal(q);
+      if (searchDebounceRef.current) {
+        clearTimeout(searchDebounceRef.current);
+      }
+      searchDebounceRef.current = setTimeout(() => {
+        setOffset(0);
+        fetchPage(tab, readState, 0, false, { types: typeFilter, from: dateFrom, to: dateTo, q });
+      }, SEARCH_DEBOUNCE_MS);
+    },
+    [tab, readState, fetchPage, typeFilter, dateFrom, dateTo]
+  );
+
+  const pollUnreadCount = useCallback(async () => {
+    try {
+      const data = await NotificationsApiClient.list({ limit: 1, archived: false });
+      const newCount = data.unread_count;
+      if (baseUnreadCountRef.current !== null && newCount > baseUnreadCountRef.current) {
+        setNewNotificationsBannerCount(newCount - baseUnreadCountRef.current);
+      }
+    } catch {
+      // silently ignore poll failures
+    }
+  }, []);
 
   const markAsRead = useCallback((id: string) => {
     setNotifications((prev) =>
@@ -204,10 +296,20 @@ export function useNotificationsPage(): UseNotificationsPageReturn {
     isLoading,
     error,
     selectedIds,
+    typeFilter,
+    dateFrom,
+    dateTo,
+    searchQuery,
+    newNotificationsBannerCount,
     setTab,
     setReadState,
+    setTypeFilter,
+    setDateFrom,
+    setDateTo,
+    setSearchQuery,
     loadMore,
     refresh,
+    pollUnreadCount,
     markAsRead,
     archive,
     unarchive,

@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from typing import Literal
 from uuid import UUID
 
-from sqlmodel import Session, func, select
+from sqlmodel import Session, func, or_, select
 
 from app.models.notification import Notification
 from app.schemas.notification import NotificationItem
@@ -30,6 +30,10 @@ class NotificationRepository:
         limit: int = 25,
         read_state: ReadState = "all",
         archived: bool = False,
+        types: list[str] | None = None,
+        from_dt: datetime | None = None,
+        to_dt: datetime | None = None,
+        q: str | None = None,
     ) -> NotificationPage:
         if archived:
             base = select(Notification).where(
@@ -45,6 +49,21 @@ class NotificationRepository:
                 base = base.where(Notification.is_read == False)  # noqa: E712
             elif read_state == "read":
                 base = base.where(Notification.is_read == True)  # noqa: E712
+
+        if types:
+            base = base.where(Notification.type.in_(types))
+        if from_dt is not None:
+            base = base.where(Notification.created_at >= from_dt)
+        if to_dt is not None:
+            base = base.where(Notification.created_at <= to_dt)
+        if q:
+            pattern = f"%{q}%"
+            base = base.where(
+                or_(
+                    Notification.title.ilike(pattern),
+                    Notification.body.ilike(pattern),
+                )
+            )
 
         total = session.exec(
             select(func.count()).select_from(base.subquery())

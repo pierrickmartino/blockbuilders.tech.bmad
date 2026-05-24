@@ -1,5 +1,6 @@
 """API endpoints for notifications."""
-from typing import Literal
+from datetime import date, datetime, time, timezone
+from typing import Annotated, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -20,10 +21,17 @@ def list_notifications(
     limit: int = Query(25, ge=1, le=100),
     read_state: Literal["all", "unread", "read"] = Query("all"),
     archived: bool = Query(False),
+    type: Annotated[list[str], Query()] = [],  # noqa: A002
+    from_: Annotated[date | None, Query(alias="from")] = None,
+    to_: Annotated[date | None, Query(alias="to")] = None,
+    q: str | None = Query(None),
     user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
 ) -> NotificationListResponse:
     """List notifications for the current user with pagination and filtering."""
+    from_dt = datetime.combine(from_, time.min, tzinfo=timezone.utc) if from_ else None
+    to_dt = datetime.combine(to_, time.max, tzinfo=timezone.utc) if to_ else None
+
     page = NotificationRepository.list_for_user(
         session,
         user.id,
@@ -31,6 +39,10 @@ def list_notifications(
         limit=limit,
         read_state=read_state,
         archived=archived,
+        types=list(type),
+        from_dt=from_dt,
+        to_dt=to_dt,
+        q=q or None,
     )
     return NotificationListResponse(
         items=page.items,
