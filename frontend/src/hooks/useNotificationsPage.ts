@@ -5,6 +5,7 @@ import type { Notification, ReadState, Tab } from "@/types/notification";
 
 const PAGE_SIZE = 25;
 const SEARCH_DEBOUNCE_MS = 250;
+const POLL_INTERVAL_MS = 30_000;
 
 interface UseNotificationsPageReturn {
   notifications: Notification[];
@@ -218,11 +219,17 @@ export function useNotificationsPage(): UseNotificationsPageReturn {
     }
   }, []);
 
+  useEffect(() => {
+    const id = setInterval(pollUnreadCount, POLL_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, [pollUnreadCount]);
+
   const markAsRead = useCallback((id: string) => {
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
     );
     setUnreadCount((prev) => Math.max(0, prev - 1));
+    NotificationsApiClient.bulkAcknowledge([id]).catch(() => {});
   }, []);
 
   const archive = useCallback((id: string) => {
