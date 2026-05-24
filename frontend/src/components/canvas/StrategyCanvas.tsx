@@ -11,7 +11,6 @@ import {
   Edge,
   Connection,
   addEdge,
-  ReactFlowProvider,
   ReactFlowInstance,
   applyNodeChanges,
   applyEdgeChanges,
@@ -573,9 +572,5 @@ export function useCanvasActions(
 }
 
 export default function StrategyCanvas(props: StrategyCanvasProps) {
-  return (
-    <ReactFlowProvider>
-      <CanvasInner {...props} />
-    </ReactFlowProvider>
-  );
+  return <CanvasInner {...props} />;
 }
