@@ -3,7 +3,7 @@
 import { useEffect, useState, use, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Node, Edge, ReactFlowInstance } from "@xyflow/react";
+import { Node, Edge, ReactFlowInstance, ReactFlowProvider } from "@xyflow/react";
 import { apiFetch } from "@/lib/api";
 import {
   trackEvent,
@@ -76,7 +76,15 @@ interface Props {
   params: Promise<{ id: string }>;
 }
 
-export default function StrategyEditorPage({ params }: Props) {
+export default function StrategyEditorPage(props: Props) {
+  return (
+    <ReactFlowProvider>
+      <StrategyEditorPageInner {...props} />
+    </ReactFlowProvider>
+  );
+}
+
+function StrategyEditorPageInner({ params }: Props) {
   const { id } = use(params);
   const router = useRouter();
   const { user } = useAuth();
