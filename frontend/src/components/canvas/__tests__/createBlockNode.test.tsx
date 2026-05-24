@@ -209,7 +209,7 @@ describe("migrated node acceptance criteria", () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const Component = nodeTypes["fibonacci"] as React.ComponentType<any>;
     const { container } = renderNode(Component);
-    expect(container.querySelectorAll('[data-handletype="source"]')).toHaveLength(5);
+    expect(container.querySelectorAll('[data-handletype="source"]')).toHaveLength(6);
   });
 
   it("MacdNode uses abbreviated param labels (Fast/Slow/Signal), not title-cased (Fast Period/...)", async () => {
