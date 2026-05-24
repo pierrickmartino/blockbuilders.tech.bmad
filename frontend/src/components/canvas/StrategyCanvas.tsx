@@ -17,6 +17,7 @@ import {
   applyEdgeChanges,
   SelectionMode,
   useReactFlow,
+  useNodesInitialized,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
@@ -34,9 +35,9 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Loader2 } from "lucide-react";
 
 export type CanvasEdge = Edge<DeleteButtonEdgeData, "deletable">;
 
@@ -55,9 +56,11 @@ export interface StrategyCanvasProps {
   isMobileMode?: boolean;
   onInit?: (instance: ReactFlowInstance<Node, CanvasEdge>) => void;
   onNodeClick?: (nodeId: string) => void;
-  onAutoArrange?: (direction: "LR" | "TB") => void;
+  onAutoArrange?: () => void;
+  isArranging?: boolean;
   onTidyConnections?: () => void;
   onLayoutMenu?: () => void;
+  onContainerMount?: (el: HTMLDivElement | null) => void;
   canvasFlags?: Partial<CanvasFlags>;
   inlinePopoverEnabled?: boolean;
   popoverNodeId?: string | null;
@@ -88,8 +91,10 @@ function CanvasInner({
   onInit: onInitProp,
   onNodeClick: onNodeClickProp,
   onAutoArrange,
+  isArranging,
   onTidyConnections,
   onLayoutMenu,
+  onContainerMount,
   canvasFlags,
   inlinePopoverEnabled,
   popoverNodeId,
@@ -122,6 +127,7 @@ function CanvasInner({
   // ReactFlow instance for zoom/fit controls
   const reactFlow = useReactFlow<Node, CanvasEdge>();
   const chartTheme = useChartTheme();
+  const nodesInitialized = useNodesInitialized();
 
   // Zoom and fit handlers for mobile bottom bar
   const handleZoomIn = useCallback(() => {
@@ -290,7 +296,10 @@ function CanvasInner({
         </div>
       )}
       <div
-        ref={canvasContainerRef}
+        ref={(el) => {
+          canvasContainerRef.current = el;
+          onContainerMount?.(el);
+        }}
         className={`relative flex-1 overflow-hidden rounded-xl border border-border bg-secondary shadow-sm ${isMobileMode ? "pb-14" : ""}`}
       >
         <ReactFlow<Node, CanvasEdge>
@@ -413,10 +422,40 @@ function CanvasInner({
                   </span>
                 </ControlButton>
               )}
-              {(onAutoArrange || onTidyConnections) && (
+              {onAutoArrange && (
+                <ControlButton
+                  title="Auto-arrange"
+                  onClick={() => {
+                    onAutoArrange();
+                  }}
+                  disabled={!nodesInitialized || isArranging}
+                  style={{ opacity: (nodesInitialized && !isArranging) ? 1 : 0.4, cursor: (nodesInitialized && !isArranging) ? "pointer" : "not-allowed" }}
+                >
+                  {isArranging ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="h-4 w-4"
+                    >
+                      <rect x="3" y="3" width="7" height="7" />
+                      <rect x="14" y="3" width="7" height="7" />
+                      <rect x="14" y="14" width="7" height="7" />
+                      <rect x="3" y="14" width="7" height="7" />
+                    </svg>
+                  )}
+                </ControlButton>
+              )}
+              {onTidyConnections && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <ControlButton title="Auto-arrange">
+                    <ControlButton title="Layout options">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         viewBox="0 0 24 24"
@@ -427,30 +466,16 @@ function CanvasInner({
                         strokeLinejoin="round"
                         className="h-4 w-4"
                       >
-                        <rect x="3" y="3" width="7" height="7" />
-                        <rect x="14" y="3" width="7" height="7" />
-                        <rect x="14" y="14" width="7" height="7" />
-                        <rect x="3" y="14" width="7" height="7" />
+                        <line x1="3" y1="6" x2="21" y2="6" />
+                        <line x1="3" y1="12" x2="21" y2="12" />
+                        <line x1="3" y1="18" x2="21" y2="18" />
                       </svg>
                     </ControlButton>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    {onAutoArrange && (
-                      <>
-                        <DropdownMenuItem onClick={() => onAutoArrange("LR")}>
-                          Left → Right
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => onAutoArrange("TB")}>
-                          Top → Bottom
-                        </DropdownMenuItem>
-                      </>
-                    )}
-                    {onAutoArrange && onTidyConnections && <DropdownMenuSeparator />}
-                    {onTidyConnections && (
-                      <DropdownMenuItem onClick={onTidyConnections}>
-                        Tidy connections
-                      </DropdownMenuItem>
-                    )}
+                    <DropdownMenuItem onClick={onTidyConnections}>
+                      Tidy connections
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               )}

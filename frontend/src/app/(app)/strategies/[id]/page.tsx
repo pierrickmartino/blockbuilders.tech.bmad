@@ -31,11 +31,9 @@ import {
   generateBlockId,
   tidyConnections,
 } from "@/lib/canvas-utils";
-import { autoArrangeLayout } from "@/lib/layout-algorithm";
 import { copyToClipboard, pasteFromClipboard } from "@/lib/clipboard-utils";
 import {
   resetHistory,
-  pushSnapshot,
   undo,
   redo,
   canUndo,
@@ -49,6 +47,8 @@ import SmartCanvas, { CanvasEdge } from "@/components/canvas/SmartCanvas";
 import BlockPalette from "@/components/canvas/BlockPalette";
 import BlockLibrarySheet from "@/components/canvas/BlockLibrarySheet";
 import { useIndicatorMode } from "@/hooks/useIndicatorMode";
+import { useSnapshotScheduler } from "@/hooks/use-snapshot-scheduler";
+import { useAutoArrange } from "@/hooks/use-auto-arrange";
 import InspectorPanel from "@/components/canvas/InspectorPanel";
 import { Button } from "@/components/ui/button";
 import {
@@ -118,7 +118,6 @@ export default function StrategyEditorPage({ params }: Props) {
 
   // History state
   const [history, setHistory] = useState<HistoryState>(() => resetHistory([], []));
-  const snapshotTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isApplyingHistoryRef = useRef(false);
 
   // Mobile drawer state
@@ -129,6 +128,9 @@ export default function StrategyEditorPage({ params }: Props) {
 
   // ReactFlow instance ref for block library sheet
   const reactFlowRef = useRef<ReactFlowInstance<Node, CanvasEdge> | null>(null);
+
+  // Canvas container ref (forwarded from StrategyCanvas for arrange transitions)
+  const canvasContainerRef = useRef<HTMLElement | null>(null);
 
   // Editable name state
   const [editingName, setEditingName] = useState(false);
@@ -146,7 +148,6 @@ export default function StrategyEditorPage({ params }: Props) {
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const [lastSavedNodesSnapshot, setLastSavedNodesSnapshot] = useState<string>('');
   const [lastSavedEdgesSnapshot, setLastSavedEdgesSnapshot] = useState<string>('');
-  const autosaveTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [relativeTimestamp, setRelativeTimestamp] = useState<string>('');
 
   // Settings Sheet control state
@@ -708,34 +709,29 @@ export default function StrategyEditorPage({ params }: Props) {
     []
   );
 
-  // Debounced snapshot for history + autosave
-  const scheduleSnapshot = useCallback((newNodes: Node[], newEdges: Edge[]) => {
-    if (isApplyingHistoryRef.current) return;
+  const {
+    scheduleSnapshot,
+    flushSnapshot,
+    commitSnapshot,
+    snapshotTimerRef,
+    autosaveTimerRef,
+  } = useSnapshotScheduler(isApplyingHistoryRef, setHistory, triggerAutosave);
 
-    // Clear existing timers
-    if (snapshotTimerRef.current) {
-      clearTimeout(snapshotTimerRef.current);
-      snapshotTimerRef.current = null;
-    }
-    if (autosaveTimerRef.current) {
-      clearTimeout(autosaveTimerRef.current);
-      autosaveTimerRef.current = null;
-    }
-
-    // Schedule history snapshot (500ms)
-    snapshotTimerRef.current = setTimeout(() => {
-      snapshotTimerRef.current = null;
-      if (isApplyingHistoryRef.current) return;
-      setHistory((h) => pushSnapshot(h, newNodes, newEdges));
-    }, 500);
-
-    // Schedule autosave (10 seconds)
-    autosaveTimerRef.current = setTimeout(() => {
-      autosaveTimerRef.current = null;
-      if (isApplyingHistoryRef.current) return;
-      triggerAutosave(newNodes, newEdges);
-    }, 10000);
-  }, [triggerAutosave]);
+  const {
+    isArranging,
+    handleAutoArrange,
+  } = useAutoArrange({
+    nodes,
+    edges,
+    strategyId: id,
+    userId: user?.id,
+    reactFlowRef,
+    canvasContainerRef,
+    flushSnapshot,
+    commitSnapshot,
+    setNodes,
+    setShowLayoutMenu,
+  });
 
   // Handle parameter changes from properties panel
   const handleParamsChange = (nodeId: string, params: Record<string, unknown>) => {
@@ -911,36 +907,14 @@ export default function StrategyEditorPage({ params }: Props) {
     });
   }, []);
 
-  // Handle auto-arrange layout
-  const handleAutoArrange = useCallback(async (direction: "LR" | "TB") => {
-    // Apply layout algorithm
-    const newPositions = await autoArrangeLayout(nodes, edges, direction);
-
-    // Update nodes with new positions
-    const updatedNodes = nodes.map(node => ({
-      ...node,
-      position: newPositions.get(node.id) || node.position
-    }));
-
-    // Update state and history
-    setNodes(updatedNodes);
-    scheduleSnapshot(updatedNodes, edges);
-
-    // Fit view with animation (respect reduced-motion preference)
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    reactFlowRef.current?.fitView({ padding: 0.2, duration: reduceMotion ? 0 : 300 });
-
-    // Close mobile sheet if open
-    setShowLayoutMenu(false);
-  }, [nodes, edges, scheduleSnapshot]);
-
   // Handle tidy connections
   const handleTidyConnections = useCallback(() => {
     const tidiedEdges = tidyConnections(edges);
+    flushSnapshot();
+    commitSnapshot(nodes, tidiedEdges);
     setEdges(tidiedEdges);
-    scheduleSnapshot(nodes, tidiedEdges);
     setShowLayoutMenu(false);
-  }, [nodes, edges, scheduleSnapshot]);
+  }, [nodes, edges, flushSnapshot, commitSnapshot]);
 
   // Update expanded nodes when display mode changes
   useEffect(() => {
@@ -1334,6 +1308,8 @@ export default function StrategyEditorPage({ params }: Props) {
             onInit={(instance) => (reactFlowRef.current = instance)}
             onNodeClick={handleNodeClick}
             onAutoArrange={handleAutoArrange}
+            isArranging={isArranging}
+            onContainerMount={(el) => { canvasContainerRef.current = el; }}
             onTidyConnections={handleTidyConnections}
             onLayoutMenu={() => setShowLayoutMenu(true)}
             onOpenCommandPalette={isMobileCanvasMode ? undefined : () => openPalette("chip-click")}
@@ -1387,18 +1363,16 @@ export default function StrategyEditorPage({ params }: Props) {
             </SheetHeader>
             <div className="mt-4 space-y-2">
               <Button
-                onClick={() => handleAutoArrange("LR")}
+                onClick={handleAutoArrange}
                 className="w-full"
                 variant="outline"
+                disabled={isArranging}
               >
-                Arrange: Left → Right
-              </Button>
-              <Button
-                onClick={() => handleAutoArrange("TB")}
-                className="w-full"
-                variant="outline"
-              >
-                Arrange: Top → Bottom
+                {isArranging ? (
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Arranging…</>
+                ) : (
+                  "Auto-arrange"
+                )}
               </Button>
               <Button
                 onClick={handleTidyConnections}
