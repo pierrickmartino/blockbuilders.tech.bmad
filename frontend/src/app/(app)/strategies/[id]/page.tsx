@@ -6,19 +6,15 @@ import Link from "next/link";
 import { Node, Edge, ReactFlowInstance, ReactFlowProvider } from "@xyflow/react";
 import { apiFetch } from "@/lib/api";
 import {
-  trackEvent,
   ANALYTICS_CONSENT_CHANGED_EVENT,
   ANALYTICS_POSTHOG_INITIALIZED_EVENT,
 } from "@/lib/analytics";
-import { formatRelativeTime } from "@/lib/format";
 import { useDisplay } from "@/context/display";
 import { useAuth } from "@/context/auth";
 import { Strategy, StrategyTag, StrategyVersion, StrategyVersionDetail, StrategyExportFile } from "@/types/strategy";
-import { AlertRule } from "@/types/alert";
 import {
   StrategyDefinition,
   ValidationError,
-  ValidationResponse,
   BlockMeta,
   BlockType,
   getBlockMeta,
@@ -32,14 +28,6 @@ import {
   tidyConnections,
 } from "@/lib/canvas-utils";
 import { copyToClipboard, pasteFromClipboard } from "@/lib/clipboard-utils";
-import {
-  resetHistory,
-  undo,
-  redo,
-  canUndo,
-  canRedo,
-  type HistoryState,
-} from "@/lib/history-manager";
 import { trackStrategyView } from "@/lib/recent-views";
 import { generateExplanation } from "@/lib/explanation-generator";
 import { generateNodeSummary } from "@/lib/node-summary";
@@ -47,8 +35,10 @@ import SmartCanvas, { CanvasEdge } from "@/components/canvas/SmartCanvas";
 import BlockPalette from "@/components/canvas/BlockPalette";
 import BlockLibrarySheet from "@/components/canvas/BlockLibrarySheet";
 import { useIndicatorMode } from "@/hooks/useIndicatorMode";
-import { useSnapshotScheduler } from "@/hooks/use-snapshot-scheduler";
 import { useAutoArrange } from "@/hooks/use-auto-arrange";
+import { useCanvasHistory } from "@/hooks/use-canvas-history";
+import { useAutosave } from "@/hooks/use-autosave";
+import { useStrategyAlerts } from "@/hooks/use-strategy-alerts";
 import InspectorPanel from "@/components/canvas/InspectorPanel";
 import { Button } from "@/components/ui/button";
 import {
@@ -124,10 +114,6 @@ function StrategyEditorPageInner({ params }: Props) {
     };
   }, []);
 
-  // History state
-  const [history, setHistory] = useState<HistoryState>(() => resetHistory([], []));
-  const isApplyingHistoryRef = useRef(false);
-
   // Mobile drawer state
   const [showProperties, setShowProperties] = useState(false);
   const [showLayoutMenu, setShowLayoutMenu] = useState(false);
@@ -145,19 +131,6 @@ function StrategyEditorPageInner({ params }: Props) {
   const [nameInput, setNameInput] = useState("");
   const [isSavingName, setIsSavingName] = useState(false);
 
-  // Save version state
-  const [isSavingVersion, setIsSavingVersion] = useState(false);
-  const [saveMessage, setSaveMessage] = useState<string | null>(null);
-  const isSavingVersionRef = useRef(false);
-
-  // Autosave state
-  const [autosaveState, setAutosaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
-  const autosaveStateRef = useRef<'idle' | 'saving' | 'saved' | 'error'>('idle');
-  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
-  const [lastSavedNodesSnapshot, setLastSavedNodesSnapshot] = useState<string>('');
-  const [lastSavedEdgesSnapshot, setLastSavedEdgesSnapshot] = useState<string>('');
-  const [relativeTimestamp, setRelativeTimestamp] = useState<string>('');
-
   // Settings Sheet control state
   const [showSettings, setShowSettings] = useState(false);
 
@@ -172,78 +145,10 @@ function StrategyEditorPageInner({ params }: Props) {
   const [tagInput, setTagInput] = useState("");
   const [isSavingTags, setIsSavingTags] = useState(false);
 
-  // Alert state
-  const [alertRule, setAlertRule] = useState<AlertRule | null>(null);
-  const [alertEnabled, setAlertEnabled] = useState(false);
-  const [alertThreshold, setAlertThreshold] = useState<number | null>(null);
-  const [alertOnEntry, setAlertOnEntry] = useState(false);
-  const [alertOnExit, setAlertOnExit] = useState(false);
-  const [notifyEmail, setNotifyEmail] = useState(false);
-  const [isSavingAlert, setIsSavingAlert] = useState(false);
-  const [isEditingAlert, setIsEditingAlert] = useState(false);
-  const [alertError, setAlertError] = useState<string | null>(null);
-
   // Keyboard shortcuts modal state
   const [showShortcutsModal, setShowShortcutsModal] = useState(false);
 
-  const resetAlertForm = useCallback((rule: AlertRule | null) => {
-    setAlertEnabled(rule?.is_active ?? false);
-    setAlertThreshold(rule?.threshold_pct ?? null);
-    setAlertOnEntry(rule?.alert_on_entry ?? false);
-    setAlertOnExit(rule?.alert_on_exit ?? false);
-    setNotifyEmail(rule?.notify_email ?? false);
-  }, []);
-
-  useEffect(() => {
-    isSavingVersionRef.current = isSavingVersion;
-  }, [isSavingVersion]);
-
-  useEffect(() => {
-    autosaveStateRef.current = autosaveState;
-  }, [autosaveState]);
-
-  const loadVersionDetail = useCallback(
-    async (versionNumber: number) => {
-      try {
-        const data = await apiFetch<StrategyVersionDetail>(
-          `/strategies/${id}/versions/${versionNumber}`
-        );
-        setSelectedVersion(data);
-
-        // Convert definition to React Flow format
-        const definition = data.definition_json as unknown as StrategyDefinition | null;
-        if (definition && definition.blocks && definition.blocks.length > 0) {
-          const { nodes: newNodes, edges: newEdges } = definitionToReactFlow(definition);
-          setNodes(newNodes);
-          setEdges(newEdges);
-          setHistory(resetHistory(newNodes, newEdges));
-          setLastSavedNodesSnapshot(JSON.stringify(newNodes));
-          setLastSavedEdgesSnapshot(JSON.stringify(newEdges));
-
-          // Generate explanation
-          const result = generateExplanation(definition);
-          setExplanation(result);
-        } else {
-          // Create default canvas with pre-placed blocks
-          const defaultDef = createDefaultDefinition();
-          const { nodes: newNodes, edges: newEdges } = definitionToReactFlow(defaultDef);
-          setNodes(newNodes);
-          setEdges(newEdges);
-          setHistory(resetHistory(newNodes, newEdges));
-          setLastSavedNodesSnapshot(JSON.stringify(newNodes));
-          setLastSavedEdgesSnapshot(JSON.stringify(newEdges));
-
-          // Generate explanation for default definition
-          const result = generateExplanation(defaultDef);
-          setExplanation(result);
-        }
-        setValidationErrors([]);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load version detail");
-      }
-    },
-    [id]
-  );
+  // --- Data loading callbacks (defined before hooks that reference them) ---
 
   const loadStrategy = useCallback(async () => {
     try {
@@ -262,6 +167,8 @@ function StrategyEditorPageInner({ params }: Props) {
     }
   }, [id, router]);
 
+  const loadVersionDetailRef = useRef<((versionNumber: number) => Promise<void>) | undefined>(undefined);
+
   const loadVersions = useCallback(async (options?: { loadDetail?: boolean }) => {
     const shouldLoadDetail = options?.loadDetail ?? true;
     try {
@@ -271,35 +178,99 @@ function StrategyEditorPageInner({ params }: Props) {
         return;
       }
       if (data.length > 0) {
-        loadVersionDetail(data[0].version_number);
+        loadVersionDetailRef.current?.(data[0].version_number);
       } else {
-        // No versions yet, create default canvas
         const defaultDef = createDefaultDefinition();
         const { nodes: newNodes, edges: newEdges } = definitionToReactFlow(defaultDef);
         setNodes(newNodes);
         setEdges(newEdges);
-        setHistory(resetHistory(newNodes, newEdges));
+        historyRef.current.reset(newNodes, newEdges);
       }
     } catch (err) {
       if (!shouldLoadDetail) {
         console.error("Failed to load versions:", err);
         return;
       }
-      // Versions are optional, create default canvas
       const defaultDef = createDefaultDefinition();
       const { nodes: newNodes, edges: newEdges } = definitionToReactFlow(defaultDef);
       setNodes(newNodes);
       setEdges(newEdges);
-      setHistory(resetHistory(newNodes, newEdges));
+      historyRef.current.reset(newNodes, newEdges);
     }
-  }, [id, loadVersionDetail]);
+  }, [id]);
+
+  // --- Autosave hook ---
+
+  const autosave = useAutosave({
+    strategyId: id,
+    userId: user?.id,
+    onValidationErrors: setValidationErrors,
+    onError: setError,
+    onStrategyRefresh: loadStrategy,
+    onVersionsRefresh: loadVersions,
+  });
+
+  // --- Canvas history hook ---
+
+  const history = useCanvasHistory({
+    onStable: autosave.triggerAutosave,
+  });
+
+  // Keep a stable ref so loadVersions/loadVersionDetail can call reset without circular deps
+  const historyRef = useRef(history);
+  historyRef.current = history;
+
+  const loadVersionDetail = useCallback(
+    async (versionNumber: number) => {
+      try {
+        const data = await apiFetch<StrategyVersionDetail>(
+          `/strategies/${id}/versions/${versionNumber}`
+        );
+        setSelectedVersion(data);
+
+        const definition = data.definition_json as unknown as StrategyDefinition | null;
+        if (definition && definition.blocks && definition.blocks.length > 0) {
+          const { nodes: newNodes, edges: newEdges } = definitionToReactFlow(definition);
+          setNodes(newNodes);
+          setEdges(newEdges);
+          historyRef.current.reset(newNodes, newEdges);
+          autosave.initSavedSnapshot(newNodes, newEdges);
+
+          const result = generateExplanation(definition);
+          setExplanation(result);
+        } else {
+          const defaultDef = createDefaultDefinition();
+          const { nodes: newNodes, edges: newEdges } = definitionToReactFlow(defaultDef);
+          setNodes(newNodes);
+          setEdges(newEdges);
+          historyRef.current.reset(newNodes, newEdges);
+          autosave.initSavedSnapshot(newNodes, newEdges);
+
+          const result = generateExplanation(defaultDef);
+          setExplanation(result);
+        }
+        setValidationErrors([]);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load version detail");
+      }
+    },
+    [id, autosave]
+  );
+
+  // Wire up the ref so loadVersions can call loadVersionDetail
+  loadVersionDetailRef.current = loadVersionDetail;
+
+  // --- Strategy alerts hook ---
+
+  const alerts = useStrategyAlerts({ strategyId: id });
+
+  // --- Initial data loading ---
 
   useEffect(() => {
     loadStrategy();
     loadVersions();
   }, [loadStrategy, loadVersions]);
 
-  // Track strategy view for recently viewed section
   useEffect(() => {
     if (strategy) {
       trackStrategyView(id);
@@ -319,42 +290,8 @@ function StrategyEditorPageInner({ params }: Props) {
     loadTags();
   }, []);
 
-  // Load alert rule for this strategy
-  useEffect(() => {
-    const fetchAlert = async () => {
-      try {
-        const alerts = await apiFetch<AlertRule[]>("/alerts/");
-        const rule = alerts.find((a) => a.strategy_id === id);
-        if (rule) {
-          setAlertRule(rule);
-          resetAlertForm(rule);
-        }
-        setIsEditingAlert(!rule);
-      } catch (err) {
-        console.error("Failed to load alert", err);
-      } finally {
-      }
-    };
-    fetchAlert();
-  }, [id, resetAlertForm]);
+  // --- Derived state ---
 
-  // Update relative timestamp for autosave status
-  useEffect(() => {
-    if (!lastSavedAt) {
-      setRelativeTimestamp('');
-      return;
-    }
-
-    const updateTimestamp = () => {
-      setRelativeTimestamp(formatRelativeTime(lastSavedAt));
-    };
-
-    updateTimestamp(); // Initial update
-    const interval = setInterval(updateTimestamp, 5000); // Update every 5s
-    return () => clearInterval(interval);
-  }, [lastSavedAt]);
-
-  // Enrich nodes with mobile mode flag and compact mode data
   const nodesWithMobileMode = useMemo(
     () =>
       nodes.map((node) => {
@@ -390,11 +327,10 @@ function StrategyEditorPageInner({ params }: Props) {
     [validationErrors]
   );
 
-  const hasUnsavedChanges = useMemo(() => {
-    if (!lastSavedNodesSnapshot && !lastSavedEdgesSnapshot) return false;
-    return JSON.stringify(nodes) !== lastSavedNodesSnapshot ||
-           JSON.stringify(edges) !== lastSavedEdgesSnapshot;
-  }, [nodes, edges, lastSavedNodesSnapshot, lastSavedEdgesSnapshot]);
+  const hasUnsavedChanges = useMemo(
+    () => autosave.hasUnsavedChanges(nodes, edges),
+    [autosave, nodes, edges]
+  );
 
   // Warn before closing/navigating away with unsaved changes
   useEffect(() => {
@@ -444,7 +380,6 @@ function StrategyEditorPageInner({ params }: Props) {
         })
       );
     } else {
-      // Clear validation state when no errors
       setNodes((nodes) =>
         nodes.map((node) => ({
           ...node,
@@ -458,6 +393,26 @@ function StrategyEditorPageInner({ params }: Props) {
       );
     }
   }, [validationErrors, setNodes]);
+
+  // --- Auto-arrange ---
+
+  const {
+    isArranging,
+    handleAutoArrange,
+  } = useAutoArrange({
+    nodes,
+    edges,
+    strategyId: id,
+    userId: user?.id,
+    reactFlowRef,
+    canvasContainerRef,
+    flushSnapshot: history.flushSnapshot,
+    commitSnapshot: history.commitSnapshot,
+    setNodes,
+    setShowLayoutMenu,
+  });
+
+  // --- Event handlers ---
 
   const handleNameSave = async () => {
     if (!nameInput.trim()) {
@@ -487,170 +442,14 @@ function StrategyEditorPageInner({ params }: Props) {
   };
 
   const handleSaveVersion = useCallback(async () => {
-    if (isSavingVersion) {
-      return;
-    }
-
-    // Clear pending autosave
-    if (autosaveTimerRef.current) {
-      clearTimeout(autosaveTimerRef.current);
-      autosaveTimerRef.current = null;
-    }
-
-    setIsSavingVersion(true);
-    setSaveMessage(null);
-    setValidationErrors([]);
-
-    try {
-      // Convert canvas state to our JSON format
-      const definition = reactFlowToDefinition(nodes, edges);
-
-      // Validate first
-      const validation = await apiFetch<ValidationResponse>(
-        `/strategies/${id}/validate`,
-        {
-          method: "POST",
-          body: JSON.stringify(definition),
-        }
-      );
-
-      if (validation.status === "invalid") {
-        setValidationErrors(validation.errors);
-        setError("Strategy has validation errors. Please fix the issues and try again.");
-        setIsSavingVersion(false);
-        return;
+    const clearStableTimer = () => {
+      if (history.stableTimerRef.current) {
+        clearTimeout(history.stableTimerRef.current);
+        history.stableTimerRef.current = null;
       }
-
-      // Save the version
-      await apiFetch(`/strategies/${id}/versions`, {
-        method: "POST",
-        body: JSON.stringify({ definition }),
-      });
-      await loadVersions();
-      await loadStrategy();
-
-      // Update autosave state
-      const now = new Date();
-      setLastSavedAt(now);
-      setLastSavedNodesSnapshot(JSON.stringify(nodes));
-      setLastSavedEdgesSnapshot(JSON.stringify(edges));
-      setAutosaveState('saved');
-
-      trackEvent("strategy_saved", { strategy_id: id }, user?.id);
-      setSaveMessage("Version saved successfully");
-      setTimeout(() => setSaveMessage(null), 3000);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save version");
-    } finally {
-      setIsSavingVersion(false);
-    }
-  }, [isSavingVersion, nodes, edges, id, loadVersions, loadStrategy, user?.id]);
-
-  const triggerAutosave = useCallback(async (currentNodes: Node[], currentEdges: Edge[]) => {
-    // Skip if already saving
-    if (isSavingVersionRef.current || autosaveStateRef.current === 'saving') return;
-
-    // Deduplication: skip if no changes since last save
-    const currentNodesJSON = JSON.stringify(currentNodes);
-    const currentEdgesJSON = JSON.stringify(currentEdges);
-
-    if (currentNodesJSON === lastSavedNodesSnapshot &&
-        currentEdgesJSON === lastSavedEdgesSnapshot) {
-      return; // No changes, skip save
-    }
-
-    setAutosaveState('saving');
-    setValidationErrors([]);
-
-    try {
-      // Convert canvas to definition
-      const definition = reactFlowToDefinition(currentNodes, currentEdges);
-
-      // Validate (reuse existing endpoint)
-      const validation = await apiFetch<ValidationResponse>(
-        `/strategies/${id}/validate`,
-        { method: "POST", body: JSON.stringify(definition) }
-      );
-
-      if (validation.status === "invalid") {
-        setValidationErrors(validation.errors);
-        setAutosaveState('error');
-        return;
-      }
-
-      // Save version (reuse existing endpoint)
-      await apiFetch(`/strategies/${id}/versions`, {
-        method: "POST",
-        body: JSON.stringify({ definition }),
-      });
-
-      // Update success state
-      const now = new Date();
-      setLastSavedAt(now);
-      setLastSavedNodesSnapshot(currentNodesJSON);
-      setLastSavedEdgesSnapshot(currentEdgesJSON);
-      setAutosaveState('saved');
-
-      // Refresh versions list (non-blocking)
-      loadVersions({ loadDetail: false });
-      loadStrategy();
-    } catch (err) {
-      setAutosaveState('error');
-    }
-  }, [lastSavedNodesSnapshot, lastSavedEdgesSnapshot, id, loadVersions, loadStrategy]);
-
-  const handleAlertSave = async () => {
-    // Client-side validation
-    if (alertThreshold !== null && (alertThreshold < 0.1 || alertThreshold > 100)) {
-      setAlertError("Threshold must be between 0.1 and 100");
-      return;
-    }
-    if (alertEnabled && !alertOnEntry && !alertOnExit && alertThreshold === null) {
-      setAlertError("Enable at least one alert condition");
-      return;
-    }
-
-    setIsSavingAlert(true);
-    setAlertError(null);
-    try {
-      if (!alertRule) {
-        // Create
-        const created = await apiFetch<AlertRule>("/alerts/", {
-          method: "POST",
-          body: JSON.stringify({
-            alert_type: "performance",
-            strategy_id: id,
-            threshold_pct: alertThreshold ?? null,
-            alert_on_entry: alertOnEntry,
-            alert_on_exit: alertOnExit,
-            notify_email: notifyEmail,
-            is_active: alertEnabled,
-          }),
-        });
-        setAlertRule(created);
-        resetAlertForm(created);
-      } else {
-        // Update
-        const updated = await apiFetch<AlertRule>(`/alerts/${alertRule.id}`, {
-          method: "PATCH",
-          body: JSON.stringify({
-            threshold_pct: alertThreshold ?? null,
-            alert_on_entry: alertOnEntry,
-            alert_on_exit: alertOnExit,
-            notify_email: notifyEmail,
-            is_active: alertEnabled,
-          }),
-        });
-        setAlertRule(updated);
-        resetAlertForm(updated);
-      }
-      setIsEditingAlert(false);
-    } catch (err) {
-      setAlertError(err instanceof Error ? err.message : "Failed to save alert");
-    } finally {
-      setIsSavingAlert(false);
-    }
-  };
+    };
+    await autosave.saveVersion(nodes, edges, clearStableTimer);
+  }, [nodes, edges, autosave, history.stableTimerRef]);
 
   // Tag management functions
   const handleAddTag = async (tagName: string) => {
@@ -658,13 +457,11 @@ function StrategyEditorPageInner({ params }: Props) {
 
     setIsSavingTags(true);
     try {
-      // Create or get existing tag
       const tag = await apiFetch<StrategyTag>("/strategy-tags", {
         method: "POST",
         body: JSON.stringify({ name: tagName.trim() }),
       });
 
-      // Update strategy with new tag list
       const updatedTagIds = [...(strategy.tags?.map((t) => t.id) || []), tag.id];
       const updated = await apiFetch<Strategy>(`/strategies/${id}`, {
         method: "PATCH",
@@ -674,7 +471,6 @@ function StrategyEditorPageInner({ params }: Props) {
       setStrategy(updated);
       setTagInput("");
 
-      // Refresh available tags if needed
       if (!availableTags.find((t) => t.id === tag.id)) {
         setAvailableTags([...availableTags, tag]);
       }
@@ -717,30 +513,6 @@ function StrategyEditorPageInner({ params }: Props) {
     []
   );
 
-  const {
-    scheduleSnapshot,
-    flushSnapshot,
-    commitSnapshot,
-    snapshotTimerRef,
-    autosaveTimerRef,
-  } = useSnapshotScheduler(isApplyingHistoryRef, setHistory, triggerAutosave);
-
-  const {
-    isArranging,
-    handleAutoArrange,
-  } = useAutoArrange({
-    nodes,
-    edges,
-    strategyId: id,
-    userId: user?.id,
-    reactFlowRef,
-    canvasContainerRef,
-    flushSnapshot,
-    commitSnapshot,
-    setNodes,
-    setShowLayoutMenu,
-  });
-
   // Handle parameter changes from properties panel
   const handleParamsChange = (nodeId: string, params: Record<string, unknown>) => {
     setNodes((currentNodes) => {
@@ -758,10 +530,9 @@ function StrategyEditorPageInner({ params }: Props) {
         }
         return node;
       });
-      scheduleSnapshot(updatedNodes, edges);
+      history.scheduleSnapshot(updatedNodes, edges);
       return updatedNodes;
     });
-    // Clear validation errors when user makes changes
     setValidationErrors([]);
     setError(null);
   };
@@ -779,7 +550,7 @@ function StrategyEditorPageInner({ params }: Props) {
 
     setNodes(updatedNodes);
     setEdges(updatedEdges);
-    scheduleSnapshot(updatedNodes, updatedEdges);
+    history.scheduleSnapshot(updatedNodes, updatedEdges);
     setSelectedNodeId(null);
     setValidationErrors([]);
     setError(null);
@@ -792,7 +563,7 @@ function StrategyEditorPageInner({ params }: Props) {
           onClick: () => {
             setNodes((prev) => [...prev, deletedNode]);
             setEdges((prev) => [...prev, ...deletedEdges]);
-            scheduleSnapshot(
+            history.scheduleSnapshot(
               [...updatedNodes, deletedNode],
               [...updatedEdges, ...deletedEdges]
             );
@@ -806,10 +577,7 @@ function StrategyEditorPageInner({ params }: Props) {
   // Handle selection changes (multi-select and single-select)
   const handleSelectionChange = useCallback(
     (selectedNodes: Node[]) => {
-      // Track all selected nodes for copy/paste
       setSelectedNodeIds(new Set(selectedNodes.map((n) => n.id)));
-
-      // Properties panel still gets single selection only
       setSelectedNodeId(selectedNodes.length === 1 ? selectedNodes[0].id : null);
     },
     []
@@ -821,14 +589,14 @@ function StrategyEditorPageInner({ params }: Props) {
     const newNote: Node = {
       id: noteId,
       type: "note",
-      position: { x: 400, y: 300 }, // Center-ish position
+      position: { x: 400, y: 300 },
       data: {
         text: "",
       },
     };
     setNodes((currentNodes) => {
       const updatedNodes = [...currentNodes, newNote];
-      scheduleSnapshot(updatedNodes, edges);
+      history.scheduleSnapshot(updatedNodes, edges);
       return updatedNodes;
     });
     setSelectedNodeId(noteId);
@@ -843,62 +611,30 @@ function StrategyEditorPageInner({ params }: Props) {
   // Handle nodes change
   const handleNodesChange = (newNodes: Node[]) => {
     setNodes(newNodes);
-    scheduleSnapshot(newNodes, edgesRef.current);
+    history.scheduleSnapshot(newNodes, edgesRef.current);
   };
 
   // Handle edges change
   const handleEdgesChange = (newEdges: Edge[]) => {
     setEdges(newEdges);
-    scheduleSnapshot(nodesRef.current, newEdges);
+    history.scheduleSnapshot(nodesRef.current, newEdges);
   };
 
   // Handle undo
   const handleUndo = useCallback(() => {
-    if (!canUndo(history)) return;
-
-    if (snapshotTimerRef.current) {
-      clearTimeout(snapshotTimerRef.current);
-      snapshotTimerRef.current = null;
-    }
-    if (autosaveTimerRef.current) {
-      clearTimeout(autosaveTimerRef.current);
-      autosaveTimerRef.current = null;
-    }
-
-    const { history: newHistory, snapshot } = undo(history);
+    const snapshot = history.undo();
     if (snapshot) {
-      isApplyingHistoryRef.current = true;
       setNodes(snapshot.nodes);
       setEdges(snapshot.edges);
-      setHistory(newHistory);
-      setTimeout(() => {
-        isApplyingHistoryRef.current = false;
-      }, 0);
     }
   }, [history]);
 
   // Handle redo
   const handleRedo = useCallback(() => {
-    if (!canRedo(history)) return;
-
-    if (snapshotTimerRef.current) {
-      clearTimeout(snapshotTimerRef.current);
-      snapshotTimerRef.current = null;
-    }
-    if (autosaveTimerRef.current) {
-      clearTimeout(autosaveTimerRef.current);
-      autosaveTimerRef.current = null;
-    }
-
-    const { history: newHistory, snapshot } = redo(history);
+    const snapshot = history.redo();
     if (snapshot) {
-      isApplyingHistoryRef.current = true;
       setNodes(snapshot.nodes);
       setEdges(snapshot.edges);
-      setHistory(newHistory);
-      setTimeout(() => {
-        isApplyingHistoryRef.current = false;
-      }, 0);
     }
   }, [history]);
 
@@ -918,21 +654,18 @@ function StrategyEditorPageInner({ params }: Props) {
   // Handle tidy connections
   const handleTidyConnections = useCallback(() => {
     const tidiedEdges = tidyConnections(edges);
-    flushSnapshot();
-    commitSnapshot(nodes, tidiedEdges);
+    history.flushSnapshot();
+    history.commitSnapshot(nodes, tidiedEdges);
     setEdges(tidiedEdges);
     setShowLayoutMenu(false);
-  }, [nodes, edges, flushSnapshot, commitSnapshot]);
+  }, [nodes, edges, history]);
 
   // Update expanded nodes when display mode changes
   useEffect(() => {
     if (nodeDisplayMode === "compact") {
-      // Collapse all nodes when entering compact mode
       setExpandedNodeIds(new Set());
     } else {
-      // Expand all nodes when exiting compact mode
       setExpandedNodeIds((prev) => {
-        // Only expand if not already expanded
         if (prev.size === 0) {
           return new Set(nodes.map(n => n.id));
         }
@@ -945,7 +678,6 @@ function StrategyEditorPageInner({ params }: Props) {
   // Handle keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Ignore if user is typing in an input field
       const target = e.target as HTMLElement;
       if (isInputElement(target)) {
         return;
@@ -954,60 +686,51 @@ function StrategyEditorPageInner({ params }: Props) {
       const isMod = e.metaKey || e.ctrlKey;
       const key = e.key.toLowerCase();
 
-      // Save: Cmd/Ctrl+S
       if (isMod && key === "s" && !e.shiftKey) {
         e.preventDefault();
         handleSaveVersion();
         return;
       }
 
-      // Run backtest: Cmd/Ctrl+Enter (navigate to backtest tab).
-      // We deliberately do NOT override Cmd/Ctrl+R, which is the universal browser refresh shortcut.
       if (isMod && key === "enter" && !e.shiftKey) {
         e.preventDefault();
         router.push(`/strategies/${id}/backtest`);
         return;
       }
 
-      // Undo: Cmd/Ctrl+Z
       if (isMod && key === "z" && !e.shiftKey) {
         e.preventDefault();
         handleUndo();
         return;
       }
 
-      // Redo: Cmd/Ctrl+Shift+Z or Cmd/Ctrl+Y
       if ((isMod && e.shiftKey && key === "z") || (isMod && key === "y")) {
         e.preventDefault();
         handleRedo();
         return;
       }
 
-      // Don't hijack copy/paste when the user has text selected on the page.
       const hasTextSelection = !!window.getSelection()?.toString();
 
-      // Copy: Cmd/Ctrl+C
       if (isMod && key === "c" && !hasTextSelection) {
         e.preventDefault();
         copyToClipboard(selectedNodeIds, nodes, edges);
         return;
       }
 
-      // Paste: Cmd/Ctrl+V
       if (isMod && key === "v" && !hasTextSelection) {
         e.preventDefault();
         const result = pasteFromClipboard(nodes, edges);
         if (result) {
           setNodes(result.nodes);
           setEdges(result.edges);
-          scheduleSnapshot(result.nodes, result.edges);
+          history.scheduleSnapshot(result.nodes, result.edges);
           setValidationErrors([]);
           setError(null);
         }
         return;
       }
 
-      // Show shortcuts: ?
       if (key === "?" && !isMod) {
         e.preventDefault();
         setShowShortcutsModal(true);
@@ -1017,7 +740,7 @@ function StrategyEditorPageInner({ params }: Props) {
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [selectedNodeIds, nodes, edges, handleUndo, handleRedo, scheduleSnapshot, handleSaveVersion, router, id]);
+  }, [selectedNodeIds, nodes, edges, handleUndo, handleRedo, history, handleSaveVersion, router, id]);
 
   const handleAutoUpdateToggle = async (enabled: boolean) => {
     if (!strategy) return;
@@ -1058,8 +781,8 @@ function StrategyEditorPageInner({ params }: Props) {
       .join(" ");
     try {
       await navigator.clipboard.writeText(text);
-      setSaveMessage("Explanation copied to clipboard");
-      setTimeout(() => setSaveMessage(null), 2000);
+      autosave.setSaveMessage("Explanation copied to clipboard");
+      setTimeout(() => autosave.setSaveMessage(null), 2000);
     } catch {
       setError("Could not access clipboard. Try selecting and copying the text manually.");
     }
@@ -1077,7 +800,6 @@ function StrategyEditorPageInner({ params }: Props) {
         return;
       }
 
-      // Reuse selectedVersion if it's the latest, otherwise fetch
       let versionDetail = selectedVersion;
       if (!versionDetail || versionDetail.version_number !== versionsData[0].version_number) {
         versionDetail = await apiFetch<StrategyVersionDetail>(
@@ -1096,7 +818,6 @@ function StrategyEditorPageInner({ params }: Props) {
         definition_json: versionDetail.definition_json,
       };
 
-      // Trigger download
       const blob = new Blob([JSON.stringify(exportFile, null, 2)], {
         type: "application/json",
       });
@@ -1163,10 +884,10 @@ function StrategyEditorPageInner({ params }: Props) {
         onEditingNameChange={setEditingName}
         onNameChange={setNameInput}
         onNameSave={handleNameSave}
-        autosaveState={autosaveState}
-        lastSavedAt={lastSavedAt}
-        relativeTimestamp={relativeTimestamp}
-        isSavingVersion={isSavingVersion}
+        autosaveState={autosave.autosaveState}
+        lastSavedAt={autosave.lastSavedAt}
+        relativeTimestamp={autosave.relativeTimestamp}
+        isSavingVersion={autosave.isSavingVersion}
         onSaveVersion={handleSaveVersion}
         onLoadVersion={confirmLoadVersion}
         isUpdatingAutoUpdate={isUpdatingAutoUpdate}
@@ -1176,9 +897,9 @@ function StrategyEditorPageInner({ params }: Props) {
         onSettingsOpen={() => setShowSettings(true)}
         error={error}
         validationErrors={validationErrors}
-        saveMessage={saveMessage}
+        saveMessage={autosave.saveMessage}
         onErrorDismiss={() => { setError(null); setValidationErrors([]); }}
-        onMessageDismiss={() => setSaveMessage(null)}
+        onMessageDismiss={() => autosave.setSaveMessage(null)}
         onJumpToError={(blockId) => {
           setSelectedNodeId(blockId);
           const node = nodes.find((n) => n.id === blockId);
@@ -1200,29 +921,29 @@ function StrategyEditorPageInner({ params }: Props) {
         availableTags={availableTags}
         tagInput={tagInput}
         isSavingTags={isSavingTags}
-        alertRule={alertRule}
-        alertEnabled={alertEnabled}
-        alertThreshold={alertThreshold}
-        alertOnEntry={alertOnEntry}
-        alertOnExit={alertOnExit}
-        notifyEmail={notifyEmail}
-        alertError={alertError}
-        isSavingAlert={isSavingAlert}
-        isEditingAlert={isEditingAlert}
+        alertRule={alerts.alertRule}
+        alertEnabled={alerts.alertEnabled}
+        alertThreshold={alerts.alertThreshold}
+        alertOnEntry={alerts.alertOnEntry}
+        alertOnExit={alerts.alertOnExit}
+        notifyEmail={alerts.notifyEmail}
+        alertError={alerts.alertError}
+        isSavingAlert={alerts.isSavingAlert}
+        isEditingAlert={alerts.isEditingAlert}
         onOpenChange={setShowSettings}
         onNodeDisplayModeChange={setNodeDisplayMode}
         onCopyExplanation={handleCopyExplanation}
         onTagInputChange={setTagInput}
         onAddTag={handleAddTag}
         onRemoveTag={handleRemoveTag}
-        onAlertSave={handleAlertSave}
-        onAlertEditStart={() => setIsEditingAlert(true)}
-        onAlertEditCancel={() => { setIsEditingAlert(false); resetAlertForm(alertRule); }}
-        onAlertEnabledChange={setAlertEnabled}
-        onAlertThresholdChange={setAlertThreshold}
-        onAlertOnEntryChange={setAlertOnEntry}
-        onAlertOnExitChange={setAlertOnExit}
-        onNotifyEmailChange={setNotifyEmail}
+        onAlertSave={alerts.save}
+        onAlertEditStart={alerts.startEditing}
+        onAlertEditCancel={alerts.cancelEditing}
+        onAlertEnabledChange={alerts.setAlertEnabled}
+        onAlertThresholdChange={alerts.setAlertThreshold}
+        onAlertOnEntryChange={alerts.setAlertOnEntry}
+        onAlertOnExitChange={alerts.setAlertOnExit}
+        onNotifyEmailChange={alerts.setNotifyEmail}
       />
 
       {!isMobileCanvasMode && (
@@ -1309,8 +1030,8 @@ function StrategyEditorPageInner({ params }: Props) {
             onAddNote={handleAddNote}
             onUndo={handleUndo}
             onRedo={handleRedo}
-            canUndo={canUndo(history)}
-            canRedo={canRedo(history)}
+            canUndo={history.canUndo}
+            canRedo={history.canRedo}
             globalValidationErrors={globalValidationErrors}
             isMobileMode={isMobileCanvasMode}
             onInit={(instance) => (reactFlowRef.current = instance)}
