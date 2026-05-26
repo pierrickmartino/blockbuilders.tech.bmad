@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { render, screen, act } from "@testing-library/react";
+import { render, screen, act, renderHook } from "@testing-library/react";
 import type { Node } from "@xyflow/react";
 import { CanvasStateProvider, useCanvasState } from "../CanvasStateContext";
 
@@ -102,6 +102,61 @@ describe("CanvasStateContext", () => {
     act(() => screen.getByTestId("undo").click());
 
     expect(screen.getByTestId("node-count").textContent).toBe("1");
+  });
+
+  it("exposes flushSnapshot that immediately commits a pending snapshot", async () => {
+    vi.useFakeTimers();
+    const { result } = renderHook(() => useCanvasState(), {
+      wrapper: ({ children }: { children: React.ReactNode }) => (
+        <CanvasStateProvider>{children}</CanvasStateProvider>
+      ),
+    });
+
+    expect(result.current.canUndo).toBe(false);
+
+    // Let the initial empty snapshot schedule fire so it lands in history
+    await act(async () => { vi.advanceTimersByTime(600); });
+
+    // Add a node — schedules a debounced snapshot (500ms), but don't let it fire yet
+    await act(async () => {
+      result.current.dispatch({ type: "ADD_NODE", payload: makeNode("n1") });
+    });
+    // Advance a small amount so the useEffect fires but NOT enough for the 500ms debounce
+    await act(async () => { vi.advanceTimersByTime(10); });
+
+    // Flush immediately before the full debounce fires
+    await act(async () => {
+      result.current.flushSnapshot();
+    });
+
+    // canUndo should be true: flushSnapshot committed the [n1] snapshot synchronously
+    expect(result.current.canUndo).toBe(true);
+  });
+
+  it("exposes resetHistory that clears undo stack", async () => {
+    vi.useFakeTimers();
+    const { result } = renderHook(() => useCanvasState(), {
+      wrapper: ({ children }: { children: React.ReactNode }) => (
+        <CanvasStateProvider>{children}</CanvasStateProvider>
+      ),
+    });
+
+    // Let the empty initial snapshot commit
+    await act(async () => { vi.advanceTimersByTime(600); });
+    // Add a node, triggering a second snapshot
+    act(() => {
+      result.current.dispatch({ type: "ADD_NODE", payload: makeNode("n1") });
+    });
+    await act(async () => { vi.advanceTimersByTime(600); });
+    // Now past=[empty], present=[n1] → canUndo should be true
+    expect(result.current.canUndo).toBe(true);
+
+    // Reset history — undo should no longer be available
+    act(() => {
+      result.current.resetHistory(result.current.state.nodes, result.current.state.edges);
+    });
+
+    expect(result.current.canUndo).toBe(false);
   });
 
   it("exposes canUndo that becomes true after a committed snapshot", async () => {

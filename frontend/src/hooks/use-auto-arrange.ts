@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import type { Dispatch, SetStateAction, RefObject } from "react";
+import type { RefObject } from "react";
 import type { Node, Edge, ReactFlowInstance } from "@xyflow/react";
 
 type AnyFlowInstance = Pick<ReactFlowInstance, "getInternalNode" | "fitView">;
@@ -20,7 +20,7 @@ interface UseAutoArrangeOptions {
   canvasContainerRef: RefObject<HTMLElement | null>;
   flushSnapshot: () => void;
   commitSnapshot: (nodes: Node[], edges: Edge[]) => void;
-  setNodes: Dispatch<SetStateAction<Node[]>>;
+  onNodesChange: (nodes: Node[]) => void;
   setShowLayoutMenu: (open: boolean) => void;
 }
 
@@ -39,7 +39,7 @@ export function useAutoArrange({
   canvasContainerRef,
   flushSnapshot,
   commitSnapshot,
-  setNodes,
+  onNodesChange,
   setShowLayoutMenu,
 }: UseAutoArrangeOptions): UseAutoArrangeReturn {
   const [isArranging, setIsArranging] = useState(false);
@@ -72,7 +72,7 @@ export function useAutoArrange({
       ).matches;
 
       applyArrangeTransition(canvasContainerRef.current, prefersReducedMotion);
-      setNodes(updatedNodes);
+      onNodesChange(updatedNodes);
 
       await new Promise<void>((resolve) =>
         setTimeout(resolve, ARRANGE_TRANSITION_DURATION)
@@ -107,7 +107,7 @@ export function useAutoArrange({
     canvasContainerRef,
     flushSnapshot,
     commitSnapshot,
-    setNodes,
+    onNodesChange,
     setShowLayoutMenu,
   ]);
 

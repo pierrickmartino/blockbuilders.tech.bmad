@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useReducer, useCallback } from "react";
+import React, { createContext, useContext, useEffect, useReducer, useCallback } from "react";
 import type { Node, Edge } from "@xyflow/react";
 import { canvasReducer, createInitialState, type CanvasAction, type CanvasState } from "@/lib/canvas-reducer";
 import { useCanvasHistory } from "@/hooks/use-canvas-history";
@@ -10,6 +10,10 @@ interface CanvasStateContextValue {
   dispatch: (action: CanvasAction | { type: "UNDO" } | { type: "REDO" }) => void;
   canUndo: boolean;
   canRedo: boolean;
+  resetHistory: (nodes: Node[], edges: Edge[]) => void;
+  flushSnapshot: () => void;
+  commitSnapshot: (nodes: Node[], edges: Edge[]) => void;
+  stableTimerRef: React.MutableRefObject<NodeJS.Timeout | null>;
 }
 
 const CanvasStateContext = createContext<CanvasStateContextValue | null>(null);
@@ -69,6 +73,10 @@ export function CanvasStateProvider({
         dispatch,
         canUndo: canvasHistory.canUndo,
         canRedo: canvasHistory.canRedo,
+        resetHistory: canvasHistory.reset,
+        flushSnapshot: canvasHistory.flushSnapshot,
+        commitSnapshot: canvasHistory.commitSnapshot,
+        stableTimerRef: canvasHistory.stableTimerRef,
       }}
     >
       {children}

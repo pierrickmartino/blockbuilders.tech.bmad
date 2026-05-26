@@ -1,24 +1,64 @@
 "use client";
 
+import { useCallback } from "react";
 import { Node } from "@xyflow/react";
-import { ValidationError } from "@/types/canvas";
+import { BlockType, getBlockMeta } from "@/types/canvas";
+import { useCanvasState } from "@/context/CanvasStateContext";
+import { useDisplay } from "@/context/display";
+import { toast } from "sonner";
 import ParameterForm from "./ParameterForm";
 
-interface InspectorPanelProps {
-  selectedNode: Node | null;
-  onParamsChange: (nodeId: string, params: Record<string, unknown>) => void;
-  onDeleteNode: (nodeId: string) => void;
-  validationErrors: ValidationError[];
-  isMobileMode?: boolean;
-}
+export default function InspectorPanel() {
+  const { state, dispatch, flushSnapshot } = useCanvasState();
+  const { isMobileCanvasMode: isMobileMode } = useDisplay();
 
-export default function InspectorPanel({
-  selectedNode,
-  onParamsChange,
-  onDeleteNode,
-  validationErrors,
-  isMobileMode = false,
-}: InspectorPanelProps) {
+  const selectedNode =
+    state.nodes.find((n: Node) => n.id === state.selectedNodeId) ?? null;
+  const validationErrors = state.validationErrors;
+
+  const handleParamsChange = useCallback(
+    (nodeId: string, params: Record<string, unknown>) => {
+      const node = state.nodes.find((n: Node) => n.id === nodeId);
+      const blockMeta = node ? getBlockMeta(node.type as BlockType) : undefined;
+      dispatch({
+        type: "SET_NODES",
+        payload: state.nodes.map((n: Node) =>
+          n.id === nodeId
+            ? {
+                ...n,
+                data: {
+                  ...n.data,
+                  params,
+                  label: blockMeta?.label || n.data?.label,
+                },
+              }
+            : n
+        ),
+      });
+      dispatch({ type: "SET_VALIDATION_ERRORS", payload: [] });
+    },
+    [state.nodes, dispatch]
+  );
+
+  const handleDeleteNode = useCallback(
+    (nodeId: string) => {
+      const deletedNode = state.nodes.find((n: Node) => n.id === nodeId);
+      const label = (deletedNode?.data?.label as string | undefined) ?? "Block";
+      flushSnapshot();
+      dispatch({ type: "DELETE_NODE", payload: nodeId });
+      dispatch({ type: "DESELECT_ALL" });
+      dispatch({ type: "SET_VALIDATION_ERRORS", payload: [] });
+      toast(`"${label}" deleted`, {
+        action: {
+          label: "Undo",
+          onClick: () => dispatch({ type: "UNDO" }),
+        },
+        duration: 5000,
+      });
+    },
+    [state.nodes, dispatch, flushSnapshot]
+  );
+
   if (!selectedNode) {
     return (
       <div className="flex h-full items-center justify-center bg-white dark:bg-gray-900 p-4 text-center">
@@ -39,8 +79,8 @@ export default function InspectorPanel({
     <div className="h-full overflow-y-auto bg-white dark:bg-gray-900">
       <ParameterForm
         node={selectedNode}
-        onParamsChange={onParamsChange}
-        onDeleteNode={onDeleteNode}
+        onParamsChange={handleParamsChange}
+        onDeleteNode={handleDeleteNode}
         validationErrors={validationErrors}
         isMobileMode={isMobileMode}
       />
