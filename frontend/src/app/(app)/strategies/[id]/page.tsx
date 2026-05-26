@@ -11,6 +11,7 @@ import {
 } from "@/lib/analytics";
 import { useDisplay } from "@/context/display";
 import { useAuth } from "@/context/auth";
+import { CanvasStateProvider } from "@/context/CanvasStateContext";
 import { Strategy, StrategyTag, StrategyVersion, StrategyVersionDetail, StrategyExportFile } from "@/types/strategy";
 import {
   StrategyDefinition,
@@ -965,6 +966,7 @@ function StrategyEditorPageInner({ params }: Props) {
         )}
 
         {/* Center - Canvas */}
+        <CanvasStateProvider onStable={autosave.triggerAutosave}>
         <div className="relative flex-1">
           {/* Desktop side panel toggles */}
           <div className="pointer-events-none absolute left-4 top-16 z-20 hidden flex-col items-start gap-2 lg:flex">
@@ -1050,6 +1052,7 @@ function StrategyEditorPageInner({ params }: Props) {
             popoverValidationErrors={inlinePopoverEnabled ? validationErrors : undefined}
           />
         </div>
+        </CanvasStateProvider>
 
         {/* Right Panel - Inspector (hidden on mobile, drawer) — hidden when inline popover is active */}
         {!inlinePopoverEnabled && isRightPanelOpen && (
