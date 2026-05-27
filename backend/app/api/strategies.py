@@ -14,7 +14,7 @@ from app.models.backtest_run import BacktestRun
 from app.models.strategy import Strategy
 from app.models.strategy_tag import StrategyTag
 from app.models.strategy_tag_link import StrategyTagLink
-from app.models.strategy_version import StrategyVersion
+from app.models.strategy_version import StrategyVersion, VersionStatus
 from app.models.user import User
 from app.schemas.strategy import (
     BulkStrategyRequest,
@@ -22,6 +22,8 @@ from app.schemas.strategy import (
     BulkStrategyTagRequest,
     StrategyCreateRequest,
     StrategyDefinitionValidate,
+    StrategyDraftResponse,
+    StrategyDraftUpsertRequest,
     StrategyResponse,
     StrategyTagResponse,
     StrategyUpdateRequest,
@@ -609,6 +611,87 @@ def validate_strategy(
     return ValidationResponse(
         status="valid" if not errors else "invalid",
         errors=errors,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Draft endpoints (issue #458)
+# At most one draft per strategy — enforced at application level.
+# Draft rows always use version_number = 0 (reserved slot).
+# PUT is a no-validation-gate upsert: safe for debounced background saves.
+# ---------------------------------------------------------------------------
+
+
+@router.get("/{strategy_id}/draft", response_model=StrategyDraftResponse)
+def get_draft(
+    strategy_id: UUID,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> StrategyDraftResponse:
+    """Return the current draft for a strategy, or 404 if none exists."""
+    strategy = get_user_strategy(strategy_id, user, session)
+
+    draft = session.exec(
+        select(StrategyVersion).where(
+            StrategyVersion.strategy_id == strategy.id,
+            StrategyVersion.status == VersionStatus.DRAFT,
+        )
+    ).first()
+
+    if not draft:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No draft found")
+
+    return StrategyDraftResponse(
+        id=draft.id,
+        version_number=draft.version_number,
+        definition_json=draft.definition_json,
+        created_at=draft.created_at,
+        status=draft.status.value,
+    )
+
+
+@router.put("/{strategy_id}/draft", response_model=StrategyDraftResponse)
+def upsert_draft(
+    strategy_id: UUID,
+    data: StrategyDraftUpsertRequest,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> StrategyDraftResponse:
+    """Upsert the single draft row for a strategy (no validation gate).
+
+    Creates the draft on first call; updates definition_json on subsequent calls.
+    Idempotent — safe for debounced retries.
+    """
+    strategy = get_user_strategy(strategy_id, user, session)
+
+    draft = session.exec(
+        select(StrategyVersion).where(
+            StrategyVersion.strategy_id == strategy.id,
+            StrategyVersion.status == VersionStatus.DRAFT,
+        )
+    ).first()
+
+    if draft:
+        draft.definition_json = data.definition_json
+        session.add(draft)
+    else:
+        draft = StrategyVersion(
+            strategy_id=strategy.id,
+            version_number=0,
+            definition_json=data.definition_json,
+            status=VersionStatus.DRAFT,
+        )
+        session.add(draft)
+
+    session.commit()
+    session.refresh(draft)
+
+    return StrategyDraftResponse(
+        id=draft.id,
+        version_number=draft.version_number,
+        definition_json=draft.definition_json,
+        created_at=draft.created_at,
+        status=draft.status.value,
     )
 
 

@@ -8,7 +8,7 @@ import { apiFetch } from "@/lib/api";
 import { useDisplay } from "@/context/display";
 import { useAuth } from "@/context/auth";
 import { CanvasStateProvider, useCanvasState } from "@/context/CanvasStateContext";
-import { Strategy, StrategyTag, StrategyVersion, StrategyVersionDetail, StrategyExportFile } from "@/types/strategy";
+import { Strategy, StrategyTag, StrategyVersion, StrategyVersionDetail, StrategyDraft, StrategyExportFile } from "@/types/strategy";
 import {
   StrategyDefinition,
   ValidationError,
@@ -27,6 +27,7 @@ import BlockPalette from "@/components/canvas/BlockPalette";
 import BlockLibrarySheet from "@/components/canvas/BlockLibrarySheet";
 import { useIndicatorMode } from "@/hooks/useIndicatorMode";
 import { useAutosave } from "@/hooks/use-autosave";
+import { useStrategyDraft } from "@/hooks/use-strategy-draft";
 import { useStrategyAlerts } from "@/hooks/use-strategy-alerts";
 import InspectorPanel from "@/components/canvas/InspectorPanel";
 import { Button } from "@/components/ui/button";
@@ -216,7 +217,7 @@ function StrategyEditorPageInner({ params }: Props) {
   const contextNodesRef = useRef<Node[]>([]);
   const contextEdgesRef = useRef<Edge[]>([]);
 
-  // --- Autosave ---
+  // --- Autosave (manual Save button: creates published version) ---
   const autosave = useAutosave({
     strategyId: id,
     userId: user?.id,
@@ -227,6 +228,9 @@ function StrategyEditorPageInner({ params }: Props) {
     onStrategyRefresh: loadStrategy,
     onVersionsRefresh: loadVersions,
   });
+
+  // --- Draft persist (background silent save on every canvas change) ---
+  const draft = useStrategyDraft({ strategyId: id });
 
   // --- Data loading ---
 
@@ -317,10 +321,31 @@ function StrategyEditorPageInner({ params }: Props) {
   // --- Strategy alerts ---
   const alerts = useStrategyAlerts({ strategyId: id });
 
+  // --- Draft load: try GET /draft first; fall back to latest published version ---
+  const loadDraftOrLatestVersion = useCallback(async () => {
+    try {
+      const draftData = await apiFetch<StrategyDraft>(`/strategies/${id}/draft`);
+      // Draft found — load it onto the canvas
+      const definition = draftData.definition_json as unknown as StrategyDefinition | null;
+      const { nodes: newNodes, edges: newEdges } =
+        definition && (definition as { blocks?: unknown[] }).blocks?.length
+          ? definitionToReactFlow(definition)
+          : definitionToReactFlow(createDefaultDefinition());
+      contextDispatchRef.current?.({ type: "SET_NODES", payload: newNodes });
+      contextDispatchRef.current?.({ type: "SET_EDGES", payload: newEdges });
+      contextResetHistoryRef.current?.(newNodes, newEdges);
+      autosave.initSavedSnapshot(newNodes, newEdges);
+    } catch {
+      // No draft (404) or error — fall back to latest published version
+      loadVersions();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
   // --- Initial data loading ---
   useEffect(() => {
     loadStrategy();
-    loadVersions();
+    loadDraftOrLatestVersion();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -575,9 +600,9 @@ function StrategyEditorPageInner({ params }: Props) {
         onEditingNameChange={setEditingName}
         onNameChange={setNameInput}
         onNameSave={handleNameSave}
-        autosaveState={autosave.autosaveState}
-        lastSavedAt={autosave.lastSavedAt}
-        relativeTimestamp={autosave.relativeTimestamp}
+        draftStatus={draft.draftStatus}
+        lastPersistedAt={draft.lastPersistedAt}
+        relativeTimestamp={draft.relativeTimestamp}
         isSavingVersion={autosave.isSavingVersion}
         onSaveVersion={handleSaveVersion}
         onLoadVersion={confirmLoadVersion}
@@ -645,8 +670,8 @@ function StrategyEditorPageInner({ params }: Props) {
         )}
 
         {/* Center + Right — wrapped by CanvasStateProvider */}
-        <CanvasStateProvider onStable={autosave.triggerAutosave}>
-          {/* Bridges: wire autosave callbacks → context dispatch */}
+        <CanvasStateProvider onStable={draft.persistDraft}>
+          {/* Bridges: wire draft validation errors + canvas state into context */}
           <CanvasBootstrapper validationErrorsRef={validationErrorCallbackRef} />
           <ContextDispatchBridge
             dispatchRef={contextDispatchRef}

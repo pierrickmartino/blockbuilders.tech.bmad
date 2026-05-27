@@ -60,9 +60,9 @@ interface StrategyHeaderProps {
   onNameChange: (value: string) => void;
   onNameSave: () => void;
 
-  /** Autosave indicator */
-  autosaveState: "idle" | "saving" | "saved" | "error";
-  lastSavedAt: Date | null;
+  /** Draft persist indicator */
+  draftStatus: "idle" | "persisting" | "persisted" | "error";
+  lastPersistedAt: Date | null;
   relativeTimestamp: string;
 
   /** Save / version */
@@ -99,8 +99,8 @@ export function StrategyHeader({
   onEditingNameChange,
   onNameChange,
   onNameSave,
-  autosaveState,
-  lastSavedAt,
+  draftStatus,
+  lastPersistedAt,
   relativeTimestamp,
   isSavingVersion,
   onSaveVersion,
@@ -210,27 +210,27 @@ export function StrategyHeader({
 
         {/* Right: Actions */}
         <div className="flex flex-shrink-0 items-center gap-2">
-          {/* Autosave status */}
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            {autosaveState === "saving" && (
+          {/* Draft persist status */}
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground" aria-live="polite">
+            {draftStatus === "persisting" && (
               <>
                 <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />
-                <span>Saving…</span>
+                <span>Draft — saving…</span>
               </>
             )}
-            {autosaveState === "saved" && lastSavedAt && (
+            {draftStatus === "persisted" && lastPersistedAt && (
               <>
                 <CheckIcon className="h-3 w-3 text-primary" aria-hidden="true" />
                 <span className="hidden sm:inline">
-                  Saved • <span className="data-text">{relativeTimestamp}</span>
+                  Draft — saved • <span className="data-text">{relativeTimestamp}</span>
                 </span>
-                <span className="sm:hidden">Saved</span>
+                <span className="sm:hidden">Draft saved</span>
               </>
             )}
-            {autosaveState === "error" && (
+            {draftStatus === "error" && (
               <>
                 <AlertCircle className="h-3 w-3 text-destructive" aria-hidden="true" />
-                <span className="text-destructive">Save failed</span>
+                <span className="text-destructive">Draft — error</span>
                 <button
                   type="button"
                   onClick={onSaveVersion}
