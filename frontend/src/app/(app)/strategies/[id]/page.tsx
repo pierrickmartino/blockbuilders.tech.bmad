@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, use, useCallback, useMemo, useRef } from "react";
+import { useEffect, useState, use, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Node, Edge, ReactFlowInstance, ReactFlowProvider } from "@xyflow/react";
@@ -17,7 +17,6 @@ import {
 } from "@/types/canvas";
 import {
   definitionToReactFlow,
-  reactFlowToDefinition,
   createDefaultDefinition,
 } from "@/lib/canvas-utils";
 import { copyToClipboard, pasteFromClipboard } from "@/lib/clipboard-utils";
@@ -49,7 +48,6 @@ import { StrategyHeader } from "./_components/StrategyHeader";
 import { StrategySettingsSheet } from "./_components/StrategySettingsSheet";
 import CommandPalette from "@/components/canvas/CommandPalette";
 import { useCommandPalette } from "@/hooks/use-command-palette";
-import { toast } from "sonner";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -70,7 +68,7 @@ function CanvasBootstrapper({
 }: {
   validationErrorsRef: React.MutableRefObject<((errors: ValidationError[]) => void) | null>;
 }) {
-  const { dispatch, state, resetHistory } = useCanvasState();
+  const { dispatch } = useCanvasState();
 
   useEffect(() => {
     validationErrorsRef.current = (errors: ValidationError[]) => {
@@ -214,6 +212,10 @@ function StrategyEditorPageInner({ params }: Props) {
   const contextDispatchRef = useRef<((action: { type: string; payload?: unknown }) => void) | null>(null);
   const contextResetHistoryRef = useRef<((nodes: Node[], edges: Edge[]) => void) | null>(null);
 
+  // Bridge: read current canvas state from context
+  const contextNodesRef = useRef<Node[]>([]);
+  const contextEdgesRef = useRef<Edge[]>([]);
+
   // --- Autosave ---
   const autosave = useAutosave({
     strategyId: id,
@@ -341,7 +343,7 @@ function StrategyEditorPageInner({ params }: Props) {
   // Regenerate explanation when canvas stabilizes (via autosave trigger)
   // This is driven by the CanvasStateProvider's onStable callback
 
-  const hasUnsavedChanges = autosave.hasUnsavedChanges([], []);
+  const hasUnsavedChanges = autosave.hasUnsavedChanges(contextNodesRef.current, contextEdgesRef.current);
 
   useEffect(() => {
     if (!hasUnsavedChanges) return;
@@ -379,8 +381,7 @@ function StrategyEditorPageInner({ params }: Props) {
   };
 
   const handleSaveVersion = useCallback(async () => {
-    // Use empty arrays as placeholder — autosave reads from context internally
-    await autosave.saveVersion([], [], () => {});
+    await autosave.saveVersion(contextNodesRef.current, contextEdgesRef.current, () => {});
   }, [autosave]);
 
   const confirmLoadVersion = useCallback((versionNumber: number) => {
@@ -650,6 +651,8 @@ function StrategyEditorPageInner({ params }: Props) {
           <ContextDispatchBridge
             dispatchRef={contextDispatchRef}
             resetHistoryRef={contextResetHistoryRef}
+            nodesRef={contextNodesRef}
+            edgesRef={contextEdgesRef}
           />
 
           {/* Keyboard shortcuts that need canvas state */}
@@ -757,25 +760,24 @@ function StrategyEditorPageInner({ params }: Props) {
 function ContextDispatchBridge({
   dispatchRef,
   resetHistoryRef,
+  nodesRef: parentNodesRef,
+  edgesRef: parentEdgesRef,
 }: {
   dispatchRef: React.MutableRefObject<((action: { type: string; payload?: unknown }) => void) | null>;
   resetHistoryRef: React.MutableRefObject<((nodes: Node[], edges: Edge[]) => void) | null>;
+  nodesRef: React.MutableRefObject<Node[]>;
+  edgesRef: React.MutableRefObject<Edge[]>;
 }) {
   const { dispatch, resetHistory, state } = useCanvasState();
-  const { isMobileCanvasMode } = useDisplay();
 
   useEffect(() => {
     dispatchRef.current = dispatch as (action: { type: string; payload?: unknown }) => void;
     resetHistoryRef.current = resetHistory;
   });
 
-  // Regenerate explanation when canvas nodes/edges change
-  // (This lives here because it needs canvas state)
-  const nodesRef = useRef(state.nodes);
-  const edgesRef = useRef(state.edges);
   useEffect(() => {
-    nodesRef.current = state.nodes;
-    edgesRef.current = state.edges;
+    parentNodesRef.current = state.nodes;
+    parentEdgesRef.current = state.edges;
   });
 
   return null;
