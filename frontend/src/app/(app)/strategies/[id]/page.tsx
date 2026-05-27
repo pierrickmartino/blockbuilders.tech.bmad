@@ -421,12 +421,11 @@ function StrategyEditorPageInner({ params }: Props) {
     await autosave.saveVersion(contextNodesRef.current, contextEdgesRef.current, () => {});
   }, [autosave]);
 
+  // Draft-overwrite confirmation is now handled inside StrategyHeader (AlertDialog).
+  // This callback simply loads the version once the user has confirmed.
   const confirmLoadVersion = useCallback((versionNumber: number) => {
-    if (hasUnsavedChanges && !window.confirm("You have unsaved changes. Loading a different version will replace your current canvas. Continue?")) {
-      return;
-    }
     loadVersionDetail(versionNumber);
-  }, [hasUnsavedChanges, loadVersionDetail]);
+  }, [loadVersionDetail]);
 
   const handleAddTag = async (tagName: string) => {
     if (!tagName.trim() || !strategy) return;

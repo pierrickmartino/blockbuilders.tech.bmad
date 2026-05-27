@@ -134,11 +134,27 @@ export function StrategyHeader({
   onJumpToError,
 }: StrategyHeaderProps) {
   const [pendingArchive, setPendingArchive] = useState<number | null>(null);
+  const [pendingLoadVersion, setPendingLoadVersion] = useState<number | null>(null);
 
   function handleArchiveConfirm() {
     if (pendingArchive !== null) {
       onArchiveVersion(pendingArchive);
       setPendingArchive(null);
+    }
+  }
+
+  function handleLoadVersionClick(versionNumber: number) {
+    if (hasDraft) {
+      setPendingLoadVersion(versionNumber);
+    } else {
+      onLoadVersion(versionNumber);
+    }
+  }
+
+  function handleLoadVersionConfirm() {
+    if (pendingLoadVersion !== null) {
+      onLoadVersion(pendingLoadVersion);
+      setPendingLoadVersion(null);
     }
   }
 
@@ -374,7 +390,7 @@ export function StrategyHeader({
                             size="sm"
                             variant="ghost"
                             className="h-8"
-                            onClick={() => onLoadVersion(v.version_number)}
+                            onClick={() => handleLoadVersionClick(v.version_number)}
                           >
                             Load
                           </Button>
@@ -488,7 +504,7 @@ export function StrategyHeader({
         {versions.length > 0 && (
           <Select
             value={String(selectedVersion?.version_number || "")}
-            onValueChange={(v) => onLoadVersion(Number(v))}
+            onValueChange={(v) => handleLoadVersionClick(Number(v))}
           >
             <SelectTrigger className="hidden h-8 w-[110px] text-xs sm:w-[140px] lg:flex">
               <SelectValue placeholder="Version" />
@@ -556,6 +572,28 @@ export function StrategyHeader({
           </button>
         </div>
       )}
+
+      {/* Load version with draft — overwrite warning dialog */}
+      <AlertDialog
+        open={pendingLoadVersion !== null}
+        onOpenChange={(open) => { if (!open) setPendingLoadVersion(null); }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Replace unpublished draft?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have an unpublished draft. Loading a different version will
+              replace it. Continue?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleLoadVersionConfirm}>
+              Load version
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Archive confirmation dialog */}
       <AlertDialog
