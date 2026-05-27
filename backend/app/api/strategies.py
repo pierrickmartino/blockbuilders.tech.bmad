@@ -598,6 +598,50 @@ def get_version(
     )
 
 
+@router.patch(
+    "/{strategy_id}/versions/{version_number}/archive",
+    response_model=StrategyVersionResponse,
+)
+def archive_version(
+    strategy_id: UUID,
+    version_number: int,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> StrategyVersionResponse:
+    """Archive a published version (soft-delete).
+
+    Sets status to ARCHIVED so the version disappears from the list
+    while FK references (e.g. backtest runs) remain intact.
+    Returns 404 when the target version doesn't exist or isn't published.
+    """
+    strategy = get_user_strategy(strategy_id, user, session)
+
+    version = session.exec(
+        select(StrategyVersion).where(
+            StrategyVersion.strategy_id == strategy.id,
+            StrategyVersion.version_number == version_number,
+            StrategyVersion.status == VersionStatus.PUBLISHED,
+        )
+    ).first()
+
+    if not version:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Version not found or is not published",
+        )
+
+    version.status = VersionStatus.ARCHIVED
+    session.add(version)
+    session.commit()
+    session.refresh(version)
+
+    return StrategyVersionResponse(
+        id=version.id,
+        version_number=version.version_number,
+        created_at=version.created_at,
+    )
+
+
 @router.post("/{strategy_id}/validate", response_model=ValidationResponse)
 def validate_strategy(
     strategy_id: UUID,

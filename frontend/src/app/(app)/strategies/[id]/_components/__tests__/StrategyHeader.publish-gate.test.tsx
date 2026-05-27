@@ -74,6 +74,7 @@ function renderHeader(overrides: { validationErrors?: ValidationError[]; hasDraf
     hasDraft: overrides.hasDraft ?? true,
     onPublish: vi.fn(),
     onLoadVersion: vi.fn(),
+    onArchiveVersion: vi.fn(),
     isUpdatingAutoUpdate: false,
     onExport: vi.fn(),
     onAutoUpdateToggle: vi.fn(),

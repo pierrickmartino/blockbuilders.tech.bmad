@@ -523,6 +523,19 @@ function StrategyEditorPageInner({ params }: Props) {
     }
   };
 
+  const handleArchiveVersion = useCallback(async (versionNumber: number) => {
+    try {
+      await apiFetch(`/strategies/${id}/versions/${versionNumber}/archive`, {
+        method: "PATCH",
+      });
+      // Version disappears from the list — refresh without reloading canvas
+      loadVersions({ loadDetail: false });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to archive version");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
   const handleExport = async () => {
     if (!strategy) return;
     setError(null);
@@ -618,6 +631,7 @@ function StrategyEditorPageInner({ params }: Props) {
         hasDraft={draft.hasDraft}
         onPublish={draft.publishDraft}
         onLoadVersion={confirmLoadVersion}
+        onArchiveVersion={handleArchiveVersion}
         isUpdatingAutoUpdate={isUpdatingAutoUpdate}
         onExport={handleExport}
         onAutoUpdateToggle={handleAutoUpdateToggle}
