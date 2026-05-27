@@ -81,6 +81,9 @@ export function canvasReducer(state: CanvasState, action: CanvasAction): CanvasS
       };
 
     case "DESELECT_ALL":
+      if (state.selectedNodeId === null && state.selectedNodeIds.length === 0) {
+        return state;
+      }
       return { ...state, selectedNodeId: null, selectedNodeIds: [] };
 
     case "SET_SELECTION":

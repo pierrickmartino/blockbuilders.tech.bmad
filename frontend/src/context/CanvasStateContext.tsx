@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useReducer, useCallback } from "react";
+import React, { createContext, useContext, useEffect, useReducer, useCallback, useMemo, useRef } from "react";
 import type { Node, Edge } from "@xyflow/react";
 import { canvasReducer, createInitialState, type CanvasAction, type CanvasState } from "@/lib/canvas-reducer";
 import { useCanvasHistory } from "@/hooks/use-canvas-history";
@@ -38,6 +38,11 @@ export function CanvasStateProvider({
 
   const canvasHistory = useCanvasHistory({ onStable });
 
+  const canvasHistoryRef = useRef(canvasHistory);
+  useEffect(() => {
+    canvasHistoryRef.current = canvasHistory;
+  });
+
   useEffect(() => {
     canvasHistory.scheduleSnapshot(state.nodes, state.edges);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -46,7 +51,7 @@ export function CanvasStateProvider({
   const dispatch = useCallback(
     (action: CanvasAction | { type: "UNDO" } | { type: "REDO" }) => {
       if (action.type === "UNDO") {
-        const snapshot = canvasHistory.undo();
+        const snapshot = canvasHistoryRef.current.undo();
         if (snapshot) {
           realDispatch({ type: "UNDO", payload: snapshot });
         }
@@ -54,7 +59,7 @@ export function CanvasStateProvider({
       }
 
       if (action.type === "REDO") {
-        const snapshot = canvasHistory.redo();
+        const snapshot = canvasHistoryRef.current.redo();
         if (snapshot) {
           realDispatch({ type: "REDO", payload: snapshot });
         }
@@ -63,22 +68,25 @@ export function CanvasStateProvider({
 
       realDispatch(action as CanvasAction);
     },
-    [canvasHistory]
+    []
+  );
+
+  const contextValue = useMemo<CanvasStateContextValue>(
+    () => ({
+      state,
+      dispatch,
+      canUndo: canvasHistory.canUndo,
+      canRedo: canvasHistory.canRedo,
+      resetHistory: canvasHistory.reset,
+      flushSnapshot: canvasHistory.flushSnapshot,
+      commitSnapshot: canvasHistory.commitSnapshot,
+      stableTimerRef: canvasHistory.stableTimerRef,
+    }),
+    [state, dispatch, canvasHistory.canUndo, canvasHistory.canRedo, canvasHistory.reset, canvasHistory.flushSnapshot, canvasHistory.commitSnapshot, canvasHistory.stableTimerRef]
   );
 
   return (
-    <CanvasStateContext.Provider
-      value={{
-        state,
-        dispatch,
-        canUndo: canvasHistory.canUndo,
-        canRedo: canvasHistory.canRedo,
-        resetHistory: canvasHistory.reset,
-        flushSnapshot: canvasHistory.flushSnapshot,
-        commitSnapshot: canvasHistory.commitSnapshot,
-        stableTimerRef: canvasHistory.stableTimerRef,
-      }}
-    >
+    <CanvasStateContext.Provider value={contextValue}>
       {children}
     </CanvasStateContext.Provider>
   );

@@ -234,10 +234,16 @@ describe("canvasReducer", () => {
   });
 
   describe("immutability", () => {
-    it("always returns a new state object", () => {
-      const prev = baseState();
+    it("returns a new state object when state changes", () => {
+      const prev = { ...baseState(), selectedNodeId: "n1", selectedNodeIds: ["n1"] };
       const next = canvasReducer(prev, { type: "DESELECT_ALL" });
       expect(next).not.toBe(prev);
+    });
+
+    it("returns same state reference for no-op DESELECT_ALL", () => {
+      const prev = baseState();
+      const next = canvasReducer(prev, { type: "DESELECT_ALL" });
+      expect(next).toBe(prev);
     });
   });
 });

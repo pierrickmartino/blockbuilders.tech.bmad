@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ReactFlow,
   Background,
@@ -120,20 +120,24 @@ function CanvasInner({
   const [showLayoutMenu, setShowLayoutMenu] = useState(false);
 
   // Derive display-enriched nodes from context + display context
-  const nodes = state.nodes.map((node) => ({
-    ...node,
-    data: {
-      ...node.data,
-      isMobileMode,
-      isCompact: nodeDisplayMode === "compact",
-      isExpanded: state.expandedNodeIds.includes(node.id),
-      summary: generateNodeSummary(
-        node.type || "",
-        (node.data?.params as Record<string, unknown>) || {},
-        String(node.data?.label || "")
-      ),
-    },
-  }));
+  const nodes = useMemo(
+    () =>
+      state.nodes.map((node) => ({
+        ...node,
+        data: {
+          ...node.data,
+          isMobileMode,
+          isCompact: nodeDisplayMode === "compact",
+          isExpanded: state.expandedNodeIds.includes(node.id),
+          summary: generateNodeSummary(
+            node.type || "",
+            (node.data?.params as Record<string, unknown>) || {},
+            String(node.data?.label || "")
+          ),
+        },
+      })),
+    [state.nodes, state.expandedNodeIds, isMobileMode, nodeDisplayMode]
+  );
 
   const edges = state.edges;
 
@@ -215,14 +219,25 @@ function CanvasInner({
     [isMobileMode, connectionState, state.edges, dispatch]
   );
 
+  const prevSelectionRef = useRef<string[]>([]);
   const handleSelectionChange = useCallback(
     ({ nodes: selectedNodes }: { nodes: Node[] }) => {
+      const newIds = selectedNodes.map((n) => n.id);
+      const prev = prevSelectionRef.current;
+      if (
+        newIds.length === prev.length &&
+        newIds.every((id, i) => id === prev[i])
+      ) {
+        return;
+      }
+      prevSelectionRef.current = newIds;
+
       if (selectedNodes.length === 0) {
         dispatch({ type: "DESELECT_ALL" });
       } else if (selectedNodes.length === 1) {
         dispatch({ type: "SELECT_NODE", payload: selectedNodes[0].id });
       } else {
-        dispatch({ type: "SET_SELECTION", payload: selectedNodes.map((n) => n.id) });
+        dispatch({ type: "SET_SELECTION", payload: newIds });
       }
     },
     [dispatch]
