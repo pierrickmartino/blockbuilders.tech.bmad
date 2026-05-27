@@ -1,11 +1,12 @@
 /**
- * useStrategyDraft — hook for debounced draft persistence (issue #458).
+ * useStrategyDraft — hook for draft persistence and publish (issues #458, #459).
  *
  * Side effects (API calls, relative timestamp) live here;
  * pure state logic lives in draftReducer.
  *
  * Consumers:
  *   - call persistDraft(nodes, edges) on canvas changes
+ *   - call publishDraft() when user clicks Publish
  *   - read draftStatus / lastPersistedAt / relativeTimestamp for toolbar display
  */
 
@@ -19,6 +20,8 @@ import type { DraftState } from "./draft-reducer";
 
 interface UseStrategyDraftOptions {
   strategyId: string;
+  /** Called after a successful publish so the version list can be refreshed. */
+  onPublishSuccess?: () => void;
 }
 
 interface UseStrategyDraftReturn {
@@ -26,12 +29,15 @@ interface UseStrategyDraftReturn {
   lastPersistedAt: Date | null;
   draftError: string | null;
   relativeTimestamp: string;
+  hasDraft: boolean;
   persistDraft: (nodes: Node[], edges: Edge[]) => Promise<void>;
+  publishDraft: () => Promise<void>;
   resetDraftStatus: () => void;
 }
 
 export function useStrategyDraft({
   strategyId,
+  onPublishSuccess,
 }: UseStrategyDraftOptions): UseStrategyDraftReturn {
   const [state, dispatch] = useReducer(draftReducer, initialDraftState);
 
@@ -46,6 +52,13 @@ export function useStrategyDraft({
   const relativeTimestamp = state.lastPersistedAt
     ? formatRelativeTime(state.lastPersistedAt)
     : "";
+
+  // hasDraft is true once the draft has been persisted at least once this session
+  // OR when a prior draft was loaded from the server (signalled by lastPersistedAt).
+  const hasDraft =
+    state.lastPersistedAt !== null ||
+    state.status === "persisted" ||
+    state.status === "persisting";
 
   // ── persistDraft ────────────────────────────────────────────────────────────
   const persistDraft = useCallback(
@@ -68,6 +81,23 @@ export function useStrategyDraft({
     [strategyId]
   );
 
+  // ── publishDraft ─────────────────────────────────────────────────────────────
+  const publishDraft = useCallback(async () => {
+    dispatch({ type: "PUBLISH_START" });
+
+    try {
+      await apiFetch(`/strategies/${strategyId}/draft/publish`, {
+        method: "POST",
+      });
+      dispatch({ type: "PUBLISH_SUCCESS" });
+      onPublishSuccess?.();
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Failed to publish draft";
+      dispatch({ type: "PUBLISH_ERROR", message });
+    }
+  }, [strategyId, onPublishSuccess]);
+
   const resetDraftStatus = useCallback(() => {
     dispatch({ type: "RESET" });
   }, []);
@@ -77,7 +107,9 @@ export function useStrategyDraft({
     lastPersistedAt: state.lastPersistedAt,
     draftError: state.error,
     relativeTimestamp,
+    hasDraft,
     persistDraft,
+    publishDraft,
     resetDraftStatus,
   };
 }

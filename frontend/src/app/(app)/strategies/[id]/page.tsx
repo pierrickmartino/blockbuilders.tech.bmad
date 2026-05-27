@@ -229,8 +229,11 @@ function StrategyEditorPageInner({ params }: Props) {
     onVersionsRefresh: loadVersions,
   });
 
-  // --- Draft persist (background silent save on every canvas change) ---
-  const draft = useStrategyDraft({ strategyId: id });
+  // --- Draft persist + publish (background save + explicit publish action) ---
+  const draft = useStrategyDraft({
+    strategyId: id,
+    onPublishSuccess: () => loadVersions({ loadDetail: false }),
+  });
 
   // --- Data loading ---
 
@@ -603,8 +606,8 @@ function StrategyEditorPageInner({ params }: Props) {
         draftStatus={draft.draftStatus}
         lastPersistedAt={draft.lastPersistedAt}
         relativeTimestamp={draft.relativeTimestamp}
-        isSavingVersion={autosave.isSavingVersion}
-        onSaveVersion={handleSaveVersion}
+        hasDraft={draft.hasDraft}
+        onPublish={draft.publishDraft}
         onLoadVersion={confirmLoadVersion}
         isUpdatingAutoUpdate={isUpdatingAutoUpdate}
         onExport={handleExport}

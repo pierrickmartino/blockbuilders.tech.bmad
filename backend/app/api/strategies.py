@@ -553,7 +553,10 @@ def list_versions(
 
     versions = session.exec(
         select(StrategyVersion)
-        .where(StrategyVersion.strategy_id == strategy.id)
+        .where(
+            StrategyVersion.strategy_id == strategy.id,
+            StrategyVersion.status == VersionStatus.PUBLISHED,
+        )
         .order_by(StrategyVersion.version_number.desc())
     ).all()
 
@@ -647,6 +650,50 @@ def get_draft(
         definition_json=draft.definition_json,
         created_at=draft.created_at,
         status=draft.status.value,
+    )
+
+
+@router.post("/{strategy_id}/draft/publish", response_model=StrategyVersionResponse)
+def publish_draft(
+    strategy_id: UUID,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> StrategyVersionResponse:
+    """Promote the current draft to a published version.
+
+    Assigns the next sequential version_number (max published + 1) and changes
+    the draft row's status to PUBLISHED.  Returns 404 if no draft exists.
+    """
+    strategy = get_user_strategy(strategy_id, user, session)
+
+    draft = session.exec(
+        select(StrategyVersion).where(
+            StrategyVersion.strategy_id == strategy.id,
+            StrategyVersion.status == VersionStatus.DRAFT,
+        )
+    ).first()
+
+    if not draft:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No draft found")
+
+    # Sequential number counts only among published versions
+    max_published = session.exec(
+        select(func.max(StrategyVersion.version_number)).where(
+            StrategyVersion.strategy_id == strategy.id,
+            StrategyVersion.status == VersionStatus.PUBLISHED,
+        )
+    ).one()
+    draft.version_number = (max_published or 0) + 1
+    draft.status = VersionStatus.PUBLISHED
+
+    session.add(draft)
+    session.commit()
+    session.refresh(draft)
+
+    return StrategyVersionResponse(
+        id=draft.id,
+        version_number=draft.version_number,
+        created_at=draft.created_at,
     )
 
 

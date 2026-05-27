@@ -165,3 +165,112 @@ describe("draftReducer – RESET", () => {
     }
   });
 });
+
+// ---------------------------------------------------------------------------
+// Slice F6 — PUBLISH_START (issue #459)
+// ---------------------------------------------------------------------------
+
+describe("draftReducer – PUBLISH_START", () => {
+  it("transitions persisted → publishing", () => {
+    const persistedState: DraftState = {
+      status: "persisted",
+      lastPersistedAt: new Date(),
+      error: null,
+    };
+    const next = draftReducer(persistedState, { type: "PUBLISH_START" });
+    expect(next.status).toBe("publishing");
+  });
+
+  it("clears error on PUBLISH_START", () => {
+    const errorState: DraftState = {
+      status: "error",
+      lastPersistedAt: null,
+      error: "previous error",
+    };
+    const next = draftReducer(errorState, { type: "PUBLISH_START" });
+    expect(next.error).toBeNull();
+  });
+
+  it("is a pure function — does not mutate input", () => {
+    const before: DraftState = {
+      status: "persisted",
+      lastPersistedAt: new Date(),
+      error: null,
+    };
+    const copy = { ...before };
+    draftReducer(before, { type: "PUBLISH_START" });
+    expect(before).toEqual(copy);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Slice F7 — PUBLISH_SUCCESS (issue #459)
+// ---------------------------------------------------------------------------
+
+describe("draftReducer – PUBLISH_SUCCESS", () => {
+  const publishingState: DraftState = {
+    status: "publishing",
+    lastPersistedAt: new Date(),
+    error: null,
+  };
+
+  it("transitions publishing → published", () => {
+    const next = draftReducer(publishingState, { type: "PUBLISH_SUCCESS" });
+    expect(next.status).toBe("published");
+  });
+
+  it("clears error on success", () => {
+    const withError: DraftState = {
+      ...publishingState,
+      error: "stale error",
+    };
+    const next = draftReducer(withError, { type: "PUBLISH_SUCCESS" });
+    expect(next.error).toBeNull();
+  });
+
+  it("resets lastPersistedAt to null (draft no longer exists)", () => {
+    const next = draftReducer(publishingState, { type: "PUBLISH_SUCCESS" });
+    expect(next.lastPersistedAt).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Slice F8 — PUBLISH_ERROR (issue #459)
+// ---------------------------------------------------------------------------
+
+describe("draftReducer – PUBLISH_ERROR", () => {
+  const publishingState: DraftState = {
+    status: "publishing",
+    lastPersistedAt: new Date(),
+    error: null,
+  };
+
+  it("transitions publishing → publishError", () => {
+    const next = draftReducer(publishingState, {
+      type: "PUBLISH_ERROR",
+      message: "Server error",
+    });
+    expect(next.status).toBe("publishError");
+  });
+
+  it("stores the error message", () => {
+    const next = draftReducer(publishingState, {
+      type: "PUBLISH_ERROR",
+      message: "Server error",
+    });
+    expect(next.error).toBe("Server error");
+  });
+
+  it("preserves lastPersistedAt when publish fails (draft still exists)", () => {
+    const ts = new Date("2026-01-01T11:00:00Z");
+    const withTimestamp: DraftState = {
+      ...publishingState,
+      lastPersistedAt: ts,
+    };
+    const next = draftReducer(withTimestamp, {
+      type: "PUBLISH_ERROR",
+      message: "timeout",
+    });
+    expect(next.lastPersistedAt).toBe(ts);
+  });
+});

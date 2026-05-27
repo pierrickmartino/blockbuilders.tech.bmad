@@ -40,6 +40,7 @@ import {
   CheckCircle2,
   Loader2,
   Pencil,
+  Upload,
   X,
 } from "lucide-react";
 import { StrategyTabs } from "@/components/StrategyTabs";
@@ -60,14 +61,15 @@ interface StrategyHeaderProps {
   onNameChange: (value: string) => void;
   onNameSave: () => void;
 
-  /** Draft persist indicator */
-  draftStatus: "idle" | "persisting" | "persisted" | "error";
+  /** Draft persist + publish indicator */
+  draftStatus: "idle" | "persisting" | "persisted" | "error" | "publishing" | "published" | "publishError";
   lastPersistedAt: Date | null;
   relativeTimestamp: string;
+  /** True when a draft exists server-side and can be published. */
+  hasDraft: boolean;
 
-  /** Save / version */
-  isSavingVersion: boolean;
-  onSaveVersion: () => void;
+  /** Publish / version */
+  onPublish: () => void;
   onLoadVersion: (versionNumber: number) => void;
 
   /** Actions */
@@ -102,8 +104,8 @@ export function StrategyHeader({
   draftStatus,
   lastPersistedAt,
   relativeTimestamp,
-  isSavingVersion,
-  onSaveVersion,
+  hasDraft,
+  onPublish,
   onLoadVersion,
   isUpdatingAutoUpdate,
   onExport,
@@ -210,7 +212,7 @@ export function StrategyHeader({
 
         {/* Right: Actions */}
         <div className="flex flex-shrink-0 items-center gap-2">
-          {/* Draft persist status */}
+          {/* Draft persist + publish status */}
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground" aria-live="polite">
             {draftStatus === "persisting" && (
               <>
@@ -231,13 +233,24 @@ export function StrategyHeader({
               <>
                 <AlertCircle className="h-3 w-3 text-destructive" aria-hidden="true" />
                 <span className="text-destructive">Draft — error</span>
-                <button
-                  type="button"
-                  onClick={onSaveVersion}
-                  className="text-destructive underline underline-offset-2 hover:text-destructive/80"
-                >
-                  Retry
-                </button>
+              </>
+            )}
+            {draftStatus === "publishing" && (
+              <>
+                <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />
+                <span>Publishing…</span>
+              </>
+            )}
+            {draftStatus === "published" && (
+              <>
+                <CheckCircle2 className="h-3 w-3 text-primary" aria-hidden="true" />
+                <span className="hidden sm:inline">Published</span>
+              </>
+            )}
+            {draftStatus === "publishError" && (
+              <>
+                <AlertCircle className="h-3 w-3 text-destructive" aria-hidden="true" />
+                <span className="text-destructive">Publish failed</span>
               </>
             )}
           </div>
@@ -252,20 +265,24 @@ export function StrategyHeader({
             </div>
           )}
 
-          {/* Save button */}
+          {/* Publish button */}
           <Button
             size="sm"
             className="h-9 sm:h-8"
-            onClick={onSaveVersion}
-            disabled={isSavingVersion}
+            onClick={onPublish}
+            disabled={!hasDraft || draftStatus === "publishing"}
+            title={!hasDraft ? "Save a draft first to publish" : undefined}
           >
-            {isSavingVersion ? (
+            {draftStatus === "publishing" ? (
               <>
                 <Loader2 className="mr-1 h-3 w-3 animate-spin" aria-hidden="true" />
-                Saving…
+                <span className="hidden sm:inline">Publishing…</span>
               </>
             ) : (
-              "Save"
+              <>
+                <Upload className="mr-1 h-3 w-3" aria-hidden="true" />
+                <span>Publish</span>
+              </>
             )}
           </Button>
 
