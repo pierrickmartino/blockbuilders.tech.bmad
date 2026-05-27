@@ -1,5 +1,22 @@
 # Tasks — in flight
 
+## FEAT-454 — Wire canvas consumers to context, delete SmartCanvas (implemented)
+
+Frontend
+- [x] Extend `CanvasStateContext` to expose `flushSnapshot`, `commitSnapshot`, `resetHistory`, `stableTimerRef`
+- [x] Add tests for new context methods (8 tests GREEN)
+- [x] Rewrite `StrategyCanvas` to ≤3 props, reads all state from `useCanvasState()`, absorbs SmartCanvas feature flags/analytics
+- [x] Update `use-auto-arrange` hook: `setNodes` → `onNodesChange` (removes `Dispatch<SetStateAction>` dependency)
+- [x] Rewrite `InspectorPanel` to zero props — reads `selectedNode`, `validationErrors`, `isMobileMode` from context
+- [x] Update `CommandPalette` — remove `reactFlowInstance` prop, read from context
+- [x] Update `BlockLibrarySheet` — remove `reactFlowInstance` and `isMobileMode` props, read from context
+- [x] Rewrite page to use bridge components (`CanvasBootstrapper`, `ContextDispatchBridge`, `CanvasKeyboardHandler`) for parent→context communication
+- [x] Delete `SmartCanvas.tsx`
+- [x] Fix all TypeScript errors (CanvasFlags key access, test API mismatch)
+- [x] All 49 tests pass; `npx tsc --noEmit` clean
+
+---
+
 ## Frontend Docker Next/SWC mismatch fix (implemented)
 
 - [x] Diagnose Docker build failure caused by host `frontend/node_modules` overwriting image dependencies

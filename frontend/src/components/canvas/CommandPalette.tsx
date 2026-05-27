@@ -29,13 +29,13 @@ import {
 } from "@/lib/palette-commands";
 import { computePaletteInsertPosition } from "@/lib/palette-position";
 import type { CanvasEdge } from "@/components/canvas/StrategyCanvas";
+import { useCanvasState } from "@/context/CanvasStateContext";
 import { cn } from "@/lib/utils";
 
 interface CommandPaletteProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onAddNode: (node: Node) => void;
-  reactFlowInstance: ReactFlowInstance<Node, CanvasEdge> | null;
 }
 
 function CategoryChip({ category }: { category: BlockMeta["category"] }) {
@@ -123,8 +123,9 @@ export default function CommandPalette({
   open,
   onOpenChange,
   onAddNode,
-  reactFlowInstance,
 }: CommandPaletteProps) {
+  const { state } = useCanvasState();
+  const reactFlowInstance = state.reactFlowInstance as ReactFlowInstance<Node, CanvasEdge> | null;
   const [query, setQuery] = useState("");
 
   const groups: PaletteCommandGroup[] = useMemo(

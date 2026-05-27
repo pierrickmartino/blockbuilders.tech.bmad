@@ -28,6 +28,19 @@ const mockReactFlowInstance = {
   getViewport: vi.fn(() => ({ x: 0, y: 0, zoom: 1 })),
 };
 
+vi.mock("@/context/CanvasStateContext", () => ({
+  useCanvasState: () => ({
+    state: { reactFlowInstance: mockReactFlowInstance, nodes: [], edges: [] },
+    dispatch: vi.fn(),
+    canUndo: false,
+    canRedo: false,
+    flushSnapshot: vi.fn(),
+    commitSnapshot: vi.fn(),
+    resetHistory: vi.fn(),
+    stableTimerRef: { current: null },
+  }),
+}));
+
 function setup(open = true) {
   const onAddNode = vi.fn();
   const setOpen = vi.fn();
@@ -37,7 +50,6 @@ function setup(open = true) {
       open={open}
       onOpenChange={setOpen}
       onAddNode={onAddNode}
-      reactFlowInstance={mockReactFlowInstance as never}
     />
   );
 

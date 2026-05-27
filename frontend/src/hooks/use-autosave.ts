@@ -33,8 +33,7 @@ export function useAutosave({
   const isSavingVersionRef = useRef(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
-  const lastSavedNodesRef = useRef("");
-  const lastSavedEdgesRef = useRef("");
+  const lastSavedDefinitionRef = useRef("");
 
   useEffect(() => {
     isSavingVersionRef.current = isSavingVersion;
@@ -58,18 +57,14 @@ export function useAutosave({
   const markSaved = useCallback((nodes: Node[], edges: Edge[]) => {
     const now = new Date();
     setLastSavedAt(now);
-    lastSavedNodesRef.current = JSON.stringify(nodes);
-    lastSavedEdgesRef.current = JSON.stringify(edges);
+    lastSavedDefinitionRef.current = JSON.stringify(reactFlowToDefinition(nodes, edges));
     setAutosaveState("saved");
   }, []);
 
   const hasUnsavedChanges = useCallback(
     (nodes: Node[], edges: Edge[]) => {
-      if (!lastSavedNodesRef.current && !lastSavedEdgesRef.current) return false;
-      return (
-        JSON.stringify(nodes) !== lastSavedNodesRef.current ||
-        JSON.stringify(edges) !== lastSavedEdgesRef.current
-      );
+      if (!lastSavedDefinitionRef.current) return false;
+      return JSON.stringify(reactFlowToDefinition(nodes, edges)) !== lastSavedDefinitionRef.current;
     },
     []
   );
@@ -78,9 +73,8 @@ export function useAutosave({
     async (currentNodes: Node[], currentEdges: Edge[]) => {
       if (isSavingVersionRef.current || autosaveStateRef.current === "saving") return;
 
-      const nodesJSON = JSON.stringify(currentNodes);
-      const edgesJSON = JSON.stringify(currentEdges);
-      if (nodesJSON === lastSavedNodesRef.current && edgesJSON === lastSavedEdgesRef.current) {
+      const currentDefinition = JSON.stringify(reactFlowToDefinition(currentNodes, currentEdges));
+      if (currentDefinition === lastSavedDefinitionRef.current) {
         return;
       }
 
@@ -162,8 +156,7 @@ export function useAutosave({
   );
 
   const initSavedSnapshot = useCallback((nodes: Node[], edges: Edge[]) => {
-    lastSavedNodesRef.current = JSON.stringify(nodes);
-    lastSavedEdgesRef.current = JSON.stringify(edges);
+    lastSavedDefinitionRef.current = JSON.stringify(reactFlowToDefinition(nodes, edges));
   }, []);
 
   return {

@@ -1,6 +1,5 @@
 import { renderHook, act } from "@testing-library/react";
 import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
-import type { Dispatch, SetStateAction } from "react";
 import type { Node, Edge } from "@xyflow/react";
 import { useAutoArrange } from "../use-auto-arrange";
 import { arrangeNodes } from "@/lib/layout-algorithm";
@@ -41,7 +40,7 @@ function makeFlowInstance(measuredOverride?: { width: number; height: number }) 
 describe("useAutoArrange", () => {
   let flushSnapshot: () => void;
   let commitSnapshot: (nodes: Node[], edges: Edge[]) => void;
-  let setNodes: Dispatch<SetStateAction<Node[]>>;
+  let onNodesChange: (nodes: Node[]) => void;
   let setShowLayoutMenu: (open: boolean) => void;
   let mockFlowInstance: ReturnType<typeof makeFlowInstance>;
   let canvasContainerRef: { current: HTMLElement | null };
@@ -49,7 +48,7 @@ describe("useAutoArrange", () => {
   beforeEach(() => {
     flushSnapshot = vi.fn() as unknown as () => void;
     commitSnapshot = vi.fn() as unknown as (nodes: Node[], edges: Edge[]) => void;
-    setNodes = vi.fn() as unknown as Dispatch<SetStateAction<Node[]>>;
+    onNodesChange = vi.fn() as unknown as (nodes: Node[]) => void;
     setShowLayoutMenu = vi.fn() as unknown as (open: boolean) => void;
     mockFlowInstance = makeFlowInstance();
     canvasContainerRef = { current: document.createElement("div") };
@@ -96,7 +95,7 @@ describe("useAutoArrange", () => {
         canvasContainerRef,
         flushSnapshot,
         commitSnapshot,
-        setNodes,
+        onNodesChange,
         setShowLayoutMenu,
       })
     );
@@ -134,7 +133,7 @@ describe("useAutoArrange", () => {
         canvasContainerRef,
         flushSnapshot: flushWithPending,
         commitSnapshot: commitWithPush,
-        setNodes,
+        onNodesChange,
         setShowLayoutMenu,
       })
     );
@@ -189,7 +188,7 @@ describe("useAutoArrange", () => {
         canvasContainerRef,
         flushSnapshot,
         commitSnapshot,
-        setNodes,
+        onNodesChange,
         setShowLayoutMenu,
       })
     );
@@ -198,8 +197,8 @@ describe("useAutoArrange", () => {
       await result.current.handleAutoArrange();
     });
 
-    expect(setNodes).toHaveBeenCalledTimes(1);
-    expect(setNodes).toHaveBeenCalledWith(
+    expect(onNodesChange).toHaveBeenCalledTimes(1);
+    expect(onNodesChange).toHaveBeenCalledWith(
       expect.arrayContaining([
         expect.objectContaining({ id: "note-1", position: { x: 42, y: 99 } }),
         expect.objectContaining({ id: "reg-1", position: { x: 300, y: 400 } }),

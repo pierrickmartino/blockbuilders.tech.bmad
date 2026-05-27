@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import type { Node, ReactFlowInstance } from "@xyflow/react";
+import type { Node } from "@xyflow/react";
 import type { CanvasEdge } from "@/components/canvas/StrategyCanvas";
+import { useCanvasState } from "@/context/CanvasStateContext";
 import { Search, X, Star, Clock } from "lucide-react";
 import {
   Sheet,
@@ -31,8 +32,6 @@ import { cn } from "@/lib/utils";
 interface BlockLibrarySheetProps {
   onDragStart: (event: React.DragEvent, blockMeta: BlockMeta) => void;
   onAddNode: (node: Node) => void;
-  reactFlowInstance: React.RefObject<ReactFlowInstance<Node, CanvasEdge> | null>;
-  isMobileMode: boolean;
   indicatorMode: IndicatorMode;
   onToggleIndicatorMode: () => void;
 }
@@ -115,11 +114,11 @@ function CategoryIcon({ category }: { category: BlockCategory }) {
 export default function BlockLibrarySheet({
   onDragStart,
   onAddNode,
-  reactFlowInstance,
-  isMobileMode,
   indicatorMode,
   onToggleIndicatorMode,
 }: BlockLibrarySheetProps) {
+  const { state } = useCanvasState();
+  const reactFlowInstance = state.reactFlowInstance as import("@xyflow/react").ReactFlowInstance<Node, CanvasEdge> | null;
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [recentBlocks, setRecentBlocks] = useState<BlockType[]>([]);
@@ -174,10 +173,10 @@ export default function BlockLibrarySheet({
   // Handle tap-to-place (click on block)
   const handleBlockTap = useCallback(
     (blockMeta: BlockMeta) => {
-      if (!reactFlowInstance.current) return;
+      if (!reactFlowInstance) return;
 
       // Get viewport center
-      const position = reactFlowInstance.current.screenToFlowPosition({
+      const position = reactFlowInstance.screenToFlowPosition({
         x: window.innerWidth / 2,
         y: window.innerHeight / 2,
       });
@@ -208,7 +207,7 @@ export default function BlockLibrarySheet({
       // Close sheet
       setIsOpen(false);
     },
-    [reactFlowInstance, onAddNode]
+    [reactFlowInstance, onAddNode] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   // Handle favorite toggle
