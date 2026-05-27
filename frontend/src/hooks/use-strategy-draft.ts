@@ -17,11 +17,17 @@ import { reactFlowToDefinition } from "@/lib/canvas-utils";
 import { formatRelativeTime } from "@/lib/format";
 import { draftReducer, initialDraftState } from "./draft-reducer";
 import type { DraftState } from "./draft-reducer";
+import type { ValidationError } from "@/types/canvas";
 
 interface UseStrategyDraftOptions {
   strategyId: string;
   /** Called after a successful publish so the version list can be refreshed. */
   onPublishSuccess?: () => void;
+  /**
+   * Called after each successful draft persist with the current validation
+   * result.  Receives an empty array when the draft is valid.
+   */
+  onValidationErrors?: (errors: ValidationError[]) => void;
 }
 
 interface UseStrategyDraftReturn {
@@ -38,6 +44,7 @@ interface UseStrategyDraftReturn {
 export function useStrategyDraft({
   strategyId,
   onPublishSuccess,
+  onValidationErrors,
 }: UseStrategyDraftOptions): UseStrategyDraftReturn {
   const [state, dispatch] = useReducer(draftReducer, initialDraftState);
 
@@ -72,13 +79,25 @@ export function useStrategyDraft({
           body: JSON.stringify({ definition_json: definition }),
         });
         dispatch({ type: "PERSIST_SUCCESS", timestamp: new Date() });
+
+        // Live validation — read-only, does not block persist.
+        // Errors are forwarded to the canvas via the callback.
+        try {
+          const validation = (await apiFetch(
+            `/strategies/${strategyId}/draft/validate`,
+            { method: "POST" }
+          )) as { status: string; errors: ValidationError[] };
+          onValidationErrors?.(validation.errors);
+        } catch {
+          // Validation is best-effort; never break the persist flow.
+        }
       } catch (err) {
         const message =
           err instanceof Error ? err.message : "Failed to save draft";
         dispatch({ type: "PERSIST_ERROR", message });
       }
     },
-    [strategyId]
+    [strategyId, onValidationErrors]
   );
 
   // ── publishDraft ─────────────────────────────────────────────────────────────

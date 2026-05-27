@@ -206,7 +206,11 @@ function StrategyEditorPageInner({ params }: Props) {
   // Canvas container ref (for arrange transitions)
   const canvasContainerRef = useRef<HTMLElement | null>(null);
 
-  // Bridge: autosave → context validation errors
+  // Validation errors — dual-written to both canvas context and page state.
+  // Canvas context owns the on-canvas display; page state drives StrategyHeader.
+  const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
+
+  // Bridge: validation errors → context dispatch + page state
   const validationErrorCallbackRef = useRef<((errors: ValidationError[]) => void) | null>(null);
 
   // Bridge: context dispatch for loading version data
@@ -223,6 +227,7 @@ function StrategyEditorPageInner({ params }: Props) {
     userId: user?.id,
     onValidationErrors: (errors) => {
       validationErrorCallbackRef.current?.(errors);
+      setValidationErrors(errors);
     },
     onError: setError,
     onStrategyRefresh: loadStrategy,
@@ -233,6 +238,10 @@ function StrategyEditorPageInner({ params }: Props) {
   const draft = useStrategyDraft({
     strategyId: id,
     onPublishSuccess: () => loadVersions({ loadDetail: false }),
+    onValidationErrors: (errors) => {
+      validationErrorCallbackRef.current?.(errors);
+      setValidationErrors(errors);
+    },
   });
 
   // --- Data loading ---
@@ -615,7 +624,7 @@ function StrategyEditorPageInner({ params }: Props) {
         onLookbackChange={handleLookbackChange}
         onSettingsOpen={() => setShowSettings(true)}
         error={error}
-        validationErrors={[]}
+        validationErrors={validationErrors}
         saveMessage={autosave.saveMessage}
         onErrorDismiss={() => setError(null)}
         onMessageDismiss={() => autosave.setSaveMessage(null)}

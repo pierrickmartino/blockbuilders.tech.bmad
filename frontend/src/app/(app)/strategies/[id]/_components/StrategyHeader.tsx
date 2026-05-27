@@ -270,8 +270,18 @@ export function StrategyHeader({
             size="sm"
             className="h-9 sm:h-8"
             onClick={onPublish}
-            disabled={!hasDraft || draftStatus === "publishing"}
-            title={!hasDraft ? "Save a draft first to publish" : undefined}
+            disabled={
+              !hasDraft ||
+              draftStatus === "publishing" ||
+              validationErrors.length > 0
+            }
+            title={
+              !hasDraft
+                ? "Save a draft first to publish"
+                : validationErrors.length > 0
+                ? `Fix ${validationErrors.length} validation error${validationErrors.length !== 1 ? "s" : ""} to publish`
+                : undefined
+            }
           >
             {draftStatus === "publishing" ? (
               <>

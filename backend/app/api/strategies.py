@@ -653,16 +653,16 @@ def get_draft(
     )
 
 
-@router.post("/{strategy_id}/draft/publish", response_model=StrategyVersionResponse)
-def publish_draft(
+@router.post("/{strategy_id}/draft/validate", response_model=ValidationResponse)
+def validate_draft(
     strategy_id: UUID,
     user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
-) -> StrategyVersionResponse:
-    """Promote the current draft to a published version.
+) -> ValidationResponse:
+    """Validate the current draft definition without modifying it.
 
-    Assigns the next sequential version_number (max published + 1) and changes
-    the draft row's status to PUBLISHED.  Returns 404 if no draft exists.
+    Read-only — safe to call after every persist for live canvas feedback.
+    Returns 404 if no draft exists.
     """
     strategy = get_user_strategy(strategy_id, user, session)
 
@@ -676,7 +676,50 @@ def publish_draft(
     if not draft:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No draft found")
 
-    # Sequential number counts only among published versions
+    definition = StrategyDefinitionValidate(**draft.definition_json)
+    errors = collect_validation_errors(definition)
+
+    return ValidationResponse(
+        status="valid" if not errors else "invalid",
+        errors=errors,
+    )
+
+
+@router.post("/{strategy_id}/draft/publish", response_model=StrategyVersionResponse)
+def publish_draft(
+    strategy_id: UUID,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> StrategyVersionResponse:
+    """Promote the current draft to a published version.
+
+    Runs validation before promoting — returns 422 with ValidationResponse if
+    the draft is invalid.  Assigns the next sequential version_number (max
+    published + 1) and changes the draft row status to PUBLISHED.
+    Returns 404 if no draft exists.
+    """
+    strategy = get_user_strategy(strategy_id, user, session)
+
+    draft = session.exec(
+        select(StrategyVersion).where(
+            StrategyVersion.strategy_id == strategy.id,
+            StrategyVersion.status == VersionStatus.DRAFT,
+        )
+    ).first()
+
+    if not draft:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No draft found")
+
+    # Validation gate — block publish when the draft definition has errors.
+    definition = StrategyDefinitionValidate(**draft.definition_json)
+    errors = collect_validation_errors(definition)
+    if errors:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=ValidationResponse(status="invalid", errors=errors).model_dump(),
+        )
+
+    # Sequential number counts only among published versions.
     max_published = session.exec(
         select(func.max(StrategyVersion.version_number)).where(
             StrategyVersion.strategy_id == strategy.id,
