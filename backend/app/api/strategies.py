@@ -27,7 +27,6 @@ from app.schemas.strategy import (
     StrategyResponse,
     StrategyTagResponse,
     StrategyUpdateRequest,
-    StrategyVersionCreateRequest,
     StrategyVersionDetailResponse,
     StrategyVersionResponse,
     StrategyWithMetricsResponse,
@@ -482,63 +481,6 @@ def duplicate_strategy(
         digest_email_enabled=new_strategy.digest_email_enabled,
         created_at=new_strategy.created_at,
         updated_at=new_strategy.updated_at,
-    )
-
-
-@router.post("/{strategy_id}/versions", response_model=StrategyVersionResponse, status_code=status.HTTP_201_CREATED)
-def create_version(
-    strategy_id: UUID,
-    data: StrategyVersionCreateRequest,
-    user: User = Depends(get_current_user),
-    session: Session = Depends(get_session),
-) -> StrategyVersionResponse:
-    """Create a new version of a strategy."""
-    strategy = get_user_strategy(strategy_id, user, session)
-
-    try:
-        definition = StrategyDefinitionValidate.model_validate(data.definition)
-    except PydanticValidationError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=exc.errors(),
-        ) from exc
-
-    errors = collect_validation_errors(definition)
-    if errors:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail={
-                "message": "Strategy definition failed validation",
-                "errors": [error.model_dump() for error in errors],
-            },
-        )
-
-    # Get max version number
-    max_version = session.exec(
-        select(func.max(StrategyVersion.version_number)).where(
-            StrategyVersion.strategy_id == strategy.id
-        )
-    ).one()
-    new_version_number = (max_version or 0) + 1
-
-    version = StrategyVersion(
-        strategy_id=strategy.id,
-        version_number=new_version_number,
-        definition_json=data.definition,
-    )
-    session.add(version)
-
-    # Update strategy's updated_at
-    strategy.updated_at = datetime.now(timezone.utc)
-    session.add(strategy)
-
-    session.commit()
-    session.refresh(version)
-
-    return StrategyVersionResponse(
-        id=version.id,
-        version_number=version.version_number,
-        created_at=version.created_at,
     )
 
 
