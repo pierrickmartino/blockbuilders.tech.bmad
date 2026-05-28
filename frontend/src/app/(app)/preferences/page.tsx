@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { useDisplay } from "@/context/display";
 import { getConsent, setConsent } from "@/lib/analytics";
-import { apiFetch, ApiError } from "@/lib/api";
+import { ApiError } from "@/lib/api";
+import { UsersApiClient } from "@/lib/api/users-client";
 import { toast } from "sonner";
 import { ProfileResponse, UserUpdateRequest } from "@/types/auth";
 import {
@@ -56,7 +57,7 @@ export default function PreferencesPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const data = await apiFetch<ProfileResponse>("/users/me");
+      const data = await UsersApiClient.getProfile();
       const fee = data.settings.default_fee_percent?.toString() ?? "";
       const slip = data.settings.default_slippage_percent?.toString() ?? "";
       setFeePercent(fee);
@@ -109,10 +110,7 @@ export default function PreferencesPage() {
 
     setIsSaving(true);
     try {
-      const updated = await apiFetch<ProfileResponse>("/users/me", {
-        method: "PUT",
-        body: JSON.stringify(data),
-      });
+      const updated = await UsersApiClient.updateProfile(data);
       const savedFee = updated.settings.default_fee_percent?.toString() ?? "";
       const savedSlippage = updated.settings.default_slippage_percent?.toString() ?? "";
       setFeePercent(savedFee);
@@ -131,10 +129,7 @@ export default function PreferencesPage() {
     const previousTz = timezone;
     setTimezone(tz);
     try {
-      await apiFetch<ProfileResponse>("/users/me", {
-        method: "PUT",
-        body: JSON.stringify({ timezone_preference: tz }),
-      });
+      await UsersApiClient.updateProfile({ timezone_preference: tz });
       toast.success("Timezone saved");
     } catch {
       setTimezone(previousTz);
@@ -146,10 +141,7 @@ export default function PreferencesPage() {
     const previousTheme = theme;
     setTheme(newTheme);
     try {
-      await apiFetch<ProfileResponse>("/users/me", {
-        method: "PUT",
-        body: JSON.stringify({ theme_preference: newTheme }),
-      });
+      await UsersApiClient.updateProfile({ theme_preference: newTheme });
       toast.success("Theme saved");
     } catch {
       setTheme(previousTheme);
@@ -166,10 +158,7 @@ export default function PreferencesPage() {
     setDigestEnabled(enabled);
 
     try {
-      const updated = await apiFetch<ProfileResponse>("/users/me", {
-        method: "PUT",
-        body: JSON.stringify({ digest_email_enabled: enabled }),
-      });
+      const updated = await UsersApiClient.updateProfile({ digest_email_enabled: enabled });
       if (requestSeq !== digestRequestSeqRef.current) return;
       const persisted = updated.settings.digest_email_enabled;
       committedDigestEnabledRef.current = persisted;

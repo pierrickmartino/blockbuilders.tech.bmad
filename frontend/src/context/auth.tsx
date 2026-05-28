@@ -8,17 +8,12 @@ import {
   useCallback,
   ReactNode,
 } from "react";
-import { apiFetch, ApiError } from "@/lib/api";
-import { User, AuthResponse, Usage, ProfileResponse } from "@/types/auth";
+import { useQueryClient } from "@tanstack/react-query";
+import { ApiError } from "@/lib/api";
+import { AuthApiClient } from "@/lib/api/auth-client";
+import { UsersApiClient } from "@/lib/api/users-client";
+import { User, Usage, ProfileResponse } from "@/types/auth";
 import { trackEvent } from "@/lib/analytics";
-
-interface OAuthStartResponse {
-  auth_url: string;
-}
-
-interface MessageResponse {
-  message: string;
-}
 
 interface AuthContextType {
   user: User | null;
@@ -41,10 +36,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [usage, setUsage] = useState<Usage | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
 
   const refreshUser = useCallback(async (): Promise<User | null> => {
     try {
-      const profileData = await apiFetch<ProfileResponse>("/users/me");
+      const profileData: ProfileResponse = await UsersApiClient.getProfile();
       const nextUser: User = {
         id: profileData.id,
         email: profileData.email,
@@ -68,7 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshUsage = useCallback(async () => {
     try {
-      const usageData = await apiFetch<Usage>("/usage/me");
+      const usageData = await UsersApiClient.getUsage();
       setUsage(usageData);
     } catch {
       // Silently ignore - usage display is nice-to-have
@@ -87,10 +83,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [refreshUser, refreshUsage]);
 
   const login = async (email: string, password: string) => {
-    const response = await apiFetch<AuthResponse>("/auth/login", {
-      method: "POST",
-      body: JSON.stringify({ email, password }),
-    });
+    const response = await AuthApiClient.login(email, password);
+    queryClient.clear();
     localStorage.setItem("token", response.token);
     setUser(response.user);
     refreshUsage();
@@ -98,10 +92,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signup = async (email: string, password: string) => {
-    const response = await apiFetch<AuthResponse>("/auth/signup", {
-      method: "POST",
-      body: JSON.stringify({ email, password }),
-    });
+    const response = await AuthApiClient.signup(email, password);
+    queryClient.clear();
     localStorage.setItem("token", response.token);
     setUser(response.user);
     refreshUsage();
@@ -110,30 +102,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = () => {
     localStorage.removeItem("token");
+    queryClient.clear();
     setUser(null);
     setUsage(null);
   };
 
   const requestPasswordReset = async (email: string): Promise<string> => {
-    const response = await apiFetch<MessageResponse>("/auth/password-reset-request", {
-      method: "POST",
-      body: JSON.stringify({ email }),
-    });
-    return response.message;
+    return AuthApiClient.requestPasswordReset(email);
   };
 
   const confirmPasswordReset = async (token: string, newPassword: string): Promise<string> => {
-    const response = await apiFetch<MessageResponse>("/auth/password-reset-confirm", {
-      method: "POST",
-      body: JSON.stringify({ token, new_password: newPassword }),
-    });
-    return response.message;
+    return AuthApiClient.confirmPasswordReset(token, newPassword);
   };
 
   const startOAuth = async (provider: "google" | "github"): Promise<void> => {
-    const response = await apiFetch<OAuthStartResponse>(`/auth/oauth/${provider}/start`);
+    const response = await AuthApiClient.startOAuth(provider);
 
-    // Validate OAuth redirect URL (should be Google or GitHub)
     const url = new URL(response.auth_url);
     const allowedHosts = ["accounts.google.com", "github.com"];
     if (!allowedHosts.some((host) => url.hostname === host || url.hostname.endsWith(`.${host}`))) {
@@ -145,10 +129,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const completeOAuth = async (provider: string, code: string, state: string): Promise<void> => {
-    const response = await apiFetch<AuthResponse>(`/auth/oauth/${provider}/callback`, {
-      method: "POST",
-      body: JSON.stringify({ code, state }),
-    });
+    const response = await AuthApiClient.completeOAuth(provider, code, state);
+    queryClient.clear();
     localStorage.setItem("token", response.token);
     setUser(response.user);
     refreshUsage();

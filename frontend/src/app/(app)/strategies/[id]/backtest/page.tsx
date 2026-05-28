@@ -11,9 +11,11 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { apiFetch, ApiError } from "@/lib/api";
+import { ApiError } from "@/lib/api";
 import { BacktestsApiClient, type BacktestCreateRequest, type BatchCreateRequest } from "@/lib/api/backtests-client";
 import { MarketApiClient } from "@/lib/api/market-client";
+import { StrategiesApiClient } from "@/lib/api/strategies-client";
+import { UsersApiClient } from "@/lib/api/users-client";
 import { trackEvent } from "@/lib/analytics";
 import {
   formatDateTime,
@@ -667,8 +669,8 @@ export default function StrategyBacktestPage({ params }: Props) {
     setIsLoadingStrategy(true);
     try {
       const [data, versions] = await Promise.all([
-        apiFetch<Strategy>(`/strategies/${id}`),
-        apiFetch<StrategyVersion[]>(`/strategies/${id}/versions`).catch(() => null),
+        StrategiesApiClient.get(id),
+        StrategiesApiClient.listVersions(id).catch(() => null),
       ]);
       setStrategy(data);
       setStrategyVersion(versions?.[0] ?? null);
@@ -757,7 +759,7 @@ export default function StrategyBacktestPage({ params }: Props) {
 
   // Fetch user plan to check for premium features
   useEffect(() => {
-    apiFetch<ProfileResponse>("/users/me")
+    UsersApiClient.getProfile()
       .then((data) => {
         setUserPlan(data.plan);
         setIsBetaGrandfatheredUser(data.settings.user_tier === "beta");

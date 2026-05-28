@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useMemo, useEffect, useRef } from "react";
-// eslint-disable-next-line no-restricted-imports
-import { apiFetch, ApiError } from "@/lib/api";
+import { ApiError } from "@/lib/api";
+import { UsersApiClient } from "@/lib/api/users-client";
 import { StrategiesApiClient } from "@/lib/api/strategies-client";
 import { BacktestsApiClient } from "@/lib/api/backtests-client";
 import { trackEvent } from "@/lib/analytics";
@@ -151,7 +151,7 @@ export function StrategyWizard({ isFirstRun, onClose, onComplete, onSkipToCanvas
       entry_point: "first_run",
     }, user?.id);
     try {
-      await apiFetch("/users/me/complete-onboarding", { method: "POST" });
+      await UsersApiClient.completeOnboarding();
       await refreshUser();
     } catch {
       // Non-blocking: still proceed
@@ -224,7 +224,7 @@ export function StrategyWizard({ isFirstRun, onClose, onComplete, onSkipToCanvas
           }, user?.id);
           // Mark onboarding complete (non-critical)
           try {
-            await apiFetch("/users/me/complete-onboarding", { method: "POST" });
+            await UsersApiClient.completeOnboarding();
             await refreshUser();
           } catch {
             // Don't block navigation

@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+// eslint-disable-next-line no-restricted-imports
 import { apiFetch, ApiError, safeRedirect } from "@/lib/api";
+import { UsersApiClient } from "@/lib/api/users-client";
 import { toast } from "sonner";
 import { ProfileResponse } from "@/types/auth";
 import {
@@ -28,7 +30,7 @@ export default function PlanPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const data = await apiFetch<ProfileResponse>("/users/me");
+      const data = await UsersApiClient.getProfile();
       setProfile(data);
     } catch {
       setError("Couldn't load your plan details. Please try again.");

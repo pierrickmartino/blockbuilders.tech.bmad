@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { apiFetch } from "@/lib/api";
+import { UsersApiClient } from "@/lib/api/users-client";
 import { ProfileResponse } from "@/types/auth";
 import {
   Card,
@@ -26,7 +26,7 @@ export default function ProfilePage() {
     setIsLoading(true);
     setError(null);
     try {
-      const data = await apiFetch<ProfileResponse>("/users/me");
+      const data = await UsersApiClient.getProfile();
       setProfile(data);
     } catch {
       setError("Couldn't load your profile. Please try again.");

@@ -5,8 +5,8 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-// eslint-disable-next-line no-restricted-imports
-import { apiFetch, ApiError } from "@/lib/api";
+import { ApiError } from "@/lib/api";
+import { UsersApiClient } from "@/lib/api/users-client";
 import { StrategiesApiClient, strategiesKeys } from "@/lib/api/strategies-client";
 import { StrategyTagsApiClient, strategyTagsKeys } from "@/lib/api/strategy-tags-client";
 import { formatDateTime } from "@/lib/format";
@@ -135,7 +135,7 @@ export default function StrategiesPage() {
 
   // Load user plan for premium column gating
   useEffect(() => {
-    apiFetch<ProfileResponse>("/users/me").then((data) => setUserPlan(data.plan)).catch(() => {});
+    UsersApiClient.getProfile().then((data) => setUserPlan(data.plan)).catch(() => {});
   }, []);
 
   const refreshStrategies = useCallback(() => {
@@ -1359,7 +1359,7 @@ export default function StrategiesPage() {
             onClick={async () => {
               setIsSkipping(true);
               try {
-                await apiFetch("/users/me/complete-onboarding", { method: "POST" });
+                await UsersApiClient.completeOnboarding();
                 await refreshUser();
                 router.push("/dashboard");
               } catch {
