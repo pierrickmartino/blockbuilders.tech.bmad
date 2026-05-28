@@ -236,7 +236,7 @@ def test_batch_backtest_with_queued_runs_returns_retrievable_batch_id(
     token = _login_and_get_token(client, user.email)
 
     monkeypatch.setattr(
-        "app.api.backtests.get_effective_limits",
+        "app.api.backtest_batches.get_effective_limits",
         lambda *args, **kwargs: {
             "max_backtests_per_day": 50,
             "max_history_days": 3650,
@@ -247,7 +247,7 @@ def test_batch_backtest_with_queued_runs_returns_retrievable_batch_id(
         def enqueue(self, *args, **kwargs):
             return None
 
-    monkeypatch.setattr("app.api.backtests.get_redis_queue", lambda: FakeQueue())
+    monkeypatch.setattr("app.api.backtest_batches.get_redis_queue", lambda: FakeQueue())
 
     create_response = client.post(
         "/backtests/batch",
