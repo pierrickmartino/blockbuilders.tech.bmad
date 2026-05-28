@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
-import { apiFetch } from "@/lib/api";
+import { useState, useCallback } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { AlertsApiClient, alertsKeys } from "@/lib/api/alerts-client";
 import type { AlertRule } from "@/types/alert";
 
 interface UseStrategyAlertsOptions {
@@ -7,13 +8,13 @@ interface UseStrategyAlertsOptions {
 }
 
 export function useStrategyAlerts({ strategyId }: UseStrategyAlertsOptions) {
-  const [alertRule, setAlertRule] = useState<AlertRule | null>(null);
+  const queryClient = useQueryClient();
+
   const [alertEnabled, setAlertEnabled] = useState(false);
   const [alertThreshold, setAlertThreshold] = useState<number | null>(null);
   const [alertOnEntry, setAlertOnEntry] = useState(false);
   const [alertOnExit, setAlertOnExit] = useState(false);
   const [notifyEmail, setNotifyEmail] = useState(false);
-  const [isSavingAlert, setIsSavingAlert] = useState(false);
   const [isEditingAlert, setIsEditingAlert] = useState(false);
   const [alertError, setAlertError] = useState<string | null>(null);
 
@@ -25,24 +26,46 @@ export function useStrategyAlerts({ strategyId }: UseStrategyAlertsOptions) {
     setNotifyEmail(rule?.notify_email ?? false);
   }, []);
 
-  useEffect(() => {
-    const fetchAlert = async () => {
-      try {
-        const alerts = await apiFetch<AlertRule[]>("/alerts/");
-        const rule = alerts.find((a) => a.strategy_id === strategyId);
-        if (rule) {
-          setAlertRule(rule);
-          resetForm(rule);
-        }
-        setIsEditingAlert(!rule);
-      } catch (err) {
-        console.error("Failed to load alert", err);
-      }
-    };
-    fetchAlert();
-  }, [strategyId, resetForm]);
+  const { data: allAlerts, refetch } = useQuery({
+    queryKey: alertsKeys.list(),
+    queryFn: () => AlertsApiClient.list(),
+  });
 
-  const save = useCallback(async () => {
+  const alertRule = allAlerts?.find((a) => a.strategy_id === strategyId) ?? null;
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      if (!alertRule) {
+        return AlertsApiClient.create({
+          alert_type: "performance",
+          strategy_id: strategyId,
+          threshold_pct: alertThreshold ?? null,
+          alert_on_entry: alertOnEntry,
+          alert_on_exit: alertOnExit,
+          notify_email: notifyEmail,
+          is_active: alertEnabled,
+        });
+      }
+      return AlertsApiClient.update(alertRule.id, {
+        threshold_pct: alertThreshold ?? null,
+        alert_on_entry: alertOnEntry,
+        alert_on_exit: alertOnExit,
+        notify_email: notifyEmail,
+        is_active: alertEnabled,
+      });
+    },
+    onSuccess: (saved) => {
+      queryClient.invalidateQueries({ queryKey: alertsKeys.all() });
+      resetForm(saved);
+      setIsEditingAlert(false);
+      setAlertError(null);
+    },
+    onError: (err: unknown) => {
+      setAlertError(err instanceof Error ? err.message : "Failed to save alert");
+    },
+  });
+
+  const save = useCallback(() => {
     if (alertThreshold !== null && (alertThreshold < 0.1 || alertThreshold > 100)) {
       setAlertError("Threshold must be between 0.1 and 100");
       return;
@@ -51,46 +74,9 @@ export function useStrategyAlerts({ strategyId }: UseStrategyAlertsOptions) {
       setAlertError("Enable at least one alert condition");
       return;
     }
-
-    setIsSavingAlert(true);
     setAlertError(null);
-    try {
-      if (!alertRule) {
-        const created = await apiFetch<AlertRule>("/alerts/", {
-          method: "POST",
-          body: JSON.stringify({
-            alert_type: "performance",
-            strategy_id: strategyId,
-            threshold_pct: alertThreshold ?? null,
-            alert_on_entry: alertOnEntry,
-            alert_on_exit: alertOnExit,
-            notify_email: notifyEmail,
-            is_active: alertEnabled,
-          }),
-        });
-        setAlertRule(created);
-        resetForm(created);
-      } else {
-        const updated = await apiFetch<AlertRule>(`/alerts/${alertRule.id}`, {
-          method: "PATCH",
-          body: JSON.stringify({
-            threshold_pct: alertThreshold ?? null,
-            alert_on_entry: alertOnEntry,
-            alert_on_exit: alertOnExit,
-            notify_email: notifyEmail,
-            is_active: alertEnabled,
-          }),
-        });
-        setAlertRule(updated);
-        resetForm(updated);
-      }
-      setIsEditingAlert(false);
-    } catch (err) {
-      setAlertError(err instanceof Error ? err.message : "Failed to save alert");
-    } finally {
-      setIsSavingAlert(false);
-    }
-  }, [alertThreshold, alertEnabled, alertOnEntry, alertOnExit, notifyEmail, alertRule, strategyId, resetForm]);
+    saveMutation.mutate();
+  }, [alertThreshold, alertEnabled, alertOnEntry, alertOnExit, saveMutation]);
 
   const startEditing = useCallback(() => setIsEditingAlert(true), []);
 
@@ -107,7 +93,7 @@ export function useStrategyAlerts({ strategyId }: UseStrategyAlertsOptions) {
     alertOnExit,
     notifyEmail,
     alertError,
-    isSavingAlert,
+    isSavingAlert: saveMutation.isPending,
     isEditingAlert,
     setAlertEnabled,
     setAlertThreshold,
@@ -117,5 +103,6 @@ export function useStrategyAlerts({ strategyId }: UseStrategyAlertsOptions) {
     save,
     startEditing,
     cancelEditing,
+    refetch,
   };
 }

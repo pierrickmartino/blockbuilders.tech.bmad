@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { apiFetch, ApiError } from "@/lib/api";
+import { ApiError } from "@/lib/api";
+import { StrategiesApiClient } from "@/lib/api/strategies-client";
 import { trackEvent } from "@/lib/analytics";
 import { useAuth } from "@/context/auth";
 import { Strategy, ALLOWED_ASSETS, ALLOWED_TIMEFRAMES, AllowedAsset } from "@/types/strategy";
@@ -53,10 +54,7 @@ export default function NewStrategyModal({ open, onOpenChange, onCreated, onOpen
     setError(null);
 
     try {
-      const strategy = await apiFetch<Strategy>("/strategies/", {
-        method: "POST",
-        body: JSON.stringify({ name: name.trim(), asset, timeframe }),
-      });
+      const strategy = await StrategiesApiClient.create({ name: name.trim(), asset, timeframe });
       refreshUsage();
       trackEvent("strategy_created", { asset, timeframe, source: "modal" }, user?.id);
       onCreated(strategy);

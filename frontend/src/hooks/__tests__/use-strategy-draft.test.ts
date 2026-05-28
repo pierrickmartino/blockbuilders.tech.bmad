@@ -7,8 +7,10 @@
 
 import { renderHook, act } from "@testing-library/react";
 import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
+import React from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useStrategyDraft } from "../use-strategy-draft";
-import { apiFetch } from "@/lib/api";
+import * as api from "@/lib/api";
 import type { Node, Edge } from "@xyflow/react";
 
 // ---------------------------------------------------------------------------
@@ -17,9 +19,11 @@ import type { Node, Edge } from "@xyflow/react";
 
 vi.mock("@/lib/api", () => ({
   apiFetch: vi.fn(),
+  apiFetchVoid: vi.fn(),
 }));
 
-const mockApiFetch = vi.mocked(apiFetch);
+const mockApiFetch = vi.mocked(api.apiFetch);
+const mockApiFetchVoid = vi.mocked(api.apiFetchVoid);
 
 function makeNode(id: string): Node {
   return { id, type: "default", position: { x: 0, y: 0 }, data: {} };
@@ -30,13 +34,12 @@ const EDGES: Edge[] = [];
 
 const STRATEGY_ID = "strategy-abc-123";
 
-const DRAFT_RESPONSE = {
-  id: "draft-id-xyz",
-  version_number: 0,
-  definition_json: { blocks: [], connections: [], meta: {} },
-  created_at: "2026-01-01T12:00:00Z",
-  status: "draft",
-};
+const VALIDATE_RESPONSE_CLEAN = { status: "valid", errors: [] };
+
+function wrapper({ children }: { children: React.ReactNode }) {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return React.createElement(QueryClientProvider, { client: qc }, children);
+}
 
 // ---------------------------------------------------------------------------
 // Slice F5 — persist triggers PUT /draft API call
@@ -45,7 +48,8 @@ const DRAFT_RESPONSE = {
 describe("useStrategyDraft – persistDraft", () => {
   beforeEach(() => {
     vi.useFakeTimers();
-    mockApiFetch.mockResolvedValue(DRAFT_RESPONSE);
+    mockApiFetchVoid.mockResolvedValue(undefined);
+    mockApiFetch.mockResolvedValue(VALIDATE_RESPONSE_CLEAN);
   });
 
   afterEach(() => {
@@ -54,30 +58,32 @@ describe("useStrategyDraft – persistDraft", () => {
   });
 
   it("calls PUT /strategies/{id}/draft with the definition", async () => {
-    const { result } = renderHook(() =>
-      useStrategyDraft({ strategyId: STRATEGY_ID })
+    const { result } = renderHook(
+      () => useStrategyDraft({ strategyId: STRATEGY_ID }),
+      { wrapper }
     );
 
     await act(async () => {
       await result.current.persistDraft(NODES, EDGES);
     });
 
-    expect(mockApiFetch).toHaveBeenCalledWith(
+    expect(mockApiFetchVoid).toHaveBeenCalledWith(
       `/strategies/${STRATEGY_ID}/draft`,
       expect.objectContaining({ method: "PUT" })
     );
   });
 
   it("passes definition_json in the request body", async () => {
-    const { result } = renderHook(() =>
-      useStrategyDraft({ strategyId: STRATEGY_ID })
+    const { result } = renderHook(
+      () => useStrategyDraft({ strategyId: STRATEGY_ID }),
+      { wrapper }
     );
 
     await act(async () => {
       await result.current.persistDraft(NODES, EDGES);
     });
 
-    const call = mockApiFetch.mock.calls[0];
+    const call = mockApiFetchVoid.mock.calls[0];
     const body = JSON.parse((call[1] as RequestInit).body as string);
     expect(body).toHaveProperty("definition_json");
   });
@@ -90,7 +96,8 @@ describe("useStrategyDraft – persistDraft", () => {
 describe("useStrategyDraft – success transitions", () => {
   beforeEach(() => {
     vi.useFakeTimers();
-    mockApiFetch.mockResolvedValue(DRAFT_RESPONSE);
+    mockApiFetchVoid.mockResolvedValue(undefined);
+    mockApiFetch.mockResolvedValue(VALIDATE_RESPONSE_CLEAN);
   });
 
   afterEach(() => {
@@ -99,15 +106,17 @@ describe("useStrategyDraft – success transitions", () => {
   });
 
   it("starts with idle status", () => {
-    const { result } = renderHook(() =>
-      useStrategyDraft({ strategyId: STRATEGY_ID })
+    const { result } = renderHook(
+      () => useStrategyDraft({ strategyId: STRATEGY_ID }),
+      { wrapper }
     );
     expect(result.current.draftStatus).toBe("idle");
   });
 
   it("transitions to persisted after a successful API call", async () => {
-    const { result } = renderHook(() =>
-      useStrategyDraft({ strategyId: STRATEGY_ID })
+    const { result } = renderHook(
+      () => useStrategyDraft({ strategyId: STRATEGY_ID }),
+      { wrapper }
     );
 
     await act(async () => {
@@ -118,8 +127,9 @@ describe("useStrategyDraft – success transitions", () => {
   });
 
   it("sets lastPersistedAt after success", async () => {
-    const { result } = renderHook(() =>
-      useStrategyDraft({ strategyId: STRATEGY_ID })
+    const { result } = renderHook(
+      () => useStrategyDraft({ strategyId: STRATEGY_ID }),
+      { wrapper }
     );
 
     await act(async () => {
@@ -137,7 +147,7 @@ describe("useStrategyDraft – success transitions", () => {
 describe("useStrategyDraft – error transitions", () => {
   beforeEach(() => {
     vi.useFakeTimers();
-    mockApiFetch.mockRejectedValue(new Error("Network error"));
+    mockApiFetchVoid.mockRejectedValue(new Error("Network error"));
   });
 
   afterEach(() => {
@@ -146,8 +156,9 @@ describe("useStrategyDraft – error transitions", () => {
   });
 
   it("transitions to error when API call fails", async () => {
-    const { result } = renderHook(() =>
-      useStrategyDraft({ strategyId: STRATEGY_ID })
+    const { result } = renderHook(
+      () => useStrategyDraft({ strategyId: STRATEGY_ID }),
+      { wrapper }
     );
 
     await act(async () => {
@@ -158,8 +169,9 @@ describe("useStrategyDraft – error transitions", () => {
   });
 
   it("stores the error message", async () => {
-    const { result } = renderHook(() =>
-      useStrategyDraft({ strategyId: STRATEGY_ID })
+    const { result } = renderHook(
+      () => useStrategyDraft({ strategyId: STRATEGY_ID }),
+      { wrapper }
     );
 
     await act(async () => {

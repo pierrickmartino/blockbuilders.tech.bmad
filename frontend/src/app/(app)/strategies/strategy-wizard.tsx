@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useMemo, useEffect, useRef } from "react";
+// eslint-disable-next-line no-restricted-imports
 import { apiFetch, ApiError } from "@/lib/api";
+import { StrategiesApiClient } from "@/lib/api/strategies-client";
 import { trackEvent } from "@/lib/analytics";
 import { useAuth } from "@/context/auth";
-import type { Strategy } from "@/types/strategy";
 import type { BacktestCreateResponse, BacktestStatusResponse } from "@/types/backtest";
 import { generateTemplate, type WizardAnswers } from "./wizard-template-generator";
 import { StepName } from "./wizard-steps/step-name";
@@ -167,20 +168,14 @@ export function StrategyWizard({ isFirstRun, onClose, onComplete, onSkipToCanvas
       const definition = generateTemplate(state.answers);
 
       // Create strategy
-      const strategy = await apiFetch<Strategy>("/strategies/", {
-        method: "POST",
-        body: JSON.stringify({
-          name: state.answers.name.trim(),
-          asset: state.answers.asset,
-          timeframe: state.answers.timeframe,
-        }),
+      const strategy = await StrategiesApiClient.create({
+        name: state.answers.name.trim(),
+        asset: state.answers.asset,
+        timeframe: state.answers.timeframe,
       });
 
       // Save first version with generated definition
-      await apiFetch(`/strategies/${strategy.id}/versions`, {
-        method: "POST",
-        body: JSON.stringify({ definition }),
-      });
+      await StrategiesApiClient.createVersion(strategy.id, definition as unknown as Record<string, unknown>);
 
       trackEvent("strategy_created", {
         asset: state.answers.asset,

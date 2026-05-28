@@ -11,8 +11,9 @@
  */
 
 import { useCallback, useEffect, useReducer } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import type { Node, Edge } from "@xyflow/react";
-import { apiFetch } from "@/lib/api";
+import { StrategiesApiClient, strategiesKeys } from "@/lib/api/strategies-client";
 import { reactFlowToDefinition } from "@/lib/canvas-utils";
 import { formatRelativeTime } from "@/lib/format";
 import { draftReducer, initialDraftState } from "./draft-reducer";
@@ -46,6 +47,7 @@ export function useStrategyDraft({
   onPublishSuccess,
   onValidationErrors,
 }: UseStrategyDraftOptions): UseStrategyDraftReturn {
+  const queryClient = useQueryClient();
   const [state, dispatch] = useReducer(draftReducer, initialDraftState);
 
   // ── Relative timestamp ticker (updates every 5 s) ──────────────────────────
@@ -60,8 +62,6 @@ export function useStrategyDraft({
     ? formatRelativeTime(state.lastPersistedAt)
     : "";
 
-  // hasDraft is true once the draft has been persisted at least once this session
-  // OR when a prior draft was loaded from the server (signalled by lastPersistedAt).
   const hasDraft =
     state.lastPersistedAt !== null ||
     state.status === "persisted" ||
@@ -74,20 +74,13 @@ export function useStrategyDraft({
 
       try {
         const definition = reactFlowToDefinition(nodes, edges);
-        await apiFetch(`/strategies/${strategyId}/draft`, {
-          method: "PUT",
-          body: JSON.stringify({ definition_json: definition }),
-        });
+        await StrategiesApiClient.putDraft(strategyId, definition as unknown as Record<string, unknown>);
         dispatch({ type: "PERSIST_SUCCESS", timestamp: new Date() });
 
         // Live validation — read-only, does not block persist.
-        // Errors are forwarded to the canvas via the callback.
         try {
-          const validation = (await apiFetch(
-            `/strategies/${strategyId}/draft/validate`,
-            { method: "POST" }
-          )) as { status: string; errors: ValidationError[] };
-          onValidationErrors?.(validation.errors);
+          const validation = await StrategiesApiClient.validateDraft(strategyId);
+          onValidationErrors?.((validation.errors as ValidationError[]) ?? []);
         } catch {
           // Validation is best-effort; never break the persist flow.
         }
@@ -105,17 +98,16 @@ export function useStrategyDraft({
     dispatch({ type: "PUBLISH_START" });
 
     try {
-      await apiFetch(`/strategies/${strategyId}/draft/publish`, {
-        method: "POST",
-      });
+      await StrategiesApiClient.publishDraft(strategyId);
       dispatch({ type: "PUBLISH_SUCCESS" });
+      queryClient.invalidateQueries({ queryKey: strategiesKeys.versions(strategyId) });
       onPublishSuccess?.();
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Failed to publish draft";
       dispatch({ type: "PUBLISH_ERROR", message });
     }
-  }, [strategyId, onPublishSuccess]);
+  }, [strategyId, onPublishSuccess, queryClient]);
 
   const resetDraftStatus = useCallback(() => {
     dispatch({ type: "RESET" });

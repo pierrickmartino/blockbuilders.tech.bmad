@@ -4,10 +4,11 @@ import { useEffect, useState, use, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Node, Edge, ReactFlowInstance, ReactFlowProvider } from "@xyflow/react";
-import { apiFetch } from "@/lib/api";
+import { StrategiesApiClient } from "@/lib/api/strategies-client";
+import { StrategyTagsApiClient } from "@/lib/api/strategy-tags-client";
 import { useDisplay } from "@/context/display";
 import { CanvasStateProvider, useCanvasState } from "@/context/CanvasStateContext";
-import { Strategy, StrategyTag, StrategyVersion, StrategyVersionDetail, StrategyDraft, StrategyExportFile } from "@/types/strategy";
+import { Strategy, StrategyTag, StrategyVersion, StrategyVersionDetail, StrategyExportFile } from "@/types/strategy";
 import {
   StrategyDefinition,
   ValidationError,
@@ -228,7 +229,7 @@ function StrategyEditorPageInner({ params }: Props) {
   function loadStrategy() {
     (async () => {
       try {
-        const data = await apiFetch<Strategy>(`/strategies/${id}`);
+        const data = await StrategiesApiClient.get(id);
         setStrategy(data);
         setNameInput(data.name);
         setError(null);
@@ -250,7 +251,7 @@ function StrategyEditorPageInner({ params }: Props) {
     const shouldLoadDetail = options?.loadDetail ?? true;
     (async () => {
       try {
-        const data = await apiFetch<StrategyVersion[]>(`/strategies/${id}/versions`);
+        const data = await StrategiesApiClient.listVersions(id);
         setVersions(data);
         if (!shouldLoadDetail) return;
         if (data.length > 0) {
@@ -279,9 +280,7 @@ function StrategyEditorPageInner({ params }: Props) {
   const loadVersionDetail = useCallback(
     async (versionNumber: number) => {
       try {
-        const data = await apiFetch<StrategyVersionDetail>(
-          `/strategies/${id}/versions/${versionNumber}`
-        );
+        const data = await StrategiesApiClient.getVersionDetail(id, versionNumber);
         setSelectedVersion(data);
 
         const definition = data.definition_json as unknown as StrategyDefinition | null;
@@ -314,7 +313,7 @@ function StrategyEditorPageInner({ params }: Props) {
   // --- Draft load: try GET /draft first; fall back to latest published version ---
   const loadDraftOrLatestVersion = useCallback(async () => {
     try {
-      const draftData = await apiFetch<StrategyDraft>(`/strategies/${id}/draft`);
+      const draftData = await StrategiesApiClient.getDraft(id);
       // Draft found — load it onto the canvas
       const definition = draftData.definition_json as unknown as StrategyDefinition | null;
       const { nodes: newNodes, edges: newEdges } =
@@ -343,15 +342,9 @@ function StrategyEditorPageInner({ params }: Props) {
   }, [id, strategy]);
 
   useEffect(() => {
-    const loadTags = async () => {
-      try {
-        const data = await apiFetch<StrategyTag[]>("/strategy-tags");
-        setAvailableTags(data);
-      } catch (err) {
-        console.error("Failed to load tags:", err);
-      }
-    };
-    loadTags();
+    StrategyTagsApiClient.list()
+      .then(setAvailableTags)
+      .catch((err) => console.error("Failed to load tags:", err));
   }, []);
 
   // Warn the user before leaving while a draft persist is in-flight.
@@ -378,10 +371,7 @@ function StrategyEditorPageInner({ params }: Props) {
     }
     setIsSavingName(true);
     try {
-      const updated = await apiFetch<Strategy>(`/strategies/${id}`, {
-        method: "PATCH",
-        body: JSON.stringify({ name: nameInput.trim() }),
-      });
+      const updated = await StrategiesApiClient.update(id, { name: nameInput.trim() });
       setStrategy(updated);
       setEditingName(false);
     } catch (err) {
@@ -402,15 +392,9 @@ function StrategyEditorPageInner({ params }: Props) {
     if (!tagName.trim() || !strategy) return;
     setIsSavingTags(true);
     try {
-      const tag = await apiFetch<StrategyTag>("/strategy-tags", {
-        method: "POST",
-        body: JSON.stringify({ name: tagName.trim() }),
-      });
+      const tag = await StrategyTagsApiClient.create(tagName.trim());
       const updatedTagIds = [...(strategy.tags?.map((t) => t.id) || []), tag.id];
-      const updated = await apiFetch<Strategy>(`/strategies/${id}`, {
-        method: "PATCH",
-        body: JSON.stringify({ tag_ids: updatedTagIds }),
-      });
+      const updated = await StrategiesApiClient.update(id, { tag_ids: updatedTagIds });
       setStrategy(updated);
       setTagInput("");
       if (!availableTags.find((t) => t.id === tag.id)) {
@@ -428,10 +412,7 @@ function StrategyEditorPageInner({ params }: Props) {
     setIsSavingTags(true);
     try {
       const updatedTagIds = strategy.tags?.filter((t) => t.id !== tagId).map((t) => t.id) || [];
-      const updated = await apiFetch<Strategy>(`/strategies/${id}`, {
-        method: "PATCH",
-        body: JSON.stringify({ tag_ids: updatedTagIds }),
-      });
+      const updated = await StrategiesApiClient.update(id, { tag_ids: updatedTagIds });
       setStrategy(updated);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to remove tag");
@@ -453,10 +434,7 @@ function StrategyEditorPageInner({ params }: Props) {
     if (!strategy) return;
     setIsUpdatingAutoUpdate(true);
     try {
-      const updated = await apiFetch<Strategy>(`/strategies/${id}`, {
-        method: "PATCH",
-        body: JSON.stringify({ auto_update_enabled: enabled }),
-      });
+      const updated = await StrategiesApiClient.update(id, { auto_update_enabled: enabled });
       setStrategy(updated);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update Strategy Monitor setting");
@@ -469,10 +447,7 @@ function StrategyEditorPageInner({ params }: Props) {
     if (!strategy) return;
     setIsUpdatingAutoUpdate(true);
     try {
-      const updated = await apiFetch<Strategy>(`/strategies/${id}`, {
-        method: "PATCH",
-        body: JSON.stringify({ auto_update_lookback_days: days }),
-      });
+      const updated = await StrategiesApiClient.update(id, { auto_update_lookback_days: days });
       setStrategy(updated);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update lookback period");
@@ -495,9 +470,7 @@ function StrategyEditorPageInner({ params }: Props) {
 
   const handleArchiveVersion = useCallback(async (versionNumber: number) => {
     try {
-      await apiFetch(`/strategies/${id}/versions/${versionNumber}/archive`, {
-        method: "PATCH",
-      });
+      await StrategiesApiClient.archiveVersion(id, versionNumber);
       // Version disappears from the list — refresh without reloading canvas
       loadVersions({ loadDetail: false });
     } catch (err) {
@@ -510,15 +483,16 @@ function StrategyEditorPageInner({ params }: Props) {
     if (!strategy) return;
     setError(null);
     try {
-      const versionsData = await apiFetch<StrategyVersion[]>(`/strategies/${id}/versions`);
+      const versionsData = await StrategiesApiClient.listVersions(id);
       if (versionsData.length === 0) {
         setError("Cannot export strategy without a saved version");
         return;
       }
       let versionDetail = selectedVersion;
       if (!versionDetail || versionDetail.version_number !== versionsData[0].version_number) {
-        versionDetail = await apiFetch<StrategyVersionDetail>(
-          `/strategies/${id}/versions/${versionsData[0].version_number}`
+        versionDetail = await StrategiesApiClient.getVersionDetail(
+          id,
+          versionsData[0].version_number,
         );
       }
       const exportFile: StrategyExportFile = {

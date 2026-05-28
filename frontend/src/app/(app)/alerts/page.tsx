@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { apiFetch } from "@/lib/api";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { AlertsApiClient, alertsKeys } from "@/lib/api/alerts-client";
+import { StrategiesApiClient, strategiesKeys } from "@/lib/api/strategies-client";
 import { formatDateTime, formatRelativeTime } from "@/lib/format";
 import { useDisplay } from "@/context/display";
 import { AlertRule } from "@/types/alert";
@@ -161,9 +163,7 @@ function TabCount({ count }: { count: number }) {
 
 export default function AlertsPage() {
   const { timezone } = useDisplay();
-  const [alerts, setAlerts] = useState<AlertRule[]>([]);
-  const [strategies, setStrategies] = useState<Record<string, StrategyInfo>>({});
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
   const errorRef = useRef<HTMLDivElement | null>(null);
 
@@ -176,6 +176,19 @@ export default function AlertsPage() {
   const [deleteConfirm, setDeleteConfirm] = useState<AlertRule | null>(null);
   const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const { data: alerts = [], isLoading: loading } = useQuery({
+    queryKey: alertsKeys.list(),
+    queryFn: () => AlertsApiClient.list(),
+  });
+
+  const { data: strategiesData = [] } = useQuery({
+    queryKey: strategiesKeys.list({}),
+    queryFn: () => StrategiesApiClient.list({}),
+  });
+  const strategies: Record<string, StrategyInfo> = Object.fromEntries(
+    strategiesData.map((s) => [s.id, { id: s.id, name: s.name }]),
+  );
 
   // Per-row pending state
   const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
@@ -197,33 +210,6 @@ export default function AlertsPage() {
       return next;
     });
 
-  const fetchAlerts = useCallback(async () => {
-    try {
-      const data = await apiFetch<AlertRule[]>("/alerts/");
-      setAlerts(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load alerts");
-    }
-  }, []);
-
-  const fetchStrategies = useCallback(async () => {
-    try {
-      const data = await apiFetch<StrategyInfo[]>("/strategies/");
-      const map: Record<string, StrategyInfo> = {};
-      data.forEach((s) => {
-        map[s.id] = s;
-      });
-      setStrategies(map);
-    } catch {
-      // Ignore — strategies are for display only
-    }
-  }, []);
-
-  useEffect(() => {
-    Promise.all([fetchAlerts(), fetchStrategies()]).finally(() =>
-      setLoading(false),
-    );
-  }, [fetchAlerts, fetchStrategies]);
 
   // Scroll error into view + announce
   useEffect(() => {
@@ -288,66 +274,52 @@ export default function AlertsPage() {
   };
   const clearSelection = () => setSelectedIds(new Set());
 
-  const handleToggleActive = async (alert: AlertRule) => {
-    const next = !alert.is_active;
-    setAlerts((prev) =>
-      prev.map((a) => (a.id === alert.id ? { ...a, is_active: next } : a)),
-    );
+  const toggleMutation = useMutation({
+    mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
+      AlertsApiClient.update(id, { is_active: isActive }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: alertsKeys.all() }),
+    onError: (err) => setError(err instanceof Error ? err.message : "Failed to update alert"),
+  });
+
+  const handleToggleActive = (alert: AlertRule) => {
     setRowPending(alert.id, true);
-    try {
-      const updated = await apiFetch<AlertRule>(`/alerts/${alert.id}`, {
-        method: "PATCH",
-        body: JSON.stringify({ is_active: next }),
-      });
-      setAlerts((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
-    } catch (err) {
-      setAlerts((prev) =>
-        prev.map((a) => (a.id === alert.id ? { ...a, is_active: !next } : a)),
-      );
-      setError(err instanceof Error ? err.message : "Failed to update alert");
-    } finally {
-      setRowPending(alert.id, false);
-    }
+    toggleMutation.mutate(
+      { id: alert.id, isActive: !alert.is_active },
+      { onSettled: () => setRowPending(alert.id, false) },
+    );
   };
 
-  const handleDelete = async () => {
-    if (!deleteConfirm) return;
-    setIsDeleting(true);
-    try {
-      await apiFetch(`/alerts/${deleteConfirm.id}`, { method: "DELETE" });
-      setAlerts((prev) => prev.filter((a) => a.id !== deleteConfirm.id));
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => AlertsApiClient.delete(id),
+    onSuccess: (_data, id) => {
+      queryClient.invalidateQueries({ queryKey: alertsKeys.all() });
       setSelectedIds((prev) => {
         const next = new Set(prev);
-        next.delete(deleteConfirm.id);
+        next.delete(id);
         return next;
       });
       setDeleteConfirm(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to delete alert");
-    } finally {
-      setIsDeleting(false);
-    }
+    },
+    onError: (err) => setError(err instanceof Error ? err.message : "Failed to delete alert"),
+    onSettled: () => setIsDeleting(false),
+  });
+
+  const handleDelete = () => {
+    if (!deleteConfirm) return;
+    setIsDeleting(true);
+    deleteMutation.mutate(deleteConfirm.id);
   };
 
   const handleBulkSetActive = async (next: boolean) => {
     const ids = Array.from(selectedIds);
     if (ids.length === 0) return;
     ids.forEach((id) => setRowPending(id, true));
-    setAlerts((prev) =>
-      prev.map((a) => (selectedIds.has(a.id) ? { ...a, is_active: next } : a)),
-    );
     try {
-      await Promise.all(
-        ids.map((id) =>
-          apiFetch(`/alerts/${id}`, {
-            method: "PATCH",
-            body: JSON.stringify({ is_active: next }),
-          }),
-        ),
-      );
+      await Promise.all(ids.map((id) => AlertsApiClient.update(id, { is_active: next })));
+      queryClient.invalidateQueries({ queryKey: alertsKeys.all() });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update alerts");
-      fetchAlerts();
+      queryClient.invalidateQueries({ queryKey: alertsKeys.all() });
     } finally {
       ids.forEach((id) => setRowPending(id, false));
     }
@@ -358,10 +330,8 @@ export default function AlertsPage() {
     if (ids.length === 0) return;
     setIsDeleting(true);
     try {
-      await Promise.all(
-        ids.map((id) => apiFetch(`/alerts/${id}`, { method: "DELETE" })),
-      );
-      setAlerts((prev) => prev.filter((a) => !selectedIds.has(a.id)));
+      await Promise.all(ids.map((id) => AlertsApiClient.delete(id)));
+      queryClient.invalidateQueries({ queryKey: alertsKeys.all() });
       clearSelection();
       setBulkDeleteConfirm(false);
     } catch (err) {
@@ -372,7 +342,7 @@ export default function AlertsPage() {
   };
 
   const handleCreated = (alert: AlertRule) => {
-    setAlerts((prev) => [alert, ...prev]);
+    queryClient.invalidateQueries({ queryKey: alertsKeys.all() });
     const quote = getQuoteSymbol(alert.asset);
     const price = formatAlertPrice(alert.threshold_price);
     toast.success("Alert created", {
