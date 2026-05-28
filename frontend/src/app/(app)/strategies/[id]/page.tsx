@@ -6,9 +6,8 @@ import Link from "next/link";
 import { Node, Edge, ReactFlowInstance, ReactFlowProvider } from "@xyflow/react";
 import { apiFetch } from "@/lib/api";
 import { useDisplay } from "@/context/display";
-import { useAuth } from "@/context/auth";
 import { CanvasStateProvider, useCanvasState } from "@/context/CanvasStateContext";
-import { Strategy, StrategyTag, StrategyVersion, StrategyVersionDetail, StrategyExportFile } from "@/types/strategy";
+import { Strategy, StrategyTag, StrategyVersion, StrategyVersionDetail, StrategyDraft, StrategyExportFile } from "@/types/strategy";
 import {
   StrategyDefinition,
   ValidationError,
@@ -26,7 +25,7 @@ import StrategyCanvas, { CanvasEdge } from "@/components/canvas/StrategyCanvas";
 import BlockPalette from "@/components/canvas/BlockPalette";
 import BlockLibrarySheet from "@/components/canvas/BlockLibrarySheet";
 import { useIndicatorMode } from "@/hooks/useIndicatorMode";
-import { useAutosave } from "@/hooks/use-autosave";
+import { useStrategyDraft } from "@/hooks/use-strategy-draft";
 import { useStrategyAlerts } from "@/hooks/use-strategy-alerts";
 import InspectorPanel from "@/components/canvas/InspectorPanel";
 import { Button } from "@/components/ui/button";
@@ -61,7 +60,7 @@ export default function StrategyEditorPage(props: Props) {
   );
 }
 
-// ── Bridge: wires autosave validation errors into context dispatch ────────────
+// ── Bridge: wires draft validation errors into context dispatch ───────────────
 
 function CanvasBootstrapper({
   validationErrorsRef,
@@ -83,10 +82,8 @@ function CanvasBootstrapper({
 
 function CanvasKeyboardHandler({
   strategyId,
-  onSaveVersion,
 }: {
   strategyId: string;
-  onSaveVersion: () => void;
 }) {
   const router = useRouter();
   const { state, dispatch } = useCanvasState();
@@ -98,12 +95,6 @@ function CanvasKeyboardHandler({
 
       const isMod = e.metaKey || e.ctrlKey;
       const key = e.key.toLowerCase();
-
-      if (isMod && key === "s" && !e.shiftKey) {
-        e.preventDefault();
-        onSaveVersion();
-        return;
-      }
 
       if (isMod && key === "enter" && !e.shiftKey) {
         e.preventDefault();
@@ -145,7 +136,7 @@ function CanvasKeyboardHandler({
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [state.selectedNodeIds, state.nodes, state.edges, dispatch, onSaveVersion, router, strategyId]);
+  }, [state.selectedNodeIds, state.nodes, state.edges, dispatch, router, strategyId]);
 
   return null;
 }
@@ -155,7 +146,6 @@ function CanvasKeyboardHandler({
 function StrategyEditorPageInner({ params }: Props) {
   const { id } = use(params);
   const router = useRouter();
-  const { user } = useAuth();
   const { timezone, isMobileCanvasMode, nodeDisplayMode, setNodeDisplayMode } = useDisplay();
 
   // Strategy metadata state
@@ -192,6 +182,9 @@ function StrategyEditorPageInner({ params }: Props) {
   // Keyboard shortcuts modal
   const [showShortcutsModal, setShowShortcutsModal] = useState(false);
 
+  // Transient UI feedback (e.g. "Explanation copied to clipboard")
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+
   // Indicator palette mode (essentials vs all)
   const { mode: indicatorMode, toggle: toggleIndicatorMode } = useIndicatorMode([]);
 
@@ -205,7 +198,11 @@ function StrategyEditorPageInner({ params }: Props) {
   // Canvas container ref (for arrange transitions)
   const canvasContainerRef = useRef<HTMLElement | null>(null);
 
-  // Bridge: autosave → context validation errors
+  // Validation errors — dual-written to both canvas context and page state.
+  // Canvas context owns the on-canvas display; page state drives StrategyHeader.
+  const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
+
+  // Bridge: validation errors → context dispatch + page state
   const validationErrorCallbackRef = useRef<((errors: ValidationError[]) => void) | null>(null);
 
   // Bridge: context dispatch for loading version data
@@ -216,16 +213,14 @@ function StrategyEditorPageInner({ params }: Props) {
   const contextNodesRef = useRef<Node[]>([]);
   const contextEdgesRef = useRef<Edge[]>([]);
 
-  // --- Autosave ---
-  const autosave = useAutosave({
+  // --- Draft persist + publish (background save + explicit publish action) ---
+  const draft = useStrategyDraft({
     strategyId: id,
-    userId: user?.id,
+    onPublishSuccess: () => loadVersions({ loadDetail: false }),
     onValidationErrors: (errors) => {
       validationErrorCallbackRef.current?.(errors);
+      setValidationErrors(errors);
     },
-    onError: setError,
-    onStrategyRefresh: loadStrategy,
-    onVersionsRefresh: loadVersions,
   });
 
   // --- Data loading ---
@@ -298,7 +293,6 @@ function StrategyEditorPageInner({ params }: Props) {
         contextDispatchRef.current?.({ type: "SET_NODES", payload: newNodes });
         contextDispatchRef.current?.({ type: "SET_EDGES", payload: newEdges });
         contextResetHistoryRef.current?.(newNodes, newEdges);
-        autosave.initSavedSnapshot(newNodes, newEdges);
 
         const result = generateExplanation(
           (definition?.blocks?.length ? definition : createDefaultDefinition()) as StrategyDefinition
@@ -309,7 +303,7 @@ function StrategyEditorPageInner({ params }: Props) {
         setError(err instanceof Error ? err.message : "Failed to load version detail");
       }
     },
-    [id, autosave]
+    [id]
   );
 
   loadVersionDetailRef.current = loadVersionDetail;
@@ -317,10 +311,30 @@ function StrategyEditorPageInner({ params }: Props) {
   // --- Strategy alerts ---
   const alerts = useStrategyAlerts({ strategyId: id });
 
+  // --- Draft load: try GET /draft first; fall back to latest published version ---
+  const loadDraftOrLatestVersion = useCallback(async () => {
+    try {
+      const draftData = await apiFetch<StrategyDraft>(`/strategies/${id}/draft`);
+      // Draft found — load it onto the canvas
+      const definition = draftData.definition_json as unknown as StrategyDefinition | null;
+      const { nodes: newNodes, edges: newEdges } =
+        definition && (definition as { blocks?: unknown[] }).blocks?.length
+          ? definitionToReactFlow(definition)
+          : definitionToReactFlow(createDefaultDefinition());
+      contextDispatchRef.current?.({ type: "SET_NODES", payload: newNodes });
+      contextDispatchRef.current?.({ type: "SET_EDGES", payload: newEdges });
+      contextResetHistoryRef.current?.(newNodes, newEdges);
+    } catch {
+      // No draft (404) or error — fall back to latest published version
+      loadVersions();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
   // --- Initial data loading ---
   useEffect(() => {
     loadStrategy();
-    loadVersions();
+    loadDraftOrLatestVersion();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -340,10 +354,8 @@ function StrategyEditorPageInner({ params }: Props) {
     loadTags();
   }, []);
 
-  // Regenerate explanation when canvas stabilizes (via autosave trigger)
-  // This is driven by the CanvasStateProvider's onStable callback
-
-  const hasUnsavedChanges = autosave.hasUnsavedChanges(contextNodesRef.current, contextEdgesRef.current);
+  // Warn the user before leaving while a draft persist is in-flight.
+  const hasUnsavedChanges = draft.draftStatus === "persisting";
 
   useEffect(() => {
     if (!hasUnsavedChanges) return;
@@ -380,16 +392,11 @@ function StrategyEditorPageInner({ params }: Props) {
     }
   };
 
-  const handleSaveVersion = useCallback(async () => {
-    await autosave.saveVersion(contextNodesRef.current, contextEdgesRef.current, () => {});
-  }, [autosave]);
-
+  // Draft-overwrite confirmation is now handled inside StrategyHeader (AlertDialog).
+  // This callback simply loads the version once the user has confirmed.
   const confirmLoadVersion = useCallback((versionNumber: number) => {
-    if (hasUnsavedChanges && !window.confirm("You have unsaved changes. Loading a different version will replace your current canvas. Continue?")) {
-      return;
-    }
     loadVersionDetail(versionNumber);
-  }, [hasUnsavedChanges, loadVersionDetail]);
+  }, [loadVersionDetail]);
 
   const handleAddTag = async (tagName: string) => {
     if (!tagName.trim() || !strategy) return;
@@ -479,12 +486,25 @@ function StrategyEditorPageInner({ params }: Props) {
     const text = [explanation.entry, explanation.exit, explanation.risk].filter(Boolean).join(" ");
     try {
       await navigator.clipboard.writeText(text);
-      autosave.setSaveMessage("Explanation copied to clipboard");
-      setTimeout(() => autosave.setSaveMessage(null), 2000);
+      setSaveMessage("Explanation copied to clipboard");
+      setTimeout(() => setSaveMessage(null), 2000);
     } catch {
       setError("Could not access clipboard. Try selecting and copying the text manually.");
     }
   };
+
+  const handleArchiveVersion = useCallback(async (versionNumber: number) => {
+    try {
+      await apiFetch(`/strategies/${id}/versions/${versionNumber}/archive`, {
+        method: "PATCH",
+      });
+      // Version disappears from the list — refresh without reloading canvas
+      loadVersions({ loadDetail: false });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to archive version");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   const handleExport = async () => {
     if (!strategy) return;
@@ -575,22 +595,23 @@ function StrategyEditorPageInner({ params }: Props) {
         onEditingNameChange={setEditingName}
         onNameChange={setNameInput}
         onNameSave={handleNameSave}
-        autosaveState={autosave.autosaveState}
-        lastSavedAt={autosave.lastSavedAt}
-        relativeTimestamp={autosave.relativeTimestamp}
-        isSavingVersion={autosave.isSavingVersion}
-        onSaveVersion={handleSaveVersion}
+        draftStatus={draft.draftStatus}
+        lastPersistedAt={draft.lastPersistedAt}
+        relativeTimestamp={draft.relativeTimestamp}
+        hasDraft={draft.hasDraft}
+        onPublish={draft.publishDraft}
         onLoadVersion={confirmLoadVersion}
+        onArchiveVersion={handleArchiveVersion}
         isUpdatingAutoUpdate={isUpdatingAutoUpdate}
         onExport={handleExport}
         onAutoUpdateToggle={handleAutoUpdateToggle}
         onLookbackChange={handleLookbackChange}
         onSettingsOpen={() => setShowSettings(true)}
         error={error}
-        validationErrors={[]}
-        saveMessage={autosave.saveMessage}
+        validationErrors={validationErrors}
+        saveMessage={saveMessage}
         onErrorDismiss={() => setError(null)}
-        onMessageDismiss={() => autosave.setSaveMessage(null)}
+        onMessageDismiss={() => setSaveMessage(null)}
         onJumpToError={(blockId) => {
           contextDispatchRef.current?.({ type: "SELECT_NODE", payload: blockId });
           reactFlowRef.current?.setCenter(0, 0, { zoom: 1.2, duration: 300 });
@@ -645,8 +666,8 @@ function StrategyEditorPageInner({ params }: Props) {
         )}
 
         {/* Center + Right — wrapped by CanvasStateProvider */}
-        <CanvasStateProvider onStable={autosave.triggerAutosave}>
-          {/* Bridges: wire autosave callbacks → context dispatch */}
+        <CanvasStateProvider onStable={draft.persistDraft}>
+          {/* Bridges: wire draft validation errors + canvas state into context */}
           <CanvasBootstrapper validationErrorsRef={validationErrorCallbackRef} />
           <ContextDispatchBridge
             dispatchRef={contextDispatchRef}
@@ -658,7 +679,6 @@ function StrategyEditorPageInner({ params }: Props) {
           {/* Keyboard shortcuts that need canvas state */}
           <CanvasKeyboardHandler
             strategyId={id}
-            onSaveVersion={handleSaveVersion}
           />
 
           {/* Command palette */}

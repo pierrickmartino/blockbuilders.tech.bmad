@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { Strategy, StrategyVersion, StrategyVersionDetail } from "@/types/strategy";
 import { ValidationError } from "@/types/canvas";
@@ -31,6 +31,16 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   ChevronLeft,
   MoreVertical,
   Settings as SettingsIcon,
@@ -40,7 +50,9 @@ import {
   CheckCircle2,
   Loader2,
   Pencil,
+  Upload,
   X,
+  Archive,
 } from "lucide-react";
 import { StrategyTabs } from "@/components/StrategyTabs";
 import { cn } from "@/lib/utils";
@@ -60,15 +72,18 @@ interface StrategyHeaderProps {
   onNameChange: (value: string) => void;
   onNameSave: () => void;
 
-  /** Autosave indicator */
-  autosaveState: "idle" | "saving" | "saved" | "error";
-  lastSavedAt: Date | null;
+  /** Draft persist + publish indicator */
+  draftStatus: "idle" | "persisting" | "persisted" | "error" | "publishing" | "published" | "publishError";
+  lastPersistedAt: Date | null;
   relativeTimestamp: string;
+  /** True when a draft exists server-side and can be published. */
+  hasDraft: boolean;
 
-  /** Save / version */
-  isSavingVersion: boolean;
-  onSaveVersion: () => void;
+  /** Publish / version */
+  onPublish: () => void;
   onLoadVersion: (versionNumber: number) => void;
+  /** Archive a published version (triggers confirmation internally). */
+  onArchiveVersion: (versionNumber: number) => void;
 
   /** Actions */
   isUpdatingAutoUpdate: boolean;
@@ -99,12 +114,13 @@ export function StrategyHeader({
   onEditingNameChange,
   onNameChange,
   onNameSave,
-  autosaveState,
-  lastSavedAt,
+  draftStatus,
+  lastPersistedAt,
   relativeTimestamp,
-  isSavingVersion,
-  onSaveVersion,
+  hasDraft,
+  onPublish,
   onLoadVersion,
+  onArchiveVersion,
   isUpdatingAutoUpdate,
   onExport,
   onAutoUpdateToggle,
@@ -117,6 +133,31 @@ export function StrategyHeader({
   onMessageDismiss,
   onJumpToError,
 }: StrategyHeaderProps) {
+  const [pendingArchive, setPendingArchive] = useState<number | null>(null);
+  const [pendingLoadVersion, setPendingLoadVersion] = useState<number | null>(null);
+
+  function handleArchiveConfirm() {
+    if (pendingArchive !== null) {
+      onArchiveVersion(pendingArchive);
+      setPendingArchive(null);
+    }
+  }
+
+  function handleLoadVersionClick(versionNumber: number) {
+    if (hasDraft) {
+      setPendingLoadVersion(versionNumber);
+    } else {
+      onLoadVersion(versionNumber);
+    }
+  }
+
+  function handleLoadVersionConfirm() {
+    if (pendingLoadVersion !== null) {
+      onLoadVersion(pendingLoadVersion);
+      setPendingLoadVersion(null);
+    }
+  }
+
   return (
     <div className="flex-shrink-0 border-b bg-background px-3 py-2">
       <div className="flex items-center justify-between gap-2">
@@ -210,34 +251,45 @@ export function StrategyHeader({
 
         {/* Right: Actions */}
         <div className="flex flex-shrink-0 items-center gap-2">
-          {/* Autosave status */}
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            {autosaveState === "saving" && (
+          {/* Draft persist + publish status */}
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground" aria-live="polite">
+            {draftStatus === "persisting" && (
               <>
                 <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />
-                <span>Saving…</span>
+                <span>Draft — saving…</span>
               </>
             )}
-            {autosaveState === "saved" && lastSavedAt && (
+            {draftStatus === "persisted" && lastPersistedAt && (
               <>
                 <CheckIcon className="h-3 w-3 text-primary" aria-hidden="true" />
                 <span className="hidden sm:inline">
-                  Saved • <span className="data-text">{relativeTimestamp}</span>
+                  Draft — saved • <span className="data-text">{relativeTimestamp}</span>
                 </span>
-                <span className="sm:hidden">Saved</span>
+                <span className="sm:hidden">Draft saved</span>
               </>
             )}
-            {autosaveState === "error" && (
+            {draftStatus === "error" && (
               <>
                 <AlertCircle className="h-3 w-3 text-destructive" aria-hidden="true" />
-                <span className="text-destructive">Save failed</span>
-                <button
-                  type="button"
-                  onClick={onSaveVersion}
-                  className="text-destructive underline underline-offset-2 hover:text-destructive/80"
-                >
-                  Retry
-                </button>
+                <span className="text-destructive">Draft — error</span>
+              </>
+            )}
+            {draftStatus === "publishing" && (
+              <>
+                <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />
+                <span>Publishing…</span>
+              </>
+            )}
+            {draftStatus === "published" && (
+              <>
+                <CheckCircle2 className="h-3 w-3 text-primary" aria-hidden="true" />
+                <span className="hidden sm:inline">Published</span>
+              </>
+            )}
+            {draftStatus === "publishError" && (
+              <>
+                <AlertCircle className="h-3 w-3 text-destructive" aria-hidden="true" />
+                <span className="text-destructive">Publish failed</span>
               </>
             )}
           </div>
@@ -252,20 +304,34 @@ export function StrategyHeader({
             </div>
           )}
 
-          {/* Save button */}
+          {/* Publish button */}
           <Button
             size="sm"
             className="h-9 sm:h-8"
-            onClick={onSaveVersion}
-            disabled={isSavingVersion}
+            onClick={onPublish}
+            disabled={
+              !hasDraft ||
+              draftStatus === "publishing" ||
+              validationErrors.length > 0
+            }
+            title={
+              !hasDraft
+                ? "Save a draft first to publish"
+                : validationErrors.length > 0
+                ? `Fix ${validationErrors.length} validation error${validationErrors.length !== 1 ? "s" : ""} to publish`
+                : undefined
+            }
           >
-            {isSavingVersion ? (
+            {draftStatus === "publishing" ? (
               <>
                 <Loader2 className="mr-1 h-3 w-3 animate-spin" aria-hidden="true" />
-                Saving…
+                <span className="hidden sm:inline">Publishing…</span>
               </>
             ) : (
-              "Save"
+              <>
+                <Upload className="mr-1 h-3 w-3" aria-hidden="true" />
+                <span>Publish</span>
+              </>
             )}
           </Button>
 
@@ -318,16 +384,27 @@ export function StrategyHeader({
                           {formatDateTime(v.created_at, timezone)}
                         </div>
                       </div>
-                      {v.version_number !== selectedVersion?.version_number && (
+                      <div className="flex items-center gap-1">
+                        {v.version_number !== selectedVersion?.version_number && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-8"
+                            onClick={() => handleLoadVersionClick(v.version_number)}
+                          >
+                            Load
+                          </Button>
+                        )}
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="h-8"
-                          onClick={() => onLoadVersion(v.version_number)}
+                          className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                          aria-label={`Archive version ${v.version_number}`}
+                          onClick={() => setPendingArchive(v.version_number)}
                         >
-                          Load
+                          <Archive className="h-3.5 w-3.5" aria-hidden="true" />
                         </Button>
-                      )}
+                      </div>
                     </div>
                   ))
                 )}
@@ -427,7 +504,7 @@ export function StrategyHeader({
         {versions.length > 0 && (
           <Select
             value={String(selectedVersion?.version_number || "")}
-            onValueChange={(v) => onLoadVersion(Number(v))}
+            onValueChange={(v) => handleLoadVersionClick(Number(v))}
           >
             <SelectTrigger className="hidden h-8 w-[110px] text-xs sm:w-[140px] lg:flex">
               <SelectValue placeholder="Version" />
@@ -495,6 +572,50 @@ export function StrategyHeader({
           </button>
         </div>
       )}
+
+      {/* Load version with draft — overwrite warning dialog */}
+      <AlertDialog
+        open={pendingLoadVersion !== null}
+        onOpenChange={(open) => { if (!open) setPendingLoadVersion(null); }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Replace unpublished draft?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have an unpublished draft. Loading a different version will
+              replace it. Continue?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleLoadVersionConfirm}>
+              Load version
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Archive confirmation dialog */}
+      <AlertDialog
+        open={pendingArchive !== null}
+        onOpenChange={(open) => { if (!open) setPendingArchive(null); }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Archive version {pendingArchive}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              It will be removed from your version history. Backtests referencing
+              this version are not affected.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleArchiveConfirm}>
+              Archive
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

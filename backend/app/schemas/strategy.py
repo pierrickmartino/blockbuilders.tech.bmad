@@ -137,6 +137,18 @@ class StrategyVersionCreateRequest(BaseModel):
     definition: dict[str, Any] = Field(default_factory=dict)
 
 
+class StrategyDraftUpsertRequest(BaseModel):
+    definition_json: dict[str, Any] = Field(default_factory=dict)
+
+
+class StrategyDraftResponse(BaseModel):
+    id: UUID
+    version_number: int
+    definition_json: dict[str, Any]
+    created_at: datetime
+    status: str
+
+
 class StrategyResponse(BaseModel):
     id: UUID
     name: str

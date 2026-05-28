@@ -1,5 +1,23 @@
 # Tasks — in flight
 
+## FEAT-459 — Publish flow: promote draft to versioned (implemented)
+
+Backend
+- [x] `POST /strategies/{id}/draft/publish` — promotes draft row: assigns sequential `version_number`, sets `status=PUBLISHED`; returns 404 if no draft
+- [x] `GET /strategies/{id}/versions` — filters to only `status=PUBLISHED` (was returning all including drafts)
+- [x] `tests/api/test_strategy_publish.py` — 6 new tests (B1–B5 + empty-list edge case), all GREEN
+
+Frontend
+- [x] `draft-reducer.ts` — extended with `publishing | published | publishError` states + `PUBLISH_START / PUBLISH_SUCCESS / PUBLISH_ERROR` actions
+- [x] `draft-reducer.test.ts` — 7 new tests (F6–F8), all GREEN
+- [x] `use-strategy-draft.ts` — added `publishDraft()` callback + `hasDraft` derived boolean + `onPublishSuccess` callback prop
+- [x] `StrategyHeader.tsx` — replaced "Save" button with "Publish" button (disabled when no draft / publishing); added `publishing | published | publishError` status display
+- [x] `page.tsx` — wired `draft.publishDraft`, `draft.hasDraft`; `onPublishSuccess` reloads versions list
+
+All 668 backend tests pass. All 256 frontend tests pass. `tsc --noEmit` clean.
+
+---
+
 ## FEAT-454 — Wire canvas consumers to context, delete SmartCanvas (implemented)
 
 Frontend
