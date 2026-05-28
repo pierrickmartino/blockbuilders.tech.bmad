@@ -11,7 +11,8 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { apiFetch, ApiError, fetchDataQuality, fetchDataCompleteness, fetchDataAvailability } from "@/lib/api";
+import { apiFetch, ApiError, fetchDataQuality, fetchDataCompleteness } from "@/lib/api";
+import { MarketApiClient } from "@/lib/api/market-client";
 import { trackEvent } from "@/lib/analytics";
 import {
   formatDateTime,
@@ -816,7 +817,7 @@ export default function StrategyBacktestPage({ params }: Props) {
       return;
     }
 
-    fetchDataAvailability(strategy.asset, strategy.timeframe)
+    MarketApiClient.getDataAvailability(strategy.asset, strategy.timeframe)
       .then((data) => setDataAvailability(data as DataAvailabilityResponse))
       .catch(() => setDataAvailability(null));
   }, [strategy]);
