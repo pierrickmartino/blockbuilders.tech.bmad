@@ -1,83 +1,76 @@
-import { useState, useEffect, useCallback } from "react";
-import { apiFetch } from "@/lib/api";
-import type {
-  Notification,
-  NotificationListResponse,
-} from "@/types/notification";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  NotificationsApiClient,
+  notificationsKeys,
+} from "@/lib/api/notifications-client";
+import type { NotificationListResponse } from "@/types/notification";
+
+const BELL_QUERY_KEY = notificationsKeys.list({ limit: 5 });
 
 export function useNotifications() {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
-  const fetchNotifications = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      const response = await apiFetch<NotificationListResponse>(
-        "/notifications/"
-      );
-      setNotifications(response.items);
-      setUnreadCount(response.unread_count);
-    } catch (err) {
-      console.error("Failed to fetch notifications:", err);
-      setError("Couldn't load notifications. Check your connection and try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const query = useQuery({
+    queryKey: BELL_QUERY_KEY,
+    queryFn: () => NotificationsApiClient.list({ limit: 5 }),
+    refetchInterval: 60_000,
+  });
 
-  const markAsRead = useCallback(
-    async (id: string) => {
-      try {
-        await apiFetch(`/notifications/${id}/acknowledge`, {
-          method: "POST",
-        });
-
-        setNotifications((prev) =>
-          prev.map((n) =>
+  const markAsReadMutation = useMutation({
+    mutationFn: (id: string) => NotificationsApiClient.markAsRead(id),
+    onMutate: async (id) => {
+      const previous = queryClient.getQueryData<NotificationListResponse>(BELL_QUERY_KEY);
+      queryClient.setQueryData<NotificationListResponse>(BELL_QUERY_KEY, (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          items: old.items.map((n) =>
             n.id === id ? { ...n, is_read: true } : n
-          )
-        );
-        setUnreadCount((prev) => Math.max(0, prev - 1));
-      } catch (error) {
-        console.error("Failed to mark notification as read:", error);
+          ),
+          unread_count: Math.max(0, old.unread_count - 1),
+        };
+      });
+      await queryClient.cancelQueries({ queryKey: notificationsKeys.all() });
+      return { previous };
+    },
+    onError: (_err, _id, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(BELL_QUERY_KEY, context.previous);
       }
     },
-    []
-  );
+  });
 
-  const markAllAsRead = useCallback(async () => {
-    try {
-      await apiFetch("/notifications/acknowledge-all", {
-        method: "POST",
+  const markAllAsReadMutation = useMutation({
+    mutationFn: () => NotificationsApiClient.markAllAsRead(),
+    onMutate: async () => {
+      const previous = queryClient.getQueryData<NotificationListResponse>(BELL_QUERY_KEY);
+      queryClient.setQueryData<NotificationListResponse>(BELL_QUERY_KEY, (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          items: old.items.map((n) => ({ ...n, is_read: true })),
+          unread_count: 0,
+        };
       });
-
-      setNotifications((prev) =>
-        prev.map((n) => ({ ...n, is_read: true }))
-      );
-      setUnreadCount(0);
-    } catch (error) {
-      console.error("Failed to mark all notifications as read:", error);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchNotifications();
-
-    const interval = setInterval(fetchNotifications, 60000);
-
-    return () => clearInterval(interval);
-  }, [fetchNotifications]);
+      await queryClient.cancelQueries({ queryKey: notificationsKeys.all() });
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(BELL_QUERY_KEY, context.previous);
+      }
+    },
+  });
 
   return {
-    notifications,
-    unreadCount,
-    isLoading,
-    error,
-    fetchNotifications,
-    markAsRead,
-    markAllAsRead,
+    notifications: query.data?.items ?? [],
+    unreadCount: query.data?.unread_count ?? 0,
+    isLoading: query.isLoading,
+    error: query.error
+      ? "Couldn't load notifications. Check your connection and try again."
+      : null,
+    fetchNotifications: () => { query.refetch(); },
+    markAsRead: (id: string) => markAsReadMutation.mutate(id),
+    markAllAsRead: () => markAllAsReadMutation.mutate(),
   };
 }

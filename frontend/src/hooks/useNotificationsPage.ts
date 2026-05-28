@@ -1,7 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import { NotificationsApiClient } from "@/lib/notifications-api-client";
-import type { Notification, ReadState, Tab } from "@/types/notification";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  NotificationsApiClient,
+  notificationsKeys,
+} from "@/lib/api/notifications-client";
+import type { Notification, NotificationFilters, ReadState, Tab } from "@/types/notification";
 
 const PAGE_SIZE = 25;
 const SEARCH_DEBOUNCE_MS = 250;
@@ -46,6 +50,7 @@ export function useNotificationsPage(): UseNotificationsPageReturn {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const queryClient = useQueryClient();
 
   const initialTab = (searchParams.get("tab") as Tab) ?? "inbox";
   const initialReadState = (searchParams.get("read") as ReadState) ?? "all";
@@ -91,7 +96,7 @@ export function useNotificationsPage(): UseNotificationsPageReturn {
       setIsLoading(true);
       setError(null);
       try {
-        const data = await NotificationsApiClient.list({
+        const listFilters: NotificationFilters = {
           read_state: rs,
           offset: off,
           limit: PAGE_SIZE,
@@ -100,6 +105,11 @@ export function useNotificationsPage(): UseNotificationsPageReturn {
           from: filters?.from || undefined,
           to: filters?.to || undefined,
           q: filters?.q || undefined,
+        };
+        const data = await queryClient.fetchQuery({
+          queryKey: notificationsKeys.list({ tab: t, readState: rs, offset: off, ...filters }),
+          queryFn: () => NotificationsApiClient.list(listFilters),
+          staleTime: 0,
         });
         setTotal(data.total);
         if (baseUnreadCountRef.current === null) {
@@ -113,7 +123,7 @@ export function useNotificationsPage(): UseNotificationsPageReturn {
         setIsLoading(false);
       }
     },
-    []
+    [queryClient]
   );
 
   const currentFilters = useCallback(
@@ -161,9 +171,10 @@ export function useNotificationsPage(): UseNotificationsPageReturn {
     setOffset(0);
     setNewNotificationsBannerCount(0);
     baseUnreadCountRef.current = null;
+    queryClient.removeQueries({ queryKey: notificationsKeys.all() });
     syncUrl(tab, readState, 0);
     fetchPage(tab, readState, 0, false, currentFilters());
-  }, [tab, readState, fetchPage, syncUrl, currentFilters]);
+  }, [tab, readState, fetchPage, syncUrl, currentFilters, queryClient]);
 
   const setTypeFilter = useCallback(
     (types: string[]) => {
@@ -196,9 +207,7 @@ export function useNotificationsPage(): UseNotificationsPageReturn {
   const setSearchQuery = useCallback(
     (q: string) => {
       setSearchQueryLocal(q);
-      if (searchDebounceRef.current) {
-        clearTimeout(searchDebounceRef.current);
-      }
+      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
       searchDebounceRef.current = setTimeout(() => {
         setOffset(0);
         fetchPage(tab, readState, 0, false, { types: typeFilter, from: dateFrom, to: dateTo, q });
@@ -224,23 +233,49 @@ export function useNotificationsPage(): UseNotificationsPageReturn {
     return () => clearInterval(id);
   }, [pollUnreadCount]);
 
-  const markAsRead = useCallback((id: string) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
-    );
-    setUnreadCount((prev) => Math.max(0, prev - 1));
-    NotificationsApiClient.bulkAcknowledge([id]).catch(() => {});
-  }, []);
+  // Mutations — all write operations route through useMutation for error tracking
+  const bulkAcknowledgeMutation = useMutation({
+    mutationFn: (ids: string[]) => NotificationsApiClient.bulkAcknowledge(ids),
+  });
 
-  const archive = useCallback((id: string) => {
-    setNotifications((prev) => prev.filter((n) => n.id !== id));
-    NotificationsApiClient.archive(id).catch(() => {});
-  }, []);
+  const archiveMutation = useMutation({
+    mutationFn: (id: string) => NotificationsApiClient.archive(id),
+  });
 
-  const unarchive = useCallback((id: string) => {
-    setNotifications((prev) => prev.filter((n) => n.id !== id));
-    NotificationsApiClient.unarchive(id).catch(() => {});
-  }, []);
+  const unarchiveMutation = useMutation({
+    mutationFn: (id: string) => NotificationsApiClient.unarchive(id),
+  });
+
+  const bulkArchiveMutation = useMutation({
+    mutationFn: (ids: string[]) => NotificationsApiClient.bulkArchive(ids),
+  });
+
+  const markAsRead = useCallback(
+    (id: string) => {
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
+      );
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+      bulkAcknowledgeMutation.mutate([id]);
+    },
+    [bulkAcknowledgeMutation]
+  );
+
+  const archive = useCallback(
+    (id: string) => {
+      setNotifications((prev) => prev.filter((n) => n.id !== id));
+      archiveMutation.mutate(id);
+    },
+    [archiveMutation]
+  );
+
+  const unarchive = useCallback(
+    (id: string) => {
+      setNotifications((prev) => prev.filter((n) => n.id !== id));
+      unarchiveMutation.mutate(id);
+    },
+    [unarchiveMutation]
+  );
 
   const toggleSelect = useCallback((id: string) => {
     setSelectedIds((prev) => {
@@ -275,23 +310,22 @@ export function useNotificationsPage(): UseNotificationsPageReturn {
       Math.max(0, prev - notifications.filter((n) => selectedIds.has(n.id) && !n.is_read).length)
     );
     setSelectedIds(new Set());
-    NotificationsApiClient.bulkAcknowledge(ids).catch(() => {});
-  }, [selectedIds, notifications]);
+    bulkAcknowledgeMutation.mutate(ids);
+  }, [selectedIds, notifications, bulkAcknowledgeMutation]);
 
   const bulkArchive = useCallback(() => {
     const ids = [...selectedIds];
     setNotifications((prev) => prev.filter((n) => !selectedIds.has(n.id)));
     setSelectedIds(new Set());
-    NotificationsApiClient.bulkArchive(ids).catch(() => {});
-  }, [selectedIds]);
+    bulkArchiveMutation.mutate(ids);
+  }, [selectedIds, bulkArchiveMutation]);
 
   const bulkUnarchive = useCallback(() => {
     const ids = [...selectedIds];
     setNotifications((prev) => prev.filter((n) => !selectedIds.has(n.id)));
     setSelectedIds(new Set());
-    // Unarchive one-by-one (no bulk-unarchive endpoint)
-    ids.forEach((id) => NotificationsApiClient.unarchive(id).catch(() => {}));
-  }, [selectedIds]);
+    ids.forEach((id) => unarchiveMutation.mutate(id));
+  }, [selectedIds, unarchiveMutation]);
 
   return {
     notifications,

@@ -1,5 +1,21 @@
 # Tasks — in flight
 
+## Issue #475 — TanStack Query infrastructure + notifications domain pilot (done)
+
+- [x] Install `@tanstack/react-query` v5 + devtools
+- [x] `src/lib/query-client.ts` — `createQueryClient()` with global defaults, retry predicate (`shouldRetry`), 401 error handler
+- [x] `src/lib/api/notifications-client.ts` — moved from `notifications-api-client.ts`, added `markAsRead()`, `markAllAsRead()`, `notificationsKeys` factory
+- [x] `src/app/providers.tsx` — SSR-safe `QueryClientProvider` + devtools (dev only)
+- [x] `src/app/layout.tsx` — wrapped with `<Providers>`
+- [x] `src/hooks/useNotifications.ts` — migrated to `useQuery` + `useMutation` with optimistic updates
+- [x] `src/hooks/useNotificationsPage.ts` — write ops migrated to `useMutation`, reads use `queryClient.fetchQuery`
+- [x] `eslint.config.mjs` — `no-restricted-imports` rule blocking `apiFetch` outside `src/lib/api/**`
+- [x] All 299 tests pass, `tsc --noEmit` clean
+
+Remaining violations of the ESLint rule are pre-existing (other domains not yet migrated — tracked by parent issue #446).
+
+---
+
 ## FEAT-459 — Publish flow: promote draft to versioned (implemented)
 
 Backend
