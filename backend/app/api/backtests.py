@@ -1,6 +1,5 @@
 """API endpoints for backtest runs."""
 import logging
-import secrets
 from datetime import datetime, timezone, timedelta
 from uuid import UUID, uuid4
 
@@ -19,11 +18,12 @@ from app.core.plans import get_effective_limits, get_plan_limits
 from app.models.backtest_run import BacktestRun
 from app.models.candle import Candle
 from app.models.notification import Notification
-from app.models.shared_backtest_link import SharedBacktestLink
 from app.models.strategy import Strategy
 from app.models.strategy_version import StrategyVersion
 from app.models.user import User, UserTier
 import app.services.backtest_service as backtest_service
+import app.services.backtest_responses as _backtest_responses
+import app.services.backtest_sharing as _backtest_sharing
 from app.backtest.data_quality import query_metrics_for_range, compute_completeness_metrics
 from app.backtest.storage import download_json
 from app.backtest.explanation import build_trade_explanation
@@ -34,10 +34,8 @@ from app.schemas.backtest import (
     BacktestCompareRun,
     BacktestCreateRequest,
     BacktestCreateResponse,
-    BacktestListItem,
     BacktestListPage,
     BacktestStatusResponse,
-    BacktestSummary,
     BatchBacktestCreateRequest,
     BatchBacktestCreateResponse,
     BatchRunResult,
@@ -49,7 +47,6 @@ from app.schemas.backtest import (
     PublicBacktestView,
     ShareLinkCreateRequest,
     ShareLinkCreateResponse,
-    Trade,
     TradeDetail,
     TradeDetailResponse,
 )
@@ -74,34 +71,8 @@ PREMIUM_ONLY_PERIODS = {"2y", "3y"}
 def _build_status_response(
     run: BacktestRun, session: Session
 ) -> BacktestStatusResponse:
-    """Map a BacktestRun to its API response, including summary and data quality."""
-    summary = None
-    if run.status == "completed" and run.total_return is not None:
-        summary = BacktestSummary(
-            initial_balance=run.initial_balance,
-            final_balance=run.initial_balance * (1 + run.total_return / 100),
-            total_return_pct=run.total_return,
-            cagr_pct=run.cagr or 0.0,
-            max_drawdown_pct=run.max_drawdown or 0.0,
-            num_trades=run.num_trades or 0,
-            win_rate_pct=run.win_rate or 0.0,
-            benchmark_return_pct=run.benchmark_return or 0.0,
-            alpha=run.alpha or 0.0,
-            beta=run.beta or 0.0,
-            sharpe_ratio=run.sharpe_ratio or 0.0,
-            sortino_ratio=run.sortino_ratio or 0.0,
-            calmar_ratio=run.calmar_ratio or 0.0,
-            max_consecutive_losses=run.max_consecutive_losses or 0,
-            gross_return_usd=run.gross_return_usd,
-            gross_return_pct=run.gross_return_pct,
-            total_fees_usd=run.total_fees_usd,
-            total_slippage_usd=run.total_slippage_usd,
-            total_spread_usd=run.total_spread_usd,
-            total_costs_usd=run.total_costs_usd,
-            cost_pct_gross_return=run.cost_pct_gross_return,
-            avg_cost_per_trade_usd=run.avg_cost_per_trade_usd,
-        )
-
+    """Fetch data-quality metrics and narrative, then delegate response shaping."""
+    summary = _backtest_responses._build_summary(run)
     narrative = generate_narrative(summary) if summary is not None else None
 
     data_quality = None
@@ -135,21 +106,8 @@ def _build_status_response(
     except Exception as e:
         logger.debug("Failed to fetch data quality metrics: %s", e)
 
-    return BacktestStatusResponse(
-        run_id=run.id,
-        strategy_id=run.strategy_id,
-        status=run.status,
-        asset=run.asset,
-        timeframe=run.timeframe,
-        date_from=run.date_from,
-        date_to=run.date_to,
-        triggered_by=run.triggered_by,
-        batch_id=run.batch_id,
-        period_key=run.period_key,
-        summary=summary,
-        narrative=narrative,
-        error_message=run.error_message,
-        data_quality=data_quality,
+    return _backtest_responses.build_status_response(
+        run, data_quality=data_quality, narrative=narrative
     )
 
 
@@ -702,41 +660,8 @@ def list_backtests(
         .offset(offset)
     ).all()
 
-    def _utc(dt: datetime) -> datetime:
-        return dt if dt.tzinfo is not None else dt.replace(tzinfo=timezone.utc)
-
     now = datetime.now(timezone.utc)
-    items = []
-    for r in runs:
-        elapsed: float | None = None
-        if r.started_at is not None:
-            started = _utc(r.started_at)
-            if r.status in ("completed", "failed"):
-                updated = _utc(r.updated_at)
-                elapsed = (updated - started).total_seconds() if updated > started else None
-            elif r.status == "running":
-                elapsed = (now - started).total_seconds()
-
-        items.append(
-            BacktestListItem(
-                run_id=r.id,
-                strategy_id=r.strategy_id,
-                status=r.status,
-                asset=r.asset,
-                timeframe=r.timeframe,
-                date_from=r.date_from,
-                date_to=r.date_to,
-                triggered_by=r.triggered_by,
-                total_return=r.total_return,
-                created_at=r.created_at,
-                period_key=r.period_key,
-                batch_id=r.batch_id,
-                max_drawdown=r.max_drawdown,
-                sharpe_ratio=r.sharpe_ratio,
-                elapsed_seconds=elapsed,
-            )
-        )
-
+    items = [_backtest_responses.build_list_item(r, now) for r in runs]
     return BacktestListPage(items=items, total=total)
 
 
@@ -828,82 +753,35 @@ def get_trade_detail(
         for c in candles
     ]
 
-    # Build TradeDetail with defaults for old trades missing new fields
-    trade_detail = TradeDetail(
-        entry_time=entry_ts,
-        entry_price=trade_raw.get("entry_price", 0),
-        exit_time=exit_ts,
-        exit_price=trade_raw.get("exit_price", 0),
-        side=trade_raw.get("side", "long"),
-        pnl=trade_raw.get("pnl", 0),
-        pnl_pct=trade_raw.get("pnl_pct", 0),
-        qty=trade_raw.get("qty", 0),
-        sl_price_at_entry=trade_raw.get("sl_price_at_entry"),
-        tp_price_at_entry=trade_raw.get("tp_price_at_entry"),
-        exit_reason=trade_raw.get("exit_reason", "unknown"),
-        mae_usd=trade_raw.get("mae_usd", 0),
-        mae_pct=trade_raw.get("mae_pct", 0),
-        mfe_usd=trade_raw.get("mfe_usd", 0),
-        mfe_pct=trade_raw.get("mfe_pct", 0),
-        initial_risk_usd=trade_raw.get("initial_risk_usd"),
-        r_multiple=trade_raw.get("r_multiple"),
-        peak_price=trade_raw.get("peak_price", 0),
-        peak_ts=datetime.fromisoformat(
-            (trade_raw.get("peak_ts") or entry_ts_str).replace("Z", "+00:00")
-        ),
-        trough_price=trade_raw.get("trough_price", 0),
-        trough_ts=datetime.fromisoformat(
-            (trade_raw.get("trough_ts") or entry_ts_str).replace("Z", "+00:00")
-        ),
-        duration_seconds=trade_raw.get("duration_seconds", 0),
-        fee_cost_usd=trade_raw.get("fee_cost_usd"),
-        slippage_cost_usd=trade_raw.get("slippage_cost_usd"),
-        spread_cost_usd=trade_raw.get("spread_cost_usd"),
-        total_cost_usd=trade_raw.get("total_cost_usd"),
-        notional_usd=trade_raw.get("notional_usd"),
-    )
-
     # Fetch strategy definition for explanation
     strategy_version = session.exec(
         select(StrategyVersion).where(StrategyVersion.id == run.strategy_version_id)
     ).first()
 
     if not strategy_version:
-        # Fallback: return without explanation
         logger.warning(
             "No strategy version found for run %s (strategy_version_id=%s)",
             run_id,
             run.strategy_version_id,
         )
-        return TradeDetailResponse(
-            trade=trade_detail,
-            candles=candles_response,
-            asset=run.asset,
-            timeframe=run.timeframe,
+        return _backtest_responses.build_trade_detail_response(
+            run, trade_raw, candles_response, explanation=None
         )
 
     try:
-        # Find trade entry/exit indices in candle window
         entry_idx = next(
-            (i for i, c in enumerate(candles) if c.timestamp == entry_ts),
-            None
+            (i for i, c in enumerate(candles) if c.timestamp == entry_ts), None
         )
         exit_idx = next(
-            (i for i, c in enumerate(candles) if c.timestamp == exit_ts),
-            None
+            (i for i, c in enumerate(candles) if c.timestamp == exit_ts), None
         )
 
         if entry_idx is None or exit_idx is None:
-            # Entry/exit not in candle window, return without explanation
             logger.warning(f"Entry/exit not found in candle window for trade {trade_idx}")
-            return TradeDetailResponse(
-                trade=trade_detail,
-                candles=candles_response,
-                asset=run.asset,
-                timeframe=run.timeframe,
+            return _backtest_responses.build_trade_detail_response(
+                run, trade_raw, candles_response, explanation=None
             )
 
-        # Build explanation
         entry_exp, exit_exp, indicators = build_trade_explanation(
             definition=strategy_version.definition_json,
             candles=list(candles),
@@ -913,26 +791,13 @@ def get_trade_detail(
             sl_price=trade_raw.get("sl_price_at_entry"),
             tp_price=trade_raw.get("tp_price_at_entry"),
         )
-
-        return TradeDetailResponse(
-            trade=trade_detail,
-            candles=candles_response,
-            asset=run.asset,
-            timeframe=run.timeframe,
-            entry_explanation=entry_exp,
-            exit_explanation=exit_exp,
-            indicator_series=indicators,
-            explanation_partial=False,
+        return _backtest_responses.build_trade_detail_response(
+            run, trade_raw, candles_response, explanation=(entry_exp, exit_exp, indicators)
         )
     except Exception as e:
-        # Log error, return partial response
         logger.warning(f"Failed to build explanation for trade {trade_idx}: {e}")
-        return TradeDetailResponse(
-            trade=trade_detail,
-            candles=candles_response,
-            asset=run.asset,
-            timeframe=run.timeframe,
-            explanation_partial=True,
+        return _backtest_responses.build_trade_detail_response(
+            run, trade_raw, candles_response, explanation=None, partial=True
         )
 
 
@@ -963,39 +828,9 @@ def create_share_link(
             detail="Can only share completed backtest runs",
         )
 
-    # Validate expiration is in the future
-    if data.expires_at:
-        expires_at = data.expires_at
-        if expires_at.tzinfo is None:
-            expires_at = expires_at.replace(tzinfo=timezone.utc)
-        if expires_at <= datetime.now(timezone.utc):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Expiration date must be in the future",
-            )
-
-    # Generate unique token
-    token = secrets.token_urlsafe(32)
-
-    # Create link record
-    link = SharedBacktestLink(
-        backtest_run_id=run.id,
-        token=token,
-        expires_at=data.expires_at,
-    )
-    session.add(link)
-    session.commit()
-    session.refresh(link)
-
-    # Build URL
-    frontend_url = settings.frontend_url or "http://localhost:3000"
-    url = f"{frontend_url}/share/backtests/{token}"
-
-    return ShareLinkCreateResponse(
-        url=url,
-        token=token,
-        expires_at=link.expires_at,
-    )
+    link = _backtest_sharing.create_share_link(run, data.expires_at, session)
+    url = _backtest_sharing.build_share_url(link.token)
+    return ShareLinkCreateResponse(url=url, token=link.token, expires_at=link.expires_at)
 
 
 @router.get("/share/{token}", response_model=PublicBacktestView)
@@ -1004,29 +839,8 @@ def get_shared_backtest(
     session: Session = Depends(get_session),
 ) -> PublicBacktestView:
     """Public, read-only view of shared backtest results."""
-    # Find link by token
-    link = session.exec(
-        select(SharedBacktestLink).where(SharedBacktestLink.token == token)
-    ).first()
+    link = _backtest_sharing.resolve_share_link(token, session)
 
-    if not link:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Share link not found or has expired",
-        )
-
-    # Check expiration
-    if link.expires_at:
-        expires_at = link.expires_at
-        if expires_at.tzinfo is None:
-            expires_at = expires_at.replace(tzinfo=timezone.utc)
-        if datetime.now(timezone.utc) > expires_at:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="This share link has expired",
-            )
-
-    # Load backtest run
     run = session.exec(
         select(BacktestRun).where(BacktestRun.id == link.backtest_run_id)
     ).first()
@@ -1037,33 +851,6 @@ def get_shared_backtest(
             detail="Backtest results not available",
         )
 
-    # Build summary
-    summary = BacktestSummary(
-        initial_balance=run.initial_balance,
-        final_balance=run.initial_balance * (1 + run.total_return / 100),
-        total_return_pct=run.total_return,
-        cagr_pct=run.cagr or 0.0,
-        max_drawdown_pct=run.max_drawdown or 0.0,
-        num_trades=run.num_trades or 0,
-        win_rate_pct=run.win_rate or 0.0,
-        benchmark_return_pct=run.benchmark_return or 0.0,
-        alpha=run.alpha or 0.0,
-        beta=run.beta or 0.0,
-        sharpe_ratio=run.sharpe_ratio or 0.0,
-        sortino_ratio=run.sortino_ratio or 0.0,
-        calmar_ratio=run.calmar_ratio or 0.0,
-        max_consecutive_losses=run.max_consecutive_losses or 0,
-        gross_return_usd=run.gross_return_usd,
-        gross_return_pct=run.gross_return_pct,
-        total_fees_usd=run.total_fees_usd,
-        total_slippage_usd=run.total_slippage_usd,
-        total_spread_usd=run.total_spread_usd,
-        total_costs_usd=run.total_costs_usd,
-        cost_pct_gross_return=run.cost_pct_gross_return,
-        avg_cost_per_trade_usd=run.avg_cost_per_trade_usd,
-    )
-
-    # Load equity curve from S3
     equity_curve = []
     if run.equity_curve_key:
         try:
@@ -1071,16 +858,8 @@ def get_shared_backtest(
             equity_curve = [EquityCurvePoint(**point) for point in data_raw]
         except Exception as e:
             logger.warning(f"Failed to load equity curve for shared link: {e}")
-            # Continue without equity curve
 
-    return PublicBacktestView(
-        asset=run.asset,
-        timeframe=run.timeframe,
-        date_from=run.date_from,
-        date_to=run.date_to,
-        summary=summary,
-        equity_curve=equity_curve,
-    )
+    return _backtest_responses.build_public_view(run, equity_curve=equity_curve)
 
 
 @router.post("/compare", response_model=BacktestCompareResponse)
@@ -1139,33 +918,7 @@ def compare_backtests(
             except Exception as e:
                 logger.warning(f"Failed to load equity curve for run {run.id}: {e}")
 
-        # Build summary
-        summary = None
-        if run.total_return is not None:
-            summary = BacktestSummary(
-                initial_balance=run.initial_balance,
-                final_balance=run.initial_balance * (1 + run.total_return / 100),
-                total_return_pct=run.total_return,
-                cagr_pct=run.cagr or 0,
-                max_drawdown_pct=run.max_drawdown or 0,
-                num_trades=run.num_trades or 0,
-                win_rate_pct=run.win_rate or 0,
-                benchmark_return_pct=run.benchmark_return or 0,
-                alpha=run.alpha or 0,
-                beta=run.beta or 0,
-                sharpe_ratio=run.sharpe_ratio or 0,
-                sortino_ratio=run.sortino_ratio or 0,
-                calmar_ratio=run.calmar_ratio or 0,
-                max_consecutive_losses=run.max_consecutive_losses or 0,
-                gross_return_usd=run.gross_return_usd,
-                gross_return_pct=run.gross_return_pct,
-                total_fees_usd=run.total_fees_usd,
-                total_slippage_usd=run.total_slippage_usd,
-                total_spread_usd=run.total_spread_usd,
-                total_costs_usd=run.total_costs_usd,
-                cost_pct_gross_return=run.cost_pct_gross_return,
-                avg_cost_per_trade_usd=run.avg_cost_per_trade_usd,
-            )
+        summary = _backtest_responses._build_summary(run)
 
         comparison_runs.append(
             BacktestCompareRun(
