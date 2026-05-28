@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 from app.api.alerts import router as alerts_router
 from app.api.auth import router as auth_router
 from app.api.backtests import router as backtests_router
+from app.api.backtest_data_quality import router as backtest_data_quality_router
 from app.api.billing import router as billing_router
 from app.api.health import router as health_router
 from app.api.chart import router as chart_router
@@ -90,6 +91,7 @@ app.include_router(progress_router)
 app.include_router(strategies_router)
 app.include_router(strategy_tags_router)
 app.include_router(strategy_templates_router)
+app.include_router(backtest_data_quality_router)
 app.include_router(backtests_router)
 app.include_router(notifications_router)
 app.include_router(alerts_router)
