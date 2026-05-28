@@ -13,6 +13,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { apiFetch } from "@/lib/api";
+import { BacktestsApiClient } from "@/lib/api/backtests-client";
 import { formatDateTime, formatPercent, formatPrice, formatChartDate } from "@/lib/format";
 import { useDisplay } from "@/context/display";
 import { BacktestCompareResponse } from "@/types/backtest";
@@ -90,10 +91,7 @@ export default function CompareBacktestsPage({ params }: Props) {
       setError(null);
 
       try {
-        const data = await apiFetch<BacktestCompareResponse>("/backtests/compare", {
-          method: "POST",
-          body: JSON.stringify({ run_ids: runIds }),
-        });
+        const data = await BacktestsApiClient.compare(runIds);
         setCompareData(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load comparison data");

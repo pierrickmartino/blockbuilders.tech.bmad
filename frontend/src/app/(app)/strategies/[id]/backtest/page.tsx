@@ -11,7 +11,8 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { apiFetch, ApiError, fetchDataQuality, fetchDataCompleteness } from "@/lib/api";
+import { apiFetch, ApiError } from "@/lib/api";
+import { BacktestsApiClient, type BacktestCreateRequest, type BatchCreateRequest } from "@/lib/api/backtests-client";
 import { MarketApiClient } from "@/lib/api/market-client";
 import { trackEvent } from "@/lib/analytics";
 import {
@@ -26,12 +27,9 @@ import { useBacktestResults } from "@/hooks/useBacktestResults";
 import { useBatchBacktestResults } from "@/hooks/useBatchBacktestResults";
 import { Strategy, StrategyVersion } from "@/types/strategy";
 import {
-  BacktestCreateResponse,
   BacktestListItem,
-  BacktestListPage,
   BacktestStatus,
   BacktestStatusResponse,
-  BatchBacktestCreateResponse,
   BatchRunResult,
   DataAvailabilityResponse,
   DataQualityMetrics,
@@ -621,8 +619,7 @@ export default function StrategyBacktestPage({ params }: Props) {
     isLoadingEquityCurve,
     tradesError,
     equityCurveError,
-    refetchTrades,
-    refetchEquityCurve,
+    refetch: refetchRunResults,
   } = useBacktestResults(selectedRunId, handleRunDetailFetched);
 
   // Compute seasonality data
@@ -691,12 +688,11 @@ export default function StrategyBacktestPage({ params }: Props) {
     setIsLoadingBacktests(true);
     try {
       const offset = (runsCurrentPage - 1) * runsPageSize;
-      const params = new URLSearchParams({
+      const data = await BacktestsApiClient.list({
         strategy_id: id,
-        limit: runsPageSize.toString(),
-        offset: offset.toString(),
+        limit: runsPageSize,
+        offset,
       });
-      const data = await apiFetch<BacktestListPage>(`/backtests/?${params.toString()}`);
       setBacktests(data.items);
       setTotalBacktests(data.total);
       data.items.forEach((run) => {
@@ -793,8 +789,8 @@ export default function StrategyBacktestPage({ params }: Props) {
       return;
     }
 
-    fetchDataQuality(strategy.asset, strategy.timeframe, dateFrom, dateTo)
-      .then((data) => setDataQuality(data as DataQualityMetrics))
+    BacktestsApiClient.getDataQuality(strategy.asset, strategy.timeframe, dateFrom, dateTo)
+      .then((data) => setDataQuality(data))
       .catch(() => setDataQuality(null));
   }, [strategy, dateFrom, dateTo]);
 
@@ -805,8 +801,8 @@ export default function StrategyBacktestPage({ params }: Props) {
       return;
     }
 
-    fetchDataCompleteness(strategy.asset, strategy.timeframe)
-      .then((data) => setCompleteness(data as DataCompletenessResponse))
+    BacktestsApiClient.getDataCompleteness(strategy.asset, strategy.timeframe)
+      .then((data) => setCompleteness(data))
       .catch(() => setCompleteness(null));
   }, [strategy]);
 
@@ -876,10 +872,7 @@ export default function StrategyBacktestPage({ params }: Props) {
 
     setIsSubmitting(true);
     try {
-      const res = await apiFetch<BacktestCreateResponse>("/backtests/", {
-        method: "POST",
-        body: JSON.stringify(payload),
-      });
+      const res = await BacktestsApiClient.create(payload as unknown as BacktestCreateRequest);
       trackEvent("backtest_started", {
         strategy_id: id,
         run_id: res.run_id,
@@ -922,10 +915,7 @@ export default function StrategyBacktestPage({ params }: Props) {
     if (slippageRate) payload.slippage_rate = Number(slippageRate);
 
     try {
-      const res = await apiFetch<BatchBacktestCreateResponse>("/backtests/batch", {
-        method: "POST",
-        body: JSON.stringify(payload),
-      });
+      const res = await BacktestsApiClient.createBatch(payload as unknown as BatchCreateRequest);
       trackEvent("batch_backtest_started", {
         strategy_id: id,
         batch_id: res.batch_id,
@@ -1307,14 +1297,14 @@ export default function StrategyBacktestPage({ params }: Props) {
                     <div className="flex h-56 items-center justify-center rounded border border-destructive/30 bg-destructive/5">
                       <div className="text-center">
                         <p className="text-sm text-destructive">{equityCurveError}</p>
-                        <Button variant="link" size="sm" onClick={refetchEquityCurve} className="mt-2">Retry</Button>
+                        <Button variant="link" size="sm" onClick={refetchRunResults} className="mt-2">Retry</Button>
                       </div>
                     </div>
                   ) : equityCurve.length === 0 ? (
                     <div className="flex h-56 items-center justify-center">
                       <div className="text-center">
                         <p className="text-sm text-muted-foreground">No equity data available.</p>
-                        <Button variant="link" size="sm" onClick={refetchEquityCurve} className="mt-2">Retry</Button>
+                        <Button variant="link" size="sm" onClick={refetchRunResults} className="mt-2">Retry</Button>
                       </div>
                     </div>
                   ) : (
@@ -1405,7 +1395,7 @@ export default function StrategyBacktestPage({ params }: Props) {
                   summary={selectedRun.summary}
                   isLoading={isLoadingEquityCurve}
                   error={equityCurveError}
-                  onRetry={refetchEquityCurve}
+                  onRetry={refetchRunResults}
                   timezone={timezone}
                   tickConfig={tickConfig}
                 />
@@ -1561,7 +1551,7 @@ export default function StrategyBacktestPage({ params }: Props) {
                 {tradesError && (
                   <div className="flex items-center gap-2 rounded border border-border bg-card px-4 py-4">
                     <p className="text-sm text-destructive">{tradesError}</p>
-                    <Button variant="link" size="sm" onClick={refetchTrades} className="h-auto p-0">Retry</Button>
+                    <Button variant="link" size="sm" onClick={refetchRunResults} className="h-auto p-0">Retry</Button>
                   </div>
                 )}
 

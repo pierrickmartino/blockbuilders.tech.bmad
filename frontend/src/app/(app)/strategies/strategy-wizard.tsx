@@ -4,9 +4,9 @@ import { useState, useMemo, useEffect, useRef } from "react";
 // eslint-disable-next-line no-restricted-imports
 import { apiFetch, ApiError } from "@/lib/api";
 import { StrategiesApiClient } from "@/lib/api/strategies-client";
+import { BacktestsApiClient } from "@/lib/api/backtests-client";
 import { trackEvent } from "@/lib/analytics";
 import { useAuth } from "@/context/auth";
-import type { BacktestCreateResponse, BacktestStatusResponse } from "@/types/backtest";
 import { generateTemplate, type WizardAnswers } from "./wizard-template-generator";
 import { StepName } from "./wizard-steps/step-name";
 import { StepAsset } from "./wizard-steps/step-asset";
@@ -197,13 +197,10 @@ export function StrategyWizard({ isFirstRun, onClose, onComplete, onSkipToCanvas
       const yearAgo = new Date(now);
       yearAgo.setFullYear(yearAgo.getFullYear() - 1);
 
-      const res = await apiFetch<BacktestCreateResponse>("/backtests/", {
-        method: "POST",
-        body: JSON.stringify({
-          strategy_id: strategy.id,
-          date_from: yearAgo.toISOString(),
-          date_to: now.toISOString(),
-        }),
+      const res = await BacktestsApiClient.create({
+        strategy_id: strategy.id,
+        date_from: yearAgo.toISOString(),
+        date_to: now.toISOString(),
       });
 
       trackEvent("auto_backtest_started", {
@@ -218,9 +215,7 @@ export function StrategyWizard({ isFirstRun, onClose, onComplete, onSkipToCanvas
       const maxAttempts = 60;
       for (let i = 0; i < maxAttempts; i++) {
         await new Promise((r) => setTimeout(r, 5000));
-        const detail = await apiFetch<BacktestStatusResponse>(
-          `/backtests/${res.run_id}`
-        );
+        const detail = await BacktestsApiClient.get(res.run_id);
         if (detail.status === "completed") {
           updateBacktestPhase("done");
           trackEvent("auto_backtest_completed", {
