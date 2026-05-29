@@ -80,6 +80,31 @@ type SortOrder = "asc" | "desc";
 type PerformanceFilter = "all" | "positive" | "negative";
 type LastRunFilter = "all" | "7days" | "30days" | "never";
 
+function getStrategiesLoadErrorMessage(err: unknown): string {
+  const fallback = "We couldn't load your strategies. Retry to refresh the list.";
+
+  if (err instanceof ApiError) {
+    if (err.status === 0) {
+      return "The request timed out. Check your connection, then retry the strategies list.";
+    }
+    if (err.status === 401) {
+      return "Your session expired. Sign in again to load your strategies.";
+    }
+    if (err.status === 403) {
+      return "You do not have permission to view these strategies.";
+    }
+    if (err.status === 429) {
+      return "Too many requests hit the API at once. Wait a moment, then retry.";
+    }
+    if (err.status >= 500) {
+      return "The server could not load your strategies. Retry in a moment.";
+    }
+    return err.message || fallback;
+  }
+
+  return err instanceof Error ? err.message : fallback;
+}
+
 export default function StrategiesPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -123,7 +148,12 @@ export default function StrategiesPage() {
     message: string;
   } | null>(null);
 
-  const { data: strategies = [], isLoading } = useQuery({
+  const {
+    data: strategies = [],
+    isLoading,
+    isError: strategiesLoadFailed,
+    error: strategiesLoadError,
+  } = useQuery({
     queryKey: strategiesKeys.list({ include_archived: showArchived }),
     queryFn: () => StrategiesApiClient.list({ include_archived: showArchived }),
   });
@@ -141,6 +171,23 @@ export default function StrategiesPage() {
   const refreshStrategies = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: strategiesKeys.all() });
   }, [queryClient]);
+
+  const activeStrategiesLoadErrorRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (strategiesLoadFailed) {
+      const message = getStrategiesLoadErrorMessage(strategiesLoadError);
+      activeStrategiesLoadErrorRef.current = message;
+      setError(message);
+      return;
+    }
+
+    setError((current) =>
+      current !== null && current === activeStrategiesLoadErrorRef.current
+        ? null
+        : current
+    );
+    activeStrategiesLoadErrorRef.current = null;
+  }, [strategiesLoadFailed, strategiesLoadError]);
 
   // Sync filter + sort state to URL so the page is bookmarkable and back-nav preserves context
   const urlSyncInitialized = useRef(false);
@@ -173,6 +220,7 @@ export default function StrategiesPage() {
   };
 
   const hasActiveFilters = search || assetFilter !== "all" || performanceFilter !== "all" || lastRunFilter !== "all" || selectedTagIds.length > 0 || showArchived;
+  const listLoadUnavailable = strategiesLoadFailed && strategies.length === 0;
 
   // Bulk selection helpers
   const handleSelectAll = (checked: boolean) => {
@@ -416,6 +464,22 @@ export default function StrategiesPage() {
 
     return sorted;
   }, [strategies, search, assetFilter, performanceFilter, lastRunFilter, selectedTagIds, sortField, sortOrder]);
+
+  const strategyCountLabel = listLoadUnavailable
+    ? "Strategy count unavailable"
+    : hasActiveFilters
+    ? `Showing ${filteredAndSortedStrategies.length} of ${strategies.length} ${strategies.length === 1 ? "strategy" : "strategies"}`
+    : `${strategies.length} ${strategies.length === 1 ? "strategy" : "strategies"}`;
+  const emptyStateTitle = listLoadUnavailable
+    ? "Couldn't load strategies"
+    : strategies.length === 0
+    ? "No strategies yet"
+    : "No matches";
+  const emptyStateDescription = listLoadUnavailable
+    ? "Retry loading your strategy list."
+    : strategies.length === 0
+    ? "Create your first strategy to get started."
+    : "No strategies match your search or filters.";
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -902,10 +966,7 @@ export default function StrategiesPage() {
           </Button>
         )}
         <span className="ml-auto text-xs text-muted-foreground">
-          {hasActiveFilters
-            ? `Showing ${filteredAndSortedStrategies.length} of ${strategies.length} ${strategies.length === 1 ? "strategy" : "strategies"}`
-            : `${strategies.length} ${strategies.length === 1 ? "strategy" : "strategies"}`
-          }
+          {strategyCountLabel}
         </span>
       </div>
 
@@ -955,15 +1016,22 @@ export default function StrategiesPage() {
             <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
               <Layers className="h-7 w-7 text-primary" />
             </div>
-            <h3 className="mb-1 font-semibold">
-              {strategies.length === 0 ? "No strategies yet" : "No matches"}
-            </h3>
+            <h3 className="mb-1 font-semibold">{emptyStateTitle}</h3>
             <p className="mb-4 text-sm text-muted-foreground">
-              {strategies.length === 0
-                ? "Create your first strategy to get started."
-                : "No strategies match your search or filters."}
+              {emptyStateDescription}
             </p>
-            {strategies.length === 0 ? (
+            {listLoadUnavailable ? (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setError(null);
+                  refreshStrategies();
+                }}
+              >
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Retry
+              </Button>
+            ) : strategies.length === 0 ? (
               <Button onClick={() => setShowModal(true)}>
                 <Plus className="mr-2 h-4 w-4" />
                 Create Strategy

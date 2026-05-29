@@ -1,5 +1,15 @@
 # Tasks — in flight
 
+## Strategy list query failure banner (implemented)
+
+- [x] Wire the strategies React Query error state into the existing page error banner
+- [x] Clear stale load-failure banners after successful query recovery without clearing unrelated action errors
+- [x] Replace the initial-failure "No strategies yet" empty state with a load-failure retry state
+- [x] Verify `npm test` (37 files / 471 tests passed)
+- [x] Verify changed page with targeted ESLint (0 errors; existing warnings only)
+- [x] Verify `npm run build`
+- [ ] Full `npm run lint` remains blocked by existing generated `frontend/storybook-static` errors
+
 ## Issue #475 — TanStack Query infrastructure + notifications domain pilot (done)
 
 - [x] Install `@tanstack/react-query` v5 + devtools
