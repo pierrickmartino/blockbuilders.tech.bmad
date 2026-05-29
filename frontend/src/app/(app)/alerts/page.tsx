@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { ApiError } from "@/lib/api";
 import { AlertsApiClient, alertsKeys } from "@/lib/api/alerts-client";
 import { StrategiesApiClient, strategiesKeys } from "@/lib/api/strategies-client";
 import { formatDateTime, formatRelativeTime } from "@/lib/format";
@@ -62,6 +63,7 @@ import {
   Clock,
   CheckCircle2,
   Info,
+  RefreshCw,
 } from "lucide-react";
 import CreatePriceAlertModal from "./create-price-alert-modal";
 
@@ -85,6 +87,31 @@ const formatAlertPrice = (price: number | undefined) => {
   if (price === undefined) return "—";
   return price.toLocaleString("en-US", { maximumFractionDigits: 2 });
 };
+
+function getAlertsLoadErrorMessage(err: unknown): string {
+  const fallback = "We couldn't load your alerts. Retry to refresh the list.";
+
+  if (err instanceof ApiError) {
+    if (err.status === 0) {
+      return "The request timed out. Check your connection, then retry the alerts list.";
+    }
+    if (err.status === 401) {
+      return "Your session expired. Sign in again to load your alerts.";
+    }
+    if (err.status === 403) {
+      return "You do not have permission to view these alerts.";
+    }
+    if (err.status === 429) {
+      return "Too many requests hit the API at once. Wait a moment, then retry.";
+    }
+    if (err.status >= 500) {
+      return "The server could not load your alerts. Retry in a moment.";
+    }
+    return err.message || fallback;
+  }
+
+  return err instanceof Error ? err.message : fallback;
+}
 
 function StatusBadge({ alert }: { alert: AlertRule }) {
   if (!alert.is_active) {
@@ -166,6 +193,7 @@ export default function AlertsPage() {
   const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
   const errorRef = useRef<HTMLDivElement | null>(null);
+  const activeAlertsLoadErrorRef = useRef<string | null>(null);
 
   // Filters (apply to Price and Performance tabs only)
   const [assetFilter, setAssetFilter] = useState<string>("all");
@@ -177,7 +205,12 @@ export default function AlertsPage() {
   const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const { data: alerts = [], isLoading: loading } = useQuery({
+  const {
+    data: alerts = [],
+    isLoading: loading,
+    isError: alertsLoadFailed,
+    error: alertsLoadError,
+  } = useQuery({
     queryKey: alertsKeys.list(),
     queryFn: () => AlertsApiClient.list(),
   });
@@ -210,6 +243,25 @@ export default function AlertsPage() {
       return next;
     });
 
+  const refreshAlerts = () => {
+    queryClient.invalidateQueries({ queryKey: alertsKeys.all() });
+  };
+
+  useEffect(() => {
+    if (alertsLoadFailed) {
+      const message = getAlertsLoadErrorMessage(alertsLoadError);
+      activeAlertsLoadErrorRef.current = message;
+      setError(message);
+      return;
+    }
+
+    setError((current) =>
+      current !== null && current === activeAlertsLoadErrorRef.current
+        ? null
+        : current,
+    );
+    activeAlertsLoadErrorRef.current = null;
+  }, [alertsLoadFailed, alertsLoadError]);
 
   // Scroll error into view + announce
   useEffect(() => {
@@ -247,6 +299,7 @@ export default function AlertsPage() {
   const filteredPerformanceAlerts = filterAlerts(performanceAlerts);
 
   const filtersActive = assetFilter !== "all" || statusFilter !== "all";
+  const listLoadUnavailable = alertsLoadFailed && alerts.length === 0;
   const clearFilters = () => {
     setAssetFilter("all");
     setStatusFilter("all");
@@ -387,17 +440,34 @@ export default function AlertsPage() {
           <div
             ref={errorRef}
             role="alert"
-            className="flex items-start justify-between gap-2 rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive"
+            className="flex items-start justify-between gap-3 rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive"
           >
-            <span>{error}</span>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setError(null)}
-              aria-label="Dismiss error"
-            >
-              <X className="h-4 w-4" aria-hidden />
-            </Button>
+            <span className="flex-1">{error}</span>
+            <div className="flex shrink-0 gap-1">
+              {alertsLoadFailed && error === activeAlertsLoadErrorRef.current && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 text-destructive hover:text-destructive"
+                  onClick={() => {
+                    setError(null);
+                    refreshAlerts();
+                  }}
+                >
+                  <RefreshCw className="mr-1 h-3 w-3" aria-hidden />
+                  Retry
+                </Button>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                onClick={() => setError(null)}
+                aria-label="Dismiss error"
+              >
+                <X className="h-3.5 w-3.5" aria-hidden />
+              </Button>
+            </div>
           </div>
         )}
 
@@ -508,7 +578,20 @@ export default function AlertsPage() {
                     className="mb-4 h-12 w-12 text-muted-foreground"
                     aria-hidden
                   />
-                  {priceAlerts.length === 0 ? (
+                  {listLoadUnavailable ? (
+                    <>
+                      <p className="mb-2 text-lg font-medium">
+                        Could not load alerts
+                      </p>
+                      <p className="mb-4 text-sm text-muted-foreground">
+                        Retry loading your alert list.
+                      </p>
+                      <Button variant="outline" onClick={refreshAlerts}>
+                        <RefreshCw className="mr-2 h-4 w-4" aria-hidden />
+                        Retry
+                      </Button>
+                    </>
+                  ) : priceAlerts.length === 0 ? (
                     <>
                       <p className="mb-2 text-lg font-medium">
                         No alerts watching the market
@@ -772,7 +855,20 @@ export default function AlertsPage() {
                     className="mb-4 h-12 w-12 text-muted-foreground"
                     aria-hidden
                   />
-                  {performanceAlerts.length === 0 ? (
+                  {listLoadUnavailable ? (
+                    <>
+                      <p className="mb-2 text-lg font-medium">
+                        Could not load alerts
+                      </p>
+                      <p className="mb-4 text-sm text-muted-foreground">
+                        Retry loading your alert list.
+                      </p>
+                      <Button variant="outline" onClick={refreshAlerts}>
+                        <RefreshCw className="mr-2 h-4 w-4" aria-hidden />
+                        Retry
+                      </Button>
+                    </>
+                  ) : performanceAlerts.length === 0 ? (
                     <>
                       <p className="mb-2 text-lg font-medium">
                         No performance alerts
@@ -946,11 +1042,30 @@ export default function AlertsPage() {
                     className="mb-4 h-12 w-12 text-muted-foreground"
                     aria-hidden
                   />
-                  <p className="mb-2 text-lg font-medium">No alerts have fired yet</p>
-                  <p className="text-sm text-muted-foreground">
-                    Triggered alerts will appear here with a link to the chart at
-                    trigger time.
-                  </p>
+                  {listLoadUnavailable ? (
+                    <>
+                      <p className="mb-2 text-lg font-medium">
+                        Could not load alerts
+                      </p>
+                      <p className="mb-4 text-sm text-muted-foreground">
+                        Retry loading your alert list.
+                      </p>
+                      <Button variant="outline" onClick={refreshAlerts}>
+                        <RefreshCw className="mr-2 h-4 w-4" aria-hidden />
+                        Retry
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <p className="mb-2 text-lg font-medium">
+                        No alerts have fired yet
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Triggered alerts will appear here with a link to the chart at
+                        trigger time.
+                      </p>
+                    </>
+                  )}
                 </CardContent>
               </Card>
             ) : (
