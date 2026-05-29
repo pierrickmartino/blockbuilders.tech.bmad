@@ -223,14 +223,26 @@ describe("StrategiesApiClient", () => {
   });
 
   describe("createVersion()", () => {
-    it("calls POST /strategies/{id}/versions with definition body", async () => {
+    it("upserts the draft then publishes it", async () => {
       const definition = { blocks: [], connections: [] };
       mockApiFetch.mockResolvedValueOnce(mockVersion);
       await StrategiesApiClient.createVersion("strat-1", definition);
-      expect(mockApiFetch).toHaveBeenCalledWith("/strategies/strat-1/versions", {
-        method: "POST",
-        body: JSON.stringify({ definition }),
+      // Step 1: PUT the definition as the draft.
+      expect(mockApiFetchVoid).toHaveBeenCalledWith("/strategies/strat-1/draft", {
+        method: "PUT",
+        body: JSON.stringify({ definition_json: definition }),
       });
+      // Step 2: publish the draft into a version.
+      expect(mockApiFetch).toHaveBeenCalledWith("/strategies/strat-1/draft/publish", {
+        method: "POST",
+      });
+    });
+
+    it("returns the published version", async () => {
+      const definition = { blocks: [], connections: [] };
+      mockApiFetch.mockResolvedValueOnce(mockVersion);
+      const result = await StrategiesApiClient.createVersion("strat-1", definition);
+      expect(result).toEqual(mockVersion);
     });
   });
 
