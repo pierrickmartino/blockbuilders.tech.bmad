@@ -7,23 +7,45 @@ interface UseStrategyAlertsOptions {
   strategyId: string;
 }
 
+interface AlertFormState {
+  sourceKey: string;
+  alertEnabled: boolean;
+  alertThreshold: number | null;
+  alertOnEntry: boolean;
+  alertOnExit: boolean;
+  notifyEmail: boolean;
+}
+
+const getAlertFormKey = (rule: AlertRule | null) =>
+  rule
+    ? [
+        rule.id,
+        rule.is_active,
+        rule.threshold_pct ?? "null",
+        rule.alert_on_entry,
+        rule.alert_on_exit,
+        rule.notify_email,
+      ].join(":")
+    : "none";
+
+const buildAlertFormState = (rule: AlertRule | null): AlertFormState => ({
+  sourceKey: getAlertFormKey(rule),
+  alertEnabled: rule?.is_active ?? false,
+  alertThreshold: rule?.threshold_pct ?? null,
+  alertOnEntry: rule?.alert_on_entry ?? false,
+  alertOnExit: rule?.alert_on_exit ?? false,
+  notifyEmail: rule?.notify_email ?? false,
+});
+
 export function useStrategyAlerts({ strategyId }: UseStrategyAlertsOptions) {
   const queryClient = useQueryClient();
 
-  const [alertEnabled, setAlertEnabled] = useState(false);
-  const [alertThreshold, setAlertThreshold] = useState<number | null>(null);
-  const [alertOnEntry, setAlertOnEntry] = useState(false);
-  const [alertOnExit, setAlertOnExit] = useState(false);
-  const [notifyEmail, setNotifyEmail] = useState(false);
+  const [alertForm, setAlertForm] = useState(() => buildAlertFormState(null));
   const [isEditingAlert, setIsEditingAlert] = useState(false);
   const [alertError, setAlertError] = useState<string | null>(null);
 
   const resetForm = useCallback((rule: AlertRule | null) => {
-    setAlertEnabled(rule?.is_active ?? false);
-    setAlertThreshold(rule?.threshold_pct ?? null);
-    setAlertOnEntry(rule?.alert_on_entry ?? false);
-    setAlertOnExit(rule?.alert_on_exit ?? false);
-    setNotifyEmail(rule?.notify_email ?? false);
+    setAlertForm(buildAlertFormState(rule));
   }, []);
 
   const { data: allAlerts, refetch } = useQuery({
@@ -32,6 +54,19 @@ export function useStrategyAlerts({ strategyId }: UseStrategyAlertsOptions) {
   });
 
   const alertRule = allAlerts?.find((a) => a.strategy_id === strategyId) ?? null;
+  const alertRuleFormKey = getAlertFormKey(alertRule);
+
+  if (!isEditingAlert && alertForm.sourceKey !== alertRuleFormKey) {
+    setAlertForm(buildAlertFormState(alertRule));
+  }
+
+  const {
+    alertEnabled,
+    alertThreshold,
+    alertOnEntry,
+    alertOnExit,
+    notifyEmail,
+  } = alertForm;
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -55,6 +90,15 @@ export function useStrategyAlerts({ strategyId }: UseStrategyAlertsOptions) {
       });
     },
     onSuccess: (saved) => {
+      queryClient.setQueryData<AlertRule[]>(alertsKeys.list(), (current) => {
+        if (!current) {
+          return [saved];
+        }
+        if (current.some((rule) => rule.id === saved.id)) {
+          return current.map((rule) => (rule.id === saved.id ? saved : rule));
+        }
+        return [...current, saved];
+      });
       queryClient.invalidateQueries({ queryKey: alertsKeys.all() });
       resetForm(saved);
       setIsEditingAlert(false);
@@ -78,7 +122,30 @@ export function useStrategyAlerts({ strategyId }: UseStrategyAlertsOptions) {
     saveMutation.mutate();
   }, [alertThreshold, alertEnabled, alertOnEntry, alertOnExit, saveMutation]);
 
-  const startEditing = useCallback(() => setIsEditingAlert(true), []);
+  const setAlertEnabled = useCallback((next: boolean) => {
+    setAlertForm((current) => ({ ...current, alertEnabled: next }));
+  }, []);
+
+  const setAlertThreshold = useCallback((next: number | null) => {
+    setAlertForm((current) => ({ ...current, alertThreshold: next }));
+  }, []);
+
+  const setAlertOnEntry = useCallback((next: boolean) => {
+    setAlertForm((current) => ({ ...current, alertOnEntry: next }));
+  }, []);
+
+  const setAlertOnExit = useCallback((next: boolean) => {
+    setAlertForm((current) => ({ ...current, alertOnExit: next }));
+  }, []);
+
+  const setNotifyEmail = useCallback((next: boolean) => {
+    setAlertForm((current) => ({ ...current, notifyEmail: next }));
+  }, []);
+
+  const startEditing = useCallback(() => {
+    resetForm(alertRule);
+    setIsEditingAlert(true);
+  }, [alertRule, resetForm]);
 
   const cancelEditing = useCallback(() => {
     setIsEditingAlert(false);

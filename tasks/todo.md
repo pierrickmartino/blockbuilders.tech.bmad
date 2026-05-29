@@ -1,5 +1,12 @@
 # Tasks — in flight
 
+## Strategy alert edit form hydration (implemented)
+
+- [x] Seed local alert form state from the loaded query-derived alert rule
+- [x] Cover saving an existing alert without re-entering fields
+- [x] Verify with targeted test, full frontend tests, scoped lint, and build
+- [x] Record the correction pattern in `tasks/lessons.md`
+
 ## Strategy list query failure banner (implemented)
 
 - [x] Wire the strategies React Query error state into the existing page error banner
