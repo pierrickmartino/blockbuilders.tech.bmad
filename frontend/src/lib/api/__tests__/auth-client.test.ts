@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { AuthApiClient, authKeys } from "@/lib/api/auth-client";
-import * as api from "@/lib/api";
+import * as api from "@/lib/api/internal/fetch";
 import type { AuthResponse } from "@/types/auth";
 
-vi.mock("@/lib/api", () => ({
+vi.mock("@/lib/api/internal/fetch", () => ({
   apiFetch: vi.fn(),
 }));
 

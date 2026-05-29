@@ -10,14 +10,14 @@ import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
 import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useStrategyDraft } from "../use-strategy-draft";
-import * as api from "@/lib/api";
+import * as api from "@/lib/api/internal/fetch";
 import type { Node, Edge } from "@xyflow/react";
 
 // ---------------------------------------------------------------------------
 // Mocks
 // ---------------------------------------------------------------------------
 
-vi.mock("@/lib/api", () => ({
+vi.mock("@/lib/api/internal/fetch", () => ({
   apiFetch: vi.fn(),
   apiFetchVoid: vi.fn(),
 }));

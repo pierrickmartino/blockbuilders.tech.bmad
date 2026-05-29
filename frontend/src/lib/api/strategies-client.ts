@@ -1,4 +1,4 @@
-import { apiFetch, apiFetchVoid } from "@/lib/api";
+import { apiFetch, apiFetchVoid } from "@/lib/api/internal/fetch";
 import type {
   Strategy,
   StrategyVersion,

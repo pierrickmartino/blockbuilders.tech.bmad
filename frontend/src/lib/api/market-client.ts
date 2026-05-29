@@ -1,4 +1,4 @@
-import { apiFetch } from "@/lib/api";
+import { apiFetch } from "@/lib/api/internal/fetch";
 import type { TickerListResponse, MarketSentimentResponse } from "@/types/market";
 
 export const marketKeys = {

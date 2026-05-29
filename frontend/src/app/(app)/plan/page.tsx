@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-// eslint-disable-next-line no-restricted-imports
-import { apiFetch, ApiError, safeRedirect } from "@/lib/api";
+import { ApiError, safeRedirect } from "@/lib/api";
 import { UsersApiClient } from "@/lib/api/users-client";
+import { BillingApiClient } from "@/lib/api/billing-client";
 import { toast } from "sonner";
 import { ProfileResponse } from "@/types/auth";
 import {
@@ -51,13 +51,7 @@ export default function PlanPage() {
     setIsUpgrading(`${tier}-${interval}`);
 
     try {
-      const response = await apiFetch<{ url: string }>(
-        "/billing/checkout-session",
-        {
-          method: "POST",
-          body: JSON.stringify({ plan_tier: tier, interval }),
-        }
-      );
+      const response = await BillingApiClient.createCheckoutSession(tier, interval);
       safeRedirect(response.url);
     } catch (err) {
       toast.error(
@@ -72,10 +66,7 @@ export default function PlanPage() {
     setIsUpgrading("portal");
 
     try {
-      const response = await apiFetch<{ url: string }>(
-        "/billing/portal-session",
-        { method: "POST" }
-      );
+      const response = await BillingApiClient.createPortalSession();
       safeRedirect(response.url);
     } catch (err) {
       toast.error(
@@ -94,13 +85,7 @@ export default function PlanPage() {
     setIsPurchasingPack(pack);
 
     try {
-      const response = await apiFetch<{ url: string }>(
-        "/billing/credit-pack/checkout-session",
-        {
-          method: "POST",
-          body: JSON.stringify({ pack }),
-        }
-      );
+      const response = await BillingApiClient.createCreditPackCheckout(pack);
       safeRedirect(response.url);
     } catch (err) {
       toast.error(

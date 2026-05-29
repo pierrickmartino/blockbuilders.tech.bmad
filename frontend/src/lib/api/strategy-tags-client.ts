@@ -1,4 +1,4 @@
-import { apiFetch } from "@/lib/api";
+import { apiFetch } from "@/lib/api/internal/fetch";
 import type { StrategyTag } from "@/types/strategy";
 
 export const strategyTagsKeys = {

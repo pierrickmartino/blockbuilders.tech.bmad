@@ -1,9 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { UsersApiClient, usersKeys } from "@/lib/api/users-client";
-import * as api from "@/lib/api";
+import * as api from "@/lib/api/internal/fetch";
 import type { ProfileResponse, UserUpdateRequest } from "@/types/auth";
+import type { ProfileSettings, ProfileUpdateRequest } from "@/types/profile";
 
-vi.mock("@/lib/api", () => ({
+vi.mock("@/lib/api/internal/fetch", () => ({
   apiFetch: vi.fn(),
   apiFetchVoid: vi.fn(),
 }));
@@ -123,6 +124,72 @@ describe("UsersApiClient", () => {
       mockApiFetch.mockResolvedValueOnce(mockUsage);
       const result = await UsersApiClient.getUsage();
       expect(result).toEqual(mockUsage);
+    });
+  });
+
+  // ── getProfileSettings ────────────────────────────────────────────────────
+
+  describe("getProfileSettings()", () => {
+    const mockSettings: ProfileSettings = {
+      is_public: true,
+      handle: "trendbuilder",
+      display_name: "Trend Builder",
+      bio: "Trading since 2020",
+      show_strategies: true,
+      show_contributions: true,
+      show_badges: false,
+      follower_count: 12,
+    };
+
+    it("calls GET /profiles/me/settings", async () => {
+      mockApiFetch.mockResolvedValueOnce(mockSettings);
+      await UsersApiClient.getProfileSettings();
+      expect(mockApiFetch).toHaveBeenCalledWith("/profiles/me/settings");
+    });
+
+    it("returns the profile settings", async () => {
+      mockApiFetch.mockResolvedValueOnce(mockSettings);
+      const result = await UsersApiClient.getProfileSettings();
+      expect(result).toEqual(mockSettings);
+    });
+  });
+
+  // ── updateProfileSettings ─────────────────────────────────────────────────
+
+  describe("updateProfileSettings()", () => {
+    const mockSettings: ProfileSettings = {
+      is_public: false,
+      handle: null,
+      display_name: null,
+      bio: null,
+      show_strategies: true,
+      show_contributions: true,
+      show_badges: true,
+      follower_count: 0,
+    };
+
+    it("calls PUT /profiles/me/settings with the update body", async () => {
+      const update: ProfileUpdateRequest = { is_public: false };
+      mockApiFetch.mockResolvedValueOnce(mockSettings);
+      await UsersApiClient.updateProfileSettings(update);
+      expect(mockApiFetch).toHaveBeenCalledWith("/profiles/me/settings", {
+        method: "PUT",
+        body: JSON.stringify(update),
+      });
+    });
+
+    it("returns the updated settings", async () => {
+      mockApiFetch.mockResolvedValueOnce(mockSettings);
+      const result = await UsersApiClient.updateProfileSettings({});
+      expect(result).toEqual(mockSettings);
+    });
+  });
+
+  // ── usersKeys extensions ──────────────────────────────────────────────────
+
+  describe("usersKeys extensions", () => {
+    it("profileSettings() returns the profile-settings key", () => {
+      expect(usersKeys.profileSettings()).toEqual(["users", "profileSettings"]);
     });
   });
 });

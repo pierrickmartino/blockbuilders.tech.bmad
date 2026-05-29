@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { MarketApiClient, marketKeys } from "@/lib/api/market-client";
-import * as api from "@/lib/api";
+import * as api from "@/lib/api/internal/fetch";
 
-vi.mock("@/lib/api", () => ({
+vi.mock("@/lib/api/internal/fetch", () => ({
   apiFetch: vi.fn(),
 }));
 

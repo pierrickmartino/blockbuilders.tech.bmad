@@ -1,9 +1,11 @@
-import { apiFetch, apiFetchVoid } from "@/lib/api";
+import { apiFetch, apiFetchVoid } from "@/lib/api/internal/fetch";
 import type { ProfileResponse, UserUpdateRequest, Usage } from "@/types/auth";
+import type { ProfileSettings, ProfileUpdateRequest } from "@/types/profile";
 
 export const usersKeys = {
   all: (): string[] => ["users"],
   me: (): string[] => ["users", "me"],
+  profileSettings: (): string[] => ["users", "profileSettings"],
 };
 
 export const UsersApiClient = {
@@ -24,5 +26,16 @@ export const UsersApiClient = {
 
   async getUsage(): Promise<Usage> {
     return apiFetch<Usage>("/usage/me");
+  },
+
+  async getProfileSettings(): Promise<ProfileSettings> {
+    return apiFetch<ProfileSettings>("/profiles/me/settings");
+  },
+
+  async updateProfileSettings(data: ProfileUpdateRequest): Promise<ProfileSettings> {
+    return apiFetch<ProfileSettings>("/profiles/me/settings", {
+      method: "PUT",
+      body: JSON.stringify(data),
+    });
   },
 };

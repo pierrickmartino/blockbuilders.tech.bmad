@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { StrategyTagsApiClient, strategyTagsKeys } from "@/lib/api/strategy-tags-client";
-import * as api from "@/lib/api";
+import * as api from "@/lib/api/internal/fetch";
 import type { StrategyTag } from "@/types/strategy";
 
-vi.mock("@/lib/api", () => ({
+vi.mock("@/lib/api/internal/fetch", () => ({
   apiFetch: vi.fn(),
   apiFetchVoid: vi.fn(),
 }));

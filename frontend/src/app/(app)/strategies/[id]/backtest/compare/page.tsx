@@ -12,7 +12,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import { apiFetch } from "@/lib/api";
+import { StrategiesApiClient } from "@/lib/api/strategies-client";
 import { BacktestsApiClient } from "@/lib/api/backtests-client";
 import { formatDateTime, formatPercent, formatPrice, formatChartDate } from "@/lib/format";
 import { useDisplay } from "@/context/display";
@@ -67,7 +67,7 @@ export default function CompareBacktestsPage({ params }: Props) {
   useEffect(() => {
     const loadStrategy = async () => {
       try {
-        const data = await apiFetch<Strategy>(`/strategies/${id}`);
+        const data = await StrategiesApiClient.get(id);
         setStrategy(data);
       } catch (err) {
         console.error("Failed to load strategy:", err);
