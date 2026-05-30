@@ -3,6 +3,7 @@
 Zero I/O, zero DB, zero HTTP — safe to unit test without any app context.
 """
 from app.backtest.catalogue import lookup as catalogue_lookup
+from app.backtest.types import RiskParams, TakeProfitLevel, ValidatedStrategy, ValidationResult
 from app.schemas.strategy import Block, StrategyDefinitionValidate, ValidationError
 from app.validation.error_messages import get_error_message
 
@@ -295,3 +296,75 @@ def collect_validation_errors(definition: StrategyDefinitionValidate) -> list[Va
         errors.extend(validate_block_params(block))
 
     return errors
+
+
+def _extract_risk_params(blocks: list[Block]) -> RiskParams:
+    """Extract risk parameters from blocks, using baselines for absent blocks."""
+    position_size_pct = 100.0
+    take_profit_levels: tuple[TakeProfitLevel, ...] | None = None
+    stop_loss_pct: float | None = None
+    max_drawdown_pct: float | None = None
+    time_exit_bars: int | None = None
+    trailing_stop_pct: float | None = None
+
+    for block in blocks:
+        params = block.params
+        if block.type == "position_size":
+            position_size_pct = float(params["value"])
+        elif block.type == "take_profit":
+            levels = params.get("levels")
+            if levels and isinstance(levels, list):
+                take_profit_levels = tuple(
+                    TakeProfitLevel(profit_pct=float(lvl["profit_pct"]), close_pct=int(lvl["close_pct"]))
+                    for lvl in levels
+                )
+            elif "take_profit_pct" in params:
+                take_profit_levels = (TakeProfitLevel(profit_pct=float(params["take_profit_pct"]), close_pct=100),)
+        elif block.type == "stop_loss":
+            stop_loss_pct = float(params["stop_loss_pct"])
+        elif block.type == "max_drawdown":
+            max_drawdown_pct = float(params["max_drawdown_pct"])
+        elif block.type == "time_exit":
+            time_exit_bars = int(params["bars"])
+        elif block.type == "trailing_stop":
+            trailing_stop_pct = float(params["trail_pct"])
+
+    return RiskParams(
+        position_size_pct=position_size_pct,
+        take_profit_levels=take_profit_levels,
+        stop_loss_pct=stop_loss_pct,
+        max_drawdown_pct=max_drawdown_pct,
+        time_exit_bars=time_exit_bars,
+        trailing_stop_pct=trailing_stop_pct,
+    )
+
+
+def build_validated_strategy(definition: StrategyDefinitionValidate) -> ValidatedStrategy:
+    """Normalize connections and extract risk parameters from a definition.
+
+    Assumes validation has already passed; does not re-validate.
+    """
+    blocks = tuple(b.model_dump() for b in definition.blocks)
+    connections = tuple(
+        {
+            "from_port": {"block_id": c.from_port.block_id, "port": c.from_port.port},
+            "to_port": {"block_id": c.to_port.block_id, "port": c.to_port.port},
+        }
+        for c in definition.connections
+    )
+    return ValidatedStrategy(
+        blocks=blocks,
+        connections=connections,
+        risk_params=_extract_risk_params(definition.blocks),
+    )
+
+
+def validate_strategy(definition: StrategyDefinitionValidate) -> ValidationResult:
+    """Validate a strategy definition and, if clean, extract a ValidatedStrategy.
+
+    Extraction is lazy: build_validated_strategy is never called for invalid strategies.
+    """
+    errors = collect_validation_errors(definition)
+    if errors:
+        return ValidationResult(errors=tuple(errors))
+    return ValidationResult(errors=(), strategy=build_validated_strategy(definition))

@@ -6,16 +6,10 @@ from app.models.candle import Candle
 from app.backtest.errors import StrategyInvalidError
 from app.backtest.catalogue import lookup as catalogue_lookup
 from app.backtest.catalogue.types import BlockContext
+from app.backtest.types import TakeProfitLevel  # noqa: F401  (re-exported for backward compat)
 
 _ENTRY_SIGNAL_TYPES: frozenset[str] = frozenset({"entry_signal"})
 _EXIT_SIGNAL_TYPES: frozenset[str] = frozenset({"exit_signal"})
-
-
-@dataclass
-class TakeProfitLevel:
-    """A single take profit level."""
-    profit_pct: float
-    close_pct: int
 
 
 @dataclass
