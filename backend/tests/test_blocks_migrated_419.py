@@ -220,17 +220,23 @@ class TestInterpreterDispatch:
             for i in range(n)
         ]
 
+    def _to_validated(self, definition: dict):
+        from app.backtest.types import RiskParams, ValidatedStrategy
+        blocks = tuple(definition.get("blocks", []))
+        connections = tuple(definition.get("connections", []))
+        return ValidatedStrategy(blocks=blocks, connections=connections, risk_params=RiskParams())
+
     def test_entry_signal_dispatched_via_catalogue(self):
         from app.backtest.interpreter import interpret_strategy
 
-        definition = self._minimal_strategy("entry_signal")
-        signals = interpret_strategy(definition, self._candles(3))
+        strategy = self._to_validated(self._minimal_strategy("entry_signal"))
+        signals = interpret_strategy(strategy, self._candles(3))
         assert signals.entry_long == [True, True, True]
 
     def test_exit_signal_dispatched_via_catalogue(self):
         from app.backtest.interpreter import interpret_strategy
 
-        definition = {
+        strategy = self._to_validated({
             "blocks": [
                 {"id": "src", "type": "constant", "params": {"value": 1}},
                 {"id": "entry", "type": "entry_signal", "params": {}},
@@ -246,21 +252,21 @@ class TestInterpreterDispatch:
                     "to_port": {"block_id": "exit", "port": "signal"},
                 },
             ],
-        }
-        signals = interpret_strategy(definition, self._candles(3))
+        })
+        signals = interpret_strategy(strategy, self._candles(3))
         assert signals.exit_long == [True, True, True]
 
     def test_entry_signal_false_when_no_input(self):
         """Unconnected entry_signal must output all-False (default)."""
         from app.backtest.interpreter import interpret_strategy
 
-        definition = {
+        strategy = self._to_validated({
             "blocks": [
                 {"id": "sig", "type": "entry_signal", "params": {}},
                 {"id": "esig", "type": "exit_signal", "params": {}},
             ],
             "connections": [],
-        }
-        signals = interpret_strategy(definition, self._candles(2))
+        })
+        signals = interpret_strategy(strategy, self._candles(2))
         assert signals.entry_long == [False, False]
         assert signals.exit_long == [False, False]

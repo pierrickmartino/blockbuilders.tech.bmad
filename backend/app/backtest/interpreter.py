@@ -6,7 +6,7 @@ from app.models.candle import Candle
 from app.backtest.errors import StrategyInvalidError
 from app.backtest.catalogue import lookup as catalogue_lookup
 from app.backtest.catalogue.types import BlockContext
-from app.backtest.types import TakeProfitLevel  # noqa: F401  (re-exported for backward compat)
+from app.backtest.types import TakeProfitLevel, ValidatedStrategy  # noqa: F401  (re-exported for backward compat)
 
 _ENTRY_SIGNAL_TYPES: frozenset[str] = frozenset({"entry_signal"})
 _EXIT_SIGNAL_TYPES: frozenset[str] = frozenset({"exit_signal"})
@@ -19,23 +19,23 @@ class StrategySignals:
     entry_long: list[bool]
     exit_long: list[bool]
     position_size_pct: float
-    take_profit_levels: Optional[list[TakeProfitLevel]]  # New: TP ladder
+    take_profit_levels: Optional[list[TakeProfitLevel]]
     stop_loss_pct: Optional[float]
-    max_drawdown_pct: Optional[float]  # New: Max drawdown threshold
-    time_exit_bars: Optional[int] = None  # New: Time exit after N bars
-    trailing_stop_pct: Optional[float] = None  # New: Trailing stop percentage
+    max_drawdown_pct: Optional[float]
+    time_exit_bars: Optional[int] = None
+    trailing_stop_pct: Optional[float] = None
 
 
 def interpret_strategy(
-    definition: dict,
+    strategy: ValidatedStrategy,
     candles: list[Candle],
 ) -> StrategySignals:
     """
-    Parse strategy definition, compute indicators, evaluate logic blocks,
-    return entry/exit signals for each candle.
+    Compute indicators and evaluate logic blocks from a pre-validated strategy,
+    returning entry/exit signals for each candle.
     """
-    blocks = definition.get("blocks", [])
-    connections = definition.get("connections", [])
+    blocks = strategy.blocks
+    connections = strategy.connections
 
     if not blocks:
         raise StrategyInvalidError("Strategy has no blocks", "Invalid strategy: no blocks defined.")
@@ -43,18 +43,14 @@ def interpret_strategy(
     # Build block lookup
     block_map = {b["id"]: b for b in blocks}
 
-    # Build connection graph: to_block_id -> {port -> from_block_id.port}
-    # Handle both old format (from/to) and new format (from_port/to_port)
+    # Build connection graph: to_block_id -> {port -> (from_block_id, from_port)}
+    # Connections are already normalized to from_port/to_port format.
     input_map: dict[str, dict[str, tuple[str, str]]] = {}
     for conn in connections:
-        # Support both old and new format
-        from_data = conn.get("from_port") or conn.get("from", {})
-        to_data = conn.get("to_port") or conn.get("to", {})
-
-        from_block = from_data.get("block_id")
-        from_port = from_data.get("port", "output")
-        to_block = to_data.get("block_id")
-        to_port = to_data.get("port", "input")
+        from_block = conn["from_port"]["block_id"]
+        from_port = conn["from_port"]["port"]
+        to_block = conn["to_port"]["block_id"]
+        to_port = conn["to_port"]["port"]
 
         if to_block not in input_map:
             input_map[to_block] = {}
@@ -125,55 +121,26 @@ def interpret_strategy(
 
         return block_outputs[block_id].get(port, block_outputs[block_id].get("output", [None] * n))
 
-    # Find entry and exit signal blocks (support multiple)
+    # Find entry and exit signal blocks
     entry_blocks = []
     exit_blocks = []
-    position_size_pct = 100.0
-    take_profit_levels: Optional[list[TakeProfitLevel]] = None
-    stop_loss_pct = None
-    max_drawdown_pct = None
-    time_exit_bars: Optional[int] = None
-    trailing_stop_pct: Optional[float] = None
-
     for block in blocks:
         block_type = block["type"]
-        params = block.get("params", {})
-
         if block_type in _ENTRY_SIGNAL_TYPES:
             entry_blocks.append(block["id"])
         elif block_type in _EXIT_SIGNAL_TYPES:
             exit_blocks.append(block["id"])
-        elif block_type == "position_size":
-            position_size_pct = float(params.get("value", 100))
-        elif block_type == "take_profit":
-            # Support both new levels format and legacy take_profit_pct
-            if "levels" in params and isinstance(params["levels"], list):
-                take_profit_levels = [
-                    TakeProfitLevel(
-                        profit_pct=float(lvl.get("profit_pct", 10)),
-                        close_pct=int(lvl.get("close_pct", 100))
-                    )
-                    for lvl in params["levels"]
-                ]
-            elif "take_profit_pct" in params:
-                # Legacy format: single TP level with 100% close
-                take_profit_levels = [
-                    TakeProfitLevel(
-                        profit_pct=float(params.get("take_profit_pct", 10)),
-                        close_pct=100
-                    )
-                ]
-            else:
-                # Default
-                take_profit_levels = [TakeProfitLevel(profit_pct=10.0, close_pct=100)]
-        elif block_type == "stop_loss":
-            stop_loss_pct = float(params.get("stop_loss_pct", 5))
-        elif block_type == "max_drawdown":
-            max_drawdown_pct = float(params.get("max_drawdown_pct", 10))
-        elif block_type == "time_exit":
-            time_exit_bars = int(params.get("bars", 10))
-        elif block_type == "trailing_stop":
-            trailing_stop_pct = float(params.get("trail_pct", 5))
+
+    # Read risk parameters from pre-extracted ValidatedStrategy risk_params
+    risk = strategy.risk_params
+    position_size_pct = risk.position_size_pct
+    take_profit_levels: Optional[list[TakeProfitLevel]] = (
+        list(risk.take_profit_levels) if risk.take_profit_levels else None
+    )
+    stop_loss_pct = risk.stop_loss_pct
+    max_drawdown_pct = risk.max_drawdown_pct
+    time_exit_bars = risk.time_exit_bars
+    trailing_stop_pct = risk.trailing_stop_pct
 
     # Compute OR of all entry signals
     entry_signals_list = [get_block_output(block_id) for block_id in entry_blocks]
@@ -201,19 +168,6 @@ def interpret_strategy(
     )
 
 
-def _get_input(
-    inputs: dict[str, tuple[str, str]],
-    port: str,
-    get_fn: callable,
-    default: list[Any],
-) -> list[Any]:
-    """Get input data for a port, or return default."""
-    if port in inputs:
-        from_block, from_port = inputs[port]
-        return get_fn(from_block, from_port)
-    return default
-
-
 def _to_bool(value: Any) -> bool:
     """Convert value to boolean."""
     if value is None:
@@ -223,5 +177,3 @@ def _to_bool(value: Any) -> bool:
     if isinstance(value, (int, float)):
         return value != 0
     return bool(value)
-
-
