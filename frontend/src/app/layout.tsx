@@ -3,6 +3,7 @@ import { IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/auth";
 import { DisplayProvider } from "@/context/display";
+import { Providers } from "@/app/providers";
 import { PostHogBootstrap } from "@/components/PostHogBootstrap";
 import { ConsentBanner } from "@/components/ConsentBanner";
 import { Toaster } from "sonner";
@@ -48,9 +49,11 @@ export default function RootLayout({
         />
       </head>
       <body className={`${plexSans.variable} ${plexMono.variable} min-h-screen bg-background font-sans`}>
-        <AuthProvider>
-          <DisplayProvider>{children}</DisplayProvider>
-        </AuthProvider>
+        <Providers>
+          <AuthProvider>
+            <DisplayProvider>{children}</DisplayProvider>
+          </AuthProvider>
+        </Providers>
         <PostHogBootstrap />
         <ConsentBanner />
         <Toaster position="top-right" richColors />

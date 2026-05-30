@@ -1,5 +1,15 @@
-import { apiFetch, apiFetchVoid } from "@/lib/api";
+import { apiFetch, apiFetchVoid } from "@/lib/api/internal/fetch";
 import type { NotificationFilters, NotificationListResponse } from "@/types/notification";
+
+export const notificationsKeys = {
+  all: (): string[] => ["notifications"],
+  lists: (): string[] => ["notifications", "list"],
+  list: (filters: Record<string, unknown>): unknown[] => [
+    "notifications",
+    "list",
+    filters,
+  ],
+};
 
 export const NotificationsApiClient = {
   async list(filters: NotificationFilters): Promise<NotificationListResponse> {
@@ -33,6 +43,14 @@ export const NotificationsApiClient = {
     const qs = params.toString();
     const url = qs ? `/notifications/?${qs}` : "/notifications/";
     return apiFetch<NotificationListResponse>(url);
+  },
+
+  async markAsRead(id: string): Promise<void> {
+    await apiFetchVoid(`/notifications/${id}/acknowledge`, { method: "POST" });
+  },
+
+  async markAllAsRead(): Promise<void> {
+    await apiFetchVoid("/notifications/acknowledge-all", { method: "POST" });
   },
 
   async archive(id: string): Promise<void> {

@@ -18,19 +18,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { apiFetch } from "@/lib/api";
+import { BacktestsApiClient } from "@/lib/api/backtests-client";
 import { Check, Copy, Loader2 } from "lucide-react";
 
 interface ShareBacktestModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   runId: string;
-}
-
-interface ShareLinkResponse {
-  url: string;
-  token: string;
-  expires_at: string | null;
 }
 
 type ExpirationOption = "7d" | "30d" | "never";
@@ -69,13 +63,7 @@ export function ShareBacktestModal({
         expiresAt = date.toISOString();
       }
 
-      const response = await apiFetch<ShareLinkResponse>(
-        `/backtests/${runId}/share-links`,
-        {
-          method: "POST",
-          body: JSON.stringify({ expires_at: expiresAt }),
-        }
-      );
+      const response = await BacktestsApiClient.createShareLink(runId, { expires_at: expiresAt });
 
       setShareUrl(response.url);
     } catch (err) {

@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { apiFetch, ApiError } from "@/lib/api";
+import { ApiError } from "@/lib/api";
+import { UsersApiClient } from "@/lib/api/users-client";
 import { toast } from "sonner";
 import { ProfileSettings, ProfileUpdateRequest } from "@/types/profile";
 import { Input } from "@/components/ui/input";
@@ -54,7 +55,7 @@ export function ProfileSettingsSection({ onSettingsLoad }: ProfileSettingsSectio
     setIsLoading(true);
     setLoadFailed(false);
     try {
-      const data = await apiFetch<ProfileSettings>("/profiles/me/settings");
+      const data = await UsersApiClient.getProfileSettings();
       applySettings(data);
     } catch {
       setLoadFailed(true);
@@ -110,10 +111,7 @@ export function ProfileSettingsSection({ onSettingsLoad }: ProfileSettingsSectio
     };
 
     try {
-      const updated = await apiFetch<ProfileSettings>("/profiles/me/settings", {
-        method: "PUT",
-        body: JSON.stringify(data),
-      });
+      const updated = await UsersApiClient.updateProfileSettings(data);
       applySettings(updated);
       toast.success("Profile settings saved");
     } catch (err) {

@@ -12,7 +12,8 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import { apiFetch } from "@/lib/api";
+import { StrategiesApiClient } from "@/lib/api/strategies-client";
+import { BacktestsApiClient } from "@/lib/api/backtests-client";
 import { formatDateTime, formatPercent, formatPrice, formatChartDate } from "@/lib/format";
 import { useDisplay } from "@/context/display";
 import { BacktestCompareResponse } from "@/types/backtest";
@@ -66,7 +67,7 @@ export default function CompareBacktestsPage({ params }: Props) {
   useEffect(() => {
     const loadStrategy = async () => {
       try {
-        const data = await apiFetch<Strategy>(`/strategies/${id}`);
+        const data = await StrategiesApiClient.get(id);
         setStrategy(data);
       } catch (err) {
         console.error("Failed to load strategy:", err);
@@ -90,10 +91,7 @@ export default function CompareBacktestsPage({ params }: Props) {
       setError(null);
 
       try {
-        const data = await apiFetch<BacktestCompareResponse>("/backtests/compare", {
-          method: "POST",
-          body: JSON.stringify({ run_ids: runIds }),
-        });
+        const data = await BacktestsApiClient.compare(runIds);
         setCompareData(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load comparison data");

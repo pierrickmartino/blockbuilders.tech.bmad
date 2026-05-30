@@ -9,7 +9,7 @@ import {
   LineSeries,
   Time,
 } from "lightweight-charts";
-import { apiFetch } from "@/lib/api";
+import { BacktestsApiClient } from "@/lib/api/backtests-client";
 import {
   formatDateTime,
   formatDuration,
@@ -53,9 +53,9 @@ export default function TradeDrawer({
   useEffect(() => {
     setIsLoading(true);
     setError(null);
-    apiFetch<TradeDetailResponse>(`/backtests/${runId}/trades/${tradeIdx}`)
+    BacktestsApiClient.getTradeDetail(runId, tradeIdx)
       .then(setData)
-      .catch((e) => setError(e.message || "Failed to load trade details"))
+      .catch((e) => setError(e instanceof Error ? e.message : "Failed to load trade details"))
       .finally(() => setIsLoading(false));
   }, [runId, tradeIdx]);
 

@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Loader2, Plus, Search, Sparkles } from "lucide-react";
-import { apiFetch } from "@/lib/api";
+import { useQuery } from "@tanstack/react-query";
+import { StrategyTemplatesApiClient, strategyTemplatesKeys } from "@/lib/api/strategy-templates-client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -35,7 +36,6 @@ import {
 } from "@/components/ui/breadcrumb";
 import { cn } from "@/lib/utils";
 import type { StrategyTemplate } from "@/types/strategy-template";
-import type { Strategy } from "@/types/strategy";
 
 type DifficultyKey = "beginner" | "intermediate" | "advanced";
 
@@ -101,9 +101,6 @@ function TemplateCardSkeleton() {
 
 export default function TemplatesPage() {
   const router = useRouter();
-  const [templates, setTemplates] = useState<StrategyTemplate[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
   const [cloningId, setCloningId] = useState<string | null>(null);
   const [cloneErrors, setCloneErrors] = useState<Record<string, string>>({});
   const [previewTemplate, setPreviewTemplate] =
@@ -115,24 +112,10 @@ export default function TemplatesPage() {
   const [timeframe, setTimeframe] = useState<string>("all");
   const [query, setQuery] = useState("");
 
-  const loadTemplates = async () => {
-    setIsLoading(true);
-    setLoadError(null);
-    try {
-      const data = await apiFetch<StrategyTemplate[]>("/strategy-templates/");
-      setTemplates(data);
-    } catch (err) {
-      setLoadError(
-        err instanceof Error ? err.message : "Failed to load templates"
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadTemplates();
-  }, []);
+  const { data: templates = [], isLoading, error: loadError } = useQuery({
+    queryKey: strategyTemplatesKeys.list(),
+    queryFn: () => StrategyTemplatesApiClient.list(),
+  });
 
   const handleClone = async (templateId: string) => {
     setCloningId(templateId);
@@ -143,10 +126,7 @@ export default function TemplatesPage() {
     });
 
     try {
-      const strategy = await apiFetch<Strategy>(
-        `/strategy-templates/${templateId}/clone`,
-        { method: "POST" }
-      );
+      const strategy = await StrategyTemplatesApiClient.clone(templateId);
       router.push(`/strategies/${strategy.id}`);
     } catch (err) {
       setCloneErrors((prev) => ({
@@ -308,15 +288,7 @@ export default function TemplatesPage() {
           role="alert"
           className="flex items-start justify-between gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive"
         >
-          <span>{loadError}</span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={loadTemplates}
-            className="border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
-          >
-            Try again
-          </Button>
+          <span>{loadError instanceof Error ? loadError.message : "Failed to load templates"}</span>
         </div>
       )}
 

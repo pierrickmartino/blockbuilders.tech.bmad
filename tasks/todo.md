@@ -1,5 +1,38 @@
 # Tasks — in flight
 
+## Strategy alert edit form hydration (implemented)
+
+- [x] Seed local alert form state from the loaded query-derived alert rule
+- [x] Cover saving an existing alert without re-entering fields
+- [x] Verify with targeted test, full frontend tests, scoped lint, and build
+- [x] Record the correction pattern in `tasks/lessons.md`
+
+## Strategy list query failure banner (implemented)
+
+- [x] Wire the strategies React Query error state into the existing page error banner
+- [x] Clear stale load-failure banners after successful query recovery without clearing unrelated action errors
+- [x] Replace the initial-failure "No strategies yet" empty state with a load-failure retry state
+- [x] Verify `npm test` (37 files / 471 tests passed)
+- [x] Verify changed page with targeted ESLint (0 errors; existing warnings only)
+- [x] Verify `npm run build`
+- [ ] Full `npm run lint` remains blocked by existing generated `frontend/storybook-static` errors
+
+## Issue #475 — TanStack Query infrastructure + notifications domain pilot (done)
+
+- [x] Install `@tanstack/react-query` v5 + devtools
+- [x] `src/lib/query-client.ts` — `createQueryClient()` with global defaults, retry predicate (`shouldRetry`), 401 error handler
+- [x] `src/lib/api/notifications-client.ts` — moved from `notifications-api-client.ts`, added `markAsRead()`, `markAllAsRead()`, `notificationsKeys` factory
+- [x] `src/app/providers.tsx` — SSR-safe `QueryClientProvider` + devtools (dev only)
+- [x] `src/app/layout.tsx` — wrapped with `<Providers>`
+- [x] `src/hooks/useNotifications.ts` — migrated to `useQuery` + `useMutation` with optimistic updates
+- [x] `src/hooks/useNotificationsPage.ts` — write ops migrated to `useMutation`, reads use `queryClient.fetchQuery`
+- [x] `eslint.config.mjs` — `no-restricted-imports` rule blocking `apiFetch` outside `src/lib/api/**`
+- [x] All 299 tests pass, `tsc --noEmit` clean
+
+Remaining violations of the ESLint rule are pre-existing (other domains not yet migrated — tracked by parent issue #446).
+
+---
+
 ## FEAT-459 — Publish flow: promote draft to versioned (implemented)
 
 Backend
