@@ -1,9 +1,42 @@
-"""Tests for strategy interpreter signal wiring and evaluation."""
+"""Tests for strategy interpreter signal wiring and evaluation.
+
+Tests construct ValidatedStrategy directly via make_validated_strategy,
+decoupled from the validation pipeline.
+"""
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
+import pytest
+
 from app.backtest.interpreter import interpret_strategy
+from app.backtest.types import RiskParams, TakeProfitLevel, ValidatedStrategy
 from app.models.candle import Candle
+
+
+# ── test helpers ──────────────────────────────────────────────────────────────
+
+def make_block_dict(block_id: str, block_type: str, params: dict | None = None) -> dict:
+    return {"id": block_id, "type": block_type, "params": params or {}}
+
+
+def make_connection_dict(from_block: str, from_port: str, to_block: str, to_port: str) -> dict:
+    return {
+        "from_port": {"block_id": from_block, "port": from_port},
+        "to_port": {"block_id": to_block, "port": to_port},
+    }
+
+
+def make_validated_strategy(
+    blocks: list[dict],
+    connections: list[dict] | None = None,
+    risk_params: RiskParams | None = None,
+) -> ValidatedStrategy:
+    """Build a ValidatedStrategy directly for interpreter testing."""
+    return ValidatedStrategy(
+        blocks=tuple(blocks),
+        connections=tuple(connections or []),
+        risk_params=risk_params or RiskParams(),
+    )
 
 
 def make_descending_candles(count: int = 20) -> list[Candle]:
@@ -30,70 +63,6 @@ def make_descending_candles(count: int = 20) -> list[Candle]:
     return candles
 
 
-def test_compare_supports_legacy_a_b_ports_for_entry_signal():
-    candles = make_descending_candles()
-    definition = {
-        "blocks": [
-            {"id": "rsi-1", "type": "rsi", "params": {"period": 14}},
-            {"id": "const-1", "type": "constant", "params": {"value": 20}},
-            {"id": "cmp-1", "type": "compare", "params": {"operator": "<"}},
-            {"id": "entry-1", "type": "entry_signal", "params": {}},
-        ],
-        "connections": [
-            {"from": {"block_id": "rsi-1", "port": "output"}, "to": {"block_id": "cmp-1", "port": "a"}},
-            {"from": {"block_id": "const-1", "port": "output"}, "to": {"block_id": "cmp-1", "port": "b"}},
-            {"from": {"block_id": "cmp-1", "port": "output"}, "to": {"block_id": "entry-1", "port": "signal"}},
-        ],
-    }
-
-    signals = interpret_strategy(definition, candles)
-
-    # RSI(14) should become 0 on persistent declines, so RSI < 20 should trigger.
-    assert any(signals.entry_long)
-
-
-def test_compare_supports_left_right_ports_for_entry_signal():
-    candles = make_descending_candles()
-    definition = {
-        "blocks": [
-            {"id": "rsi-1", "type": "rsi", "params": {"period": 14}},
-            {"id": "const-1", "type": "constant", "params": {"value": 20}},
-            {"id": "cmp-1", "type": "compare", "params": {"operator": "<"}},
-            {"id": "entry-1", "type": "entry_signal", "params": {}},
-        ],
-        "connections": [
-            {"from": {"block_id": "rsi-1", "port": "output"}, "to": {"block_id": "cmp-1", "port": "left"}},
-            {"from": {"block_id": "const-1", "port": "output"}, "to": {"block_id": "cmp-1", "port": "right"}},
-            {"from": {"block_id": "cmp-1", "port": "output"}, "to": {"block_id": "entry-1", "port": "signal"}},
-        ],
-    }
-
-    signals = interpret_strategy(definition, candles)
-
-    assert any(signals.entry_long)
-
-
-def test_compare_supports_legacy_word_operator_below_for_entry_signal():
-    candles = make_descending_candles()
-    definition = {
-        "blocks": [
-            {"id": "rsi-1", "type": "rsi", "params": {"period": 14}},
-            {"id": "const-1", "type": "constant", "params": {"value": 20}},
-            {"id": "cmp-1", "type": "compare", "params": {"operator": "below"}},
-            {"id": "entry-1", "type": "entry_signal", "params": {}},
-        ],
-        "connections": [
-            {"from": {"block_id": "rsi-1", "port": "output"}, "to": {"block_id": "cmp-1", "port": "left"}},
-            {"from": {"block_id": "const-1", "port": "output"}, "to": {"block_id": "cmp-1", "port": "right"}},
-            {"from": {"block_id": "cmp-1", "port": "output"}, "to": {"block_id": "entry-1", "port": "signal"}},
-        ],
-    }
-
-    signals = interpret_strategy(definition, candles)
-
-    assert any(signals.entry_long)
-
-
 def make_uptrend_candles(count: int = 60) -> list[Candle]:
     """Create candles with monotonically increasing closes."""
     start = datetime(2024, 1, 1, tzinfo=timezone.utc)
@@ -118,26 +87,191 @@ def make_uptrend_candles(count: int = 60) -> list[Candle]:
     return candles
 
 
+# ── tracer bullet ─────────────────────────────────────────────────────────────
+
+def test_interpret_strategy_accepts_validated_strategy_and_returns_signals():
+    """Tracer bullet: interpreter accepts ValidatedStrategy and returns correct shape."""
+    candles = make_descending_candles()
+    strategy = make_validated_strategy(
+        blocks=[
+            make_block_dict("rsi-1", "rsi", {"period": 14}),
+            make_block_dict("const-1", "constant", {"value": 20}),
+            make_block_dict("cmp-1", "compare", {"operator": "<"}),
+            make_block_dict("entry-1", "entry_signal"),
+        ],
+        connections=[
+            make_connection_dict("rsi-1", "output", "cmp-1", "left"),
+            make_connection_dict("const-1", "output", "cmp-1", "right"),
+            make_connection_dict("cmp-1", "output", "entry-1", "signal"),
+        ],
+    )
+
+    signals = interpret_strategy(strategy, candles)
+
+    assert isinstance(signals.entry_long, list)
+    assert len(signals.entry_long) == len(candles)
+    assert any(signals.entry_long)
+
+
+# ── risk params from ValidatedStrategy ───────────────────────────────────────
+
+def test_risk_params_read_from_validated_strategy():
+    """Interpreter reads risk params from ValidatedStrategy, not by scanning blocks."""
+    candles = make_descending_candles()
+    risk = RiskParams(
+        position_size_pct=50.0,
+        stop_loss_pct=3.0,
+        max_drawdown_pct=10.0,
+        time_exit_bars=5,
+        trailing_stop_pct=2.0,
+    )
+    strategy = make_validated_strategy(
+        blocks=[make_block_dict("entry-1", "entry_signal")],
+        risk_params=risk,
+    )
+
+    signals = interpret_strategy(strategy, candles)
+
+    assert signals.position_size_pct == 50.0
+    assert signals.stop_loss_pct == 3.0
+    assert signals.max_drawdown_pct == 10.0
+    assert signals.time_exit_bars == 5
+    assert signals.trailing_stop_pct == 2.0
+
+
+def test_take_profit_levels_read_from_validated_strategy():
+    """Take-profit levels from RiskParams propagate to StrategySignals."""
+    candles = make_descending_candles()
+    levels = (
+        TakeProfitLevel(profit_pct=5.0, close_pct=50),
+        TakeProfitLevel(profit_pct=10.0, close_pct=50),
+    )
+    strategy = make_validated_strategy(
+        blocks=[make_block_dict("entry-1", "entry_signal")],
+        risk_params=RiskParams(take_profit_levels=levels),
+    )
+
+    signals = interpret_strategy(strategy, candles)
+
+    assert signals.take_profit_levels == list(levels)
+
+
+def test_absent_risk_blocks_return_baseline_values():
+    """RiskParams() defaults propagate: 100% size, all optional fields None."""
+    candles = make_descending_candles()
+    strategy = make_validated_strategy(
+        blocks=[make_block_dict("entry-1", "entry_signal")],
+    )
+
+    signals = interpret_strategy(strategy, candles)
+
+    assert signals.position_size_pct == 100.0
+    assert signals.take_profit_levels is None
+    assert signals.stop_loss_pct is None
+    assert signals.max_drawdown_pct is None
+    assert signals.time_exit_bars is None
+    assert signals.trailing_stop_pct is None
+
+
+# ── empty-graph guard ─────────────────────────────────────────────────────────
+
+def test_empty_blocks_raises_strategy_invalid_error():
+    """Empty-graph guard is retained: no blocks → StrategyInvalidError."""
+    from app.backtest.errors import StrategyInvalidError
+
+    strategy = make_validated_strategy(blocks=[])
+
+    with pytest.raises(StrategyInvalidError):
+        interpret_strategy(strategy, make_descending_candles())
+
+
+# ── legacy port-name compare tests (retained) ─────────────────────────────────
+
+def test_compare_supports_a_b_ports_for_entry_signal():
+    """a/b port names on the compare block are valid input ports."""
+    candles = make_descending_candles()
+    strategy = make_validated_strategy(
+        blocks=[
+            make_block_dict("rsi-1", "rsi", {"period": 14}),
+            make_block_dict("const-1", "constant", {"value": 20}),
+            make_block_dict("cmp-1", "compare", {"operator": "<"}),
+            make_block_dict("entry-1", "entry_signal"),
+        ],
+        connections=[
+            make_connection_dict("rsi-1", "output", "cmp-1", "a"),
+            make_connection_dict("const-1", "output", "cmp-1", "b"),
+            make_connection_dict("cmp-1", "output", "entry-1", "signal"),
+        ],
+    )
+
+    signals = interpret_strategy(strategy, candles)
+
+    assert any(signals.entry_long)
+
+
+def test_compare_supports_left_right_ports_for_entry_signal():
+    """left/right port names on the compare block are valid input ports."""
+    candles = make_descending_candles()
+    strategy = make_validated_strategy(
+        blocks=[
+            make_block_dict("rsi-1", "rsi", {"period": 14}),
+            make_block_dict("const-1", "constant", {"value": 20}),
+            make_block_dict("cmp-1", "compare", {"operator": "<"}),
+            make_block_dict("entry-1", "entry_signal"),
+        ],
+        connections=[
+            make_connection_dict("rsi-1", "output", "cmp-1", "left"),
+            make_connection_dict("const-1", "output", "cmp-1", "right"),
+            make_connection_dict("cmp-1", "output", "entry-1", "signal"),
+        ],
+    )
+
+    signals = interpret_strategy(strategy, candles)
+
+    assert any(signals.entry_long)
+
+
+def test_compare_supports_legacy_word_operator_below_for_entry_signal():
+    """Word operator 'below' is equivalent to '<' in compare block."""
+    candles = make_descending_candles()
+    strategy = make_validated_strategy(
+        blocks=[
+            make_block_dict("rsi-1", "rsi", {"period": 14}),
+            make_block_dict("const-1", "constant", {"value": 20}),
+            make_block_dict("cmp-1", "compare", {"operator": "below"}),
+            make_block_dict("entry-1", "entry_signal"),
+        ],
+        connections=[
+            make_connection_dict("rsi-1", "output", "cmp-1", "left"),
+            make_connection_dict("const-1", "output", "cmp-1", "right"),
+            make_connection_dict("cmp-1", "output", "entry-1", "signal"),
+        ],
+    )
+
+    signals = interpret_strategy(strategy, candles)
+
+    assert any(signals.entry_long)
+
+
 def test_macd_signal_port_produces_entry_via_registry():
     """MACD block exposes 'signal' port that can wire into compare."""
     candles = make_uptrend_candles(60)
-    definition = {
-        "blocks": [
-            {"id": "macd-1", "type": "macd", "params": {"fast_period": 12, "slow_period": 26, "signal_period": 9}},
-            {"id": "const-1", "type": "constant", "params": {"value": 0}},
-            {"id": "cmp-1", "type": "compare", "params": {"operator": ">"}},
-            {"id": "entry-1", "type": "entry_signal", "params": {}},
+    strategy = make_validated_strategy(
+        blocks=[
+            make_block_dict("macd-1", "macd", {"fast_period": 12, "slow_period": 26, "signal_period": 9}),
+            make_block_dict("const-1", "constant", {"value": 0}),
+            make_block_dict("cmp-1", "compare", {"operator": ">"}),
+            make_block_dict("entry-1", "entry_signal"),
         ],
-        "connections": [
-            {"from": {"block_id": "macd-1", "port": "signal"}, "to": {"block_id": "cmp-1", "port": "left"}},
-            {"from": {"block_id": "const-1", "port": "output"}, "to": {"block_id": "cmp-1", "port": "right"}},
-            {"from": {"block_id": "cmp-1", "port": "output"}, "to": {"block_id": "entry-1", "port": "signal"}},
+        connections=[
+            make_connection_dict("macd-1", "signal", "cmp-1", "left"),
+            make_connection_dict("const-1", "output", "cmp-1", "right"),
+            make_connection_dict("cmp-1", "output", "entry-1", "signal"),
         ],
-    }
+    )
 
-    signals = interpret_strategy(definition, candles)
+    signals = interpret_strategy(strategy, candles)
 
-    # signal series should be a real list of bools, not all-None
     assert isinstance(signals.entry_long, list)
     assert len(signals.entry_long) == len(candles)
 
@@ -145,21 +279,21 @@ def test_macd_signal_port_produces_entry_via_registry():
 def test_bollinger_lower_port_triggers_entry_on_price_below_band():
     """Bollinger block exposes 'lower' port; price below lower band triggers entry."""
     candles = make_descending_candles(60)
-    definition = {
-        "blocks": [
-            {"id": "price-1", "type": "price", "params": {"source": "close"}},
-            {"id": "boll-1", "type": "bollinger", "params": {"period": 20, "stddev": 2.0}},
-            {"id": "cmp-1", "type": "compare", "params": {"operator": "<"}},
-            {"id": "entry-1", "type": "entry_signal", "params": {}},
+    strategy = make_validated_strategy(
+        blocks=[
+            make_block_dict("price-1", "price", {"source": "close"}),
+            make_block_dict("boll-1", "bollinger", {"period": 20, "stddev": 2.0}),
+            make_block_dict("cmp-1", "compare", {"operator": "<"}),
+            make_block_dict("entry-1", "entry_signal"),
         ],
-        "connections": [
-            {"from": {"block_id": "price-1", "port": "output"}, "to": {"block_id": "cmp-1", "port": "left"}},
-            {"from": {"block_id": "boll-1", "port": "lower"}, "to": {"block_id": "cmp-1", "port": "right"}},
-            {"from": {"block_id": "cmp-1", "port": "output"}, "to": {"block_id": "entry-1", "port": "signal"}},
+        connections=[
+            make_connection_dict("price-1", "output", "cmp-1", "left"),
+            make_connection_dict("boll-1", "lower", "cmp-1", "right"),
+            make_connection_dict("cmp-1", "output", "entry-1", "signal"),
         ],
-    }
+    )
 
-    signals = interpret_strategy(definition, candles)
+    signals = interpret_strategy(strategy, candles)
 
     assert isinstance(signals.entry_long, list)
     assert len(signals.entry_long) == len(candles)
@@ -176,8 +310,6 @@ def test_bollinger_lower_port_triggers_entry_on_price_below_band():
 #   • entry_long and exit_long are lists of length n
 #   • risk fields default to their no-block values
 # ---------------------------------------------------------------------------
-
-import pytest  # noqa: E402 (local import grouping acceptable inside module)
 
 _INDICATOR_CASES = [
     ("sma",               {"period": 10},                                          "output", ">",  0),
@@ -206,31 +338,22 @@ def test_indicator_full_strategy_chain_shape(
     """price source → indicator → comparator → entry_signal returns correct signal shape."""
     candles = make_uptrend_candles(100)
     n = len(candles)
-    definition = {
-        "blocks": [
-            {"id": "price-1",                "type": "price",        "params": {"source": "close"}},
-            {"id": f"{indicator_type}-1",    "type": indicator_type, "params": params},
-            {"id": "const-1",               "type": "constant",     "params": {"value": threshold}},
-            {"id": "cmp-1",                 "type": "compare",      "params": {"operator": operator}},
-            {"id": "entry-1",               "type": "entry_signal", "params": {}},
+    strategy = make_validated_strategy(
+        blocks=[
+            make_block_dict("price-1", "price", {"source": "close"}),
+            make_block_dict(f"{indicator_type}-1", indicator_type, params),
+            make_block_dict("const-1", "constant", {"value": threshold}),
+            make_block_dict("cmp-1", "compare", {"operator": operator}),
+            make_block_dict("entry-1", "entry_signal"),
         ],
-        "connections": [
-            {
-                "from": {"block_id": f"{indicator_type}-1", "port": port},
-                "to":   {"block_id": "cmp-1",               "port": "left"},
-            },
-            {
-                "from": {"block_id": "const-1", "port": "output"},
-                "to":   {"block_id": "cmp-1",   "port": "right"},
-            },
-            {
-                "from": {"block_id": "cmp-1",   "port": "output"},
-                "to":   {"block_id": "entry-1", "port": "signal"},
-            },
+        connections=[
+            make_connection_dict(f"{indicator_type}-1", port, "cmp-1", "left"),
+            make_connection_dict("const-1", "output", "cmp-1", "right"),
+            make_connection_dict("cmp-1", "output", "entry-1", "signal"),
         ],
-    }
+    )
 
-    signals = interpret_strategy(definition, candles)
+    signals = interpret_strategy(strategy, candles)
 
     assert isinstance(signals.entry_long, list)
     assert len(signals.entry_long) == n

@@ -27,9 +27,11 @@ from app.backtest.data_quality import compute_daily_metrics, check_has_issues
 from app.backtest.interpreter import interpret_strategy
 from app.backtest.engine import run_backtest, compute_benchmark_curve, compute_benchmark_metrics
 from app.backtest.storage import upload_json, generate_results_key
-from app.backtest.errors import BacktestError
+from app.backtest.errors import BacktestError, StrategyInvalidError
+from app.schemas.strategy import StrategyDefinitionValidate
 from app.services.alert_evaluator import evaluate_alerts_for_run
 from app.services.analytics import track_backend_event, flush_backend_events
+from app.services.strategy_validation import validate_strategy
 
 logger = logging.getLogger(__name__)
 
@@ -126,6 +128,31 @@ def run_backtest_job(
                         "Invalid strategy: no block configuration found.",
                     )
 
+                # Validate before fetching candles (pure CPU — no I/O cost)
+                try:
+                    parsed = StrategyDefinitionValidate.model_validate(definition)
+                except Exception:
+                    raise StrategyInvalidError(
+                        "Strategy definition structure is malformed",
+                        "Strategy validation failed: definition structure is malformed.",
+                    )
+
+                validation_result = validate_strategy(parsed)
+                if validation_result.errors:
+                    first = validation_result.errors[0]
+                    extra = len(validation_result.errors) - 1
+                    user_msg = (
+                        f"{first.user_message} (+{extra} more issues)"
+                        if extra > 0
+                        else first.user_message
+                    )
+                    raise StrategyInvalidError(
+                        f"Strategy validation failed: {first.message}",
+                        user_msg,
+                    )
+
+                validated_strategy = validation_result.strategy
+
                 logger.info(
                     "backtest_processing",
                     extra={
@@ -155,7 +182,7 @@ def run_backtest_job(
                 logger.info("candles_fetched", extra={"count": len(candles)})
 
                 # Interpret strategy to get signals
-                signals = interpret_strategy(definition, candles)
+                signals = interpret_strategy(validated_strategy, candles)
                 logger.info(
                     "strategy_interpreted",
                     extra={

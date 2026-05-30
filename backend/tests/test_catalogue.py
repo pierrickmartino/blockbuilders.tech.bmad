@@ -184,21 +184,23 @@ def test_interpreter_dispatches_sma_via_catalogue():
             )
         )
 
-    definition = {
-        "blocks": [
+    from app.backtest.types import RiskParams, ValidatedStrategy
+    strategy = ValidatedStrategy(
+        blocks=(
             {"id": "sma-1", "type": "sma", "params": {"period": 5, "source": "close"}},
             {"id": "price-1", "type": "price", "params": {"source": "close"}},
             {"id": "cmp-1", "type": "compare", "params": {"operator": ">"}},
             {"id": "entry-1", "type": "entry_signal", "params": {}},
-        ],
-        "connections": [
-            {"from": {"block_id": "price-1", "port": "output"}, "to": {"block_id": "cmp-1", "port": "left"}},
-            {"from": {"block_id": "sma-1", "port": "output"}, "to": {"block_id": "cmp-1", "port": "right"}},
-            {"from": {"block_id": "cmp-1", "port": "output"}, "to": {"block_id": "entry-1", "port": "signal"}},
-        ],
-    }
+        ),
+        connections=(
+            {"from_port": {"block_id": "price-1", "port": "output"}, "to_port": {"block_id": "cmp-1", "port": "left"}},
+            {"from_port": {"block_id": "sma-1", "port": "output"}, "to_port": {"block_id": "cmp-1", "port": "right"}},
+            {"from_port": {"block_id": "cmp-1", "port": "output"}, "to_port": {"block_id": "entry-1", "port": "signal"}},
+        ),
+        risk_params=RiskParams(),
+    )
 
-    signals = interpret_strategy(definition, candles)
+    signals = interpret_strategy(strategy, candles)
     # With rising prices, close > SMA should be True eventually
     assert any(signals.entry_long)
 
