@@ -8,6 +8,7 @@ from uuid import UUID
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from redis import Redis
+from rq import Queue
 from sqlmodel import Session, select
 
 from app.api.deps import get_current_user
@@ -31,13 +32,12 @@ from app.schemas.market import (
     TickerListResponse,
 )
 from app.schemas.strategy import ALLOWED_ASSETS
+from app.services.spot_price_cache import SpotPriceCache
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-CACHE_TTL_SECONDS = 3  # 3-second cache to reduce vendor calls
-CACHE_KEY = "market:tickers"
 SENTIMENT_CACHE_TTL_SECONDS = 900  # 15-minute cache for sentiment data
 
 
@@ -280,112 +280,45 @@ def get_tickers(
     user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
 ) -> TickerListResponse:
-    """
-    Get real-time price tickers for all supported pairs.
+    """Return spot prices from the single-writer SpotPriceCache (stale-while-revalidate).
 
-    Protected endpoint. Data is cached for 3 seconds to reduce vendor API calls.
-
-    Returns:
-        TickerListResponse containing ticker items and timestamp
+    Never calls a price provider directly. On cold cache, enqueues a one-shot
+    refresh (deduped) and returns 503 so the client retries.
 
     Raises:
-        HTTPException: 503 if market data provider is unavailable
+        HTTPException: 503 if the cache is cold (job hasn't run yet)
     """
-    # Try cache first
     redis = _get_redis()
-    cached = redis.get(CACHE_KEY)
-    if cached:
-        cached_data = json.loads(cached)
-        # Parse as_of back to datetime for response model
-        cached_data["as_of"] = datetime.fromisoformat(cached_data["as_of"])
-        return TickerListResponse(**cached_data)
+    cache = SpotPriceCache(redis)
 
-    # Extract base symbols from ALLOWED_ASSETS (BTC/USDT -> BTC)
-    fsyms = [asset.split("/")[0] for asset in ALLOWED_ASSETS]
-    fsyms_str = ",".join(fsyms)
+    cache.mark_viewed()
 
-    # Call CryptoCompare pricemultifull
-    try:
-        with httpx.Client(timeout=10.0) as client:
-            url = f"{settings.cryptocompare_api_url}/pricemultifull"
-            params = {
-                "fsyms": fsyms_str,
-                "tsyms": "USDT",
-            }
-            if settings.cryptocompare_api_key:
-                params["api_key"] = settings.cryptocompare_api_key
+    cached = cache.read()
 
-            response = client.get(url, params=params)
-            response.raise_for_status()
-            data = response.json()
-
-            if data.get("Response") == "Error":
-                logger.error(f"CryptoCompare error: {data.get('Message')}")
-                raise HTTPException(
-                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                    detail="Market data provider unavailable",
-                )
-
-    except httpx.HTTPError as e:
-        logger.error(f"Failed to fetch tickers: {e}")
+    if cached is None:
+        # Cold cache: trigger a one-shot refresh if not already pending
+        if cache.set_refresh_pending():
+            queue = Queue("default", connection=redis)
+            queue.enqueue("app.worker.jobs.refresh_spot_prices")
+            logger.info("get_tickers: cold cache — enqueued one-shot refresh")
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Market data provider unavailable",
+            detail="Market data initialising — please retry in a few seconds",
         )
 
-    # Transform response to our schema
-    raw_data = data.get("RAW", {})
-    items = []
+    # Enrich with DB volatility (no external calls)
+    enriched_items = [
+        TickerItem(
+            pair=item.pair,
+            price=item.price,
+            change_24h_pct=item.change_24h_pct,
+            volume_24h=item.volume_24h,
+            **_calculate_volatility_metrics(item.pair, item.price, session),
+        )
+        for item in cached.items
+    ]
 
-    for asset in ALLOWED_ASSETS:
-        base = asset.split("/")[0]
-        ticker_data = raw_data.get(base, {}).get("USDT")
-
-        if ticker_data:
-            price = ticker_data.get("PRICE", 0.0)
-
-            # Calculate volatility metrics from DB
-            vol_metrics = _calculate_volatility_metrics(asset, price, session)
-
-            items.append(
-                TickerItem(
-                    pair=asset,
-                    price=price,
-                    change_24h_pct=ticker_data.get("CHANGEPCT24HOUR", 0.0),
-                    volume_24h=ticker_data.get("VOLUME24HOURTO", 0.0),
-                    volatility_stddev=vol_metrics["volatility_stddev"],
-                    volatility_atr_pct=vol_metrics["volatility_atr_pct"],
-                    volatility_percentile_1y=vol_metrics["volatility_percentile_1y"],
-                )
-            )
-        else:
-            # Data unavailable for this pair - use zeros/None
-            logger.warning(f"No ticker data for {asset}")
-            items.append(
-                TickerItem(
-                    pair=asset,
-                    price=0.0,
-                    change_24h_pct=0.0,
-                    volume_24h=0.0,
-                    volatility_stddev=None,
-                    volatility_atr_pct=None,
-                    volatility_percentile_1y=None,
-                )
-            )
-
-    # Build response
-    response_data = TickerListResponse(
-        items=items,
-        as_of=datetime.now(timezone.utc),
-    )
-
-    # Cache for CACHE_TTL_SECONDS
-    # Convert datetime to ISO string for JSON serialization
-    cache_dict = response_data.model_dump()
-    cache_dict["as_of"] = cache_dict["as_of"].isoformat()
-    redis.setex(CACHE_KEY, CACHE_TTL_SECONDS, json.dumps(cache_dict))
-
-    return response_data
+    return TickerListResponse(items=enriched_items, as_of=cached.as_of)
 
 
 @router.get("/market/data-availability", response_model=DataAvailabilityResponse)

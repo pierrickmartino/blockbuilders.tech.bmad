@@ -59,6 +59,20 @@ exactly when discussing refactors.
   instances when a param is added, removed, or renamed.
   Use sparingly; prefer stability.
 
+## Market data concepts
+
+These name the seams around external price data.
+
+- **Price Provider** — the abstraction over an external source of
+  crypto price data (spot and/or OHLCV). The seam that lets the app
+  fail over between vendors. _Avoid_: data source, feed, API.
+- **CryptoCompare** — the current (and first) Price Provider. Hits
+  `min-api.cryptocompare.com`. Config/keys use `cryptocompare_*`.
+  Commercially this is "CoinDesk Data" (CoinDesk acquired
+  CryptoCompare in 2022); reserve **CoinDesk** for the billing /
+  subscription relationship only, not the code. _Avoid_: CoinDesk
+  (in code), vendor.
+
 ## Adjacent terms (not yet load-bearing, on the radar)
 
 - **Strategy validator** — semantic checker for a whole strategy

@@ -1,11 +1,12 @@
-"""Candle fetching service: DB cache + CryptoCompare vendor."""
+"""Candle fetching service: DB cache + vendor via PriceRouter."""
 from datetime import datetime, timezone
 import logging
 
-import httpx
 from sqlmodel import Session, select
 
 from app.core.config import settings
+from app.market_data import price_router
+from app.market_data.protocol import PriceUnavailableError
 from app.models.candle import Candle
 from app.backtest.errors import DataUnavailableError
 
@@ -67,7 +68,7 @@ def fetch_candles(
         else:
             return db_candles
 
-    # Fetch missing candles from vendor
+    # Fetch missing candles from vendor via PriceRouter
     logger.info(
         "Fetching candles from vendor: %s %s %s - %s (force_refresh=%s)",
         asset,
@@ -76,12 +77,15 @@ def fetch_candles(
         date_to,
         force_refresh,
     )
-    vendor_candles = _fetch_from_vendor(asset, timeframe, date_from, date_to)
+    try:
+        vendor_candles = price_router.get_candles(asset, timeframe, date_from, date_to)
+    except PriceUnavailableError as exc:
+        raise DataUnavailableError(str(exc), "Data provider unavailable. Please try again later.") from exc
 
     # Store fetched candles to DB (batch upsert pattern)
     if vendor_candles:
         # Batch lookup: get all existing timestamps in one query
-        vendor_timestamps = [c["timestamp"] for c in vendor_candles]
+        vendor_timestamps = [c.timestamp for c in vendor_candles]
         existing_stmt = (
             select(Candle)
             .where(Candle.asset == asset)
@@ -98,7 +102,7 @@ def fetch_candles(
         updated_count = 0
 
         for c in vendor_candles:
-            normalized_ts = c["timestamp"].replace(tzinfo=None)
+            normalized_ts = c.timestamp.replace(tzinfo=None)
             existing = existing_by_ts.get(normalized_ts)
 
             if existing is None:
@@ -106,32 +110,36 @@ def fetch_candles(
                     Candle(
                         asset=asset,
                         timeframe=timeframe,
-                        timestamp=c["timestamp"],
-                        open=c["open"],
-                        high=c["high"],
-                        low=c["low"],
-                        close=c["close"],
-                        volume=c["volume"],
+                        timestamp=c.timestamp,
+                        open=c.open,
+                        high=c.high,
+                        low=c.low,
+                        close=c.close,
+                        volume=c.volume,
+                        source=c.source,
                     )
                 )
                 continue
 
             if force_refresh:
                 changed = False
-                if existing.open != c["open"]:
-                    existing.open = c["open"]
+                if existing.open != c.open:
+                    existing.open = c.open
                     changed = True
-                if existing.high != c["high"]:
-                    existing.high = c["high"]
+                if existing.high != c.high:
+                    existing.high = c.high
                     changed = True
-                if existing.low != c["low"]:
-                    existing.low = c["low"]
+                if existing.low != c.low:
+                    existing.low = c.low
                     changed = True
-                if existing.close != c["close"]:
-                    existing.close = c["close"]
+                if existing.close != c.close:
+                    existing.close = c.close
                     changed = True
-                if existing.volume != c["volume"]:
-                    existing.volume = c["volume"]
+                if existing.volume != c.volume:
+                    existing.volume = c.volume
+                    changed = True
+                if existing.source != c.source:
+                    existing.source = c.source
                     changed = True
                 if changed:
                     session.add(existing)
@@ -152,133 +160,6 @@ def fetch_candles(
         raise DataUnavailableError(gap_msg, f"{gap_msg}. Please try a shorter period.")
 
     return db_candles
-
-
-def _fetch_from_vendor(
-    asset: str,
-    timeframe: str,
-    date_from: datetime,
-    date_to: datetime,
-) -> list[dict]:
-    """Call CryptoCompare API, return raw candle dicts."""
-    # Parse asset pair (e.g., "BTC/USDT" -> fsym="BTC", tsym="USDT")
-    parts = asset.split("/")
-    if len(parts) != 2:
-        raise DataUnavailableError(f"Invalid asset format: {asset}", "Invalid trading pair format.")
-    fsym, tsym = parts
-
-    # Determine endpoint based on timeframe
-    if timeframe in ("1h", "4h"):
-        endpoint = "histohour"
-    else:
-        endpoint = "histoday"
-
-    # Calculate limit (max 2000 per request)
-    interval_seconds = TIMEFRAME_SECONDS.get(timeframe, 3600)
-    total_candles = int((date_to.timestamp() - date_from.timestamp()) / interval_seconds) + 1
-
-    all_candles = []
-    current_to_ts = int(date_to.timestamp())
-    remaining = total_candles
-
-    try:
-        with httpx.Client(timeout=30.0) as client:
-            while remaining > 0:
-                limit = min(remaining, 2000)
-                url = f"{settings.cryptocompare_api_url}/v2/{endpoint}"
-                params = {
-                    "fsym": fsym,
-                    "tsym": tsym,
-                    "limit": limit,
-                    "toTs": current_to_ts,
-                }
-                if settings.cryptocompare_api_key:
-                    params["api_key"] = settings.cryptocompare_api_key
-
-                response = client.get(url, params=params)
-                response.raise_for_status()
-                data = response.json()
-
-                if data.get("Response") == "Error":
-                    raise DataUnavailableError(
-                        data.get("Message", "Unknown vendor error"),
-                        "Data provider returned an error.",
-                    )
-
-                candles_data = data.get("Data", {}).get("Data", [])
-                if not candles_data:
-                    break
-
-                for c in candles_data:
-                    ts = datetime.fromtimestamp(c["time"], tz=timezone.utc)
-                    if date_from <= ts <= date_to:
-                        all_candles.append({
-                            "timestamp": ts,
-                            "open": float(c["open"]),
-                            "high": float(c["high"]),
-                            "low": float(c["low"]),
-                            "close": float(c["close"]),
-                            "volume": float(c.get("volumefrom", 0)),
-                        })
-
-                # Move to earlier timestamp for next batch
-                earliest_ts = min(c["time"] for c in candles_data)
-                if earliest_ts >= current_to_ts:
-                    break
-                current_to_ts = earliest_ts - 1
-                remaining -= len(candles_data)
-
-    except httpx.HTTPError as e:
-        logger.error(f"Vendor API error: {e}")
-        raise DataUnavailableError(str(e), "Data provider unavailable. Please try again later.")
-
-    # Sort by timestamp ascending
-    all_candles.sort(key=lambda x: x["timestamp"])
-
-    # Handle 4h aggregation if needed
-    if timeframe == "4h" and all_candles:
-        all_candles = _aggregate_to_4h(all_candles)
-
-    return all_candles
-
-
-def _aggregate_to_4h(hourly_candles: list[dict]) -> list[dict]:
-    """Aggregate hourly candles to 4-hour candles."""
-    if not hourly_candles:
-        return []
-
-    aggregated = []
-    current_group = []
-
-    for candle in hourly_candles:
-        ts = candle["timestamp"]
-        # 4h candle starts at hours divisible by 4 (0, 4, 8, 12, 16, 20)
-        hour = ts.hour
-        is_start = hour % 4 == 0
-
-        if is_start and current_group:
-            aggregated.append(_merge_candles(current_group))
-            current_group = []
-
-        current_group.append(candle)
-
-    # Don't forget the last group
-    if current_group:
-        aggregated.append(_merge_candles(current_group))
-
-    return aggregated
-
-
-def _merge_candles(candles: list[dict]) -> dict:
-    """Merge multiple candles into one OHLCV candle."""
-    return {
-        "timestamp": candles[0]["timestamp"],
-        "open": candles[0]["open"],
-        "high": max(c["high"] for c in candles),
-        "low": min(c["low"] for c in candles),
-        "close": candles[-1]["close"],
-        "volume": sum(c["volume"] for c in candles),
-    }
 
 
 def _detect_gaps(

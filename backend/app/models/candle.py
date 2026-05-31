@@ -19,4 +19,5 @@ class Candle(SQLModel, table=True):
     low: float
     close: float
     volume: float
+    source: str = Field(default="cryptocompare")
     created_at: datetime = Field(default_factory=datetime.utcnow)
