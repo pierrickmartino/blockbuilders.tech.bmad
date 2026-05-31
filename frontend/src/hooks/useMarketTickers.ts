@@ -5,7 +5,7 @@ export function useMarketTickers() {
   const query = useQuery({
     queryKey: marketKeys.tickers(),
     queryFn: () => MarketApiClient.getTickers(),
-    refetchInterval: 4000,
+    refetchInterval: 120_000, // aligned to SpotRefreshJob cadence (120s)
   });
 
   return {

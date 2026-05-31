@@ -855,3 +855,102 @@ def _send_price_alert_webhook(alert: AlertRule, current_price: Any) -> None:
 
     except Exception as e:
         logger.error(f"Failed to send webhook for alert {alert.id}: {e}")
+
+
+def _has_active_price_alerts() -> bool:
+    """Return True if at least one price alert is currently active."""
+    from app.models.alert_rule import AlertType
+
+    with Session(engine) as session:
+        count = session.exec(
+            select(func.count(AlertRule.id)).where(
+                AlertRule.alert_type == AlertType.PRICE,
+                AlertRule.is_active == True,  # noqa: E712
+            )
+        ).one()
+    return count > 0
+
+
+def _fetch_full_ticker_items() -> list[Any]:
+    """Fetch price, 24h change, and 24h volume for all supported assets.
+
+    Returns a list of TickerItem-compatible dicts. Returns [] on any error.
+    """
+    import httpx
+    from app.schemas.market import TickerItem
+    from app.schemas.strategy import ALLOWED_ASSETS
+
+    fsyms = [asset.split("/")[0] for asset in ALLOWED_ASSETS]
+    fsyms_str = ",".join(fsyms)
+
+    try:
+        with httpx.Client(timeout=10.0) as client:
+            url = f"{settings.cryptocompare_api_url}/pricemultifull"
+            params = {"fsyms": fsyms_str, "tsyms": "USDT"}
+            if settings.cryptocompare_api_key:
+                params["api_key"] = settings.cryptocompare_api_key
+
+            response = client.get(url, params=params)
+            response.raise_for_status()
+            data = response.json()
+
+        if data.get("Response") == "Error":
+            logger.error(f"CryptoCompare error: {data.get('Message')}")
+            return []
+
+        raw_data = data.get("RAW", {})
+        items = []
+        for asset in ALLOWED_ASSETS:
+            base = asset.split("/")[0]
+            ticker_data = raw_data.get(base, {}).get("USDT")
+            if ticker_data:
+                items.append(
+                    TickerItem(
+                        pair=asset,
+                        price=ticker_data.get("PRICE", 0.0),
+                        change_24h_pct=ticker_data.get("CHANGEPCT24HOUR", 0.0),
+                        volume_24h=ticker_data.get("VOLUME24HOURTO", 0.0),
+                    )
+                )
+            else:
+                logger.warning(f"No ticker data for {asset}")
+                items.append(
+                    TickerItem(pair=asset, price=0.0, change_24h_pct=0.0, volume_24h=0.0)
+                )
+        return items
+
+    except Exception as e:
+        logger.error(f"Failed to fetch full ticker data: {e}")
+        return []
+
+
+def refresh_spot_prices() -> None:
+    """Fetch all spot prices from CryptoCompare and write them to SpotPriceCache.
+
+    Runs every 120 seconds. Skipped when there are no active price alerts AND
+    the ticker endpoint has not been viewed in the last 240 seconds (gate).
+    """
+    if not settings.scheduler_enabled:
+        logger.info("Scheduler disabled, skipping refresh_spot_prices")
+        return
+
+    from app.services.spot_price_cache import SpotPriceCache
+    from app.schemas.market import TickerListResponse
+
+    redis = Redis.from_url(settings.redis_url)
+    cache = SpotPriceCache(redis)
+
+    gate_open = _has_active_price_alerts() or cache.viewed_recently(window=240)
+    if not gate_open:
+        logger.info("refresh_spot_prices: gate closed (no active alerts, no recent view) — skipping")
+        return
+
+    logger.info("refresh_spot_prices: gate open — fetching prices")
+    items = _fetch_full_ticker_items()
+
+    if not items:
+        logger.warning("refresh_spot_prices: no items fetched, skipping write")
+        return
+
+    cache.write(TickerListResponse(items=items, as_of=datetime.now(timezone.utc)))
+    logger.info(f"refresh_spot_prices: wrote {len(items)} prices to cache")

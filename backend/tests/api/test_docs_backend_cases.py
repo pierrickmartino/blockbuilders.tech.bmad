@@ -1,3 +1,4 @@
+import json
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 from uuid import uuid4
@@ -8,12 +9,38 @@ from app.models.backtest_run import BacktestRun
 from app.models.strategy import Strategy
 from app.models.strategy_tag_link import StrategyTagLink
 from app.models.strategy_version import StrategyVersion
+from app.services.spot_price_cache import SpotPriceCache
+
+
+def _seeded_spot_cache_json() -> bytes:
+    """Return a minimal warm SpotPriceCache payload."""
+    return json.dumps({
+        "items": [{
+            "pair": "BTC/USDT",
+            "price": 50000.0,
+            "change_24h_pct": 1.2,
+            "volume_24h": 1.0,
+            "volatility_stddev": None,
+            "volatility_atr_pct": None,
+            "volatility_percentile_1y": None,
+        }],
+        "as_of": datetime.now(timezone.utc).isoformat(),
+    }).encode()
 
 
 def _mock_market_dependencies(monkeypatch):
+    seeded = _seeded_spot_cache_json()
+
     class FakeRedis:
-        def get(self, _key):
+        def get(self, key):
+            if key == SpotPriceCache.PRICES_KEY:
+                return seeded
             return None
+
+        def set(self, key, value, nx=False, ex=None):
+            if nx:
+                return None  # flag already set — no dedup enqueue
+            return True
 
         def setex(self, _key, _ttl, _val):
             return None
