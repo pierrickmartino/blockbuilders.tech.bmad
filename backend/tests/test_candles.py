@@ -3,6 +3,8 @@ from datetime import datetime, timezone
 from sqlmodel import select
 
 from app.backtest.candles import fetch_candles
+from app.market_data import price_router
+from app.market_data.protocol import CandleData
 from app.models.candle import Candle
 
 
@@ -24,12 +26,12 @@ def test_fetch_candles_uses_cache_when_complete(session, monkeypatch):
 
     called = False
 
-    def fake_vendor(*args, **kwargs):
+    def fake_get_candles(*args, **kwargs):
         nonlocal called
         called = True
         return []
 
-    monkeypatch.setattr("app.backtest.candles._fetch_from_vendor", fake_vendor)
+    monkeypatch.setattr(price_router, "get_candles", fake_get_candles)
 
     candles = fetch_candles(
         asset="BTC/USDT",
@@ -62,16 +64,17 @@ def test_fetch_candles_force_refresh_overwrites_existing(session, monkeypatch):
     session.commit()
 
     monkeypatch.setattr(
-        "app.backtest.candles._fetch_from_vendor",
+        price_router,
+        "get_candles",
         lambda *_args, **_kwargs: [
-            {
-                "timestamp": ts,
-                "open": 110.0,
-                "high": 112.0,
-                "low": 109.0,
-                "close": 111.0,
-                "volume": 1500.0,
-            }
+            CandleData(
+                timestamp=ts,
+                open=110.0,
+                high=112.0,
+                low=109.0,
+                close=111.0,
+                volume=1500.0,
+            )
         ],
     )
 

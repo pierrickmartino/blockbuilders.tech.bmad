@@ -829,55 +829,33 @@ def _has_active_price_alerts() -> bool:
 
 
 def _fetch_full_ticker_items() -> list[Any]:
-    """Fetch price, 24h change, and 24h volume for all supported assets.
+    """Fetch price, 24h change, and 24h volume for all supported assets via PriceRouter.
 
-    Returns a list of TickerItem-compatible dicts. Returns [] on any error.
+    Returns a list of TickerItem objects. Returns [] on any error.
     """
-    import httpx
+    from app.market_data import price_router
     from app.schemas.market import TickerItem
     from app.schemas.strategy import ALLOWED_ASSETS
 
-    fsyms = [asset.split("/")[0] for asset in ALLOWED_ASSETS]
-    fsyms_str = ",".join(fsyms)
-
     try:
-        with httpx.Client(timeout=10.0) as client:
-            url = f"{settings.cryptocompare_api_url}/pricemultifull"
-            params = {"fsyms": fsyms_str, "tsyms": "USDT"}
-            if settings.cryptocompare_api_key:
-                params["api_key"] = settings.cryptocompare_api_key
-
-            response = client.get(url, params=params)
-            response.raise_for_status()
-            data = response.json()
-
-        if data.get("Response") == "Error":
-            logger.error(f"CryptoCompare error: {data.get('Message')}")
-            return []
-
-        raw_data = data.get("RAW", {})
+        prices = price_router.get_spot_prices(ALLOWED_ASSETS)
         items = []
         for asset in ALLOWED_ASSETS:
-            base = asset.split("/")[0]
-            ticker_data = raw_data.get(base, {}).get("USDT")
-            if ticker_data:
-                items.append(
-                    TickerItem(
-                        pair=asset,
-                        price=ticker_data.get("PRICE", 0.0),
-                        change_24h_pct=ticker_data.get("CHANGEPCT24HOUR", 0.0),
-                        volume_24h=ticker_data.get("VOLUME24HOURTO", 0.0),
-                    )
-                )
+            spot = prices.get(asset)
+            if spot:
+                items.append(TickerItem(
+                    pair=asset,
+                    price=float(spot.price),
+                    change_24h_pct=spot.change_24h_pct,
+                    volume_24h=spot.volume_24h,
+                ))
             else:
-                logger.warning(f"No ticker data for {asset}")
-                items.append(
-                    TickerItem(pair=asset, price=0.0, change_24h_pct=0.0, volume_24h=0.0)
-                )
+                logger.warning("No ticker data for %s", asset)
+                items.append(TickerItem(pair=asset, price=0.0, change_24h_pct=0.0, volume_24h=0.0))
         return items
 
-    except Exception as e:
-        logger.error(f"Failed to fetch full ticker data: {e}")
+    except Exception as exc:
+        logger.error("Failed to fetch full ticker data: %s", exc)
         return []
 
 
