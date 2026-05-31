@@ -180,7 +180,14 @@ def run_backtest_job(
                         "No price data available for the selected date range.",
                     )
 
-                logger.info("candles_fetched", extra={"count": len(candles)})
+                if any(c.source != "cryptocompare" for c in candles):
+                    run.used_backup_data = True
+                    session.add(run)
+
+                logger.info(
+                    "candles_fetched",
+                    extra={"count": len(candles), "used_backup_data": run.used_backup_data},
+                )
 
                 # Interpret strategy to get signals
                 signals = interpret_strategy(validated_strategy, candles)

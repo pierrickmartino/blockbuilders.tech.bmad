@@ -32,6 +32,7 @@ class CandleData:
     low: float
     close: float
     volume: float
+    source: str = "cryptocompare"
 
 
 class PriceProvider(Protocol):

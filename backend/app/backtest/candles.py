@@ -116,6 +116,7 @@ def fetch_candles(
                         low=c.low,
                         close=c.close,
                         volume=c.volume,
+                        source=c.source,
                     )
                 )
                 continue
