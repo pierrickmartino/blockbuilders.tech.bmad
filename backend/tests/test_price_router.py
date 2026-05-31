@@ -185,6 +185,43 @@ def test_router_spot_raises_when_all_providers_fail_with_no_prices():
         PriceRouter([binance, cc]).get_spot_prices(["BTC/USDT"])
 
 
+# ---------------------------------------------------------------------------
+# Per-surface primaries (ADR-0003): spot Binance-first, candles CC-first
+# ---------------------------------------------------------------------------
+
+
+def test_router_spot_uses_binance_first_candles_use_cryptocompare_first():
+    """One router, opposite primaries per surface (ADR-0003).
+
+    Spot must hit Binance before CryptoCompare so refresh_spot_prices()
+    stops spending CryptoCompare quota; candles must hit CryptoCompare
+    first for its broader history.
+    """
+    btc_spot = _spot("50000")
+    cc_candle = CandleData(timestamp=_T0, open=1.0, high=2.0, low=0.5, close=1.5, volume=10.0)
+    binance = _make_provider("binance", spot_result={"BTC/USDT": btc_spot})
+    cc = _make_provider("cryptocompare", candle_result=[cc_candle])
+
+    router = PriceRouter(
+        [cc, binance],
+        spot_order=[binance, cc],
+        candle_order=[cc, binance],
+    )
+
+    spot = router.get_spot_prices(["BTC/USDT"])
+    candles = router.get_candles("BTC/USDT", "1h", _T0, _T1)
+
+    # Spot: Binance prices everything, CryptoCompare is never touched.
+    assert spot == {"BTC/USDT": btc_spot}
+    binance.get_spot_prices.assert_called_once_with(["BTC/USDT"])
+    cc.get_spot_prices.assert_not_called()
+
+    # Candles: CryptoCompare answers first, Binance is never touched.
+    assert candles == [cc_candle]
+    cc.get_candles.assert_called_once_with("BTC/USDT", "1h", _T0, _T1)
+    binance.get_candles.assert_not_called()
+
+
 def test_router_spot_unhealthy_primary_routes_all_to_backup():
     """Tripped Binance → all assets go to CryptoCompare without calling Binance."""
     cc_result = {"BTC/USDT": _spot("50000"), "ETH/USDT": _spot("3000")}
