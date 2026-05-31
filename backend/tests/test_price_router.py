@@ -128,3 +128,73 @@ def test_router_skips_unhealthy_for_candles():
 
     assert result == [good_candle]
     bad.get_candles.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# Per-asset spot routing (issue #496)
+# ---------------------------------------------------------------------------
+
+
+def _spot(price: str) -> SpotPrice:
+    return SpotPrice(price=Decimal(price), change_24h_pct=0.0, volume_24h=0.0)
+
+
+def test_router_spot_merges_partial_results_across_providers():
+    """Binance prices BTC; CryptoCompare prices ETH for the remainder."""
+    btc_price = _spot("50000")
+    eth_price = _spot("3000")
+    binance = _make_provider("binance", spot_result={"BTC/USDT": btc_price})
+    cc = _make_provider("cryptocompare", spot_result={"ETH/USDT": eth_price})
+
+    result = PriceRouter([binance, cc]).get_spot_prices(["BTC/USDT", "ETH/USDT"])
+
+    assert result == {"BTC/USDT": btc_price, "ETH/USDT": eth_price}
+    binance.get_spot_prices.assert_called_once_with(["BTC/USDT", "ETH/USDT"])
+    cc.get_spot_prices.assert_called_once_with(["ETH/USDT"])
+
+
+def test_router_spot_does_not_call_second_provider_when_all_priced():
+    """Second provider is never called when the first prices all assets."""
+    btc_price = _spot("50000")
+    binance = _make_provider("binance", spot_result={"BTC/USDT": btc_price})
+    cc = _make_provider("cryptocompare")
+
+    result = PriceRouter([binance, cc]).get_spot_prices(["BTC/USDT"])
+
+    assert result == {"BTC/USDT": btc_price}
+    cc.get_spot_prices.assert_not_called()
+
+
+def test_router_spot_returns_partial_when_second_provider_fails():
+    """If first provider succeeds partially and second raises, return what we have."""
+    btc_price = _spot("50000")
+    binance = _make_provider("binance", spot_result={"BTC/USDT": btc_price})
+    cc = _make_provider("cryptocompare", raises=PriceUnavailableError("quota"))
+
+    result = PriceRouter([binance, cc]).get_spot_prices(["BTC/USDT", "ETH/USDT"])
+
+    assert result == {"BTC/USDT": btc_price}
+
+
+def test_router_spot_raises_when_all_providers_fail_with_no_prices():
+    """PriceUnavailableError is raised only when every provider failed and result is empty."""
+    binance = _make_provider("binance", raises=PriceUnavailableError("down"))
+    cc = _make_provider("cryptocompare", raises=PriceUnavailableError("quota"))
+
+    with pytest.raises(PriceUnavailableError):
+        PriceRouter([binance, cc]).get_spot_prices(["BTC/USDT"])
+
+
+def test_router_spot_unhealthy_primary_routes_all_to_backup():
+    """Tripped Binance → all assets go to CryptoCompare without calling Binance."""
+    cc_result = {"BTC/USDT": _spot("50000"), "ETH/USDT": _spot("3000")}
+    binance = _make_provider("binance")
+    cc = _make_provider("cryptocompare", spot_result=cc_result)
+
+    breaker = _make_breaker()
+    breaker.trip("binance", FailureKind.TRANSIENT)
+
+    result = PriceRouter([binance, cc], circuit_breaker=breaker).get_spot_prices(["BTC/USDT", "ETH/USDT"])
+
+    assert result == cc_result
+    binance.get_spot_prices.assert_not_called()

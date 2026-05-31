@@ -24,18 +24,26 @@ class PriceRouter:
         self._breaker = circuit_breaker
 
     def get_spot_prices(self, assets: list[str]) -> dict[str, SpotPrice]:
+        remaining = list(assets)
+        merged: dict[str, SpotPrice] = {}
         last_error: Exception | None = None
         for provider in self._providers:
+            if not remaining:
+                break
             if self._breaker and not self._breaker.is_healthy(provider.name):
                 logger.info("Skipping unhealthy provider %s", provider.name)
                 continue
             try:
-                return provider.get_spot_prices(assets)
+                prices = provider.get_spot_prices(remaining)
+                merged.update(prices)
+                remaining = [a for a in remaining if a not in merged]
             except Exception as exc:
                 logger.warning("Provider %s failed spot fetch: %s", provider.name, exc)
                 self._record_failure(provider.name, exc)
                 last_error = exc
-        raise PriceUnavailableError(f"All providers failed: {last_error}")
+        if not merged and last_error is not None:
+            raise PriceUnavailableError(f"All providers failed: {last_error}")
+        return merged
 
     def get_candles(
         self,
