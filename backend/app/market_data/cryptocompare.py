@@ -59,8 +59,11 @@ class CryptoCompareProvider:
                     volume_24h=float(ticker.get("VOLUME24HOURTO", 0.0)),
                 )
             else:
+                # Omit missing assets — never emit a zero placeholder. A zero
+                # SpotPrice is truthy, so it would satisfy the router's
+                # "remaining" filter and silently block fallback providers,
+                # and it would poison the spot cache with a fake price.
                 logger.warning("No ticker data for %s", asset)
-                result[asset] = SpotPrice(price=Decimal("0"), change_24h_pct=0.0, volume_24h=0.0)
         return result
 
     # ------------------------------------------------------------------ #

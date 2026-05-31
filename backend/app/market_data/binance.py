@@ -83,7 +83,9 @@ class BinanceProvider:
             with httpx.Client(timeout=10.0) as client:
                 response = client.get(
                     f"{_BINANCE_BASE_URL}/api/v3/ticker/24hr",
-                    params={"symbols": json.dumps(symbols)},
+                    # Binance rejects whitespace in the `symbols` array (error -1100,
+                    # "Illegal characters"), so emit compact JSON without spaces.
+                    params={"symbols": json.dumps(symbols, separators=(",", ":"))},
                 )
                 response.raise_for_status()
                 data = response.json()

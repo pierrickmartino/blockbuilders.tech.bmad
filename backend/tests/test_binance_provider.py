@@ -147,6 +147,25 @@ def test_binance_provider_returns_empty_for_all_unsupported():
     assert result == {}
 
 
+def test_binance_provider_spot_sends_compact_symbols_without_spaces():
+    """Regression: Binance rejects whitespace in the `symbols` array with HTTP 400
+    (error -1100, "Illegal characters"). The request must serialize symbols as
+    compact JSON, e.g. ["BTCUSDT","ETHUSDT"] and never ["BTCUSDT", "ETHUSDT"]."""
+    provider = _make_provider()
+    ticker_data = [
+        {"symbol": "BTCUSDT", "lastPrice": "50000.00", "priceChangePercent": "1.5", "quoteVolume": "1000000.0"},
+        {"symbol": "ETHUSDT", "lastPrice": "3000.00", "priceChangePercent": "1.2", "quoteVolume": "500000.0"},
+    ]
+
+    mock_client = _mock_client(ticker_data)
+    with patch("app.market_data.binance.httpx.Client", return_value=mock_client):
+        provider.get_spot_prices(["BTC/USDT", "ETH/USDT"])
+
+    sent_symbols = mock_client.get.call_args.kwargs["params"]["symbols"]
+    assert " " not in sent_symbols
+    assert sent_symbols == '["BTCUSDT","ETHUSDT"]'
+
+
 # ---------------------------------------------------------------------------
 # BinanceProvider – candles
 # ---------------------------------------------------------------------------

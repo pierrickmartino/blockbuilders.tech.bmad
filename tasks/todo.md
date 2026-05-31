@@ -1,5 +1,26 @@
 # Tasks — in flight
 
+## Binance spot 400 fix — `symbols` array whitespace (Issue #490, implemented)
+
+Backend
+- [x] Diagnose: `refresh_spot_prices` wrote 51 zero-price placeholders; root cause = Binance `/api/v3/ticker/24hr` rejects whitespace in `symbols` param (`json.dumps` default `", "`) → HTTP 400, error -1100 "Illegal characters"
+- [x] Fix `app/market_data/binance.py` spot fetch to emit compact JSON (`separators=(",", ":")`)
+- [x] Regression test `tests/test_binance_provider.py::test_binance_provider_spot_sends_compact_symbols_without_spaces` (asserts serialized `symbols` has no spaces)
+
+Verification
+- [x] RED confirmed: test fails on old code (`' ' is contained here: ["BTCUSDT", "ETHUSDT"]`)
+- [x] GREEN: `pytest tests/test_binance_provider.py` → 17 passed (mounted host source)
+- [x] Rebuilt worker/scheduler/api images, cleared stale breaker keys
+- [x] Live worker e2e: 51/51 prices fetched (BTC=73636, ETH=2002, SOL=81.70); scheduled `refresh_spot_prices` logged "wrote 51 prices" with no skips/400s
+
+Zero-price cache poisoning fix (implemented)
+- [x] `app/market_data/cryptocompare.py` — omit missing assets instead of emitting zero `SpotPrice` placeholders (a truthy zero satisfied the router's `remaining` filter, silently blocking the Binance fallback and poisoning the cache)
+- [x] `app/worker/jobs.py::_fetch_full_ticker_items` — return only real, non-zero prices; no fabricated placeholders
+- [x] `app/worker/jobs.py::refresh_spot_prices` + new `_merge_with_cached` — merge fresh prices over last-known-good so assets missing a cycle keep their previous price (never dropped/zeroed); empty fetch preserves cache
+- [x] Tests: `tests/test_cryptocompare_provider.py` (omit-on-miss), `tests/test_refresh_spot_prices.py` (merge + no-zero-write + empty-fetch preservation)
+- [x] RED confirmed (zero-placeholder + missing-merge assertions fail on old code); GREEN: 605 passed (3 pre-existing `test_api_auth` failures unrelated)
+- [x] Deployed: rebuilt images, cleared breakers, live cache shows 51/51 items, 0 zero-priced (BTC=51613)
+
 ## Strategy alert edit form hydration (implemented)
 
 - [x] Seed local alert form state from the loaded query-derived alert rule

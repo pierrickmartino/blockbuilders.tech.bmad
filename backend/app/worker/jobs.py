@@ -838,7 +838,10 @@ def _has_active_price_alerts() -> bool:
 def _fetch_full_ticker_items() -> list[Any]:
     """Fetch price, 24h change, and 24h volume for all supported assets via PriceRouter.
 
-    Returns a list of TickerItem objects. Returns [] on any error.
+    Returns a list of TickerItem objects containing only assets with a real,
+    non-zero price. Missing or zero-priced assets are omitted (never written as
+    placeholders) so the caller can preserve last-known-good values for them.
+    Returns [] on any error.
     """
     from app.market_data import price_router
     from app.schemas.market import TickerItem
@@ -849,7 +852,7 @@ def _fetch_full_ticker_items() -> list[Any]:
         items = []
         for asset in ALLOWED_ASSETS:
             spot = prices.get(asset)
-            if spot:
+            if spot and spot.price > 0:
                 items.append(TickerItem(
                     pair=asset,
                     price=float(spot.price),
@@ -858,7 +861,6 @@ def _fetch_full_ticker_items() -> list[Any]:
                 ))
             else:
                 logger.warning("No ticker data for %s", asset)
-                items.append(TickerItem(pair=asset, price=0.0, change_24h_pct=0.0, volume_24h=0.0))
         return items
 
     except Exception as exc:
@@ -891,8 +893,36 @@ def refresh_spot_prices() -> None:
     items = _fetch_full_ticker_items()
 
     if not items:
-        logger.warning("refresh_spot_prices: no items fetched, skipping write")
+        logger.warning("refresh_spot_prices: no items fetched, preserving cached prices")
         return
 
-    cache.write(TickerListResponse(items=items, as_of=datetime.now(timezone.utc)))
-    logger.info(f"refresh_spot_prices: wrote {len(items)} prices to cache")
+    # Merge fresh prices over last-known-good: assets missing this cycle keep
+    # their previously cached price rather than being dropped or zeroed.
+    merged = _merge_with_cached(items, cache.read())
+
+    cache.write(TickerListResponse(items=merged, as_of=datetime.now(timezone.utc)))
+    logger.info(
+        f"refresh_spot_prices: wrote {len(merged)} prices to cache "
+        f"({len(items)} fresh this cycle)"
+    )
+
+
+def _merge_with_cached(fresh: list[Any], cached: Any) -> list[Any]:
+    """Overlay freshly fetched ticker items on top of the cached snapshot.
+
+    Fresh items win per pair; pairs absent this cycle retain their cached value
+    (last-known-good). Ordering follows the cached snapshot, then any new pairs.
+    """
+    fresh_by_pair = {item.pair: item for item in fresh}
+    if cached is None:
+        return list(fresh)
+
+    merged: list[Any] = []
+    seen: set[str] = set()
+    for item in cached.items:
+        seen.add(item.pair)
+        merged.append(fresh_by_pair.get(item.pair, item))
+    for item in fresh:
+        if item.pair not in seen:
+            merged.append(item)
+    return merged
