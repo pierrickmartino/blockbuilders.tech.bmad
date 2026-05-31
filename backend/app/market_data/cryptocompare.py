@@ -6,7 +6,7 @@ from decimal import Decimal
 import httpx
 
 from app.core.config import settings
-from app.market_data.protocol import CandleData, PriceUnavailableError, SpotPrice
+from app.market_data.protocol import CandleData, PriceUnavailableError, ProviderQuotaError, SpotPrice
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +45,7 @@ class CryptoCompareProvider:
             raise PriceUnavailableError(f"CryptoCompare HTTP error: {exc}") from exc
 
         if data.get("Response") == "Error":
-            raise PriceUnavailableError(f"CryptoCompare API error: {data.get('Message')}")
+            _raise_for_message(data.get("Message", ""))
 
         raw_data = data.get("RAW", {})
         result: dict[str, SpotPrice] = {}
@@ -106,9 +106,7 @@ class CryptoCompareProvider:
                     data = response.json()
 
                     if data.get("Response") == "Error":
-                        raise PriceUnavailableError(
-                            data.get("Message", "Unknown vendor error")
-                        )
+                        _raise_for_message(data.get("Message", "Unknown vendor error"))
 
                     candles_data = data.get("Data", {}).get("Data", [])
                     if not candles_data:
@@ -141,6 +139,20 @@ class CryptoCompareProvider:
             raw = _aggregate_to_4h(raw)
 
         return raw
+
+
+# ------------------------------------------------------------------ #
+# Error classification                                                 #
+# ------------------------------------------------------------------ #
+
+_QUOTA_KEYWORDS = ("rate limit", "over your", "upgrade your account", "quota")
+
+
+def _raise_for_message(message: str) -> None:
+    lower = message.lower()
+    if any(kw in lower for kw in _QUOTA_KEYWORDS):
+        raise ProviderQuotaError(f"CryptoCompare quota error: {message}")
+    raise PriceUnavailableError(f"CryptoCompare API error: {message}")
 
 
 # ------------------------------------------------------------------ #

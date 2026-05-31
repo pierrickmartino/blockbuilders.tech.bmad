@@ -9,6 +9,10 @@ class PriceUnavailableError(Exception):
     """Raised when no provider can return the requested market data."""
 
 
+class ProviderQuotaError(PriceUnavailableError):
+    """Raised when a provider rejects the request due to a quota or rate cap."""
+
+
 @dataclass(frozen=True)
 class SpotPrice:
     """Spot price snapshot for a single trading pair."""

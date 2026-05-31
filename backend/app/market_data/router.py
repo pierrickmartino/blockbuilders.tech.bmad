@@ -2,7 +2,8 @@
 import logging
 from datetime import datetime
 
-from app.market_data.protocol import CandleData, PriceProvider, PriceUnavailableError, SpotPrice
+from app.market_data.circuit_breaker import CircuitBreaker, FailureKind
+from app.market_data.protocol import CandleData, PriceProvider, PriceUnavailableError, ProviderQuotaError, SpotPrice
 
 logger = logging.getLogger(__name__)
 
@@ -11,19 +12,28 @@ class PriceRouter:
     """Routes price requests through an ordered list of providers.
 
     Tries each provider in order; raises PriceUnavailableError only when
-    all providers have failed.
+    all providers have failed or been skipped as unhealthy.
     """
 
-    def __init__(self, providers: list[PriceProvider]) -> None:
+    def __init__(
+        self,
+        providers: list[PriceProvider],
+        circuit_breaker: CircuitBreaker | None = None,
+    ) -> None:
         self._providers = providers
+        self._breaker = circuit_breaker
 
     def get_spot_prices(self, assets: list[str]) -> dict[str, SpotPrice]:
         last_error: Exception | None = None
         for provider in self._providers:
+            if self._breaker and not self._breaker.is_healthy(provider.name):
+                logger.info("Skipping unhealthy provider %s", provider.name)
+                continue
             try:
                 return provider.get_spot_prices(assets)
             except Exception as exc:
                 logger.warning("Provider %s failed spot fetch: %s", provider.name, exc)
+                self._record_failure(provider.name, exc)
                 last_error = exc
         raise PriceUnavailableError(f"All providers failed: {last_error}")
 
@@ -36,9 +46,19 @@ class PriceRouter:
     ) -> list[CandleData]:
         last_error: Exception | None = None
         for provider in self._providers:
+            if self._breaker and not self._breaker.is_healthy(provider.name):
+                logger.info("Skipping unhealthy provider %s", provider.name)
+                continue
             try:
                 return provider.get_candles(asset, timeframe, date_from, date_to)
             except Exception as exc:
                 logger.warning("Provider %s failed candle fetch: %s", provider.name, exc)
+                self._record_failure(provider.name, exc)
                 last_error = exc
         raise PriceUnavailableError(f"All providers failed: {last_error}")
+
+    def _record_failure(self, name: str, exc: Exception) -> None:
+        if self._breaker is None:
+            return
+        kind = FailureKind.QUOTA if isinstance(exc, ProviderQuotaError) else FailureKind.TRANSIENT
+        self._breaker.trip(name, kind)
