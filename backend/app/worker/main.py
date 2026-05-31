@@ -16,6 +16,8 @@ redis_conn = Redis.from_url(settings.redis_url)
 
 SPOT_REFRESH_INTERVAL_SECONDS = 120
 SPOT_REFRESH_JOB_ID = "spot_price_refresh"
+PRICE_ALERTS_INTERVAL_SECONDS = 120
+PRICE_ALERTS_JOB_ID = "price_alerts_monitor"
 
 
 def run_worker():
@@ -62,14 +64,16 @@ def run_scheduler():
     )
     logger.info("Registered data_quality_daily cron job at 03:00 UTC")
 
-    # Schedule price alerts monitoring job every 5 minutes
-    scheduler.cron(
-        "*/5 * * * *",  # Cron expression: every 5 minutes
+    # Schedule price alerts monitoring at 120s to match the spot-price refresh cadence
+    scheduler.schedule(
+        scheduled_time=datetime.now(timezone.utc),
         func="app.worker.jobs.evaluate_price_alerts",
+        interval=PRICE_ALERTS_INTERVAL_SECONDS,
+        repeat=None,  # repeat indefinitely
         queue_name="default",
-        id="price_alerts_monitor",
+        id=PRICE_ALERTS_JOB_ID,
     )
-    logger.info("Registered price_alerts_monitor cron job (every 5 minutes)")
+    logger.info(f"Registered {PRICE_ALERTS_JOB_ID} interval job (every {PRICE_ALERTS_INTERVAL_SECONDS}s)")
 
     # Schedule spot-price refresh every 120 seconds using interval scheduling
     # rq-scheduler's schedule() supports arbitrary second intervals (unlike cron's 1-min floor)

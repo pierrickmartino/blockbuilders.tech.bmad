@@ -30,6 +30,7 @@ from app.backtest.storage import upload_json, generate_results_key
 from app.backtest.errors import BacktestError, StrategyInvalidError
 from app.schemas.strategy import StrategyDefinitionValidate
 from app.services.alert_evaluator import evaluate_alerts_for_run
+from app.services.spot_price_cache import SpotPriceCache
 from app.services.analytics import track_backend_event, flush_backend_events
 from app.services.strategy_validation import validate_strategy
 
@@ -638,10 +639,7 @@ def evaluate_price_alerts() -> None:
 
     with Session(engine) as session:
         from decimal import Decimal
-        import httpx
         from app.models.alert_rule import AlertType, Direction
-        from app.models.user import User
-        from app.schemas.strategy import ALLOWED_ASSETS
 
         now = datetime.now(timezone.utc)
 
@@ -679,11 +677,15 @@ def evaluate_price_alerts() -> None:
             logger.info("No non-expired alerts to evaluate")
             return
 
-        # Fetch current prices
-        prices = _fetch_current_prices()
-        if not prices:
-            logger.error("Failed to fetch current prices, skipping evaluation")
+        # Read prices from shared spot cache (populated by refresh_spot_prices job)
+        redis = Redis.from_url(settings.redis_url)
+        cache = SpotPriceCache(redis)
+        ticker = cache.read()
+        if ticker is None:
+            logger.warning("Spot price cache is empty, skipping price alert evaluation")
             return
+
+        prices = {item.pair: Decimal(str(item.price)) for item in ticker.items}
 
         triggered_count = 0
 
@@ -745,51 +747,6 @@ def evaluate_price_alerts() -> None:
 
         session.commit()
         logger.info(f"evaluate_price_alerts completed: {triggered_count} alerts triggered")
-
-
-def _fetch_current_prices() -> dict[str, Any]:
-    """
-    Fetch current prices for all supported assets.
-
-    Returns dict mapping asset pair (e.g., "BTC/USDT") to Decimal price.
-    Reuses CryptoCompare API logic from market.py.
-    """
-    from decimal import Decimal
-    import httpx
-    from app.schemas.strategy import ALLOWED_ASSETS
-
-    fsyms = [asset.split("/")[0] for asset in ALLOWED_ASSETS]
-    fsyms_str = ",".join(fsyms)
-
-    try:
-        with httpx.Client(timeout=10.0) as client:
-            url = f"{settings.cryptocompare_api_url}/pricemultifull"
-            params = {"fsyms": fsyms_str, "tsyms": "USDT"}
-            if settings.cryptocompare_api_key:
-                params["api_key"] = settings.cryptocompare_api_key
-
-            response = client.get(url, params=params)
-            response.raise_for_status()
-            data = response.json()
-
-            if data.get("Response") == "Error":
-                logger.error(f"CryptoCompare error: {data.get('Message')}")
-                return {}
-
-            raw_data = data.get("RAW", {})
-            prices = {}
-
-            for asset in ALLOWED_ASSETS:
-                base = asset.split("/")[0]
-                ticker_data = raw_data.get(base, {}).get("USDT")
-                if ticker_data:
-                    prices[asset] = Decimal(str(ticker_data.get("PRICE", 0.0)))
-
-            return prices
-
-    except Exception as e:
-        logger.error(f"Failed to fetch prices: {e}")
-        return {}
 
 
 def _send_price_alert_email(alert: AlertRule, current_price: Any, session: Session) -> None:
