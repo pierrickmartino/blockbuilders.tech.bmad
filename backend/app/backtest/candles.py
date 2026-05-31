@@ -138,6 +138,9 @@ def fetch_candles(
                 if existing.volume != c.volume:
                     existing.volume = c.volume
                     changed = True
+                if existing.source != c.source:
+                    existing.source = c.source
+                    changed = True
                 if changed:
                     session.add(existing)
                     updated_count += 1
