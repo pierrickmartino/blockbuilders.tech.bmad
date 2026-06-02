@@ -6,12 +6,7 @@ import math
 
 from app.models.candle import Candle
 from app.backtest.interpreter import StrategySignals
-from app.backtest.position_manager import TPLevelState, Trade, _create_trade  # re-exported via __all__
-from app.backtest.exit_conditions import (
-    EXIT_PRIORITY_SEQUENCE,
-    PositionContext,
-    apply_take_profit_ladder,
-)
+from app.backtest.position_manager import TPLevelState, Trade, RiskConfig, PositionManager, _create_trade  # re-exported via __all__
 
 # Re-export so existing `from app.backtest.engine import TPLevelState / Trade / _create_trade` keep working.
 __all__ = [
@@ -92,31 +87,9 @@ def run_backtest(
             trades=[],
         )
 
+    pm = PositionManager(fee_rate=fee_rate, slippage_rate=slippage_rate, spread_rate=spread_rate)
+
     equity = initial_balance
-    position_open = False
-    position_size = 0.0  # Current remaining units held
-    initial_qty = 0.0  # Initial position size (for TP ladder % calculations)
-    entry_price = 0.0
-    entry_time: Optional[datetime] = None
-    entry_index: Optional[int] = None
-
-    # TP ladder levels (with prices and triggered flags)
-    tp_levels: list[TPLevelState] = []
-    sl_price: Optional[float] = None
-    max_dd_threshold: Optional[float] = signals.max_drawdown_pct
-
-    # New: State tracking for time_exit and trailing_stop
-    bars_in_trade = 0
-    highest_close_since_entry = 0.0
-    time_exit_threshold: Optional[int] = signals.time_exit_bars
-    trailing_stop_threshold: Optional[float] = signals.trailing_stop_pct
-
-    # Excursion tracking for current position
-    peak_high: float = 0.0  # Highest high during position (for MFE in long)
-    peak_high_ts: Optional[datetime] = None
-    trough_low: float = float("inf")  # Lowest low during position (for MAE in long)
-    trough_low_ts: Optional[datetime] = None
-
     equity_curve: list[dict] = []
     trades: list[Trade] = []
     peak_equity = initial_balance
@@ -129,221 +102,57 @@ def run_backtest(
         entry_signal = signals.entry_long[i] if i < len(signals.entry_long) else False
         exit_signal = signals.exit_long[i] if i < len(signals.exit_long) else False
 
-        # If in position, check for exits
-        if position_open:
-            # Avoid same-candle exits; wait at least one full candle after entry.
-            can_exit = entry_index is None or i > entry_index
+        if pm.is_open:
+            pm.update_excursions(candle)
+            candle_exit = pm.check_exits(candle, i, exit_signal)
 
-            # Increment bars counter
-            bars_in_trade += 1
-
-            # Update highest close for trailing stop
-            if candle.close > highest_close_since_entry:
-                highest_close_since_entry = candle.close
-
-            # Track excursions on this candle
-            if candle.high > peak_high:
-                peak_high = candle.high
-                peak_high_ts = candle.timestamp
-            if candle.low < trough_low:
-                trough_low = candle.low
-                trough_low_ts = candle.timestamp
-
-            full_exit = False
-            exit_price_raw: Optional[float] = None
-            exit_reason = ""
-
-            if can_exit:
-                ctx = PositionContext(
-                    candle=candle,
-                    entry_price=entry_price,
-                    sl_price=sl_price,
-                    highest_close_since_entry=highest_close_since_entry,
-                    bars_in_trade=bars_in_trade,
-                    tp_levels=tp_levels,
-                    position_size=position_size,
-                    initial_qty=initial_qty,
-                    trailing_stop_threshold=trailing_stop_threshold,
-                    max_dd_threshold=max_dd_threshold,
-                    time_exit_threshold=time_exit_threshold,
-                    exit_signal=exit_signal,
-                )
-
-                # Iterate priority sequence; first match wins
-                for condition in EXIT_PRIORITY_SEQUENCE:
-                    decision = condition.check(ctx)
-                    if decision is not None:
-                        exit_price_raw = decision.exit_price_raw
-                        exit_reason = decision.reason
-                        full_exit = True
-                        break
-
-                # Take profit (partial exits) only if no full exit fired
-                if not full_exit:
-                    for partial in apply_take_profit_ladder(ctx):
-                        trade, pnl = _create_trade(
-                            qty=partial.qty,
-                            exit_price_raw=partial.exit_price_raw,
-                            exit_reason="tp",
-                            entry_price=entry_price,
-                            entry_time=entry_time,
-                            exit_timestamp=candle.timestamp,
-                            sl_price=sl_price,
-                            tp_levels=tp_levels,
-                            peak_high=peak_high,
-                            peak_high_ts=peak_high_ts,
-                            trough_low=trough_low,
-                            trough_low_ts=trough_low_ts,
-                            slippage_rate=slippage_rate,
-                            fee_rate=fee_rate,
-                            spread_rate=spread_rate,
-                        )
-                        trades.append(trade)
-                        equity += pnl
-                        position_size -= partial.qty
-                        tp_levels[partial.level_index].triggered = True
-                        if position_size <= 0:
-                            break
-
-            # Execute full exit if triggered by SL, trailing stop, max DD, time exit, or signal
-            if full_exit and position_size > 0 and exit_price_raw is not None:
-                trade, pnl = _create_trade(
-                    qty=position_size,
-                    exit_price_raw=exit_price_raw,
-                    exit_reason=exit_reason,
-                    entry_price=entry_price,
-                    entry_time=entry_time,
-                    exit_timestamp=candle.timestamp,
-                    sl_price=sl_price,
-                    tp_levels=tp_levels,
-                    peak_high=peak_high,
-                    peak_high_ts=peak_high_ts,
-                    trough_low=trough_low,
-                    trough_low_ts=trough_low_ts,
-                    slippage_rate=slippage_rate,
-                    fee_rate=fee_rate,
-                    spread_rate=spread_rate,
-                )
+            for partial in candle_exit.partials:
+                trade = pm.apply_partial(partial, candle.timestamp)
                 trades.append(trade)
-                equity += pnl
-                position_size = 0.0
+                equity += trade.pnl
+                if not pm.is_open:
+                    break
 
-            # Reset position if fully closed
-            if position_size <= 0:
-                position_open = False
-                position_size = 0.0
-                initial_qty = 0.0
-                entry_price = 0.0
-                entry_time = None
-                entry_index = None
-                tp_levels = []
-                sl_price = None
-                peak_high = 0.0
-                peak_high_ts = None
-                trough_low = float("inf")
-                trough_low_ts = None
-                bars_in_trade = 0
-                highest_close_since_entry = 0.0
+            if candle_exit.full is not None and pm.is_open:
+                trade = pm.close(candle_exit.full.exit_price_raw, candle_exit.full.reason, candle.timestamp)
+                trades.append(trade)
+                equity += trade.pnl
 
-        # If flat, check for entry on next candle
         # Entry signal on candle i means we enter at candle i+1 open
-        if not position_open and entry_signal and i + 1 < n:
+        if not pm.is_open and entry_signal and i + 1 < n:
             next_candle = candles[i + 1]
-            raw_entry_price = next_candle.open
+            effective_entry = next_candle.open * (1 + slippage_rate) * (1 + fee_rate) * (1 + spread_rate / 2)
+            qty = equity * (signals.position_size_pct / 100) / effective_entry
+            risk = RiskConfig(
+                take_profit_levels=signals.take_profit_levels or None,
+                stop_loss_pct=signals.stop_loss_pct,
+                max_drawdown_pct=signals.max_drawdown_pct,
+                time_exit_bars=signals.time_exit_bars,
+                trailing_stop_pct=signals.trailing_stop_pct,
+            )
+            pm.enter(price=effective_entry, qty=qty, timestamp=next_candle.timestamp, index=i + 1, risk=risk)
 
-            # Apply slippage, fees, and spread on entry
-            effective_entry = raw_entry_price * (1 + slippage_rate) * (1 + fee_rate) * (1 + spread_rate / 2)
-
-            # Calculate position size based on percentage of equity
-            position_value = equity * (signals.position_size_pct / 100)
-            position_size = position_value / effective_entry
-            initial_qty = position_size  # Store initial for TP ladder calculations
-
-            position_open = True
-            entry_price = effective_entry
-            entry_time = next_candle.timestamp
-            entry_index = i + 1
-
-            # Initialize excursion tracking for this position
-            peak_high = next_candle.high
-            peak_high_ts = next_candle.timestamp
-            trough_low = next_candle.low
-            trough_low_ts = next_candle.timestamp
-
-            # Initialize new state for time_exit and trailing_stop
-            bars_in_trade = 0
-            highest_close_since_entry = next_candle.close
-
-            # Set up TP levels with prices
-            tp_levels = []
-            if signals.take_profit_levels:
-                for lvl in signals.take_profit_levels:
-                    tp_price = effective_entry * (1 + lvl.profit_pct / 100)
-                    tp_levels.append(TPLevelState(
-                        profit_pct=lvl.profit_pct,
-                        close_pct=lvl.close_pct,
-                        price=tp_price,
-                        triggered=False
-                    ))
-
-            # Set SL price
-            if signals.stop_loss_pct is not None:
-                sl_price = effective_entry * (1 - signals.stop_loss_pct / 100)
-            else:
-                sl_price = None
-
-        # Record equity at end of candle
-        # If in position, mark-to-market at close
         current_equity = equity
-        if position_open and position_size > 0:
-            unrealized_pnl = (candle.close - entry_price) * position_size
-            current_equity = equity + unrealized_pnl
+        if pm.is_open:
+            current_equity = equity + pm.unrealized_pnl(candle.close)
 
         equity_curve.append({
             "timestamp": candle.timestamp.isoformat(),
             "equity": round(current_equity, 2),
         })
 
-        # Track drawdown
         if current_equity > peak_equity:
             peak_equity = current_equity
         drawdown = (peak_equity - current_equity) / peak_equity * 100
         if drawdown > max_drawdown:
             max_drawdown = drawdown
 
-    # Close any open position at final candle close
-    if position_open and position_size > 0 and candles:
+    # Force-close any open position at end of data
+    if pm.is_open and candles:
         final_candle = candles[-1]
-
-        # Update excursions for final candle
-        if final_candle.high > peak_high:
-            peak_high = final_candle.high
-            peak_high_ts = final_candle.timestamp
-        if final_candle.low < trough_low:
-            trough_low = final_candle.low
-            trough_low_ts = final_candle.timestamp
-
-        trade, pnl = _create_trade(
-            qty=position_size,
-            exit_price_raw=final_candle.close,
-            exit_reason="end_of_data",
-            entry_price=entry_price,
-            entry_time=entry_time,
-            exit_timestamp=final_candle.timestamp,
-            sl_price=sl_price,
-            tp_levels=tp_levels,
-            peak_high=peak_high,
-            peak_high_ts=peak_high_ts,
-            trough_low=trough_low,
-            trough_low_ts=trough_low_ts,
-            slippage_rate=slippage_rate,
-            fee_rate=fee_rate,
-            spread_rate=spread_rate,
-        )
+        trade = pm.close(final_candle.close, "end_of_data", final_candle.timestamp)
         trades.append(trade)
-        equity += pnl
-
-        # Update final equity in curve
+        equity += trade.pnl
         if equity_curve:
             equity_curve[-1]["equity"] = round(equity, 2)
 
