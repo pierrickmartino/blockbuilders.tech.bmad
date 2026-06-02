@@ -2,7 +2,7 @@
 
 Load-bearing names used across the codebase. Keep entries terse —
 one line per concept. Detailed reasoning belongs in ADRs
-(`docs/ai/decisions/`), not here.
+(`docs/adr/`), not here.
 
 ## Domain concepts
 
@@ -24,6 +24,13 @@ These come from `PRODUCT.md` and describe what the product *is*.
   `backend/app/backtest/interpreter.py`.
 - **Engine** — the backend component that consumes signals and
   simulates trades. See `backend/app/backtest/engine.py`.
+- **PositionManager** — owns the state of the single open position
+  during a backtest: entry, quantity, TP-ladder state, SL price, and
+  excursions (MFE/MAE). Exposes `enter`, `check_exits`, and `close`;
+  produces `Trade`s and returns PnL as a value. It is deliberately
+  account-blind — the Engine loop owns equity, sizing, and the equity
+  curve. See `backend/app/backtest/position_manager.py` and
+  ADR-0004. _Avoid_: position tracker, trade manager.
 
 ## Architecture concepts
 

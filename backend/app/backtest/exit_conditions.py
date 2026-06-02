@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Callable, Optional
 
 if TYPE_CHECKING:
-    from app.backtest.engine import TPLevelState
+    from app.backtest.position_manager import TPLevelState
     from app.models.candle import Candle
 
 
@@ -45,6 +45,19 @@ class PartialExit:
     level_index: int   # original index in PositionContext.tp_levels
     qty: float
     exit_price_raw: float
+
+
+@dataclass(frozen=True)
+class CandleExit:
+    """Result of evaluating all exit conditions for one candle.
+
+    Invariant: if ``full`` is not None, ``partials`` must be empty — a full
+    exit preempts the take-profit ladder. The type encodes this so callers
+    cannot accidentally act on both.
+    """
+
+    full: "ExitDecision | None"
+    partials: "list[PartialExit]"
 
 
 @dataclass(frozen=True)
