@@ -270,3 +270,69 @@ def test_get_draft_returns_404_for_other_users_strategy(client, session, strateg
 
     res = client.get(f"/strategies/{strategy.id}/draft", headers=other_headers)
     assert res.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# Slice D7 — POST /draft/validate validates the persisted working copy
+#            (regression: route must stay registered; the editor calls it
+#             after every autosave for live validation feedback)
+# ---------------------------------------------------------------------------
+
+
+def test_validate_draft_route_is_registered(client, auth_headers, strategy):
+    """POST /draft/validate must resolve to a real endpoint (not 404/405).
+
+    The default empty working copy is invalid, so it returns 200 + errors.
+    """
+    res = client.post(
+        f"/strategies/{strategy.id}/draft/validate", headers=auth_headers
+    )
+
+    assert res.status_code == 200
+    body = res.json()
+    assert body["status"] == "invalid"
+    codes = {err["code"] for err in body["errors"]}
+    assert "MISSING_ENTRY" in codes
+    assert "MISSING_EXIT" in codes
+
+
+def test_validate_draft_reflects_latest_put(client, auth_headers, strategy):
+    """Validation must run against the most recently persisted draft."""
+    client.put(
+        f"/strategies/{strategy.id}/draft",
+        json={"definition_json": SAMPLE_DEFINITION},
+        headers=auth_headers,
+    )
+
+    res = client.post(
+        f"/strategies/{strategy.id}/draft/validate", headers=auth_headers
+    )
+
+    assert res.status_code == 200
+    # SAMPLE_DEFINITION has a single unconnected price block — still invalid,
+    # but proves validation read the PUT'd definition, not the empty default.
+    assert res.json()["status"] == "invalid"
+
+
+def test_validate_draft_returns_404_for_other_users_strategy(client, session, strategy):
+    """POST /draft/validate on another user's strategy must return 404."""
+    other_user = User(
+        id=uuid4(),
+        email="validate-other@example.com",
+        password_hash=hash_password("OtherPassword123!"),
+        plan_tier=PlanTier.FREE,
+        user_tier=UserTier.BETA,
+    )
+    session.add(other_user)
+    session.commit()
+
+    login = client.post(
+        "/auth/login",
+        json={"email": "validate-other@example.com", "password": "OtherPassword123!"},
+    )
+    other_headers = {"Authorization": f"Bearer {login.json()['token']}"}
+
+    res = client.post(
+        f"/strategies/{strategy.id}/draft/validate", headers=other_headers
+    )
+    assert res.status_code == 404

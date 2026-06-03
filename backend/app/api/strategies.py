@@ -32,6 +32,7 @@ from app.schemas.strategy import (
     StrategyVersionDetailResponse,
     StrategyVersionResponse,
     StrategyWithMetricsResponse,
+    ValidationError,
     ValidationResponse,
 )
 from app.services.strategy_validation import collect_validation_errors
@@ -604,6 +605,43 @@ def upsert_draft(
         strategy_id=wc.strategy_id,
         definition_json=wc.definition_json,
         updated_at=wc.updated_at,
+    )
+
+
+@router.post("/{strategy_id}/draft/validate", response_model=ValidationResponse)
+def validate_draft(
+    strategy_id: UUID,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> ValidationResponse:
+    """Validate the persisted working copy without saving (read-only).
+
+    The editor calls this after every autosave for live validation feedback.
+    Takes no body — it reads the definition straight from strategy_drafts.
+    A malformed/empty draft yields an ``invalid`` status rather than a 500,
+    matching the editor's best-effort handling of this call.
+    """
+    strategy = get_user_strategy(strategy_id, user, session)
+    wc = get_or_create_working_copy(strategy, session)
+
+    try:
+        definition = StrategyDefinitionValidate.model_validate(wc.definition_json)
+    except PydanticValidationError:
+        return ValidationResponse(
+            status="invalid",
+            errors=[
+                ValidationError(
+                    code="malformed_draft",
+                    message="Draft definition could not be parsed.",
+                )
+            ],
+        )
+
+    errors = collect_validation_errors(definition)
+
+    return ValidationResponse(
+        status="valid" if not errors else "invalid",
+        errors=errors,
     )
 
 
