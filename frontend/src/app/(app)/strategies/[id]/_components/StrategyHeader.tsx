@@ -9,13 +9,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Sheet,
   SheetContent,
   SheetDescription,
@@ -51,7 +44,6 @@ import {
   Loader2,
   Pencil,
   X,
-  Archive,
 } from "lucide-react";
 import { StrategyTabs } from "@/components/StrategyTabs";
 import { cn } from "@/lib/utils";
@@ -78,8 +70,6 @@ interface StrategyHeaderProps {
 
   /** Version history */
   onLoadVersion: (versionNumber: number) => void;
-  /** Archive a published version (triggers confirmation internally). */
-  onArchiveVersion: (versionNumber: number) => void;
 
   /** Actions */
   isUpdatingAutoUpdate: boolean;
@@ -114,7 +104,6 @@ export function StrategyHeader({
   lastSavedAt,
   relativeTimestamp,
   onLoadVersion,
-  onArchiveVersion,
   isUpdatingAutoUpdate,
   onExport,
   onAutoUpdateToggle,
@@ -127,15 +116,7 @@ export function StrategyHeader({
   onMessageDismiss,
   onJumpToError,
 }: StrategyHeaderProps) {
-  const [pendingArchive, setPendingArchive] = useState<number | null>(null);
   const [pendingLoadVersion, setPendingLoadVersion] = useState<number | null>(null);
-
-  function handleArchiveConfirm() {
-    if (pendingArchive !== null) {
-      onArchiveVersion(pendingArchive);
-      setPendingArchive(null);
-    }
-  }
 
   const hasDraft = lastSavedAt !== null || draftStatus === "saved" || draftStatus === "saving";
 
@@ -342,15 +323,6 @@ export function StrategyHeader({
                             Load
                           </Button>
                         )}
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
-                          aria-label={`Archive version ${v.version_number}`}
-                          onClick={() => setPendingArchive(v.version_number)}
-                        >
-                          <Archive className="h-3.5 w-3.5" aria-hidden="true" />
-                        </Button>
                       </div>
                     </div>
                   ))
@@ -446,27 +418,8 @@ export function StrategyHeader({
       </div>
 
       {/* Tabs row */}
-      <div className="mt-1 flex items-center justify-between gap-2">
+      <div className="mt-1 flex items-center gap-2">
         <StrategyTabs strategyId={strategyId} activeTab="build" />
-        {versions.length > 0 && (
-          <Select
-            value={String(selectedVersion?.version_number || "")}
-            onValueChange={(v) => handleLoadVersionClick(Number(v))}
-          >
-            <SelectTrigger className="hidden h-8 w-[110px] text-xs sm:w-[140px] lg:flex">
-              <SelectValue placeholder="Version" />
-            </SelectTrigger>
-            <SelectContent>
-              {versions.map((v) => (
-                <SelectItem key={v.id} value={String(v.version_number)}>
-                  <span className="data-text">
-                    v{v.version_number} - {formatDateTime(v.created_at, timezone)}
-                  </span>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
       </div>
 
       {/* Compact error/success messages — Signal design system `alert` spec */}
@@ -542,27 +495,6 @@ export function StrategyHeader({
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Archive confirmation dialog */}
-      <AlertDialog
-        open={pendingArchive !== null}
-        onOpenChange={(open) => { if (!open) setPendingArchive(null); }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Archive version {pendingArchive}?</AlertDialogTitle>
-            <AlertDialogDescription>
-              It will be removed from your version history. Backtests referencing
-              this version are not affected.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleArchiveConfirm}>
-              Archive
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }

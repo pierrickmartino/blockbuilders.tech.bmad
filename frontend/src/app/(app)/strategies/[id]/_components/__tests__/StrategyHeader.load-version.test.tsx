@@ -91,7 +91,6 @@ function renderHeader(overrides: {
     ...draftProps,
     relativeTimestamp: "just now",
     onLoadVersion,
-    onArchiveVersion: vi.fn(),
     isUpdatingAutoUpdate: false,
     onExport: vi.fn(),
     onAutoUpdateToggle: vi.fn(),

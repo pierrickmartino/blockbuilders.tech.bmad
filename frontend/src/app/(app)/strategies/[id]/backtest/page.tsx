@@ -38,7 +38,7 @@ import {
   DataCompletenessResponse,
   TradeDetail,
 } from "@/types/backtest";
-import { PlanResponse, ProfileResponse } from "@/types/auth";
+import { PlanResponse } from "@/types/auth";
 import { StrategyTabs } from "@/components/StrategyTabs";
 import TradeDrawer from "@/components/TradeDrawer";
 import { WhatYouLearnedCard } from "@/components/WhatYouLearnedCard";
@@ -778,11 +778,8 @@ export default function StrategyBacktestPage({ params }: Props) {
   useEffect(() => {
     if (batchInitialized.current || userPlan === null) return;
     batchInitialized.current = true;
-    const defaults = BATCH_PERIOD_PRESETS
-      .filter((p) => !p.premiumOnly || isPremiumUser)
-      .map((p) => p.value);
-    setSelectedPeriods(new Set(defaults));
-  }, [userPlan, isPremiumUser]);
+    setSelectedPeriods(new Set(["1y"]));
+  }, [userPlan]);
 
   // Fetch data quality metrics when dates or strategy change
   useEffect(() => {
