@@ -100,6 +100,8 @@ class BacktestStatusResponse(BaseModel):
 
     run_id: UUID
     strategy_id: UUID
+    strategy_version_id: UUID
+    strategy_version_number: int
     status: str
     asset: str
     timeframe: str

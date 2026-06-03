@@ -27,6 +27,7 @@ import { useDisplay } from "@/context/display";
 import { useAuth } from "@/context/auth";
 import { useBacktestResults } from "@/hooks/useBacktestResults";
 import { useBatchBacktestResults } from "@/hooks/useBatchBacktestResults";
+import { useRestoreSnapshot } from "@/hooks/useRestoreSnapshot";
 import { Strategy, StrategyVersion } from "@/types/strategy";
 import {
   BacktestListItem,
@@ -624,6 +625,8 @@ export default function StrategyBacktestPage({ params }: Props) {
     refetch: refetchRunResults,
   } = useBacktestResults(selectedRunId, handleRunDetailFetched);
 
+  const { restoreFromVersion, isRestoring } = useRestoreSnapshot(id);
+
   // Compute seasonality data
   const seasonalityRows = useMemo(
     () => computeSeasonality(trades, periodType),
@@ -1127,6 +1130,8 @@ export default function StrategyBacktestPage({ params }: Props) {
         isZeroTradeNarrativeMode={isZeroTradeNarrativeMode}
         onShare={() => setShowShareModal(true)}
         onRunBacktest={submitBatchBacktest}
+        onRestoreSnapshot={restoreFromVersion}
+        isRestoring={isRestoring}
         isSubmitting={isSubmitting}
         selectedPeriodCount={selectedPeriods.size}
         runStatus={selectedRun?.status ?? null}

@@ -59,6 +59,11 @@ def _build_status_response(
     summary = _backtest_responses._build_summary(run)
     narrative = generate_narrative(summary) if summary is not None else None
 
+    strategy_version = session.exec(
+        select(StrategyVersion).where(StrategyVersion.id == run.strategy_version_id)
+    ).first()
+    strategy_version_number = strategy_version.version_number if strategy_version else 0
+
     data_quality = None
     try:
         metrics_list = query_metrics_for_range(
@@ -91,7 +96,10 @@ def _build_status_response(
         logger.debug("Failed to fetch data quality metrics: %s", e)
 
     return _backtest_responses.build_status_response(
-        run, data_quality=data_quality, narrative=narrative
+        run,
+        strategy_version_number=strategy_version_number,
+        data_quality=data_quality,
+        narrative=narrative,
     )
 
 

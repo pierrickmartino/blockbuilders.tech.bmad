@@ -15,6 +15,7 @@ import {
   exportMetricsToJSON,
 } from "@/lib/backtest-export";
 import { StatusBadge } from "@/components/backtest/StatusBadge";
+import { RestoreSnapshotButton } from "@/components/backtest/RestoreSnapshotButton";
 import { CalendarDays, Download, Play, Share2 } from "lucide-react";
 
 const GAP_THRESHOLDS = { excellent: 2, good: 5 } as const;
@@ -78,6 +79,8 @@ interface BacktestPageHeaderProps {
   isZeroTradeNarrativeMode: boolean;
   onShare: () => void;
   onRunBacktest: () => void;
+  onRestoreSnapshot?: (versionNumber: number) => Promise<void>;
+  isRestoring?: boolean;
   isSubmitting: boolean;
   selectedPeriodCount: number;
   runStatus?: BacktestStatus | null;
@@ -96,6 +99,8 @@ export function BacktestPageHeader({
   isZeroTradeNarrativeMode,
   onShare,
   onRunBacktest,
+  onRestoreSnapshot,
+  isRestoring = false,
   isSubmitting,
   selectedPeriodCount,
   runStatus = null,
@@ -105,6 +110,10 @@ export function BacktestPageHeader({
     selectedRun?.status === "completed" &&
     selectedRun.summary &&
     !isZeroTradeNarrativeMode;
+  const showRestore =
+    selectedRun?.status === "completed" &&
+    selectedRun.strategy_version_number != null &&
+    onRestoreSnapshot != null;
   const qualityIndicator = getQualityIndicator(dataQuality);
   const versionLabel = strategyVersion ? `v${strategyVersion.version_number}` : "Unsaved";
   const updatedLabel = strategyVersion?.created_at
@@ -165,6 +174,13 @@ export function BacktestPageHeader({
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5 xl:justify-end">
+          {showRestore && (
+            <RestoreSnapshotButton
+              versionNumber={selectedRun!.strategy_version_number}
+              onRestore={() => onRestoreSnapshot!(selectedRun!.strategy_version_number)}
+              isRestoring={isRestoring}
+            />
+          )}
           {showActions && (
             <>
               <Button
