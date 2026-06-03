@@ -1,12 +1,12 @@
 /**
- * Tests for StrategyHeader "load version with active draft" warning (issue #462).
+ * Tests for StrategyHeader "load version with active draft" warning (issue #462, updated #516).
  *
- * When a draft exists server-side (hasDraft=true) and the user tries to load
- * a published version, a custom AlertDialog must appear with the message:
- * "You have an unpublished draft. Loading a different version will replace it."
+ * The header computes `hasDraft` internally from lastSavedAt / draftStatus.
+ * - hasDraft=true when lastSavedAt is set (saved draft exists)
+ * - hasDraft=false when lastSavedAt is null and status is idle
  *
- * When no draft exists (hasDraft=false), the version loads immediately with
- * no confirmation step.
+ * When a draft exists and the user tries to load a version, a warning dialog
+ * must appear. When no draft exists, the version loads immediately.
  */
 
 import React from "react";
@@ -57,11 +57,24 @@ const VERSIONS: StrategyVersion[] = [
   { id: "v1", version_number: 1, created_at: "2026-01-01T10:00:00Z" },
 ];
 
+/** hasDraft=false: lastSavedAt null + status idle */
+const NO_DRAFT_PROPS = {
+  draftStatus: "idle" as const,
+  lastSavedAt: null,
+};
+
+/** hasDraft=true: a saved timestamp present */
+const HAS_DRAFT_PROPS = {
+  draftStatus: "saved" as const,
+  lastSavedAt: new Date("2026-01-01T12:00:00Z"),
+};
+
 function renderHeader(overrides: {
   hasDraft?: boolean;
   onLoadVersion?: (versionNumber: number) => void;
 } = {}) {
   const onLoadVersion = overrides.onLoadVersion ?? vi.fn();
+  const draftProps = overrides.hasDraft === false ? NO_DRAFT_PROPS : HAS_DRAFT_PROPS;
 
   const props = {
     strategy: STRATEGY,
@@ -75,11 +88,8 @@ function renderHeader(overrides: {
     onEditingNameChange: vi.fn(),
     onNameChange: vi.fn(),
     onNameSave: vi.fn(),
-    draftStatus: "persisted" as const,
-    lastPersistedAt: new Date("2026-01-01T12:00:00Z"),
+    ...draftProps,
     relativeTimestamp: "just now",
-    hasDraft: overrides.hasDraft ?? false,
-    onPublish: vi.fn(),
     onLoadVersion,
     onArchiveVersion: vi.fn(),
     isUpdatingAutoUpdate: false,
@@ -113,7 +123,7 @@ function openVersionSheet() {
 // ---------------------------------------------------------------------------
 
 describe("StrategyHeader – load version without active draft", () => {
-  it("calls onLoadVersion immediately when hasDraft is false", () => {
+  it("calls onLoadVersion immediately when no draft exists", () => {
     const { onLoadVersion } = renderHeader({ hasDraft: false });
     openVersionSheet();
 
@@ -124,14 +134,13 @@ describe("StrategyHeader – load version without active draft", () => {
     expect(onLoadVersion).toHaveBeenCalledTimes(1);
   });
 
-  it("does NOT show a confirmation dialog when hasDraft is false", () => {
+  it("does NOT show a confirmation dialog when no draft exists", () => {
     renderHeader({ hasDraft: false });
     openVersionSheet();
 
     const loadButtons = screen.getAllByRole("button", { name: /^load$/i });
     fireEvent.click(loadButtons[0]);
 
-    // No alertdialog for load-version warning should appear
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
   });
 });
@@ -141,7 +150,7 @@ describe("StrategyHeader – load version without active draft", () => {
 // ---------------------------------------------------------------------------
 
 describe("StrategyHeader – load version with active draft shows warning", () => {
-  it("opens an AlertDialog when hasDraft is true and Load is clicked", () => {
+  it("opens an AlertDialog when draft exists and Load is clicked", () => {
     renderHeader({ hasDraft: true });
     openVersionSheet();
 
@@ -151,7 +160,7 @@ describe("StrategyHeader – load version with active draft shows warning", () =
     expect(screen.getByRole("alertdialog")).toBeInTheDocument();
   });
 
-  it("does NOT immediately call onLoadVersion when hasDraft is true", () => {
+  it("does NOT immediately call onLoadVersion when draft exists", () => {
     const { onLoadVersion } = renderHeader({ hasDraft: true });
     openVersionSheet();
 
@@ -159,16 +168,6 @@ describe("StrategyHeader – load version with active draft shows warning", () =
     fireEvent.click(loadButtons[0]);
 
     expect(onLoadVersion).not.toHaveBeenCalled();
-  });
-
-  it("dialog references 'unpublished draft' specifically", () => {
-    renderHeader({ hasDraft: true });
-    openVersionSheet();
-
-    const loadButtons = screen.getAllByRole("button", { name: /^load$/i });
-    fireEvent.click(loadButtons[0]);
-
-    expect(screen.getByRole("alertdialog")).toHaveTextContent(/unpublished draft/i);
   });
 
   it("dialog warns that loading will replace the draft", () => {
@@ -223,7 +222,6 @@ describe("StrategyHeader – confirm load-version dialog", () => {
     const { onLoadVersion } = renderHeader({ hasDraft: true });
     openVersionSheet();
 
-    // VERSIONS ordered desc: first Load → version 2
     const loadButtons = screen.getAllByRole("button", { name: /^load$/i });
     fireEvent.click(loadButtons[0]);
 
@@ -238,7 +236,6 @@ describe("StrategyHeader – confirm load-version dialog", () => {
     const { onLoadVersion } = renderHeader({ hasDraft: true });
     openVersionSheet();
 
-    // Second Load → version 1
     const loadButtons = screen.getAllByRole("button", { name: /^load$/i });
     fireEvent.click(loadButtons[1]);
 

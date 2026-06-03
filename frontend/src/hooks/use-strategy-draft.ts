@@ -1,19 +1,20 @@
 /**
- * useStrategyDraft — hook for draft persistence and publish (issues #458, #459).
+ * useStrategyDraft — hook for draft persistence (issues #458, #516).
  *
- * Side effects (API calls, relative timestamp) live here;
- * pure state logic lives in draftReducer.
+ * Simplified per ADR-0005: no publish step. State machine: idle → saving → saved | error.
+ *
+ * Hydration guard: persistDraft is a no-op until markHydrated() is called, so
+ * the empty initial React mount can never overwrite a real working copy.
  *
  * Consumers:
- *   - call persistDraft(nodes, edges) on canvas changes
- *   - call publishDraft() when user clicks Publish
- *   - read draftStatus / lastPersistedAt / relativeTimestamp for toolbar display
+ *   - call markHydrated() once the working copy has loaded onto the canvas
+ *   - call persistDraft(nodes, edges) on canvas changes (via onStable debounce)
+ *   - read draftStatus / lastSavedAt / relativeTimestamp for toolbar display
  */
 
-import { useCallback, useEffect, useReducer } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useCallback, useEffect, useReducer, useRef } from "react";
 import type { Node, Edge } from "@xyflow/react";
-import { StrategiesApiClient, strategiesKeys } from "@/lib/api/strategies-client";
+import { StrategiesApiClient } from "@/lib/api/strategies-client";
 import { reactFlowToDefinition } from "@/lib/canvas-utils";
 import { formatRelativeTime } from "@/lib/format";
 import { draftReducer, initialDraftState } from "./draft-reducer";
@@ -22,8 +23,6 @@ import type { ValidationError } from "@/types/canvas";
 
 interface UseStrategyDraftOptions {
   strategyId: string;
-  /** Called after a successful publish so the version list can be refreshed. */
-  onPublishSuccess?: () => void;
   /**
    * Called after each successful draft persist with the current validation
    * result.  Receives an empty array when the draft is valid.
@@ -33,49 +32,51 @@ interface UseStrategyDraftOptions {
 
 interface UseStrategyDraftReturn {
   draftStatus: DraftState["status"];
-  lastPersistedAt: Date | null;
+  lastSavedAt: Date | null;
   draftError: string | null;
   relativeTimestamp: string;
-  hasDraft: boolean;
+  /** Mark the working copy as loaded — unlocks persistDraft. */
+  markHydrated: () => void;
   persistDraft: (nodes: Node[], edges: Edge[]) => Promise<void>;
-  publishDraft: () => Promise<void>;
   resetDraftStatus: () => void;
 }
 
 export function useStrategyDraft({
   strategyId,
-  onPublishSuccess,
   onValidationErrors,
 }: UseStrategyDraftOptions): UseStrategyDraftReturn {
-  const queryClient = useQueryClient();
   const [state, dispatch] = useReducer(draftReducer, initialDraftState);
+
+  // Hydration guard: blocks any persist until the working copy is loaded.
+  const isHydratedRef = useRef(false);
+
+  const markHydrated = useCallback(() => {
+    isHydratedRef.current = true;
+  }, []);
 
   // ── Relative timestamp ticker (updates every 5 s) ──────────────────────────
   useEffect(() => {
-    if (!state.lastPersistedAt) return;
+    if (!state.lastSavedAt) return;
     const update = () => {}; // relativeTimestamp is derived in render — ticker just forces re-render
     const interval = setInterval(update, 5000);
     return () => clearInterval(interval);
-  }, [state.lastPersistedAt]);
+  }, [state.lastSavedAt]);
 
-  const relativeTimestamp = state.lastPersistedAt
-    ? formatRelativeTime(state.lastPersistedAt)
+  const relativeTimestamp = state.lastSavedAt
+    ? formatRelativeTime(state.lastSavedAt)
     : "";
-
-  const hasDraft =
-    state.lastPersistedAt !== null ||
-    state.status === "persisted" ||
-    state.status === "persisting";
 
   // ── persistDraft ────────────────────────────────────────────────────────────
   const persistDraft = useCallback(
     async (nodes: Node[], edges: Edge[]) => {
-      dispatch({ type: "PERSIST_START" });
+      if (!isHydratedRef.current) return;
+
+      dispatch({ type: "SAVE_START" });
 
       try {
         const definition = reactFlowToDefinition(nodes, edges);
         await StrategiesApiClient.putDraft(strategyId, definition as unknown as Record<string, unknown>);
-        dispatch({ type: "PERSIST_SUCCESS", timestamp: new Date() });
+        dispatch({ type: "SAVE_SUCCESS", timestamp: new Date() });
 
         // Live validation — read-only, does not block persist.
         try {
@@ -87,27 +88,11 @@ export function useStrategyDraft({
       } catch (err) {
         const message =
           err instanceof Error ? err.message : "Failed to save draft";
-        dispatch({ type: "PERSIST_ERROR", message });
+        dispatch({ type: "SAVE_ERROR", message });
       }
     },
     [strategyId, onValidationErrors]
   );
-
-  // ── publishDraft ─────────────────────────────────────────────────────────────
-  const publishDraft = useCallback(async () => {
-    dispatch({ type: "PUBLISH_START" });
-
-    try {
-      await StrategiesApiClient.publishDraft(strategyId);
-      dispatch({ type: "PUBLISH_SUCCESS" });
-      queryClient.invalidateQueries({ queryKey: strategiesKeys.versions(strategyId) });
-      onPublishSuccess?.();
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Failed to publish draft";
-      dispatch({ type: "PUBLISH_ERROR", message });
-    }
-  }, [strategyId, onPublishSuccess, queryClient]);
 
   const resetDraftStatus = useCallback(() => {
     dispatch({ type: "RESET" });
@@ -115,12 +100,11 @@ export function useStrategyDraft({
 
   return {
     draftStatus: state.status,
-    lastPersistedAt: state.lastPersistedAt,
+    lastSavedAt: state.lastSavedAt,
     draftError: state.error,
     relativeTimestamp,
-    hasDraft,
+    markHydrated,
     persistDraft,
-    publishDraft,
     resetDraftStatus,
   };
 }

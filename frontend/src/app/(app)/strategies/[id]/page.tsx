@@ -214,10 +214,9 @@ function StrategyEditorPageInner({ params }: Props) {
   const contextNodesRef = useRef<Node[]>([]);
   const contextEdgesRef = useRef<Edge[]>([]);
 
-  // --- Draft persist + publish (background save + explicit publish action) ---
+  // --- Draft autosave (background save) ---
   const draft = useStrategyDraft({
     strategyId: id,
-    onPublishSuccess: () => loadVersions({ loadDetail: false }),
     onValidationErrors: (errors) => {
       validationErrorCallbackRef.current?.(errors);
       setValidationErrors(errors);
@@ -311,6 +310,7 @@ function StrategyEditorPageInner({ params }: Props) {
   const alerts = useStrategyAlerts({ strategyId: id });
 
   // --- Draft load: working copy always exists (ADR-0005), never falls back ---
+  const { markHydrated } = draft;
   const loadDraftOrLatestVersion = useCallback(async () => {
     const draftData = await StrategiesApiClient.getDraft(id);
     const definition = draftData.definition_json as unknown as StrategyDefinition | null;
@@ -321,7 +321,9 @@ function StrategyEditorPageInner({ params }: Props) {
     contextDispatchRef.current?.({ type: "SET_NODES", payload: newNodes });
     contextDispatchRef.current?.({ type: "SET_EDGES", payload: newEdges });
     contextResetHistoryRef.current?.(newNodes, newEdges);
-  }, [id]);
+    // Hydration guard: unlock autosave only after the working copy is on the canvas.
+    markHydrated();
+  }, [id, markHydrated]);
 
   // --- Initial data loading ---
   useEffect(() => {
@@ -340,8 +342,8 @@ function StrategyEditorPageInner({ params }: Props) {
       .catch((err) => console.error("Failed to load tags:", err));
   }, []);
 
-  // Warn the user before leaving while a draft persist is in-flight.
-  const hasUnsavedChanges = draft.draftStatus === "persisting";
+  // Warn the user before leaving while a draft save is in-flight.
+  const hasUnsavedChanges = draft.draftStatus === "saving";
 
   useEffect(() => {
     if (!hasUnsavedChanges) return;
@@ -563,10 +565,8 @@ function StrategyEditorPageInner({ params }: Props) {
         onNameChange={setNameInput}
         onNameSave={handleNameSave}
         draftStatus={draft.draftStatus}
-        lastPersistedAt={draft.lastPersistedAt}
+        lastSavedAt={draft.lastSavedAt}
         relativeTimestamp={draft.relativeTimestamp}
-        hasDraft={draft.hasDraft}
-        onPublish={draft.publishDraft}
         onLoadVersion={confirmLoadVersion}
         onArchiveVersion={handleArchiveVersion}
         isUpdatingAutoUpdate={isUpdatingAutoUpdate}
@@ -642,6 +642,8 @@ function StrategyEditorPageInner({ params }: Props) {
             nodesRef={contextNodesRef}
             edgesRef={contextEdgesRef}
           />
+          {/* Flush pending autosave on navigation/blur so fast navigation never loses edits */}
+          <FlushOnExit onFlush={draft.persistDraft} />
 
           {/* Keyboard shortcuts that need canvas state */}
           <CanvasKeyboardHandler
@@ -740,6 +742,39 @@ function StrategyEditorPageInner({ params }: Props) {
       </div>
     </div>
   );
+}
+
+// ── Flush pending autosave on window blur or component unmount (navigation) ───
+
+function FlushOnExit({ onFlush }: { onFlush: (nodes: Node[], edges: Edge[]) => void }) {
+  const { state, stableTimerRef } = useCanvasState();
+
+  const stateRef = useRef(state);
+  const onFlushRef = useRef(onFlush);
+  useEffect(() => { stateRef.current = state; });
+  useEffect(() => { onFlushRef.current = onFlush; });
+
+  const flush = useCallback(() => {
+    if (!stableTimerRef.current) return; // nothing pending
+    clearTimeout(stableTimerRef.current);
+    stableTimerRef.current = null;
+    onFlushRef.current(stateRef.current.nodes, stateRef.current.edges);
+  }, [stableTimerRef]);
+
+  // Flush when the window loses focus (e.g. switching tabs before timer fires)
+  useEffect(() => {
+    window.addEventListener("blur", flush);
+    return () => window.removeEventListener("blur", flush);
+  }, [flush]);
+
+  // Flush on unmount (Next.js client-side navigation away from the page)
+  const flushRef = useRef(flush);
+  useEffect(() => { flushRef.current = flush; });
+  useEffect(() => {
+    return () => flushRef.current();
+  }, []);
+
+  return null;
 }
 
 // ── Expose context dispatch to parent via refs ────────────────────────────────

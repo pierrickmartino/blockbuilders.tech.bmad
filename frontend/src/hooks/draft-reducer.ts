@@ -1,79 +1,49 @@
 /**
- * draftReducer — pure state machine for strategy draft persistence and publish (issues #458, #459).
+ * draftReducer — pure state machine for strategy draft persistence (issue #516).
  *
- * Persist states:  idle → persisting → persisted | error
- * Publish states:  persisted → publishing → published | publishError
+ * State machine: idle → saving → saved | error
+ * Publish states removed per ADR-0005 (no publish step in simplified lifecycle).
  *
  * All side effects live in useStrategyDraft; this file has zero dependencies.
  */
 
-export type DraftStatus =
-  | "idle"
-  | "persisting"
-  | "persisted"
-  | "error"
-  | "publishing"
-  | "published"
-  | "publishError";
+export type DraftStatus = "idle" | "saving" | "saved" | "error";
 
 export interface DraftState {
   status: DraftStatus;
-  lastPersistedAt: Date | null;
+  lastSavedAt: Date | null;
   error: string | null;
 }
 
 export type DraftAction =
-  | { type: "PERSIST_START" }
-  | { type: "PERSIST_SUCCESS"; timestamp: Date }
-  | { type: "PERSIST_ERROR"; message: string }
-  | { type: "PUBLISH_START" }
-  | { type: "PUBLISH_SUCCESS" }
-  | { type: "PUBLISH_ERROR"; message: string }
+  | { type: "SAVE_START" }
+  | { type: "SAVE_SUCCESS"; timestamp: Date }
+  | { type: "SAVE_ERROR"; message: string }
   | { type: "RESET" };
 
 export const initialDraftState: DraftState = {
   status: "idle",
-  lastPersistedAt: null,
+  lastSavedAt: null,
   error: null,
 };
 
 export function draftReducer(state: DraftState, action: DraftAction): DraftState {
   switch (action.type) {
-    case "PERSIST_START":
-      return { ...state, status: "persisting", error: null };
+    case "SAVE_START":
+      return { ...state, status: "saving", error: null };
 
-    case "PERSIST_SUCCESS":
+    case "SAVE_SUCCESS":
       return {
         ...state,
-        status: "persisted",
-        lastPersistedAt: action.timestamp,
+        status: "saved",
+        lastSavedAt: action.timestamp,
         error: null,
       };
 
-    case "PERSIST_ERROR":
+    case "SAVE_ERROR":
       return {
         ...state,
         status: "error",
-        error: action.message,
-      };
-
-    case "PUBLISH_START":
-      return { ...state, status: "publishing", error: null };
-
-    case "PUBLISH_SUCCESS":
-      // Draft no longer exists after publish — reset lastPersistedAt
-      return {
-        ...state,
-        status: "published",
-        lastPersistedAt: null,
-        error: null,
-      };
-
-    case "PUBLISH_ERROR":
-      // Draft still exists; preserve lastPersistedAt so user knows it's safe
-      return {
-        ...state,
-        status: "publishError",
         error: action.message,
       };
 

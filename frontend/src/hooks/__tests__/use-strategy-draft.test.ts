@@ -1,8 +1,8 @@
 /**
- * Tests for useStrategyDraft hook (issue #458).
+ * Tests for useStrategyDraft hook (issues #458, #516).
  *
- * Covers: persist triggers API call, success/error state transitions.
- * Uses vi.useFakeTimers to control debounce without real waiting.
+ * Covers: persist triggers API call, success/error state transitions,
+ * hydration guard (no persist before markHydrated is called).
  */
 
 import { renderHook, act } from "@testing-library/react";
@@ -57,13 +57,14 @@ describe("useStrategyDraft – persistDraft", () => {
     vi.clearAllMocks();
   });
 
-  it("calls PUT /strategies/{id}/draft with the definition", async () => {
+  it("calls PUT /strategies/{id}/draft with the definition when hydrated", async () => {
     const { result } = renderHook(
       () => useStrategyDraft({ strategyId: STRATEGY_ID }),
       { wrapper }
     );
 
     await act(async () => {
+      result.current.markHydrated();
       await result.current.persistDraft(NODES, EDGES);
     });
 
@@ -80,6 +81,7 @@ describe("useStrategyDraft – persistDraft", () => {
     );
 
     await act(async () => {
+      result.current.markHydrated();
       await result.current.persistDraft(NODES, EDGES);
     });
 
@@ -90,7 +92,7 @@ describe("useStrategyDraft – persistDraft", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Slice F6 — success transitions to "persisted"
+// Slice F6 — success transitions to "saved"
 // ---------------------------------------------------------------------------
 
 describe("useStrategyDraft – success transitions", () => {
@@ -113,30 +115,32 @@ describe("useStrategyDraft – success transitions", () => {
     expect(result.current.draftStatus).toBe("idle");
   });
 
-  it("transitions to persisted after a successful API call", async () => {
+  it("transitions to saved after a successful API call", async () => {
     const { result } = renderHook(
       () => useStrategyDraft({ strategyId: STRATEGY_ID }),
       { wrapper }
     );
 
     await act(async () => {
+      result.current.markHydrated();
       await result.current.persistDraft(NODES, EDGES);
     });
 
-    expect(result.current.draftStatus).toBe("persisted");
+    expect(result.current.draftStatus).toBe("saved");
   });
 
-  it("sets lastPersistedAt after success", async () => {
+  it("sets lastSavedAt after success", async () => {
     const { result } = renderHook(
       () => useStrategyDraft({ strategyId: STRATEGY_ID }),
       { wrapper }
     );
 
     await act(async () => {
+      result.current.markHydrated();
       await result.current.persistDraft(NODES, EDGES);
     });
 
-    expect(result.current.lastPersistedAt).not.toBeNull();
+    expect(result.current.lastSavedAt).not.toBeNull();
   });
 });
 
@@ -162,6 +166,7 @@ describe("useStrategyDraft – error transitions", () => {
     );
 
     await act(async () => {
+      result.current.markHydrated();
       await result.current.persistDraft(NODES, EDGES);
     });
 
@@ -175,9 +180,71 @@ describe("useStrategyDraft – error transitions", () => {
     );
 
     await act(async () => {
+      result.current.markHydrated();
       await result.current.persistDraft(NODES, EDGES);
     });
 
     expect(result.current.draftError).toBe("Network error");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Slice F8 — hydration guard: persist is blocked before markHydrated
+// ---------------------------------------------------------------------------
+
+describe("useStrategyDraft – hydration guard", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    mockApiFetchVoid.mockResolvedValue(undefined);
+    mockApiFetch.mockResolvedValue(VALIDATE_RESPONSE_CLEAN);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.clearAllMocks();
+  });
+
+  it("does not call the API when persistDraft is called before markHydrated", async () => {
+    const { result } = renderHook(
+      () => useStrategyDraft({ strategyId: STRATEGY_ID }),
+      { wrapper }
+    );
+
+    await act(async () => {
+      await result.current.persistDraft(NODES, EDGES);
+    });
+
+    expect(mockApiFetchVoid).not.toHaveBeenCalled();
+  });
+
+  it("status remains idle when persist is blocked by hydration guard", async () => {
+    const { result } = renderHook(
+      () => useStrategyDraft({ strategyId: STRATEGY_ID }),
+      { wrapper }
+    );
+
+    await act(async () => {
+      await result.current.persistDraft(NODES, EDGES);
+    });
+
+    expect(result.current.draftStatus).toBe("idle");
+  });
+
+  it("allows persist after markHydrated is called", async () => {
+    const { result } = renderHook(
+      () => useStrategyDraft({ strategyId: STRATEGY_ID }),
+      { wrapper }
+    );
+
+    await act(async () => {
+      await result.current.persistDraft(NODES, EDGES);
+    });
+    expect(mockApiFetchVoid).not.toHaveBeenCalled();
+
+    await act(async () => {
+      result.current.markHydrated();
+      await result.current.persistDraft(NODES, EDGES);
+    });
+    expect(mockApiFetchVoid).toHaveBeenCalledOnce();
   });
 });

@@ -25,7 +25,7 @@ export function useCanvasHistory(options: UseCanvasHistoryOptions = {}) {
   const {
     onStable,
     snapshotDebounceMs = 500,
-    stableDelayMs = 10_000,
+    stableDelayMs = 1_500,
   } = options;
 
   const [history, setHistory] = useState<HistoryState>(() => resetHistory([], []));
