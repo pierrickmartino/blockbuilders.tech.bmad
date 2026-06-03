@@ -23,6 +23,7 @@ from app.models.user import User, UserTier
 import app.services.backtest_service as backtest_service
 import app.services.backtest_responses as _backtest_responses
 import app.services.backtest_sharing as _backtest_sharing
+import app.services.version_freezer as version_freezer
 from app.backtest.data_quality import query_metrics_for_range
 from app.backtest.storage import download_json
 from app.backtest.explanation import build_trade_explanation
@@ -119,7 +120,7 @@ def create_backtest(
 
     use_credit = backtest_service.enforce_daily_limit(user, session)
     backtest_service.enforce_history_depth(user, data.date_from, data.date_to)
-    version = backtest_service.latest_version(strategy, session)
+    version = version_freezer.freeze_for_backtest(strategy, session)
 
     fee_rate, slippage_rate, spread_rate = backtest_service.resolve_rates(
         user, data.fee_rate, data.slippage_rate, data.spread_rate,
