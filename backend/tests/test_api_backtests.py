@@ -5,7 +5,7 @@ from uuid import uuid4
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.pool import StaticPool
-from sqlmodel import SQLModel, Session, create_engine
+from sqlmodel import SQLModel, Session, create_engine, select
 
 # Set test environment
 os.environ["DATABASE_URL"] = "sqlite://"
@@ -16,6 +16,7 @@ from app.core.database import get_session
 from app.core.security import hash_password
 from app.main import app
 from app.models.strategy import Strategy
+from app.models.strategy_draft import StrategyDraft
 from app.models.strategy_version import StrategyVersion
 from app.models.user import PlanTier, User, UserTier
 
@@ -86,6 +87,29 @@ def _create_strategy_with_version(session: Session, user_id):
         definition_json={"nodes": [], "edges": []},
     )
     session.add(version)
+    session.commit()
+
+    return strategy
+
+
+def _create_strategy_with_working_copy_only(session: Session, user_id):
+    """Create a strategy that has a working copy but NO frozen StrategyVersion yet."""
+    strategy = Strategy(
+        id=uuid4(),
+        user_id=user_id,
+        name="Unversioned",
+        asset="BTC/USDT",
+        timeframe="1d",
+    )
+    session.add(strategy)
+    session.commit()
+    session.refresh(strategy)
+
+    draft = StrategyDraft(
+        strategy_id=strategy.id,
+        definition_json={"blocks": [], "connections": [], "meta": {}},
+    )
+    session.add(draft)
     session.commit()
 
     return strategy
@@ -272,3 +296,56 @@ def test_batch_backtest_with_queued_runs_returns_retrievable_batch_id(
     status_body = status_response.json()
     assert status_body["batch_id"] == body["batch_id"]
     assert len(status_body["runs"]) == 1
+
+
+def test_batch_backtest_freezes_working_copy_when_no_version_exists(
+    client: TestClient, session: Session, monkeypatch
+):
+    """A strategy with only a working copy (no frozen version) must still batch-run.
+
+    Previously the batch endpoint called latest_version() and raised
+    StrategyHasNoVersions; it now freezes the working copy first.
+    """
+    user = _create_user(session, "batch-unversioned@example.com", UserTier.STANDARD)
+    strategy = _create_strategy_with_working_copy_only(session, user.id)
+    token = _login_and_get_token(client, user.email)
+
+    # Pre-condition: no StrategyVersion exists for this strategy.
+    assert session.exec(
+        select(StrategyVersion).where(StrategyVersion.strategy_id == strategy.id)
+    ).first() is None
+
+    monkeypatch.setattr(
+        "app.api.backtest_batches.get_effective_limits",
+        lambda *args, **kwargs: {
+            "max_backtests_per_day": 50,
+            "max_history_days": 3650,
+        },
+    )
+
+    class FakeQueue:
+        def enqueue(self, *args, **kwargs):
+            return None
+
+    monkeypatch.setattr("app.api.backtest_batches.get_redis_queue", lambda: FakeQueue())
+
+    response = client.post(
+        "/backtests/batch",
+        headers={"Authorization": f"Bearer {token}"},
+        json={
+            "strategy_id": str(strategy.id),
+            "periods": ["30d"],
+        },
+    )
+
+    assert response.status_code == 201
+    body = response.json()
+    assert body["batch_id"] is not None
+    assert body["runs"][0]["status"] == "pending"
+
+    # A version was frozen from the working copy as a side effect of the batch run.
+    frozen = session.exec(
+        select(StrategyVersion).where(StrategyVersion.strategy_id == strategy.id)
+    ).first()
+    assert frozen is not None
+    assert frozen.version_number == 1
