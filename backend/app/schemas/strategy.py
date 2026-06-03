@@ -142,11 +142,9 @@ class StrategyDraftUpsertRequest(BaseModel):
 
 
 class StrategyDraftResponse(BaseModel):
-    id: UUID
-    version_number: int
+    strategy_id: UUID
     definition_json: dict[str, Any]
-    created_at: datetime
-    status: str
+    updated_at: datetime
 
 
 class StrategyResponse(BaseModel):

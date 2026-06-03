@@ -45,11 +45,9 @@ const mockVersionDetail: StrategyVersionDetail = {
 };
 
 const mockDraft: StrategyDraft = {
-  id: "draft-1",
-  version_number: 0,
+  strategy_id: "strategy-1",
   definition_json: { blocks: [], connections: [] },
-  created_at: "2024-01-01T00:00:00Z",
-  status: "draft",
+  updated_at: "2024-01-01T00:00:00Z",
 };
 
 const bulkResponse = { success_count: 2, failed_count: 0, failed_ids: [] };
@@ -222,40 +220,6 @@ describe("StrategiesApiClient", () => {
     });
   });
 
-  describe("createVersion()", () => {
-    it("upserts the draft then publishes it", async () => {
-      const definition = { blocks: [], connections: [] };
-      mockApiFetch.mockResolvedValueOnce(mockVersion);
-      await StrategiesApiClient.createVersion("strat-1", definition);
-      // Step 1: PUT the definition as the draft.
-      expect(mockApiFetchVoid).toHaveBeenCalledWith("/strategies/strat-1/draft", {
-        method: "PUT",
-        body: JSON.stringify({ definition_json: definition }),
-      });
-      // Step 2: publish the draft into a version.
-      expect(mockApiFetch).toHaveBeenCalledWith("/strategies/strat-1/draft/publish", {
-        method: "POST",
-      });
-    });
-
-    it("returns the published version", async () => {
-      const definition = { blocks: [], connections: [] };
-      mockApiFetch.mockResolvedValueOnce(mockVersion);
-      const result = await StrategiesApiClient.createVersion("strat-1", definition);
-      expect(result).toEqual(mockVersion);
-    });
-  });
-
-  describe("archiveVersion()", () => {
-    it("calls PATCH /strategies/{id}/versions/{n}/archive", async () => {
-      await StrategiesApiClient.archiveVersion("strat-1", 2);
-      expect(mockApiFetchVoid).toHaveBeenCalledWith(
-        "/strategies/strat-1/versions/2/archive",
-        { method: "PATCH" },
-      );
-    });
-  });
-
   // ── draft ─────────────────────────────────────────────────────────────────
 
   describe("getDraft()", () => {
@@ -280,16 +244,6 @@ describe("StrategiesApiClient", () => {
         method: "PUT",
         body: JSON.stringify({ definition_json: definition }),
       });
-    });
-  });
-
-  describe("publishDraft()", () => {
-    it("calls POST /strategies/{id}/draft/publish", async () => {
-      await StrategiesApiClient.publishDraft("strat-1");
-      expect(mockApiFetchVoid).toHaveBeenCalledWith(
-        "/strategies/strat-1/draft/publish",
-        { method: "POST" },
-      );
     });
   });
 

@@ -71,7 +71,7 @@ def _pending_run(**kwargs) -> BacktestRun:
 class TestBuildStatusResponse:
     def test_completed_run_has_summary(self):
         run = _completed_run()
-        response = build_status_response(run, data_quality=None, narrative=None)
+        response = build_status_response(run, strategy_version_number=1, data_quality=None, narrative=None)
         assert response.summary is not None
         assert response.summary.total_return_pct == 15.0
         assert response.summary.initial_balance == 10000.0
@@ -79,17 +79,17 @@ class TestBuildStatusResponse:
 
     def test_pending_run_has_no_summary(self):
         run = _pending_run()
-        response = build_status_response(run, data_quality=None, narrative=None)
+        response = build_status_response(run, strategy_version_number=1, data_quality=None, narrative=None)
         assert response.summary is None
 
     def test_completed_run_with_null_total_return_has_no_summary(self):
         run = _completed_run(total_return=None)
-        response = build_status_response(run, data_quality=None, narrative=None)
+        response = build_status_response(run, strategy_version_number=1, data_quality=None, narrative=None)
         assert response.summary is None
 
     def test_passes_narrative_through(self):
         run = _completed_run()
-        response = build_status_response(run, data_quality=None, narrative="Strong performance")
+        response = build_status_response(run, strategy_version_number=1, data_quality=None, narrative="Strong performance")
         assert response.narrative == "Strong performance"
 
     def test_passes_data_quality_through(self):
@@ -105,17 +105,27 @@ class TestBuildStatusResponse:
             has_issues=False,
             issues_description="Data quality OK",
         )
-        response = build_status_response(run, data_quality=dq, narrative=None)
+        response = build_status_response(run, strategy_version_number=1, data_quality=dq, narrative=None)
         assert response.data_quality is dq
 
     def test_maps_run_fields(self):
         run = _completed_run(status="failed", error_message="oops", total_return=None)
-        response = build_status_response(run, data_quality=None, narrative=None)
+        response = build_status_response(run, strategy_version_number=1, data_quality=None, narrative=None)
         assert response.run_id == run.id
         assert response.strategy_id == run.strategy_id
         assert response.status == "failed"
         assert response.asset == "BTC/USDT"
         assert response.error_message == "oops"
+
+    def test_exposes_strategy_version_number(self):
+        run = _completed_run()
+        response = build_status_response(run, strategy_version_number=3, data_quality=None, narrative=None)
+        assert response.strategy_version_number == 3
+
+    def test_exposes_strategy_version_id(self):
+        run = _completed_run()
+        response = build_status_response(run, strategy_version_number=1, data_quality=None, narrative=None)
+        assert response.strategy_version_id == run.strategy_version_id
 
 
 # --- build_list_item ---

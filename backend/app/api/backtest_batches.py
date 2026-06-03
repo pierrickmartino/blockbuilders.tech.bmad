@@ -17,6 +17,7 @@ from app.models.backtest_run import BacktestRun
 from app.models.strategy import Strategy
 from app.models.user import User
 import app.services.backtest_service as backtest_service
+import app.services.version_freezer as version_freezer
 from app.schemas.backtest import (
     BatchBacktestCreateRequest,
     BatchBacktestCreateResponse,
@@ -49,7 +50,10 @@ def create_batch_backtest(
     if not strategy:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Strategy not found")
 
-    version = backtest_service.latest_version(strategy, session)
+    # Freeze the current working copy (content-deduped per ADR-0005) so batch runs
+    # always backtest the latest edits, not a stale saved version. Mirrors the
+    # single-run POST /backtests/ path. flush()-only — the per-run commit below persists it.
+    version = version_freezer.freeze_for_backtest(strategy, session)
 
     is_premium = user.plan_tier in ("premium", "pro")
     effective_limits = get_effective_limits(user.plan_tier, user.user_tier)

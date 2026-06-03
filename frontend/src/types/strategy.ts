@@ -41,13 +41,11 @@ export interface StrategyVersionDetail extends StrategyVersion {
   definition_json: Record<string, unknown>;
 }
 
-/** A mutable draft row (version_number = 0, status = "draft"). */
+/** The working copy for a strategy — always present, always mutable. */
 export interface StrategyDraft {
-  id: string;
-  version_number: 0;
+  strategy_id: string;
   definition_json: Record<string, unknown>;
-  created_at: string;
-  status: "draft";
+  updated_at: string;
 }
 
 export interface StrategyCreateRequest {

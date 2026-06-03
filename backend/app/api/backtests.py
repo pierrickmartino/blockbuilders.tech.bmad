@@ -23,6 +23,7 @@ from app.models.user import User, UserTier
 import app.services.backtest_service as backtest_service
 import app.services.backtest_responses as _backtest_responses
 import app.services.backtest_sharing as _backtest_sharing
+import app.services.version_freezer as version_freezer
 from app.backtest.data_quality import query_metrics_for_range
 from app.backtest.storage import download_json
 from app.backtest.explanation import build_trade_explanation
@@ -58,6 +59,11 @@ def _build_status_response(
     summary = _backtest_responses._build_summary(run)
     narrative = generate_narrative(summary) if summary is not None else None
 
+    strategy_version = session.exec(
+        select(StrategyVersion).where(StrategyVersion.id == run.strategy_version_id)
+    ).first()
+    strategy_version_number = strategy_version.version_number if strategy_version else 0
+
     data_quality = None
     try:
         metrics_list = query_metrics_for_range(
@@ -90,7 +96,10 @@ def _build_status_response(
         logger.debug("Failed to fetch data quality metrics: %s", e)
 
     return _backtest_responses.build_status_response(
-        run, data_quality=data_quality, narrative=narrative
+        run,
+        strategy_version_number=strategy_version_number,
+        data_quality=data_quality,
+        narrative=narrative,
     )
 
 
@@ -119,7 +128,7 @@ def create_backtest(
 
     use_credit = backtest_service.enforce_daily_limit(user, session)
     backtest_service.enforce_history_depth(user, data.date_from, data.date_to)
-    version = backtest_service.latest_version(strategy, session)
+    version = version_freezer.freeze_for_backtest(strategy, session)
 
     fee_rate, slippage_rate, spread_rate = backtest_service.resolve_rates(
         user, data.fee_rate, data.slippage_rate, data.spread_rate,

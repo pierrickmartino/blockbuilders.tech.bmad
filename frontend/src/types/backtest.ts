@@ -45,6 +45,8 @@ export interface DataQualityMetrics {
 export interface BacktestStatusResponse {
   run_id: string;
   strategy_id: string;
+  strategy_version_id: string;
+  strategy_version_number: number;
   status: BacktestStatus;
   asset: string;
   timeframe: string;

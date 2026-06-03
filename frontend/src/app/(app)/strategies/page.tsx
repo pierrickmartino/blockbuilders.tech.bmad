@@ -637,8 +637,8 @@ export default function StrategiesPage() {
         return;
       }
 
-      // Step 3: Create version (backend validates definition)
-      await StrategiesApiClient.createVersion(newStrategy.id, importData.definition_json);
+      // Step 3: Seed the working draft — version snapshots are created on first backtest
+      await StrategiesApiClient.putDraft(newStrategy.id, importData.definition_json);
 
       // Success - navigate to new strategy
       setShowImportModal(false);

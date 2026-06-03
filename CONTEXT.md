@@ -9,10 +9,32 @@ one line per concept. Detailed reasoning belongs in ADRs
 These come from `PRODUCT.md` and describe what the product *is*.
 
 - **Strategy** — a user-composed graph of blocks that defines an
-  entry, an exit, and risk rules. Persisted as JSON in
-  `strategy_versions.definition_json`.
+  entry, an exit, and risk rules. Its live, editable definition is
+  the Working copy; immutable snapshots are Strategy versions.
+- **Working copy** — the single mutable strategy definition the
+  user edits on the canvas. Exactly one per strategy, always
+  present. Autosave writes here. The canvas always loads the
+  working copy — there is no draft-vs-version fallback. UI may call
+  this the "draft". The only way an old snapshot re-enters the
+  working copy is the deliberate "restore version" action from a
+  backtest, which overwrites it. _Avoid_: treating the working copy
+  as a version, or reserving a magic `version_number = 0` for it.
 - **Strategy version** — an immutable snapshot of a strategy
-  definition. Backtests run against a specific version.
+  definition, frozen automatically when a backtest runs (never by a
+  user action, never autosaved). Backtests run against a specific
+  version. Deduplicated by content: if the working copy is
+  unchanged since the last version, the backtest reuses it, so one
+  version may back many backtest runs. _Avoid_: "publishing" a
+  version — versions are a byproduct of backtesting, not a
+  deliberate publish step.
+- **Publish (a strategy)** — make a strategy visible on the user's
+  public profile (`Strategy.is_published`). A social/showcase
+  action, unrelated to versioning or backtests. _Avoid_: using
+  "publish" for freezing a version or for autosave.
+- **Archive (a strategy)** — hide a strategy from the active list
+  and free a plan slot (`Strategy.is_archived`). Frozen versions
+  and backtest history are preserved, not deleted. The only archive
+  concept in the system. _Avoid_: archiving individual versions.
 - **Block** — a single node in a strategy graph. One of four
   categories: `indicator`, `logic`, `signal`, `risk`.
 - **Port** — a typed connection point on a block (input or output).

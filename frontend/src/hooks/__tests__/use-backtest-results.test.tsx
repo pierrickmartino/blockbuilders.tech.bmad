@@ -29,6 +29,8 @@ const mockGetBenchmarkEquityCurve = vi.mocked(BacktestsApiClient.getBenchmarkEqu
 const makeRun = (status: "pending" | "running" | "completed" | "failed") => ({
   run_id: "run-1",
   strategy_id: "strat-1",
+  strategy_version_id: "ver-1",
+  strategy_version_number: 1,
   status,
   asset: "BTC/USDT",
   timeframe: "1h",

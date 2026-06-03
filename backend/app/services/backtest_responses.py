@@ -53,6 +53,7 @@ def _build_summary(run: BacktestRun) -> BacktestSummary | None:
 def build_status_response(
     run: BacktestRun,
     *,
+    strategy_version_number: int,
     data_quality: DataQualityMetrics | None,
     narrative: str | None,
 ) -> BacktestStatusResponse:
@@ -60,6 +61,8 @@ def build_status_response(
     return BacktestStatusResponse(
         run_id=run.id,
         strategy_id=run.strategy_id,
+        strategy_version_id=run.strategy_version_id,
+        strategy_version_number=strategy_version_number,
         status=run.status,
         asset=run.asset,
         timeframe=run.timeframe,

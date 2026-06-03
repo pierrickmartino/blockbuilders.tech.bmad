@@ -174,8 +174,8 @@ export function StrategyWizard({ isFirstRun, onClose, onComplete, onSkipToCanvas
         timeframe: state.answers.timeframe,
       });
 
-      // Save first version with generated definition
-      await StrategiesApiClient.createVersion(strategy.id, definition as unknown as Record<string, unknown>);
+      // Seed the working draft — version snapshots are created on first backtest
+      await StrategiesApiClient.putDraft(strategy.id, definition as unknown as Record<string, unknown>);
 
       trackEvent("strategy_created", {
         asset: state.answers.asset,

@@ -70,23 +70,6 @@ export const StrategiesApiClient = {
     return apiFetch<StrategyVersionDetail>(`/strategies/${id}/versions/${versionNumber}`);
   },
 
-  async createVersion(id: string, definition: Record<string, unknown>): Promise<StrategyVersion> {
-    // The old POST /strategies/{id}/versions endpoint was removed (see #463);
-    // versions are now materialized via the draft → publish flow. Upsert the
-    // definition as the strategy's draft, then publish it. Publish validates
-    // server-side and returns 422 with a ValidationResponse when invalid.
-    await StrategiesApiClient.putDraft(id, definition);
-    return apiFetch<StrategyVersion>(`/strategies/${id}/draft/publish`, {
-      method: "POST",
-    });
-  },
-
-  async archiveVersion(id: string, versionNumber: number): Promise<void> {
-    await apiFetchVoid(`/strategies/${id}/versions/${versionNumber}/archive`, {
-      method: "PATCH",
-    });
-  },
-
   async getDraft(id: string): Promise<StrategyDraft> {
     return apiFetch<StrategyDraft>(`/strategies/${id}/draft`);
   },
@@ -95,12 +78,6 @@ export const StrategiesApiClient = {
     await apiFetchVoid(`/strategies/${id}/draft`, {
       method: "PUT",
       body: JSON.stringify({ definition_json: definition }),
-    });
-  },
-
-  async publishDraft(id: string): Promise<void> {
-    await apiFetchVoid(`/strategies/${id}/draft/publish`, {
-      method: "POST",
     });
   },
 
