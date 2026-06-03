@@ -45,11 +45,9 @@ const mockVersionDetail: StrategyVersionDetail = {
 };
 
 const mockDraft: StrategyDraft = {
-  id: "draft-1",
-  version_number: 0,
+  strategy_id: "strategy-1",
   definition_json: { blocks: [], connections: [] },
-  created_at: "2024-01-01T00:00:00Z",
-  status: "draft",
+  updated_at: "2024-01-01T00:00:00Z",
 };
 
 const bulkResponse = { success_count: 2, failed_count: 0, failed_ids: [] };

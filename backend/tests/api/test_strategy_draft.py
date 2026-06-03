@@ -1,10 +1,12 @@
-"""Integration tests for draft persist endpoints (issue #458).
+"""Integration tests for working-copy endpoints (issue #514).
 
-Vertical TDD slices — each test covers one observable HTTP behavior.
+Replaces the old draft tests (issue #458) that tested version_number=0 rows.
+Per ADR-0005: GET never 404s for an owned strategy; the working copy is always
+present (eagerly created at strategy creation).
 
 Endpoints under test:
-  GET  /strategies/{id}/draft  — return current draft or 404
-  PUT  /strategies/{id}/draft  — upsert single draft row
+  GET  /strategies/{id}/draft  — always returns the working copy (never 404)
+  PUT  /strategies/{id}/draft  — upserts the working copy (no validation gate)
 """
 
 import os
@@ -24,8 +26,9 @@ from app.core.database import get_session
 from app.core.security import hash_password
 from app.main import app
 from app.models.strategy import Strategy
-from app.models.strategy_version import StrategyVersion, VersionStatus
+from app.models.strategy_draft import StrategyDraft
 from app.models.user import PlanTier, User, UserTier
+from app.services.working_copy import DEFAULT_DEFINITION
 
 
 # ---------------------------------------------------------------------------
@@ -118,156 +121,137 @@ SAMPLE_DEFINITION = {
 
 
 # ---------------------------------------------------------------------------
-# Slice B1 — GET /draft returns 404 when no draft exists
+# Slice D1 — GET /draft returns working copy after strategy creation
+#            (the working copy is eagerly created by POST /strategies/)
 # ---------------------------------------------------------------------------
 
 
-def test_get_draft_returns_404_when_no_draft(client, auth_headers, strategy):
-    """GET /strategies/{id}/draft must return 404 if no draft row exists."""
-    res = client.get(f"/strategies/{strategy.id}/draft", headers=auth_headers)
-    assert res.status_code == 404
-
-
-# ---------------------------------------------------------------------------
-# Slice B2 — PUT /draft creates a new StrategyVersion with status=draft
-# ---------------------------------------------------------------------------
-
-
-def test_put_draft_creates_new_draft_row(client, auth_headers, strategy, session):
-    """First PUT /draft must create a StrategyVersion with status='draft'."""
-    res = client.put(
-        f"/strategies/{strategy.id}/draft",
-        json={"definition_json": SAMPLE_DEFINITION},
-        headers=auth_headers,
-    )
-
-    assert res.status_code == 200
-    body = res.json()
-    assert body["status"] == "draft"
-    assert body["definition_json"] == SAMPLE_DEFINITION
-
-    # Verify persisted to DB
-    versions = session.execute(
-        select(StrategyVersion).where(StrategyVersion.strategy_id == strategy.id)
-    ).scalars().all()
-    assert len(versions) == 1
-    assert versions[0].status == VersionStatus.DRAFT
-
-
-# ---------------------------------------------------------------------------
-# Slice B3 — GET /draft returns the draft after creation
-# ---------------------------------------------------------------------------
-
-
-def test_get_draft_returns_draft_after_creation(client, auth_headers, strategy):
-    """GET /strategies/{id}/draft returns 200 + draft body once a draft exists."""
-    client.put(
-        f"/strategies/{strategy.id}/draft",
-        json={"definition_json": SAMPLE_DEFINITION},
-        headers=auth_headers,
-    )
-
-    res = client.get(f"/strategies/{strategy.id}/draft", headers=auth_headers)
-
-    assert res.status_code == 200
-    body = res.json()
-    assert body["status"] == "draft"
-    assert body["definition_json"] == SAMPLE_DEFINITION
-    assert "id" in body
-    assert "version_number" in body
-    assert "created_at" in body
-
-
-# ---------------------------------------------------------------------------
-# Slice B4 — PUT /draft updates definition_json on subsequent calls (upsert)
-# ---------------------------------------------------------------------------
-
-
-def test_put_draft_updates_existing_draft(client, auth_headers, strategy, session):
-    """Second PUT /draft must update definition_json in-place, not create a new row."""
-    first_definition = {"blocks": [], "connections": [], "meta": {"v": 1}}
-    second_definition = {"blocks": [], "connections": [], "meta": {"v": 2}}
-
-    client.put(
-        f"/strategies/{strategy.id}/draft",
-        json={"definition_json": first_definition},
-        headers=auth_headers,
-    )
-    res = client.put(
-        f"/strategies/{strategy.id}/draft",
-        json={"definition_json": second_definition},
-        headers=auth_headers,
-    )
-
-    assert res.status_code == 200
-    assert res.json()["definition_json"] == second_definition
-
-    # Still only one draft row
-    versions = session.execute(
-        select(StrategyVersion).where(StrategyVersion.strategy_id == strategy.id)
-    ).scalars().all()
-    assert len(versions) == 1
-    assert versions[0].definition_json == second_definition
-
-
-# ---------------------------------------------------------------------------
-# Slice B5 — PUT /draft is idempotent
-# ---------------------------------------------------------------------------
-
-
-def test_put_draft_is_idempotent(client, auth_headers, strategy, session):
-    """Two identical PUT /draft calls must produce the same result and same row count."""
-    payload = {"definition_json": SAMPLE_DEFINITION}
-
-    res1 = client.put(
-        f"/strategies/{strategy.id}/draft", json=payload, headers=auth_headers
-    )
-    res2 = client.put(
-        f"/strategies/{strategy.id}/draft", json=payload, headers=auth_headers
-    )
-
-    assert res1.status_code == 200
-    assert res2.status_code == 200
-    assert res1.json()["definition_json"] == res2.json()["definition_json"]
-
-    count = session.execute(
-        select(StrategyVersion).where(StrategyVersion.strategy_id == strategy.id)
-    ).scalars().all()
-    assert len(count) == 1
-
-
-# ---------------------------------------------------------------------------
-# Slice B6 — Only one draft exists at any time
-# ---------------------------------------------------------------------------
-
-
-def test_only_one_draft_exists_after_multiple_puts(
-    client, auth_headers, strategy, session
+def test_get_draft_returns_working_copy_after_strategy_creation(
+    client, auth_headers, session
 ):
-    """Three consecutive PUTs must leave exactly one draft row."""
-    for i in range(3):
-        client.put(
-            f"/strategies/{strategy.id}/draft",
-            json={"definition_json": {"blocks": [], "connections": [], "meta": {"i": i}}},
-            headers=auth_headers,
-        )
+    """GET /draft must return 200 immediately after creating a strategy via the API.
 
-    drafts = session.execute(
-        select(StrategyVersion).where(
-            StrategyVersion.strategy_id == strategy.id,
-            StrategyVersion.status == VersionStatus.DRAFT,
-        )
-    ).scalars().all()
-    assert len(drafts) == 1
+    The working copy is eagerly seeded with the default definition.
+    No PUT is required first.
+    """
+    create_res = client.post(
+        "/strategies/",
+        json={"name": "My Strategy", "asset": "BTC/USDT", "timeframe": "1d"},
+        headers=auth_headers,
+    )
+    assert create_res.status_code == 201
+    strategy_id = create_res.json()["id"]
+
+    res = client.get(f"/strategies/{strategy_id}/draft", headers=auth_headers)
+
+    assert res.status_code == 200
+    body = res.json()
+    assert body["definition_json"] == DEFAULT_DEFINITION
+    assert "strategy_id" in body
+    assert "updated_at" in body
 
 
 # ---------------------------------------------------------------------------
-# Slice B7 — Draft endpoints respect strategy ownership
+# Slice D2 — GET /draft never 404s for an owned strategy even with no PUT
+# ---------------------------------------------------------------------------
+
+
+def test_get_draft_never_404s_for_owned_strategy(client, auth_headers, strategy, session):
+    """GET /draft on an owned strategy with no prior PUT must return 200.
+
+    The working copy always exists — get_or_create creates it on first GET.
+    """
+    res = client.get(f"/strategies/{strategy.id}/draft", headers=auth_headers)
+
+    assert res.status_code == 200
+    body = res.json()
+    assert body["definition_json"] == DEFAULT_DEFINITION
+
+
+# ---------------------------------------------------------------------------
+# Slice D3 — PUT /draft upserts the working copy
+# ---------------------------------------------------------------------------
+
+
+def test_put_draft_upserts_working_copy(client, auth_headers, strategy, session):
+    """PUT /draft must persist the new definition_json and return it."""
+    res = client.put(
+        f"/strategies/{strategy.id}/draft",
+        json={"definition_json": SAMPLE_DEFINITION},
+        headers=auth_headers,
+    )
+
+    assert res.status_code == 200
+    body = res.json()
+    assert body["definition_json"] == SAMPLE_DEFINITION
+
+    # Exactly one row in strategy_drafts
+    rows = session.exec(
+        select(StrategyDraft).where(StrategyDraft.strategy_id == strategy.id)
+    ).all()
+    assert len(rows) == 1
+    assert rows[0].definition_json == SAMPLE_DEFINITION
+
+
+# ---------------------------------------------------------------------------
+# Slice D4 — Second PUT updates definition_json without creating a new row
+# ---------------------------------------------------------------------------
+
+
+def test_put_draft_updates_without_duplicate_row(client, auth_headers, strategy, session):
+    """Two consecutive PUTs must leave exactly one row with the latest definition."""
+    first = {"blocks": [], "connections": [], "meta": {"v": 1}}
+    second = {"blocks": [], "connections": [], "meta": {"v": 2}}
+
+    client.put(
+        f"/strategies/{strategy.id}/draft",
+        json={"definition_json": first},
+        headers=auth_headers,
+    )
+    res = client.put(
+        f"/strategies/{strategy.id}/draft",
+        json={"definition_json": second},
+        headers=auth_headers,
+    )
+
+    assert res.status_code == 200
+    assert res.json()["definition_json"] == second
+
+    rows = session.exec(
+        select(StrategyDraft).where(StrategyDraft.strategy_id == strategy.id)
+    ).all()
+    assert len(rows) == 1
+    assert rows[0].definition_json == second
+
+
+# ---------------------------------------------------------------------------
+# Slice D5 — GET /draft returns updated definition after PUT
+# ---------------------------------------------------------------------------
+
+
+def test_get_draft_returns_updated_definition_after_put(
+    client, auth_headers, strategy
+):
+    """GET after PUT must return the updated definition, not the default."""
+    client.put(
+        f"/strategies/{strategy.id}/draft",
+        json={"definition_json": SAMPLE_DEFINITION},
+        headers=auth_headers,
+    )
+
+    res = client.get(f"/strategies/{strategy.id}/draft", headers=auth_headers)
+
+    assert res.status_code == 200
+    assert res.json()["definition_json"] == SAMPLE_DEFINITION
+
+
+# ---------------------------------------------------------------------------
+# Slice D6 — Draft endpoints respect strategy ownership
 # ---------------------------------------------------------------------------
 
 
 def test_get_draft_returns_404_for_other_users_strategy(client, session, strategy):
-    """GET /draft on another user's strategy must return 404 (ownership enforced)."""
+    """GET /draft on another user's strategy must return 404."""
     other_user = User(
         id=uuid4(),
         email="other@example.com",

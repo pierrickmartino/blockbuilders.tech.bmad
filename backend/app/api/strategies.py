@@ -14,8 +14,10 @@ from app.models.backtest_run import BacktestRun
 from app.models.strategy import Strategy
 from app.models.strategy_tag import StrategyTag
 from app.models.strategy_tag_link import StrategyTagLink
+from app.models.strategy_draft import StrategyDraft
 from app.models.strategy_version import StrategyVersion, VersionStatus
 from app.models.user import User
+from app.services.working_copy import get_or_create_working_copy, upsert_working_copy
 from app.schemas.strategy import (
     BulkStrategyRequest,
     BulkStrategyResponse,
@@ -149,6 +151,10 @@ def create_strategy(
     session.add(strategy)
     session.commit()
     session.refresh(strategy)
+
+    # Eagerly create the working copy seeded with the default definition (ADR-0005).
+    get_or_create_working_copy(strategy, session)
+
     return StrategyResponse(
         id=strategy.id,
         name=strategy.name,
@@ -604,9 +610,9 @@ def validate_strategy(
 
 
 # ---------------------------------------------------------------------------
-# Draft endpoints (issue #458)
-# At most one draft per strategy — enforced at application level.
-# Draft rows always use version_number = 0 (reserved slot).
+# Working-copy endpoints (ADR-0005, issue #514)
+# The working copy lives in strategy_drafts (1:1 with strategy).
+# GET never 404s for an owned strategy — get_or_create ensures it exists.
 # PUT is a no-validation-gate upsert: safe for debounced background saves.
 # ---------------------------------------------------------------------------
 
@@ -617,112 +623,13 @@ def get_draft(
     user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
 ) -> StrategyDraftResponse:
-    """Return the current draft for a strategy, or 404 if none exists."""
+    """Return the working copy for a strategy. Never 404s for an owned strategy."""
     strategy = get_user_strategy(strategy_id, user, session)
-
-    draft = session.exec(
-        select(StrategyVersion).where(
-            StrategyVersion.strategy_id == strategy.id,
-            StrategyVersion.status == VersionStatus.DRAFT,
-        )
-    ).first()
-
-    if not draft:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No draft found")
-
+    wc = get_or_create_working_copy(strategy, session)
     return StrategyDraftResponse(
-        id=draft.id,
-        version_number=draft.version_number,
-        definition_json=draft.definition_json,
-        created_at=draft.created_at,
-        status=draft.status.value,
-    )
-
-
-@router.post("/{strategy_id}/draft/validate", response_model=ValidationResponse)
-def validate_draft(
-    strategy_id: UUID,
-    user: User = Depends(get_current_user),
-    session: Session = Depends(get_session),
-) -> ValidationResponse:
-    """Validate the current draft definition without modifying it.
-
-    Read-only — safe to call after every persist for live canvas feedback.
-    Returns 404 if no draft exists.
-    """
-    strategy = get_user_strategy(strategy_id, user, session)
-
-    draft = session.exec(
-        select(StrategyVersion).where(
-            StrategyVersion.strategy_id == strategy.id,
-            StrategyVersion.status == VersionStatus.DRAFT,
-        )
-    ).first()
-
-    if not draft:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No draft found")
-
-    definition = StrategyDefinitionValidate(**draft.definition_json)
-    errors = collect_validation_errors(definition)
-
-    return ValidationResponse(
-        status="valid" if not errors else "invalid",
-        errors=errors,
-    )
-
-
-@router.post("/{strategy_id}/draft/publish", response_model=StrategyVersionResponse)
-def publish_draft(
-    strategy_id: UUID,
-    user: User = Depends(get_current_user),
-    session: Session = Depends(get_session),
-) -> StrategyVersionResponse:
-    """Promote the current draft to a published version.
-
-    Runs validation before promoting — returns 422 with ValidationResponse if
-    the draft is invalid.  Assigns the next sequential version_number (max
-    published + 1) and changes the draft row status to PUBLISHED.
-    Returns 404 if no draft exists.
-    """
-    strategy = get_user_strategy(strategy_id, user, session)
-
-    draft = session.exec(
-        select(StrategyVersion).where(
-            StrategyVersion.strategy_id == strategy.id,
-            StrategyVersion.status == VersionStatus.DRAFT,
-        )
-    ).first()
-
-    if not draft:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No draft found")
-
-    # Validation gate — block publish when the draft definition has errors.
-    definition = StrategyDefinitionValidate(**draft.definition_json)
-    errors = collect_validation_errors(definition)
-    if errors:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=ValidationResponse(status="invalid", errors=errors).model_dump(),
-        )
-
-    # Sequential number counts only among published versions.
-    max_published = session.exec(
-        select(func.max(StrategyVersion.version_number)).where(
-            StrategyVersion.strategy_id == strategy.id,
-            StrategyVersion.status == VersionStatus.PUBLISHED,
-        )
-    ).one()
-    draft.version_number = (max_published or 0) + 1
-    draft.status = VersionStatus.PUBLISHED
-
-    session.add(draft)
-    session.commit()
-    session.refresh(draft)
-
-    return StrategyVersionResponse(
-        id=draft.id,
-        version_number=draft.version_number,
-        created_at=draft.created_at,
+        strategy_id=wc.strategy_id,
+        definition_json=wc.definition_json,
+        updated_at=wc.updated_at,
     )
 
 
@@ -733,41 +640,16 @@ def upsert_draft(
     user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
 ) -> StrategyDraftResponse:
-    """Upsert the single draft row for a strategy (no validation gate).
+    """Upsert the working copy for a strategy (no validation gate).
 
-    Creates the draft on first call; updates definition_json on subsequent calls.
-    Idempotent — safe for debounced retries.
+    Idempotent — safe for debounced retries. Always writes to strategy_drafts.
     """
     strategy = get_user_strategy(strategy_id, user, session)
-
-    draft = session.exec(
-        select(StrategyVersion).where(
-            StrategyVersion.strategy_id == strategy.id,
-            StrategyVersion.status == VersionStatus.DRAFT,
-        )
-    ).first()
-
-    if draft:
-        draft.definition_json = data.definition_json
-        session.add(draft)
-    else:
-        draft = StrategyVersion(
-            strategy_id=strategy.id,
-            version_number=0,
-            definition_json=data.definition_json,
-            status=VersionStatus.DRAFT,
-        )
-        session.add(draft)
-
-    session.commit()
-    session.refresh(draft)
-
+    wc = upsert_working_copy(strategy, data.definition_json, session)
     return StrategyDraftResponse(
-        id=draft.id,
-        version_number=draft.version_number,
-        definition_json=draft.definition_json,
-        created_at=draft.created_at,
-        status=draft.status.value,
+        strategy_id=wc.strategy_id,
+        definition_json=wc.definition_json,
+        updated_at=wc.updated_at,
     )
 
 

@@ -310,24 +310,17 @@ function StrategyEditorPageInner({ params }: Props) {
   // --- Strategy alerts ---
   const alerts = useStrategyAlerts({ strategyId: id });
 
-  // --- Draft load: try GET /draft first; fall back to latest published version ---
+  // --- Draft load: working copy always exists (ADR-0005), never falls back ---
   const loadDraftOrLatestVersion = useCallback(async () => {
-    try {
-      const draftData = await StrategiesApiClient.getDraft(id);
-      // Draft found — load it onto the canvas
-      const definition = draftData.definition_json as unknown as StrategyDefinition | null;
-      const { nodes: newNodes, edges: newEdges } =
-        definition && (definition as { blocks?: unknown[] }).blocks?.length
-          ? definitionToReactFlow(definition)
-          : definitionToReactFlow(createDefaultDefinition());
-      contextDispatchRef.current?.({ type: "SET_NODES", payload: newNodes });
-      contextDispatchRef.current?.({ type: "SET_EDGES", payload: newEdges });
-      contextResetHistoryRef.current?.(newNodes, newEdges);
-    } catch {
-      // No draft (404) or error — fall back to latest published version
-      loadVersions();
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    const draftData = await StrategiesApiClient.getDraft(id);
+    const definition = draftData.definition_json as unknown as StrategyDefinition | null;
+    const { nodes: newNodes, edges: newEdges } =
+      definition && (definition as { blocks?: unknown[] }).blocks?.length
+        ? definitionToReactFlow(definition)
+        : definitionToReactFlow(createDefaultDefinition());
+    contextDispatchRef.current?.({ type: "SET_NODES", payload: newNodes });
+    contextDispatchRef.current?.({ type: "SET_EDGES", payload: newEdges });
+    contextResetHistoryRef.current?.(newNodes, newEdges);
   }, [id]);
 
   // --- Initial data loading ---
