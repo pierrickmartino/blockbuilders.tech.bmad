@@ -52,6 +52,7 @@ class BacktestRun(SQLModel, table=True):
     benchmark_equity_curve_key: Optional[str] = None
     trades_key: Optional[str] = None
     error_message: Optional[str] = None
+    used_backup_data: bool = Field(default=False)
     triggered_by: str = Field(default="manual")  # "manual" or "auto"
     batch_id: Optional[UUID] = Field(default=None, index=True)
     period_key: Optional[str] = Field(default=None)

@@ -6,7 +6,9 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useAuth } from "@/context/auth";
 import { useDisplay } from "@/context/display";
-import { ApiError, apiFetch } from "@/lib/api";
+import { ApiError } from "@/lib/api";
+import { StrategiesApiClient } from "@/lib/api/strategies-client";
+import { BacktestsApiClient } from "@/lib/api/backtests-client";
 import { formatDateTime, formatPercent } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { Strategy } from "@/types/strategy";
@@ -230,7 +232,7 @@ export default function DashboardPage() {
     setIsLoading(true);
     setStrategiesLoadFailed(false);
     setError(null);
-    apiFetch<Strategy[]>("/strategies/")
+    StrategiesApiClient.list({})
       .then((data) => {
         if (!isMountedRef.current || strategiesRequestId.current !== requestId) {
           return;
@@ -290,9 +292,7 @@ export default function DashboardPage() {
     const fetchRecent = async () => {
       const results = await Promise.allSettled(
         refsWithRuns.map((ref) =>
-          apiFetch<BacktestStatusResponse>(
-            `/backtests/${encodeURIComponent(ref.runId ?? "")}`
-          )
+          BacktestsApiClient.get(encodeURIComponent(ref.runId ?? ""))
         )
       );
 
@@ -316,12 +316,10 @@ export default function DashboardPage() {
     setActionLoading(id);
     setError(null);
     try {
-      const cloned = await apiFetch<Strategy>(`/strategies/${id}/duplicate`, {
-        method: "POST",
-      });
+      const cloned = await StrategiesApiClient.duplicate(id);
       if (!isMountedRef.current) return;
       try {
-        const updatedStrategies = await apiFetch<Strategy[]>("/strategies/");
+        const updatedStrategies = await StrategiesApiClient.list({});
         if (!isMountedRef.current) return;
         setStrategies(updatedStrategies);
         toast.success(`Created "${cloned.name}".`, {

@@ -14,7 +14,7 @@ from app.models.backtest_run import BacktestRun
 from app.models.strategy import Strategy
 from app.models.strategy_tag import StrategyTag
 from app.models.strategy_tag_link import StrategyTagLink
-from app.models.strategy_version import StrategyVersion
+from app.models.strategy_version import StrategyVersion, VersionStatus
 from app.models.user import User
 from app.schemas.strategy import (
     BulkStrategyRequest,
@@ -22,10 +22,11 @@ from app.schemas.strategy import (
     BulkStrategyTagRequest,
     StrategyCreateRequest,
     StrategyDefinitionValidate,
+    StrategyDraftResponse,
+    StrategyDraftUpsertRequest,
     StrategyResponse,
     StrategyTagResponse,
     StrategyUpdateRequest,
-    StrategyVersionCreateRequest,
     StrategyVersionDetailResponse,
     StrategyVersionResponse,
     StrategyWithMetricsResponse,
@@ -483,63 +484,6 @@ def duplicate_strategy(
     )
 
 
-@router.post("/{strategy_id}/versions", response_model=StrategyVersionResponse, status_code=status.HTTP_201_CREATED)
-def create_version(
-    strategy_id: UUID,
-    data: StrategyVersionCreateRequest,
-    user: User = Depends(get_current_user),
-    session: Session = Depends(get_session),
-) -> StrategyVersionResponse:
-    """Create a new version of a strategy."""
-    strategy = get_user_strategy(strategy_id, user, session)
-
-    try:
-        definition = StrategyDefinitionValidate.model_validate(data.definition)
-    except PydanticValidationError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=exc.errors(),
-        ) from exc
-
-    errors = collect_validation_errors(definition)
-    if errors:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail={
-                "message": "Strategy definition failed validation",
-                "errors": [error.model_dump() for error in errors],
-            },
-        )
-
-    # Get max version number
-    max_version = session.exec(
-        select(func.max(StrategyVersion.version_number)).where(
-            StrategyVersion.strategy_id == strategy.id
-        )
-    ).one()
-    new_version_number = (max_version or 0) + 1
-
-    version = StrategyVersion(
-        strategy_id=strategy.id,
-        version_number=new_version_number,
-        definition_json=data.definition,
-    )
-    session.add(version)
-
-    # Update strategy's updated_at
-    strategy.updated_at = datetime.now(timezone.utc)
-    session.add(strategy)
-
-    session.commit()
-    session.refresh(version)
-
-    return StrategyVersionResponse(
-        id=version.id,
-        version_number=version.version_number,
-        created_at=version.created_at,
-    )
-
-
 @router.get("/{strategy_id}/versions", response_model=list[StrategyVersionResponse])
 def list_versions(
     strategy_id: UUID,
@@ -551,7 +495,10 @@ def list_versions(
 
     versions = session.exec(
         select(StrategyVersion)
-        .where(StrategyVersion.strategy_id == strategy.id)
+        .where(
+            StrategyVersion.strategy_id == strategy.id,
+            StrategyVersion.status == VersionStatus.PUBLISHED,
+        )
         .order_by(StrategyVersion.version_number.desc())
     ).all()
 
@@ -593,6 +540,50 @@ def get_version(
     )
 
 
+@router.patch(
+    "/{strategy_id}/versions/{version_number}/archive",
+    response_model=StrategyVersionResponse,
+)
+def archive_version(
+    strategy_id: UUID,
+    version_number: int,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> StrategyVersionResponse:
+    """Archive a published version (soft-delete).
+
+    Sets status to ARCHIVED so the version disappears from the list
+    while FK references (e.g. backtest runs) remain intact.
+    Returns 404 when the target version doesn't exist or isn't published.
+    """
+    strategy = get_user_strategy(strategy_id, user, session)
+
+    version = session.exec(
+        select(StrategyVersion).where(
+            StrategyVersion.strategy_id == strategy.id,
+            StrategyVersion.version_number == version_number,
+            StrategyVersion.status == VersionStatus.PUBLISHED,
+        )
+    ).first()
+
+    if not version:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Version not found or is not published",
+        )
+
+    version.status = VersionStatus.ARCHIVED
+    session.add(version)
+    session.commit()
+    session.refresh(version)
+
+    return StrategyVersionResponse(
+        id=version.id,
+        version_number=version.version_number,
+        created_at=version.created_at,
+    )
+
+
 @router.post("/{strategy_id}/validate", response_model=ValidationResponse)
 def validate_strategy(
     strategy_id: UUID,
@@ -609,6 +600,174 @@ def validate_strategy(
     return ValidationResponse(
         status="valid" if not errors else "invalid",
         errors=errors,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Draft endpoints (issue #458)
+# At most one draft per strategy — enforced at application level.
+# Draft rows always use version_number = 0 (reserved slot).
+# PUT is a no-validation-gate upsert: safe for debounced background saves.
+# ---------------------------------------------------------------------------
+
+
+@router.get("/{strategy_id}/draft", response_model=StrategyDraftResponse)
+def get_draft(
+    strategy_id: UUID,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> StrategyDraftResponse:
+    """Return the current draft for a strategy, or 404 if none exists."""
+    strategy = get_user_strategy(strategy_id, user, session)
+
+    draft = session.exec(
+        select(StrategyVersion).where(
+            StrategyVersion.strategy_id == strategy.id,
+            StrategyVersion.status == VersionStatus.DRAFT,
+        )
+    ).first()
+
+    if not draft:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No draft found")
+
+    return StrategyDraftResponse(
+        id=draft.id,
+        version_number=draft.version_number,
+        definition_json=draft.definition_json,
+        created_at=draft.created_at,
+        status=draft.status.value,
+    )
+
+
+@router.post("/{strategy_id}/draft/validate", response_model=ValidationResponse)
+def validate_draft(
+    strategy_id: UUID,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> ValidationResponse:
+    """Validate the current draft definition without modifying it.
+
+    Read-only — safe to call after every persist for live canvas feedback.
+    Returns 404 if no draft exists.
+    """
+    strategy = get_user_strategy(strategy_id, user, session)
+
+    draft = session.exec(
+        select(StrategyVersion).where(
+            StrategyVersion.strategy_id == strategy.id,
+            StrategyVersion.status == VersionStatus.DRAFT,
+        )
+    ).first()
+
+    if not draft:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No draft found")
+
+    definition = StrategyDefinitionValidate(**draft.definition_json)
+    errors = collect_validation_errors(definition)
+
+    return ValidationResponse(
+        status="valid" if not errors else "invalid",
+        errors=errors,
+    )
+
+
+@router.post("/{strategy_id}/draft/publish", response_model=StrategyVersionResponse)
+def publish_draft(
+    strategy_id: UUID,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> StrategyVersionResponse:
+    """Promote the current draft to a published version.
+
+    Runs validation before promoting — returns 422 with ValidationResponse if
+    the draft is invalid.  Assigns the next sequential version_number (max
+    published + 1) and changes the draft row status to PUBLISHED.
+    Returns 404 if no draft exists.
+    """
+    strategy = get_user_strategy(strategy_id, user, session)
+
+    draft = session.exec(
+        select(StrategyVersion).where(
+            StrategyVersion.strategy_id == strategy.id,
+            StrategyVersion.status == VersionStatus.DRAFT,
+        )
+    ).first()
+
+    if not draft:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No draft found")
+
+    # Validation gate — block publish when the draft definition has errors.
+    definition = StrategyDefinitionValidate(**draft.definition_json)
+    errors = collect_validation_errors(definition)
+    if errors:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=ValidationResponse(status="invalid", errors=errors).model_dump(),
+        )
+
+    # Sequential number counts only among published versions.
+    max_published = session.exec(
+        select(func.max(StrategyVersion.version_number)).where(
+            StrategyVersion.strategy_id == strategy.id,
+            StrategyVersion.status == VersionStatus.PUBLISHED,
+        )
+    ).one()
+    draft.version_number = (max_published or 0) + 1
+    draft.status = VersionStatus.PUBLISHED
+
+    session.add(draft)
+    session.commit()
+    session.refresh(draft)
+
+    return StrategyVersionResponse(
+        id=draft.id,
+        version_number=draft.version_number,
+        created_at=draft.created_at,
+    )
+
+
+@router.put("/{strategy_id}/draft", response_model=StrategyDraftResponse)
+def upsert_draft(
+    strategy_id: UUID,
+    data: StrategyDraftUpsertRequest,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> StrategyDraftResponse:
+    """Upsert the single draft row for a strategy (no validation gate).
+
+    Creates the draft on first call; updates definition_json on subsequent calls.
+    Idempotent — safe for debounced retries.
+    """
+    strategy = get_user_strategy(strategy_id, user, session)
+
+    draft = session.exec(
+        select(StrategyVersion).where(
+            StrategyVersion.strategy_id == strategy.id,
+            StrategyVersion.status == VersionStatus.DRAFT,
+        )
+    ).first()
+
+    if draft:
+        draft.definition_json = data.definition_json
+        session.add(draft)
+    else:
+        draft = StrategyVersion(
+            strategy_id=strategy.id,
+            version_number=0,
+            definition_json=data.definition_json,
+            status=VersionStatus.DRAFT,
+        )
+        session.add(draft)
+
+    session.commit()
+    session.refresh(draft)
+
+    return StrategyDraftResponse(
+        id=draft.id,
+        version_number=draft.version_number,
+        definition_json=draft.definition_json,
+        created_at=draft.created_at,
+        status=draft.status.value,
     )
 
 

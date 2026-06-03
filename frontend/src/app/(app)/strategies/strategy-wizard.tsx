@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useMemo, useEffect, useRef } from "react";
-import { apiFetch, ApiError } from "@/lib/api";
+import { ApiError } from "@/lib/api";
+import { UsersApiClient } from "@/lib/api/users-client";
+import { StrategiesApiClient } from "@/lib/api/strategies-client";
+import { BacktestsApiClient } from "@/lib/api/backtests-client";
 import { trackEvent } from "@/lib/analytics";
 import { useAuth } from "@/context/auth";
-import type { Strategy } from "@/types/strategy";
-import type { BacktestCreateResponse, BacktestStatusResponse } from "@/types/backtest";
 import { generateTemplate, type WizardAnswers } from "./wizard-template-generator";
 import { StepName } from "./wizard-steps/step-name";
 import { StepAsset } from "./wizard-steps/step-asset";
@@ -150,7 +151,7 @@ export function StrategyWizard({ isFirstRun, onClose, onComplete, onSkipToCanvas
       entry_point: "first_run",
     }, user?.id);
     try {
-      await apiFetch("/users/me/complete-onboarding", { method: "POST" });
+      await UsersApiClient.completeOnboarding();
       await refreshUser();
     } catch {
       // Non-blocking: still proceed
@@ -167,20 +168,14 @@ export function StrategyWizard({ isFirstRun, onClose, onComplete, onSkipToCanvas
       const definition = generateTemplate(state.answers);
 
       // Create strategy
-      const strategy = await apiFetch<Strategy>("/strategies/", {
-        method: "POST",
-        body: JSON.stringify({
-          name: state.answers.name.trim(),
-          asset: state.answers.asset,
-          timeframe: state.answers.timeframe,
-        }),
+      const strategy = await StrategiesApiClient.create({
+        name: state.answers.name.trim(),
+        asset: state.answers.asset,
+        timeframe: state.answers.timeframe,
       });
 
       // Save first version with generated definition
-      await apiFetch(`/strategies/${strategy.id}/versions`, {
-        method: "POST",
-        body: JSON.stringify({ definition }),
-      });
+      await StrategiesApiClient.createVersion(strategy.id, definition as unknown as Record<string, unknown>);
 
       trackEvent("strategy_created", {
         asset: state.answers.asset,
@@ -202,13 +197,10 @@ export function StrategyWizard({ isFirstRun, onClose, onComplete, onSkipToCanvas
       const yearAgo = new Date(now);
       yearAgo.setFullYear(yearAgo.getFullYear() - 1);
 
-      const res = await apiFetch<BacktestCreateResponse>("/backtests/", {
-        method: "POST",
-        body: JSON.stringify({
-          strategy_id: strategy.id,
-          date_from: yearAgo.toISOString(),
-          date_to: now.toISOString(),
-        }),
+      const res = await BacktestsApiClient.create({
+        strategy_id: strategy.id,
+        date_from: yearAgo.toISOString(),
+        date_to: now.toISOString(),
       });
 
       trackEvent("auto_backtest_started", {
@@ -223,9 +215,7 @@ export function StrategyWizard({ isFirstRun, onClose, onComplete, onSkipToCanvas
       const maxAttempts = 60;
       for (let i = 0; i < maxAttempts; i++) {
         await new Promise((r) => setTimeout(r, 5000));
-        const detail = await apiFetch<BacktestStatusResponse>(
-          `/backtests/${res.run_id}`
-        );
+        const detail = await BacktestsApiClient.get(res.run_id);
         if (detail.status === "completed") {
           updateBacktestPhase("done");
           trackEvent("auto_backtest_completed", {
@@ -234,7 +224,7 @@ export function StrategyWizard({ isFirstRun, onClose, onComplete, onSkipToCanvas
           }, user?.id);
           // Mark onboarding complete (non-critical)
           try {
-            await apiFetch("/users/me/complete-onboarding", { method: "POST" });
+            await UsersApiClient.completeOnboarding();
             await refreshUser();
           } catch {
             // Don't block navigation

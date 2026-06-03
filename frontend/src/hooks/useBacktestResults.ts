@@ -1,10 +1,13 @@
-import { useCallback, useEffect, useState } from "react";
-import { apiFetch } from "@/lib/api";
-import {
+import { useQuery } from "@tanstack/react-query";
+import { BacktestsApiClient, backtestsKeys } from "@/lib/api/backtests-client";
+import type {
   BacktestStatusResponse,
   EquityCurvePoint,
   TradeDetail,
 } from "@/types/backtest";
+
+const TERMINAL_STATUSES = new Set(["completed", "failed", "skipped"]);
+const ACTIVE_STATUSES = new Set(["pending", "running"]);
 
 interface UseBacktestResultsReturn {
   selectedRun: BacktestStatusResponse | null;
@@ -15,139 +18,70 @@ interface UseBacktestResultsReturn {
   isLoadingEquityCurve: boolean;
   tradesError: string | null;
   equityCurveError: string | null;
-  fetchRunDetail: (runId: string) => Promise<BacktestStatusResponse | null>;
-  refetchTrades: () => void;
-  refetchEquityCurve: () => void;
+  refetch: () => void;
 }
 
 export function useBacktestResults(
   selectedRunId: string | null,
   onRunDetailFetched?: (detail: BacktestStatusResponse) => void
 ): UseBacktestResultsReturn {
-  const [selectedRun, setSelectedRun] = useState<BacktestStatusResponse | null>(null);
-  const [trades, setTrades] = useState<TradeDetail[]>([]);
-  const [isLoadingTrades, setIsLoadingTrades] = useState(false);
-  const [tradesError, setTradesError] = useState<string | null>(null);
-
-  const [equityCurve, setEquityCurve] = useState<EquityCurvePoint[]>([]);
-  const [isLoadingEquityCurve, setIsLoadingEquityCurve] = useState(false);
-  const [equityCurveError, setEquityCurveError] = useState<string | null>(null);
-
-  const [benchmarkCurve, setBenchmarkCurve] = useState<EquityCurvePoint[]>([]);
-
-  const fetchRunDetail = useCallback(
-    async (runId: string): Promise<BacktestStatusResponse | null> => {
-      try {
-        const detail = await apiFetch<BacktestStatusResponse>(`/backtests/${runId}`);
-        setSelectedRun(detail);
-        onRunDetailFetched?.(detail);
-        return detail;
-      } catch {
-        return null;
-      }
+  const runQuery = useQuery({
+    queryKey: backtestsKeys.detail(selectedRunId ?? ""),
+    queryFn: async () => {
+      const detail = await BacktestsApiClient.get(selectedRunId!);
+      onRunDetailFetched?.(detail);
+      return detail;
     },
-    [onRunDetailFetched]
-  );
+    enabled: !!selectedRunId,
+    refetchInterval: (query) =>
+      ACTIVE_STATUSES.has(query.state.data?.status ?? "") ? 5000 : false,
+    throwOnError: false,
+  });
 
-  const fetchTrades = useCallback(async (runId: string) => {
-    setIsLoadingTrades(true);
-    setTradesError(null);
-    try {
-      const data = await apiFetch<TradeDetail[]>(`/backtests/${runId}/trades`);
-      setTrades(data);
-    } catch (err) {
-      setTradesError(err instanceof Error ? err.message : "Failed to load trades");
-      setTrades([]);
-    } finally {
-      setIsLoadingTrades(false);
-    }
-  }, []);
+  const status = runQuery.data?.status;
+  const isCompleted = status === "completed";
 
-  const fetchEquityCurve = useCallback(async (runId: string) => {
-    setIsLoadingEquityCurve(true);
-    setEquityCurveError(null);
-    try {
-      const data = await apiFetch<EquityCurvePoint[]>(`/backtests/${runId}/equity-curve`);
-      setEquityCurve(data);
-    } catch (err) {
-      setEquityCurveError(err instanceof Error ? err.message : "Failed to load equity curve");
-      setEquityCurve([]);
-    } finally {
-      setIsLoadingEquityCurve(false);
-    }
-  }, []);
+  const tradesQuery = useQuery({
+    queryKey: backtestsKeys.trades(selectedRunId ?? ""),
+    queryFn: () => BacktestsApiClient.getTrades(selectedRunId!),
+    enabled: !!selectedRunId && isCompleted,
+    throwOnError: false,
+  });
 
-  const fetchBenchmarkCurve = useCallback(async (runId: string) => {
-    try {
-      const data = await apiFetch<EquityCurvePoint[]>(`/backtests/${runId}/benchmark-equity-curve`);
-      setBenchmarkCurve(data);
-    } catch {
-      // Silently fail - benchmark is optional
-      setBenchmarkCurve([]);
-    }
-  }, []);
+  const equityCurveQuery = useQuery({
+    queryKey: backtestsKeys.equityCurve(selectedRunId ?? ""),
+    queryFn: () => BacktestsApiClient.getEquityCurve(selectedRunId!),
+    enabled: !!selectedRunId && isCompleted,
+    throwOnError: false,
+  });
 
-  // Fetch results when run is completed
-  useEffect(() => {
-    if (selectedRun?.status === "completed" && selectedRunId) {
-      fetchTrades(selectedRunId);
-      fetchEquityCurve(selectedRunId);
-      fetchBenchmarkCurve(selectedRunId);
-    } else {
-      setTrades([]);
-      setTradesError(null);
-      setEquityCurve([]);
-      setEquityCurveError(null);
-      setBenchmarkCurve([]);
-    }
-  }, [selectedRun?.status, selectedRunId, fetchTrades, fetchEquityCurve, fetchBenchmarkCurve]);
-
-  // Poll for run status when pending/running
-  useEffect(() => {
-    if (!selectedRunId) {
-      setSelectedRun(null);
-      return;
-    }
-
-    let isActive = true;
-    let timer: ReturnType<typeof setTimeout> | null = null;
-
-    const poll = async () => {
-      const detail = await fetchRunDetail(selectedRunId);
-      if (!detail || !isActive) return;
-
-      if (detail.status === "pending" || detail.status === "running") {
-        timer = setTimeout(poll, 5000);
-      }
-    };
-
-    poll();
-
-    return () => {
-      isActive = false;
-      if (timer) clearTimeout(timer);
-    };
-  }, [selectedRunId, fetchRunDetail]);
-
-  const refetchTrades = useCallback(() => {
-    if (selectedRunId) fetchTrades(selectedRunId);
-  }, [selectedRunId, fetchTrades]);
-
-  const refetchEquityCurve = useCallback(() => {
-    if (selectedRunId) fetchEquityCurve(selectedRunId);
-  }, [selectedRunId, fetchEquityCurve]);
+  const benchmarkQuery = useQuery({
+    queryKey: backtestsKeys.benchmarkCurve(selectedRunId ?? ""),
+    queryFn: () => BacktestsApiClient.getBenchmarkEquityCurve(selectedRunId!),
+    enabled: !!selectedRunId && isCompleted,
+    throwOnError: false,
+    retry: false,
+  });
 
   return {
-    selectedRun,
-    trades,
-    equityCurve,
-    benchmarkCurve,
-    isLoadingTrades,
-    isLoadingEquityCurve,
-    tradesError,
-    equityCurveError,
-    fetchRunDetail,
-    refetchTrades,
-    refetchEquityCurve,
+    selectedRun: runQuery.data ?? null,
+    trades: isCompleted ? (tradesQuery.data ?? []) : [],
+    equityCurve: isCompleted ? (equityCurveQuery.data ?? []) : [],
+    benchmarkCurve: isCompleted && !benchmarkQuery.error ? (benchmarkQuery.data ?? []) : [],
+    isLoadingTrades: tradesQuery.isFetching,
+    isLoadingEquityCurve: equityCurveQuery.isFetching,
+    tradesError: tradesQuery.error
+      ? tradesQuery.error instanceof Error
+        ? tradesQuery.error.message
+        : "Failed to load trades"
+      : null,
+    equityCurveError: equityCurveQuery.error
+      ? equityCurveQuery.error instanceof Error
+        ? equityCurveQuery.error.message
+        : "Failed to load equity curve"
+      : null,
+    refetch: () => {
+      runQuery.refetch();
+    },
   };
 }

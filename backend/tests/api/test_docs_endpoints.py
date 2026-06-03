@@ -135,8 +135,23 @@ def test_other_domain_endpoints(client, auth_headers, seeded_objects, monkeypatc
     assert client.delete(f"/alerts/{aid}", headers=auth_headers).status_code == 204
 
 
+    import json
+    from datetime import datetime, timezone
+    from app.services.spot_price_cache import SpotPriceCache
+
+    _seeded = json.dumps({
+        "items": [{"pair": "BTC/USDT", "price": 50000.0, "change_24h_pct": 1.2, "volume_24h": 1.0,
+                   "volatility_stddev": None, "volatility_atr_pct": None, "volatility_percentile_1y": None}],
+        "as_of": datetime.now(timezone.utc).isoformat(),
+    }).encode()
+
     class FakeRedis:
-        def get(self, key): return None
+        def get(self, key):
+            if key == SpotPriceCache.PRICES_KEY:
+                return _seeded
+            return None
+        def set(self, key, value, nx=False, ex=None):
+            return None if nx else True
         def setex(self, key, ttl, val): return None
     monkeypatch.setattr("app.api.market._get_redis", lambda: FakeRedis())
 

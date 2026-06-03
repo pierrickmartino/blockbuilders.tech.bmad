@@ -22,9 +22,9 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { apiFetch } from "@/lib/api";
+import { BacktestsApiClient } from "@/lib/api/backtests-client";
 import { cn } from "@/lib/utils";
-import type { BacktestListItem, BacktestListPage, BacktestStatus } from "@/types/backtest";
+import type { BacktestListItem, BacktestStatus } from "@/types/backtest";
 import type { TimezoneMode } from "@/lib/format";
 import { RunRow } from "@/components/BacktestRunsList";
 
@@ -68,12 +68,11 @@ export function AllRunsDrawer({
       setIsLoading(true);
       try {
         const offset = (page - 1) * PAGE_SIZE;
-        const params = new URLSearchParams({
+        const data = await BacktestsApiClient.list({
           strategy_id: strategyId,
-          limit: PAGE_SIZE.toString(),
-          offset: offset.toString(),
+          limit: PAGE_SIZE,
+          offset,
         });
-        const data = await apiFetch<BacktestListPage>(`/backtests/?${params.toString()}`);
         setRuns(data.items);
         setTotal(data.total);
       } finally {

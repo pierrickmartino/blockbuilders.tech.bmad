@@ -355,7 +355,15 @@ def test_interpreter_dispatches_macd_via_catalogue():
             {"from": {"block_id": "cmp-1", "port": "output"}, "to": {"block_id": "exit-1", "port": "signal"}},
         ],
     }
-    signals = interpret_strategy(definition, candles)
+    from app.backtest.types import RiskParams, ValidatedStrategy
+    strategy = ValidatedStrategy(
+        blocks=tuple(definition["blocks"]),
+        connections=tuple(
+            {"from_port": c["from"], "to_port": c["to"]} for c in definition["connections"]
+        ),
+        risk_params=RiskParams(),
+    )
+    signals = interpret_strategy(strategy, candles)
     assert isinstance(signals.entry_long, list)
 
 
@@ -389,5 +397,13 @@ def test_interpreter_dispatches_bollinger_via_catalogue():
             {"from": {"block_id": "cmp-1", "port": "output"}, "to": {"block_id": "exit-1", "port": "signal"}},
         ],
     }
-    signals = interpret_strategy(definition, candles)
+    from app.backtest.types import RiskParams, ValidatedStrategy
+    strategy = ValidatedStrategy(
+        blocks=tuple(definition["blocks"]),
+        connections=tuple(
+            {"from_port": c["from"], "to_port": c["to"]} for c in definition["connections"]
+        ),
+        risk_params=RiskParams(),
+    )
+    signals = interpret_strategy(strategy, candles)
     assert isinstance(signals.entry_long, list)

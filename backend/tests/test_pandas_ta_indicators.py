@@ -32,6 +32,7 @@ from app.backtest import indicators as ind
 from app.backtest._ta_adapter import from_series, to_series
 from app.backtest.engine import run_backtest
 from app.backtest.interpreter import interpret_strategy
+from app.backtest.types import RiskParams, ValidatedStrategy
 from app.core.database import get_session
 from app.core.security import hash_password
 from app.main import app
@@ -168,6 +169,25 @@ def _pv_pct_ref(closes: list) -> list:
         else:
             ref.append(((closes[i] - closes[i - 1]) / closes[i - 1]) * 100)
     return ref
+
+
+# ---------------------------------------------------------------------------
+# Strategy helpers
+# ---------------------------------------------------------------------------
+
+
+def _to_validated_strategy(definition: dict) -> ValidatedStrategy:
+    """Convert a raw definition dict (legacy from/to or from_port/to_port) to ValidatedStrategy."""
+    blocks = tuple(definition.get("blocks", []))
+    conns = []
+    for conn in definition.get("connections", []):
+        from_data = conn.get("from_port") or conn.get("from", {})
+        to_data = conn.get("to_port") or conn.get("to", {})
+        conns.append({
+            "from_port": {"block_id": from_data.get("block_id"), "port": from_data.get("port", "output")},
+            "to_port": {"block_id": to_data.get("block_id"), "port": to_data.get("port", "input")},
+        })
+    return ValidatedStrategy(blocks=blocks, connections=tuple(conns), risk_params=RiskParams())
 
 
 # ---------------------------------------------------------------------------
@@ -454,7 +474,7 @@ class TestTC01BacktestPathParity:
         period = 20
         n = len(closes)
 
-        signals = interpret_strategy(_sma_gt_price_strategy(period), candles)
+        signals = interpret_strategy(_to_validated_strategy(_sma_gt_price_strategy(period)), candles)
         run_backtest(candles, signals, initial_balance=10_000.0, fee_rate=0.001, slippage_rate=0.001)
 
         ref = from_series(ta.sma(to_series(closes), length=period), n)
@@ -468,7 +488,7 @@ class TestTC01BacktestPathParity:
         period = 20
         n = len(closes)
 
-        signals = interpret_strategy(_ema_gt_price_strategy(period), candles)
+        signals = interpret_strategy(_to_validated_strategy(_ema_gt_price_strategy(period)), candles)
         run_backtest(candles, signals, initial_balance=10_000.0, fee_rate=0.001, slippage_rate=0.001)
 
         ref = from_series(ta.ema(to_series(closes), length=period), n)
@@ -483,7 +503,7 @@ class TestTC01BacktestPathParity:
         threshold = 50.0
         n = len(closes)
 
-        signals = interpret_strategy(_rsi_lt_const_strategy(period, threshold), candles)
+        signals = interpret_strategy(_to_validated_strategy(_rsi_lt_const_strategy(period, threshold)), candles)
         run_backtest(candles, signals, initial_balance=10_000.0, fee_rate=0.001, slippage_rate=0.001)
 
         ref = from_series(ta.rsi(to_series(closes), length=period), n)
@@ -500,7 +520,7 @@ class TestTC01BacktestPathParity:
         threshold = 1.0
         n = len(closes)
 
-        signals = interpret_strategy(_atr_gt_const_strategy(period, threshold), candles)
+        signals = interpret_strategy(_to_validated_strategy(_atr_gt_const_strategy(period, threshold)), candles)
         run_backtest(candles, signals, initial_balance=10_000.0, fee_rate=0.001, slippage_rate=0.001)
 
         ref = from_series(ta.atr(to_series(highs), to_series(lows), to_series(closes), length=period), n)
@@ -515,7 +535,7 @@ class TestTC01BacktestPathParity:
         threshold = 0.0
         n = len(closes)
 
-        signals = interpret_strategy(_obv_gt_const_strategy(threshold), candles)
+        signals = interpret_strategy(_to_validated_strategy(_obv_gt_const_strategy(threshold)), candles)
         run_backtest(candles, signals, initial_balance=10_000.0, fee_rate=0.001, slippage_rate=0.001)
 
         ref = from_series(ta.obv(to_series(closes), to_series(volumes)), n)
@@ -529,7 +549,7 @@ class TestTC01BacktestPathParity:
         threshold = 0.0
         n = len(closes)
 
-        signals = interpret_strategy(_macd_gt_const_strategy(threshold), candles)
+        signals = interpret_strategy(_to_validated_strategy(_macd_gt_const_strategy(threshold)), candles)
         run_backtest(candles, signals, initial_balance=10_000.0, fee_rate=0.001, slippage_rate=0.001)
 
         df = ta.macd(to_series(closes), fast=12, slow=26, signal=9)
@@ -544,7 +564,7 @@ class TestTC01BacktestPathParity:
         period = 20
         n = len(closes)
 
-        signals = interpret_strategy(_bollinger_middle_gt_price_strategy(period), candles)
+        signals = interpret_strategy(_to_validated_strategy(_bollinger_middle_gt_price_strategy(period)), candles)
         run_backtest(candles, signals, initial_balance=10_000.0, fee_rate=0.001, slippage_rate=0.001)
 
         df = ta.bbands(to_series(closes), length=period, std=2.0)
@@ -562,7 +582,7 @@ class TestTC01BacktestPathParity:
         threshold = 30.0
         n = len(closes)
 
-        signals = interpret_strategy(_stochastic_k_lt_const_strategy(14, threshold), candles)
+        signals = interpret_strategy(_to_validated_strategy(_stochastic_k_lt_const_strategy(14, threshold)), candles)
         run_backtest(candles, signals, initial_balance=10_000.0, fee_rate=0.001, slippage_rate=0.001)
 
         df = ta.stoch(to_series(highs), to_series(lows), to_series(closes), k=14, d=3, smooth_k=3)
@@ -579,7 +599,7 @@ class TestTC01BacktestPathParity:
         threshold = 25.0
         n = len(closes)
 
-        signals = interpret_strategy(_adx_gt_const_strategy(14, threshold), candles)
+        signals = interpret_strategy(_to_validated_strategy(_adx_gt_const_strategy(14, threshold)), candles)
         run_backtest(candles, signals, initial_balance=10_000.0, fee_rate=0.001, slippage_rate=0.001)
 
         df = ta.adx(to_series(highs), to_series(lows), to_series(closes), length=14)
@@ -596,7 +616,7 @@ class TestTC01BacktestPathParity:
         n = len(closes)
         median_close = sorted(closes)[n // 2]
 
-        signals = interpret_strategy(_ichimoku_conv_gt_const_strategy(median_close), candles)
+        signals = interpret_strategy(_to_validated_strategy(_ichimoku_conv_gt_const_strategy(median_close)), candles)
         run_backtest(candles, signals, initial_balance=10_000.0, fee_rate=0.001, slippage_rate=0.001)
 
         result = ta.ichimoku(to_series(highs), to_series(lows), to_series(closes), tenkan=9, kijun=26, senkou=52)
@@ -613,7 +633,7 @@ class TestTC01BacktestPathParity:
         lookback = 50
         n = len(closes)
 
-        signals = interpret_strategy(_fibonacci_l5_gt_price_strategy(lookback), candles)
+        signals = interpret_strategy(_to_validated_strategy(_fibonacci_l5_gt_price_strategy(lookback)), candles)
         run_backtest(candles, signals, initial_balance=10_000.0, fee_rate=0.001, slippage_rate=0.001)
 
         ref = _fib_ref(highs, lows, lookback)["0_5"]
@@ -627,7 +647,7 @@ class TestTC01BacktestPathParity:
         threshold = 0.0
         n = len(closes)
 
-        signals = interpret_strategy(_pv_pct_gt_const_strategy(threshold), candles)
+        signals = interpret_strategy(_to_validated_strategy(_pv_pct_gt_const_strategy(threshold)), candles)
         run_backtest(candles, signals, initial_balance=10_000.0, fee_rate=0.001, slippage_rate=0.001)
 
         ref = _pv_pct_ref(closes)
@@ -976,9 +996,10 @@ class TestTC07BacktestDeterminism:
     """TC-07: repeated interpret_strategy + run_backtest calls yield identical metrics and trades (AC-7)."""
 
     def _run_twice(self, strategy: dict, candles: list) -> tuple:
-        signals1 = interpret_strategy(strategy, candles)
+        validated = _to_validated_strategy(strategy)
+        signals1 = interpret_strategy(validated, candles)
         result1 = run_backtest(candles, signals1, initial_balance=10_000.0, fee_rate=0.001, slippage_rate=0.001)
-        signals2 = interpret_strategy(strategy, candles)
+        signals2 = interpret_strategy(validated, candles)
         result2 = run_backtest(candles, signals2, initial_balance=10_000.0, fee_rate=0.001, slippage_rate=0.001)
         return result1, result2
 

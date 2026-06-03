@@ -1,5 +1,77 @@
 # Tasks — in flight
 
+## Binance spot 400 fix — `symbols` array whitespace (Issue #490, implemented)
+
+Backend
+- [x] Diagnose: `refresh_spot_prices` wrote 51 zero-price placeholders; root cause = Binance `/api/v3/ticker/24hr` rejects whitespace in `symbols` param (`json.dumps` default `", "`) → HTTP 400, error -1100 "Illegal characters"
+- [x] Fix `app/market_data/binance.py` spot fetch to emit compact JSON (`separators=(",", ":")`)
+- [x] Regression test `tests/test_binance_provider.py::test_binance_provider_spot_sends_compact_symbols_without_spaces` (asserts serialized `symbols` has no spaces)
+
+Verification
+- [x] RED confirmed: test fails on old code (`' ' is contained here: ["BTCUSDT", "ETHUSDT"]`)
+- [x] GREEN: `pytest tests/test_binance_provider.py` → 17 passed (mounted host source)
+- [x] Rebuilt worker/scheduler/api images, cleared stale breaker keys
+- [x] Live worker e2e: 51/51 prices fetched (BTC=73636, ETH=2002, SOL=81.70); scheduled `refresh_spot_prices` logged "wrote 51 prices" with no skips/400s
+
+Zero-price cache poisoning fix (implemented)
+- [x] `app/market_data/cryptocompare.py` — omit missing assets instead of emitting zero `SpotPrice` placeholders (a truthy zero satisfied the router's `remaining` filter, silently blocking the Binance fallback and poisoning the cache)
+- [x] `app/worker/jobs.py::_fetch_full_ticker_items` — return only real, non-zero prices; no fabricated placeholders
+- [x] `app/worker/jobs.py::refresh_spot_prices` + new `_merge_with_cached` — merge fresh prices over last-known-good so assets missing a cycle keep their previous price (never dropped/zeroed); empty fetch preserves cache
+- [x] Tests: `tests/test_cryptocompare_provider.py` (omit-on-miss), `tests/test_refresh_spot_prices.py` (merge + no-zero-write + empty-fetch preservation)
+- [x] RED confirmed (zero-placeholder + missing-merge assertions fail on old code); GREEN: 605 passed (3 pre-existing `test_api_auth` failures unrelated)
+- [x] Deployed: rebuilt images, cleared breakers, live cache shows 51/51 items, 0 zero-priced (BTC=51613)
+
+## Strategy alert edit form hydration (implemented)
+
+- [x] Seed local alert form state from the loaded query-derived alert rule
+- [x] Cover saving an existing alert without re-entering fields
+- [x] Verify with targeted test, full frontend tests, scoped lint, and build
+- [x] Record the correction pattern in `tasks/lessons.md`
+
+## Strategy list query failure banner (implemented)
+
+- [x] Wire the strategies React Query error state into the existing page error banner
+- [x] Clear stale load-failure banners after successful query recovery without clearing unrelated action errors
+- [x] Replace the initial-failure "No strategies yet" empty state with a load-failure retry state
+- [x] Verify `npm test` (37 files / 471 tests passed)
+- [x] Verify changed page with targeted ESLint (0 errors; existing warnings only)
+- [x] Verify `npm run build`
+- [ ] Full `npm run lint` remains blocked by existing generated `frontend/storybook-static` errors
+
+## Issue #475 — TanStack Query infrastructure + notifications domain pilot (done)
+
+- [x] Install `@tanstack/react-query` v5 + devtools
+- [x] `src/lib/query-client.ts` — `createQueryClient()` with global defaults, retry predicate (`shouldRetry`), 401 error handler
+- [x] `src/lib/api/notifications-client.ts` — moved from `notifications-api-client.ts`, added `markAsRead()`, `markAllAsRead()`, `notificationsKeys` factory
+- [x] `src/app/providers.tsx` — SSR-safe `QueryClientProvider` + devtools (dev only)
+- [x] `src/app/layout.tsx` — wrapped with `<Providers>`
+- [x] `src/hooks/useNotifications.ts` — migrated to `useQuery` + `useMutation` with optimistic updates
+- [x] `src/hooks/useNotificationsPage.ts` — write ops migrated to `useMutation`, reads use `queryClient.fetchQuery`
+- [x] `eslint.config.mjs` — `no-restricted-imports` rule blocking `apiFetch` outside `src/lib/api/**`
+- [x] All 299 tests pass, `tsc --noEmit` clean
+
+Remaining violations of the ESLint rule are pre-existing (other domains not yet migrated — tracked by parent issue #446).
+
+---
+
+## FEAT-459 — Publish flow: promote draft to versioned (implemented)
+
+Backend
+- [x] `POST /strategies/{id}/draft/publish` — promotes draft row: assigns sequential `version_number`, sets `status=PUBLISHED`; returns 404 if no draft
+- [x] `GET /strategies/{id}/versions` — filters to only `status=PUBLISHED` (was returning all including drafts)
+- [x] `tests/api/test_strategy_publish.py` — 6 new tests (B1–B5 + empty-list edge case), all GREEN
+
+Frontend
+- [x] `draft-reducer.ts` — extended with `publishing | published | publishError` states + `PUBLISH_START / PUBLISH_SUCCESS / PUBLISH_ERROR` actions
+- [x] `draft-reducer.test.ts` — 7 new tests (F6–F8), all GREEN
+- [x] `use-strategy-draft.ts` — added `publishDraft()` callback + `hasDraft` derived boolean + `onPublishSuccess` callback prop
+- [x] `StrategyHeader.tsx` — replaced "Save" button with "Publish" button (disabled when no draft / publishing); added `publishing | published | publishError` status display
+- [x] `page.tsx` — wired `draft.publishDraft`, `draft.hasDraft`; `onPublishSuccess` reloads versions list
+
+All 668 backend tests pass. All 256 frontend tests pass. `tsc --noEmit` clean.
+
+---
+
 ## FEAT-454 — Wire canvas consumers to context, delete SmartCanvas (implemented)
 
 Frontend

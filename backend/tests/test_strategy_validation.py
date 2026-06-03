@@ -363,6 +363,31 @@ def test_invalid_connection_to_nonexistent_block():
     assert "INVALID_CONNECTION" in codes
 
 
+# ── Connection schema: legacy wire-format normalization ───────────────────────
+
+def test_connection_schema_normalizes_legacy_from_to_keys():
+    raw = {
+        "from": {"block_id": "sma1", "port": "out"},
+        "to": {"block_id": "entry1", "port": "in"},
+    }
+    conn = Connection.model_validate(raw)
+    assert conn.from_port.block_id == "sma1"
+    assert conn.from_port.port == "out"
+    assert conn.to_port.block_id == "entry1"
+    assert conn.to_port.port == "in"
+
+
+def test_connection_schema_accepts_new_from_port_to_port_keys():
+    conn = Connection(
+        from_port=ConnectionPort(block_id="sma1", port="out"),
+        to_port=ConnectionPort(block_id="entry1", port="in"),
+    )
+    assert conn.from_port.block_id == "sma1"
+    assert conn.from_port.port == "out"
+    assert conn.to_port.block_id == "entry1"
+    assert conn.to_port.port == "in"
+
+
 def test_unconnected_signal_raises_error():
     from app.services.strategy_validation import collect_validation_errors
 

@@ -2,7 +2,7 @@
 
 Load-bearing names used across the codebase. Keep entries terse —
 one line per concept. Detailed reasoning belongs in ADRs
-(`docs/ai/decisions/`), not here.
+(`docs/adr/`), not here.
 
 ## Domain concepts
 
@@ -24,6 +24,13 @@ These come from `PRODUCT.md` and describe what the product *is*.
   `backend/app/backtest/interpreter.py`.
 - **Engine** — the backend component that consumes signals and
   simulates trades. See `backend/app/backtest/engine.py`.
+- **PositionManager** — owns the state of the single open position
+  during a backtest: entry, quantity, TP-ladder state, SL price, and
+  excursions (MFE/MAE). Exposes `enter`, `check_exits`, and `close`;
+  produces `Trade`s and returns PnL as a value. It is deliberately
+  account-blind — the Engine loop owns equity, sizing, and the equity
+  curve. See `backend/app/backtest/position_manager.py` and
+  ADR-0004. _Avoid_: position tracker, trade manager.
 
 ## Architecture concepts
 
@@ -58,6 +65,20 @@ exactly when discussing refactors.
   -> new_params` on a BlockHandler that upgrades persisted block
   instances when a param is added, removed, or renamed.
   Use sparingly; prefer stability.
+
+## Market data concepts
+
+These name the seams around external price data.
+
+- **Price Provider** — the abstraction over an external source of
+  crypto price data (spot and/or OHLCV). The seam that lets the app
+  fail over between vendors. _Avoid_: data source, feed, API.
+- **CryptoCompare** — the current (and first) Price Provider. Hits
+  `min-api.cryptocompare.com`. Config/keys use `cryptocompare_*`.
+  Commercially this is "CoinDesk Data" (CoinDesk acquired
+  CryptoCompare in 2022); reserve **CoinDesk** for the billing /
+  subscription relationship only, not the code. _Avoid_: CoinDesk
+  (in code), vendor.
 
 ## Adjacent terms (not yet load-bearing, on the radar)
 

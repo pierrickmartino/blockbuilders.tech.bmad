@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { X } from "lucide-react";
-import { apiFetch, ApiError } from "@/lib/api";
+import { ApiError } from "@/lib/api";
+import { AlertsApiClient } from "@/lib/api/alerts-client";
 import { ALLOWED_ASSETS, AllowedAsset } from "@/types/strategy";
 import { AlertRule, Direction } from "@/types/alert";
 import { Button } from "@/components/ui/button";
@@ -77,20 +78,17 @@ export default function CreatePriceAlertModal({ open, onOpenChange, onCreated }:
     setError(null);
 
     try {
-      const alert = await apiFetch<AlertRule>("/alerts/", {
-        method: "POST",
-        body: JSON.stringify({
-          alert_type: "price",
-          asset,
-          direction,
-          threshold_price: price,
-          notify_in_app: notifyInApp,
-          notify_email: notifyEmail,
-          notify_webhook: notifyWebhook,
-          webhook_url: notifyWebhook ? webhookUrl.trim() : undefined,
-          expires_at: expiresAt || undefined,
-          is_active: true,
-        }),
+      const alert = await AlertsApiClient.create({
+        alert_type: "price",
+        asset,
+        direction,
+        threshold_price: price,
+        notify_in_app: notifyInApp,
+        notify_email: notifyEmail,
+        notify_webhook: notifyWebhook,
+        webhook_url: notifyWebhook ? webhookUrl.trim() : undefined,
+        expires_at: expiresAt || undefined,
+        is_active: true,
       });
       onCreated(alert);
       resetForm();

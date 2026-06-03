@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { apiFetch, ApiError } from "@/lib/api";
+import { ApiError } from "@/lib/api";
+import { SocialApiClient } from "@/lib/api/social-client";
 import { PublicProfile } from "@/types/profile";
 import {
   Card,
@@ -23,7 +24,7 @@ export default function PublicProfilePage() {
   useEffect(() => {
     async function fetchProfile() {
       try {
-        const data = await apiFetch<PublicProfile>(`/profiles/${handle}`);
+        const data = await SocialApiClient.getPublicProfile(handle);
         setProfile(data);
       } catch (err) {
         if (err instanceof ApiError && err.status === 404) {

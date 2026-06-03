@@ -4,14 +4,16 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { apiFetch, ApiError } from "@/lib/api";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { ApiError } from "@/lib/api";
+import { UsersApiClient } from "@/lib/api/users-client";
+import { StrategiesApiClient, strategiesKeys } from "@/lib/api/strategies-client";
+import { StrategyTagsApiClient, strategyTagsKeys } from "@/lib/api/strategy-tags-client";
 import { formatDateTime } from "@/lib/format";
 import { useDisplay } from "@/context/display";
 import { useAuth } from "@/context/auth";
-import { trackEvent } from "@/lib/analytics";
-import { ALLOWED_ASSETS, Strategy, StrategyExportFile, StrategyTag, StrategyVersion, StrategyVersionDetail } from "@/types/strategy";
+import { ALLOWED_ASSETS, StrategyExportFile } from "@/types/strategy";
 import type { PlanResponse, ProfileResponse } from "@/types/auth";
-import type { ValidationResponse } from "@/types/canvas";
 import NewStrategyModal from "./new-strategy-modal";
 import {
   Tooltip,
@@ -78,14 +80,38 @@ type SortOrder = "asc" | "desc";
 type PerformanceFilter = "all" | "positive" | "negative";
 type LastRunFilter = "all" | "7days" | "30days" | "never";
 
+function getStrategiesLoadErrorMessage(err: unknown): string {
+  const fallback = "We couldn't load your strategies. Retry to refresh the list.";
+
+  if (err instanceof ApiError) {
+    if (err.status === 0) {
+      return "The request timed out. Check your connection, then retry the strategies list.";
+    }
+    if (err.status === 401) {
+      return "Your session expired. Sign in again to load your strategies.";
+    }
+    if (err.status === 403) {
+      return "You do not have permission to view these strategies.";
+    }
+    if (err.status === 429) {
+      return "Too many requests hit the API at once. Wait a moment, then retry.";
+    }
+    if (err.status >= 500) {
+      return "The server could not load your strategies. Retry in a moment.";
+    }
+    return err.message || fallback;
+  }
+
+  return err instanceof Error ? err.message : fallback;
+}
+
 export default function StrategiesPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { timezone } = useDisplay();
-  const { user, refreshUsage, refreshUser } = useAuth();
+  const { refreshUsage, refreshUser } = useAuth();
+  const queryClient = useQueryClient();
   const isFirstRun = searchParams.get("wizard") === "true";
-  const [strategies, setStrategies] = useState<Strategy[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState(searchParams.get("q") ?? "");
   const [showArchived, setShowArchived] = useState(searchParams.get("archived") === "true");
@@ -108,7 +134,6 @@ export default function StrategiesPage() {
   const [assetFilter, setAssetFilter] = useState<string>(searchParams.get("asset") ?? "all");
   const [performanceFilter, setPerformanceFilter] = useState<PerformanceFilter>((searchParams.get("perf") as PerformanceFilter) ?? "all");
   const [lastRunFilter, setLastRunFilter] = useState<LastRunFilter>((searchParams.get("run") as LastRunFilter) ?? "all");
-  const [availableTags, setAvailableTags] = useState<StrategyTag[]>([]);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>(searchParams.get("tags")?.split(",").filter(Boolean) ?? []);
 
   // Bulk selection state
@@ -123,38 +148,46 @@ export default function StrategiesPage() {
     message: string;
   } | null>(null);
 
-  const fetchStrategies = useCallback(async () => {
-    try {
-      const params = new URLSearchParams();
-      if (showArchived) params.set("include_archived", "true");
-      const data = await apiFetch<Strategy[]>(`/strategies/?${params}`);
-      setStrategies(data);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load strategies");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [showArchived]);
+  const {
+    data: strategies = [],
+    isLoading,
+    isError: strategiesLoadFailed,
+    error: strategiesLoadError,
+  } = useQuery({
+    queryKey: strategiesKeys.list({ include_archived: showArchived }),
+    queryFn: () => StrategiesApiClient.list({ include_archived: showArchived }),
+  });
 
-  useEffect(() => {
-    fetchStrategies();
-  }, [fetchStrategies]);
+  const { data: availableTags = [] } = useQuery({
+    queryKey: strategyTagsKeys.list(),
+    queryFn: () => StrategyTagsApiClient.list(),
+  });
 
+  // Load user plan for premium column gating
   useEffect(() => {
-    const loadTags = async () => {
-      try {
-        const data = await apiFetch<StrategyTag[]>("/strategy-tags");
-        setAvailableTags(data);
-      } catch (err) {
-        console.error("Failed to load tags:", err);
-      }
-    };
-    loadTags();
-    apiFetch<ProfileResponse>("/users/me").then((data) => setUserPlan(data.plan)).catch(() => {});
+    UsersApiClient.getProfile().then((data) => setUserPlan(data.plan)).catch(() => {});
   }, []);
 
-  const refreshStrategies = fetchStrategies;
+  const refreshStrategies = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: strategiesKeys.all() });
+  }, [queryClient]);
+
+  const activeStrategiesLoadErrorRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (strategiesLoadFailed) {
+      const message = getStrategiesLoadErrorMessage(strategiesLoadError);
+      activeStrategiesLoadErrorRef.current = message;
+      setError(message);
+      return;
+    }
+
+    setError((current) =>
+      current !== null && current === activeStrategiesLoadErrorRef.current
+        ? null
+        : current
+    );
+    activeStrategiesLoadErrorRef.current = null;
+  }, [strategiesLoadFailed, strategiesLoadError]);
 
   // Sync filter + sort state to URL so the page is bookmarkable and back-nav preserves context
   const urlSyncInitialized = useRef(false);
@@ -187,6 +220,7 @@ export default function StrategiesPage() {
   };
 
   const hasActiveFilters = search || assetFilter !== "all" || performanceFilter !== "all" || lastRunFilter !== "all" || selectedTagIds.length > 0 || showArchived;
+  const listLoadUnavailable = strategiesLoadFailed && strategies.length === 0;
 
   // Bulk selection helpers
   const handleSelectAll = (checked: boolean) => {
@@ -222,14 +256,7 @@ export default function StrategiesPage() {
     setBulkActionLoading(true);
     setBulkResult(null);
     try {
-      const response = await apiFetch<{
-        success_count: number;
-        failed_count: number;
-        failed_ids: string[];
-      }>('/strategies/bulk/archive', {
-        method: 'POST',
-        body: JSON.stringify({ strategy_ids: Array.from(selectedIds) }),
-      });
+      const response = await StrategiesApiClient.bulkArchive(Array.from(selectedIds));
 
       if (response.failed_count === 0) {
         setBulkResult({
@@ -245,7 +272,7 @@ export default function StrategiesPage() {
         });
         setSelectedIds(new Set(response.failed_ids));
       }
-      await refreshStrategies();
+      refreshStrategies();
     } catch (err) {
       setBulkResult({
         type: 'error',
@@ -264,17 +291,7 @@ export default function StrategiesPage() {
     setBulkResult(null);
 
     try {
-      const response = await apiFetch<{
-        success_count: number;
-        failed_count: number;
-        failed_ids: string[];
-      }>('/strategies/bulk/tag', {
-        method: 'POST',
-        body: JSON.stringify({
-          strategy_ids: Array.from(selectedIds),
-          tag_ids: bulkTagIds,
-        }),
-      });
+      const response = await StrategiesApiClient.bulkTag(Array.from(selectedIds), bulkTagIds);
 
       if (response.failed_count === 0) {
         setBulkResult({
@@ -291,7 +308,7 @@ export default function StrategiesPage() {
         });
         setSelectedIds(new Set(response.failed_ids));
       }
-      await refreshStrategies();
+      refreshStrategies();
     } catch (err) {
       setBulkResult({
         type: 'error',
@@ -308,14 +325,7 @@ export default function StrategiesPage() {
     setBulkResult(null);
 
     try {
-      const response = await apiFetch<{
-        success_count: number;
-        failed_count: number;
-        failed_ids: string[];
-      }>('/strategies/bulk/delete', {
-        method: 'POST',
-        body: JSON.stringify({ strategy_ids: Array.from(selectedIds) }),
-      });
+      const response = await StrategiesApiClient.bulkDelete(Array.from(selectedIds));
 
       if (response.failed_count === 0) {
         setBulkResult({
@@ -331,7 +341,7 @@ export default function StrategiesPage() {
         });
         setSelectedIds(new Set(response.failed_ids));
       }
-      await refreshStrategies();
+      refreshStrategies();
       await refreshUsage();
     } catch (err) {
       setBulkResult({
@@ -455,6 +465,22 @@ export default function StrategiesPage() {
     return sorted;
   }, [strategies, search, assetFilter, performanceFilter, lastRunFilter, selectedTagIds, sortField, sortOrder]);
 
+  const strategyCountLabel = listLoadUnavailable
+    ? "Strategy count unavailable"
+    : hasActiveFilters
+    ? `Showing ${filteredAndSortedStrategies.length} of ${strategies.length} ${strategies.length === 1 ? "strategy" : "strategies"}`
+    : `${strategies.length} ${strategies.length === 1 ? "strategy" : "strategies"}`;
+  const emptyStateTitle = listLoadUnavailable
+    ? "Couldn't load strategies"
+    : strategies.length === 0
+    ? "No strategies yet"
+    : "No matches";
+  const emptyStateDescription = listLoadUnavailable
+    ? "Retry loading your strategy list."
+    : strategies.length === 0
+    ? "Create your first strategy to get started."
+    : "No strategies match your search or filters.";
+
   const handleSort = (field: SortField) => {
     if (sortField === field) {
       setSortOrder(sortOrder === "asc" ? "desc" : "asc");
@@ -467,10 +493,8 @@ export default function StrategiesPage() {
   const handleClone = async (id: string) => {
     setActionLoading(id);
     try {
-      await apiFetch<Strategy>(`/strategies/${id}/duplicate`, {
-        method: "POST",
-      });
-      await refreshStrategies();
+      await StrategiesApiClient.duplicate(id);
+      refreshStrategies();
       toast.success("Strategy cloned", { description: "A copy has been added to your list." });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to clone strategy");
@@ -482,11 +506,8 @@ export default function StrategiesPage() {
   const handleArchive = async (id: string, archive: boolean) => {
     setActionLoading(id);
     try {
-      await apiFetch(`/strategies/${id}`, {
-        method: "PATCH",
-        body: JSON.stringify({ is_archived: archive }),
-      });
-      await refreshStrategies();
+      await StrategiesApiClient.update(id, { is_archived: archive });
+      refreshStrategies();
       toast.success(archive ? "Strategy archived" : "Strategy unarchived");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update strategy");
@@ -499,8 +520,8 @@ export default function StrategiesPage() {
     setActionLoading(id);
     try {
       // Fetch strategy + versions
-      const strategy = await apiFetch<Strategy>(`/strategies/${id}`);
-      const versions = await apiFetch<StrategyVersion[]>(`/strategies/${id}/versions`);
+      const strategy = await StrategiesApiClient.get(id);
+      const versions = await StrategiesApiClient.listVersions(id);
 
       if (versions.length === 0) {
         setError("Cannot export strategy without a saved version");
@@ -508,8 +529,9 @@ export default function StrategiesPage() {
       }
 
       // Fetch latest version detail
-      const versionDetail = await apiFetch<StrategyVersionDetail>(
-        `/strategies/${id}/versions/${versions[0].version_number}`
+      const versionDetail = await StrategiesApiClient.getVersionDetail(
+        id,
+        versions[0].version_number,
       );
 
       // Build export file per PRD format
@@ -593,22 +615,16 @@ export default function StrategiesPage() {
 
     try {
       // Step 1: Create strategy (backend validates asset/timeframe)
-      const newStrategy = await apiFetch<Strategy>("/strategies/", {
-        method: "POST",
-        body: JSON.stringify({
-          name: importData.strategy.name,
-          asset: importData.strategy.asset,
-          timeframe: importData.strategy.timeframe,
-        }),
+      const newStrategy = await StrategiesApiClient.create({
+        name: importData.strategy.name,
+        asset: importData.strategy.asset,
+        timeframe: importData.strategy.timeframe,
       });
 
       // Step 2: Validate definition
-      const validation = await apiFetch<ValidationResponse>(
-        `/strategies/${newStrategy.id}/validate`,
-        {
-          method: "POST",
-          body: JSON.stringify(importData.definition_json),
-        }
+      const validation = await StrategiesApiClient.validate(
+        newStrategy.id,
+        importData.definition_json,
       );
 
       if (validation.status === "invalid") {
@@ -622,12 +638,7 @@ export default function StrategiesPage() {
       }
 
       // Step 3: Create version (backend validates definition)
-      await apiFetch(`/strategies/${newStrategy.id}/versions`, {
-        method: "POST",
-        body: JSON.stringify({
-          definition: importData.definition_json,
-        }),
-      });
+      await StrategiesApiClient.createVersion(newStrategy.id, importData.definition_json);
 
       // Success - navigate to new strategy
       setShowImportModal(false);
@@ -955,10 +966,7 @@ export default function StrategiesPage() {
           </Button>
         )}
         <span className="ml-auto text-xs text-muted-foreground">
-          {hasActiveFilters
-            ? `Showing ${filteredAndSortedStrategies.length} of ${strategies.length} ${strategies.length === 1 ? "strategy" : "strategies"}`
-            : `${strategies.length} ${strategies.length === 1 ? "strategy" : "strategies"}`
-          }
+          {strategyCountLabel}
         </span>
       </div>
 
@@ -1008,15 +1016,22 @@ export default function StrategiesPage() {
             <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
               <Layers className="h-7 w-7 text-primary" />
             </div>
-            <h3 className="mb-1 font-semibold">
-              {strategies.length === 0 ? "No strategies yet" : "No matches"}
-            </h3>
+            <h3 className="mb-1 font-semibold">{emptyStateTitle}</h3>
             <p className="mb-4 text-sm text-muted-foreground">
-              {strategies.length === 0
-                ? "Create your first strategy to get started."
-                : "No strategies match your search or filters."}
+              {emptyStateDescription}
             </p>
-            {strategies.length === 0 ? (
+            {listLoadUnavailable ? (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setError(null);
+                  refreshStrategies();
+                }}
+              >
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Retry
+              </Button>
+            ) : strategies.length === 0 ? (
               <Button onClick={() => setShowModal(true)}>
                 <Plus className="mr-2 h-4 w-4" />
                 Create Strategy
@@ -1412,7 +1427,7 @@ export default function StrategiesPage() {
             onClick={async () => {
               setIsSkipping(true);
               try {
-                await apiFetch("/users/me/complete-onboarding", { method: "POST" });
+                await UsersApiClient.completeOnboarding();
                 await refreshUser();
                 router.push("/dashboard");
               } catch {

@@ -65,3 +65,33 @@ class StrategyHasNoVersions(DomainError):
 
     def detail(self) -> dict:
         return {"detail": "Strategy has no saved versions"}
+
+
+class ShareLinkNotFound(DomainError):
+    status_code = 404
+
+    def __init__(self) -> None:
+        super().__init__("Share link not found or has expired")
+
+    def detail(self) -> dict:
+        return {"detail": "Share link not found or has expired"}
+
+
+class ShareLinkExpired(DomainError):
+    status_code = 404
+
+    def __init__(self) -> None:
+        super().__init__("This share link has expired")
+
+    def detail(self) -> dict:
+        return {"detail": "This share link has expired"}
+
+
+class ShareExpirationInvalid(DomainError):
+    status_code = 400
+
+    def __init__(self) -> None:
+        super().__init__("Expiration date must be in the future")
+
+    def detail(self) -> dict:
+        return {"detail": "Expiration date must be in the future"}

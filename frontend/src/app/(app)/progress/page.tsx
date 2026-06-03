@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { apiFetch } from "@/lib/api";
+import { ProgressApiClient } from "@/lib/api/progress-client";
 import { ProgressResponse } from "@/types/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -105,7 +105,7 @@ export default function ProgressPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const data = await apiFetch<ProgressResponse>("/progress");
+      const data = await ProgressApiClient.getProgress();
       setProgress(data);
     } catch {
       setError("Couldn't load progress. Please try again.");

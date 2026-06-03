@@ -1,5 +1,6 @@
 import sys
 import logging
+from datetime import datetime, timezone
 
 from redis import Redis
 from rq import Worker, Queue
@@ -12,6 +13,11 @@ setup_logging()
 logger = logging.getLogger(__name__)
 
 redis_conn = Redis.from_url(settings.redis_url)
+
+SPOT_REFRESH_INTERVAL_SECONDS = 120
+SPOT_REFRESH_JOB_ID = "spot_price_refresh"
+PRICE_ALERTS_INTERVAL_SECONDS = 120
+PRICE_ALERTS_JOB_ID = "price_alerts_monitor"
 
 
 def run_worker():
@@ -28,9 +34,15 @@ def run_scheduler():
     scheduler = Scheduler(queue_name="default", connection=redis_conn)
 
     # Cancel existing scheduled jobs to avoid duplicates on restart
+    known_ids = {
+        "auto_update_daily",
+        "data_quality_daily",
+        "price_alerts_monitor",
+        SPOT_REFRESH_JOB_ID,
+    }
     for job in scheduler.get_jobs():
         job_id = job.id if hasattr(job, "id") else str(job)
-        if job_id in ["auto_update_daily", "data_quality_daily", "price_alerts_monitor"]:
+        if job_id in known_ids:
             logger.info(f"Removing existing scheduled job: {job_id}")
             scheduler.cancel(job)
 
@@ -52,14 +64,28 @@ def run_scheduler():
     )
     logger.info("Registered data_quality_daily cron job at 03:00 UTC")
 
-    # Schedule price alerts monitoring job every 5 minutes
-    scheduler.cron(
-        "*/5 * * * *",  # Cron expression: every 5 minutes
+    # Schedule price alerts monitoring at 120s to match the spot-price refresh cadence
+    scheduler.schedule(
+        scheduled_time=datetime.now(timezone.utc),
         func="app.worker.jobs.evaluate_price_alerts",
+        interval=PRICE_ALERTS_INTERVAL_SECONDS,
+        repeat=None,  # repeat indefinitely
         queue_name="default",
-        id="price_alerts_monitor",
+        id=PRICE_ALERTS_JOB_ID,
     )
-    logger.info("Registered price_alerts_monitor cron job (every 5 minutes)")
+    logger.info(f"Registered {PRICE_ALERTS_JOB_ID} interval job (every {PRICE_ALERTS_INTERVAL_SECONDS}s)")
+
+    # Schedule spot-price refresh every 120 seconds using interval scheduling
+    # rq-scheduler's schedule() supports arbitrary second intervals (unlike cron's 1-min floor)
+    scheduler.schedule(
+        scheduled_time=datetime.now(timezone.utc),
+        func="app.worker.jobs.refresh_spot_prices",
+        interval=SPOT_REFRESH_INTERVAL_SECONDS,
+        repeat=None,  # repeat indefinitely
+        queue_name="default",
+        id=SPOT_REFRESH_JOB_ID,
+    )
+    logger.info(f"Registered {SPOT_REFRESH_JOB_ID} interval job (every {SPOT_REFRESH_INTERVAL_SECONDS}s)")
 
     logger.info("Scheduler started successfully. Waiting for scheduled jobs...")
     scheduler.run()

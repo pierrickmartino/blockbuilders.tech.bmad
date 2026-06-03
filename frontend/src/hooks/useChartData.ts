@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { apiFetch } from "@/lib/api";
+import { useQuery } from "@tanstack/react-query";
+import { ChartsApiClient, chartsKeys } from "@/lib/api/charts-client";
 import { serializeIndicators } from "@/lib/chart-indicators";
 import type { ChartDataResponse } from "@/types/chart";
 
@@ -26,56 +26,22 @@ export function useChartData({
   timeframe,
   indicators,
 }: UseChartDataArgs): UseChartDataResult {
-  const [data, setData] = useState<ChartDataResponse | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const isMountedRef = useRef(true);
-  const requestIdRef = useRef(0);
-
   const indicatorParam = serializeIndicators(indicators);
 
-  const fetchChart = useCallback(async () => {
-    const requestId = requestIdRef.current + 1;
-    requestIdRef.current = requestId;
+  const query = useQuery({
+    queryKey: chartsKeys.chartData(asset ?? "", timeframe, indicatorParam),
+    queryFn: () => ChartsApiClient.getChartData(asset!, timeframe, indicatorParam),
+    enabled: asset !== null,
+  });
 
-    if (!asset) {
-      setData(null);
-      setError(null);
-      setIsLoading(false);
-      return;
-    }
-
-    const isCurrentRequest = () =>
-      isMountedRef.current && requestId === requestIdRef.current;
-
-    setIsLoading(true);
-    setData(null);
-    try {
-      const params = new URLSearchParams({ asset, timeframe });
-      if (indicatorParam) params.set("indicators", indicatorParam);
-      const response = await apiFetch<ChartDataResponse>(
-        `/market/chart-data?${params.toString()}`,
-      );
-      if (isCurrentRequest()) {
-        setData(response);
-        setError(null);
-      }
-    } catch (err) {
-      if (isCurrentRequest()) {
-        setError(err instanceof Error ? err.message : "Failed to fetch chart data");
-      }
-    } finally {
-      if (isCurrentRequest()) setIsLoading(false);
-    }
-  }, [asset, timeframe, indicatorParam]);
-
-  useEffect(() => {
-    isMountedRef.current = true;
-    fetchChart();
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, [fetchChart]);
-
-  return { data, isLoading, error, refresh: fetchChart };
+  return {
+    data: query.data ?? null,
+    isLoading: query.isLoading,
+    error: query.error
+      ? query.error instanceof Error
+        ? query.error.message
+        : "Failed to fetch chart data"
+      : null,
+    refresh: () => { query.refetch(); },
+  };
 }

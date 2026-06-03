@@ -27,9 +27,12 @@ from app.backtest.data_quality import compute_daily_metrics, check_has_issues
 from app.backtest.interpreter import interpret_strategy
 from app.backtest.engine import run_backtest, compute_benchmark_curve, compute_benchmark_metrics
 from app.backtest.storage import upload_json, generate_results_key
-from app.backtest.errors import BacktestError
+from app.backtest.errors import BacktestError, StrategyInvalidError
+from app.schemas.strategy import StrategyDefinitionValidate
 from app.services.alert_evaluator import evaluate_alerts_for_run
+from app.services.spot_price_cache import SpotPriceCache
 from app.services.analytics import track_backend_event, flush_backend_events
+from app.services.strategy_validation import validate_strategy
 
 logger = logging.getLogger(__name__)
 
@@ -126,6 +129,31 @@ def run_backtest_job(
                         "Invalid strategy: no block configuration found.",
                     )
 
+                # Validate before fetching candles (pure CPU — no I/O cost)
+                try:
+                    parsed = StrategyDefinitionValidate.model_validate(definition)
+                except Exception:
+                    raise StrategyInvalidError(
+                        "Strategy definition structure is malformed",
+                        "Strategy validation failed: definition structure is malformed.",
+                    )
+
+                validation_result = validate_strategy(parsed)
+                if validation_result.errors:
+                    first = validation_result.errors[0]
+                    extra = len(validation_result.errors) - 1
+                    user_msg = (
+                        f"{first.user_message} (+{extra} more issues)"
+                        if extra > 0
+                        else first.user_message
+                    )
+                    raise StrategyInvalidError(
+                        f"Strategy validation failed: {first.message}",
+                        user_msg,
+                    )
+
+                validated_strategy = validation_result.strategy
+
                 logger.info(
                     "backtest_processing",
                     extra={
@@ -152,10 +180,17 @@ def run_backtest_job(
                         "No price data available for the selected date range.",
                     )
 
-                logger.info("candles_fetched", extra={"count": len(candles)})
+                if any(c.source != "cryptocompare" for c in candles):
+                    run.used_backup_data = True
+                    session.add(run)
+
+                logger.info(
+                    "candles_fetched",
+                    extra={"count": len(candles), "used_backup_data": run.used_backup_data},
+                )
 
                 # Interpret strategy to get signals
-                signals = interpret_strategy(definition, candles)
+                signals = interpret_strategy(validated_strategy, candles)
                 logger.info(
                     "strategy_interpreted",
                     extra={
@@ -611,10 +646,7 @@ def evaluate_price_alerts() -> None:
 
     with Session(engine) as session:
         from decimal import Decimal
-        import httpx
         from app.models.alert_rule import AlertType, Direction
-        from app.models.user import User
-        from app.schemas.strategy import ALLOWED_ASSETS
 
         now = datetime.now(timezone.utc)
 
@@ -652,11 +684,15 @@ def evaluate_price_alerts() -> None:
             logger.info("No non-expired alerts to evaluate")
             return
 
-        # Fetch current prices
-        prices = _fetch_current_prices()
-        if not prices:
-            logger.error("Failed to fetch current prices, skipping evaluation")
+        # Read prices from shared spot cache (populated by refresh_spot_prices job)
+        redis = Redis.from_url(settings.redis_url)
+        cache = SpotPriceCache(redis)
+        ticker = cache.read()
+        if ticker is None:
+            logger.warning("Spot price cache is empty, skipping price alert evaluation")
             return
+
+        prices = {item.pair: Decimal(str(item.price)) for item in ticker.items}
 
         triggered_count = 0
 
@@ -718,51 +754,6 @@ def evaluate_price_alerts() -> None:
 
         session.commit()
         logger.info(f"evaluate_price_alerts completed: {triggered_count} alerts triggered")
-
-
-def _fetch_current_prices() -> dict[str, Any]:
-    """
-    Fetch current prices for all supported assets.
-
-    Returns dict mapping asset pair (e.g., "BTC/USDT") to Decimal price.
-    Reuses CryptoCompare API logic from market.py.
-    """
-    from decimal import Decimal
-    import httpx
-    from app.schemas.strategy import ALLOWED_ASSETS
-
-    fsyms = [asset.split("/")[0] for asset in ALLOWED_ASSETS]
-    fsyms_str = ",".join(fsyms)
-
-    try:
-        with httpx.Client(timeout=10.0) as client:
-            url = f"{settings.cryptocompare_api_url}/pricemultifull"
-            params = {"fsyms": fsyms_str, "tsyms": "USDT"}
-            if settings.cryptocompare_api_key:
-                params["api_key"] = settings.cryptocompare_api_key
-
-            response = client.get(url, params=params)
-            response.raise_for_status()
-            data = response.json()
-
-            if data.get("Response") == "Error":
-                logger.error(f"CryptoCompare error: {data.get('Message')}")
-                return {}
-
-            raw_data = data.get("RAW", {})
-            prices = {}
-
-            for asset in ALLOWED_ASSETS:
-                base = asset.split("/")[0]
-                ticker_data = raw_data.get(base, {}).get("USDT")
-                if ticker_data:
-                    prices[asset] = Decimal(str(ticker_data.get("PRICE", 0.0)))
-
-            return prices
-
-    except Exception as e:
-        logger.error(f"Failed to fetch prices: {e}")
-        return {}
 
 
 def _send_price_alert_email(alert: AlertRule, current_price: Any, session: Session) -> None:
@@ -828,3 +819,110 @@ def _send_price_alert_webhook(alert: AlertRule, current_price: Any) -> None:
 
     except Exception as e:
         logger.error(f"Failed to send webhook for alert {alert.id}: {e}")
+
+
+def _has_active_price_alerts() -> bool:
+    """Return True if at least one price alert is currently active."""
+    from app.models.alert_rule import AlertType
+
+    with Session(engine) as session:
+        count = session.exec(
+            select(func.count(AlertRule.id)).where(
+                AlertRule.alert_type == AlertType.PRICE,
+                AlertRule.is_active == True,  # noqa: E712
+            )
+        ).one()
+    return count > 0
+
+
+def _fetch_full_ticker_items() -> list[Any]:
+    """Fetch price, 24h change, and 24h volume for all supported assets via PriceRouter.
+
+    Returns a list of TickerItem objects containing only assets with a real,
+    non-zero price. Missing or zero-priced assets are omitted (never written as
+    placeholders) so the caller can preserve last-known-good values for them.
+    Returns [] on any error.
+    """
+    from app.market_data import price_router
+    from app.schemas.market import TickerItem
+    from app.schemas.strategy import ALLOWED_ASSETS
+
+    try:
+        prices = price_router.get_spot_prices(ALLOWED_ASSETS)
+        items = []
+        for asset in ALLOWED_ASSETS:
+            spot = prices.get(asset)
+            if spot and spot.price > 0:
+                items.append(TickerItem(
+                    pair=asset,
+                    price=float(spot.price),
+                    change_24h_pct=spot.change_24h_pct,
+                    volume_24h=spot.volume_24h,
+                ))
+            else:
+                logger.warning("No ticker data for %s", asset)
+        return items
+
+    except Exception as exc:
+        logger.error("Failed to fetch full ticker data: %s", exc)
+        return []
+
+
+def refresh_spot_prices() -> None:
+    """Fetch all spot prices from CryptoCompare and write them to SpotPriceCache.
+
+    Runs every 120 seconds. Skipped when there are no active price alerts AND
+    the ticker endpoint has not been viewed in the last 240 seconds (gate).
+    """
+    if not settings.scheduler_enabled:
+        logger.info("Scheduler disabled, skipping refresh_spot_prices")
+        return
+
+    from app.services.spot_price_cache import SpotPriceCache
+    from app.schemas.market import TickerListResponse
+
+    redis = Redis.from_url(settings.redis_url)
+    cache = SpotPriceCache(redis)
+
+    gate_open = _has_active_price_alerts() or cache.viewed_recently(window=240)
+    if not gate_open:
+        logger.info("refresh_spot_prices: gate closed (no active alerts, no recent view) — skipping")
+        return
+
+    logger.info("refresh_spot_prices: gate open — fetching prices")
+    items = _fetch_full_ticker_items()
+
+    if not items:
+        logger.warning("refresh_spot_prices: no items fetched, preserving cached prices")
+        return
+
+    # Merge fresh prices over last-known-good: assets missing this cycle keep
+    # their previously cached price rather than being dropped or zeroed.
+    merged = _merge_with_cached(items, cache.read())
+
+    cache.write(TickerListResponse(items=merged, as_of=datetime.now(timezone.utc)))
+    logger.info(
+        f"refresh_spot_prices: wrote {len(merged)} prices to cache "
+        f"({len(items)} fresh this cycle)"
+    )
+
+
+def _merge_with_cached(fresh: list[Any], cached: Any) -> list[Any]:
+    """Overlay freshly fetched ticker items on top of the cached snapshot.
+
+    Fresh items win per pair; pairs absent this cycle retain their cached value
+    (last-known-good). Ordering follows the cached snapshot, then any new pairs.
+    """
+    fresh_by_pair = {item.pair: item for item in fresh}
+    if cached is None:
+        return list(fresh)
+
+    merged: list[Any] = []
+    seen: set[str] = set()
+    for item in cached.items:
+        seen.add(item.pair)
+        merged.append(fresh_by_pair.get(item.pair, item))
+    for item in fresh:
+        if item.pair not in seen:
+            merged.append(item)
+    return merged
