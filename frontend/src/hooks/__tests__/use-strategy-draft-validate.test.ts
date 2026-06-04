@@ -79,6 +79,7 @@ describe("useStrategyDraft – live validation after persist", () => {
     );
 
     await act(async () => {
+      result.current.markHydrated();
       await result.current.persistDraft(NODES, EDGES);
     });
 
@@ -98,6 +99,7 @@ describe("useStrategyDraft – live validation after persist", () => {
     );
 
     await act(async () => {
+      result.current.markHydrated();
       await result.current.persistDraft(NODES, EDGES);
     });
 
@@ -132,6 +134,7 @@ describe("useStrategyDraft – onValidationErrors callback", () => {
     );
 
     await act(async () => {
+      result.current.markHydrated();
       await result.current.persistDraft(NODES, EDGES);
     });
 
@@ -151,6 +154,7 @@ describe("useStrategyDraft – onValidationErrors callback", () => {
     );
 
     await act(async () => {
+      result.current.markHydrated();
       await result.current.persistDraft(NODES, EDGES);
     });
 
@@ -168,6 +172,7 @@ describe("useStrategyDraft – onValidationErrors callback", () => {
 
     await expect(
       act(async () => {
+        result.current.markHydrated();
         await result.current.persistDraft(NODES, EDGES);
       })
     ).resolves.not.toThrow();
