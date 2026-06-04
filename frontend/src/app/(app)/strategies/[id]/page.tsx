@@ -328,11 +328,25 @@ function StrategyEditorPageInner({ params }: Props) {
   }, [id, markHydrated]);
 
   // --- Initial data loading ---
+  // Strategy metadata controls the loading gate: while isLoading is true the
+  // CanvasStateProvider (and the bridge that wires contextDispatchRef) is not
+  // mounted yet.
   useEffect(() => {
     loadStrategy();
-    loadDraftOrLatestVersion();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Load the canvas only once the provider is mounted (isLoading === false and
+  // strategy resolved). Dispatching earlier would no-op against the not-yet-wired
+  // contextDispatchRef and leave a blank canvas — a race that surfaced as an
+  // intermittent empty canvas on first open. Keyed on id so a re-navigation to
+  // the same page re-hydrates the canvas.
+  const loadedCanvasForIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (isLoading || !strategy || loadedCanvasForIdRef.current === id) return;
+    loadedCanvasForIdRef.current = id;
+    loadDraftOrLatestVersion();
+  }, [isLoading, strategy, id, loadDraftOrLatestVersion]);
 
   useEffect(() => {
     if (strategy) trackStrategyView(id);
