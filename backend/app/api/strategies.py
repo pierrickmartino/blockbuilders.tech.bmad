@@ -460,21 +460,11 @@ def duplicate_strategy(
     session.commit()
     session.refresh(new_strategy)
 
-    # Copy latest version if exists
-    latest_version = session.exec(
-        select(StrategyVersion)
-        .where(StrategyVersion.strategy_id == original.id)
-        .order_by(StrategyVersion.version_number.desc())
-    ).first()
-
-    if latest_version:
-        new_version = StrategyVersion(
-            strategy_id=new_strategy.id,
-            version_number=1,
-            definition_json=latest_version.definition_json,
-        )
-        session.add(new_version)
-        session.commit()
+    # Seed the new working copy from the original's working copy (ADR-0005).
+    # The editor reads from the working copy, so the duplicate must carry the
+    # original's current editing state — not just its frozen versions.
+    source_wc = get_or_create_working_copy(original, session)
+    upsert_working_copy(new_strategy, source_wc.definition_json, session)
 
     return StrategyResponse(
         id=new_strategy.id,
