@@ -19,6 +19,7 @@ import {
   definitionToReactFlow,
   createDefaultDefinition,
 } from "@/lib/canvas-utils";
+import { resolveBuilderDefinition, hasBlocks } from "@/lib/strategy-builder-load";
 import { copyToClipboard, pasteFromClipboard } from "@/lib/clipboard-utils";
 import { trackStrategyView } from "@/lib/recent-views";
 import { generateExplanation } from "@/lib/explanation-generator";
@@ -309,15 +310,16 @@ function StrategyEditorPageInner({ params }: Props) {
   // --- Strategy alerts ---
   const alerts = useStrategyAlerts({ strategyId: id });
 
-  // --- Draft load: working copy always exists (ADR-0005), never falls back ---
+  // --- Draft load: working copy is the source of truth (ADR-0005), with a
+  //     blank-draft fallback to the latest frozen version (see
+  //     resolveBuilderDefinition). ---
   const { markHydrated } = draft;
   const loadDraftOrLatestVersion = useCallback(async () => {
-    const draftData = await StrategiesApiClient.getDraft(id);
-    const definition = draftData.definition_json as unknown as StrategyDefinition | null;
-    const { nodes: newNodes, edges: newEdges } =
-      definition && (definition as { blocks?: unknown[] }).blocks?.length
-        ? definitionToReactFlow(definition)
-        : definitionToReactFlow(createDefaultDefinition());
+    const definition = await resolveBuilderDefinition(id, StrategiesApiClient);
+
+    const { nodes: newNodes, edges: newEdges } = hasBlocks(definition)
+      ? definitionToReactFlow(definition as StrategyDefinition)
+      : definitionToReactFlow(createDefaultDefinition());
     contextDispatchRef.current?.({ type: "SET_NODES", payload: newNodes });
     contextDispatchRef.current?.({ type: "SET_EDGES", payload: newEdges });
     contextResetHistoryRef.current?.(newNodes, newEdges);
@@ -326,11 +328,25 @@ function StrategyEditorPageInner({ params }: Props) {
   }, [id, markHydrated]);
 
   // --- Initial data loading ---
+  // Strategy metadata controls the loading gate: while isLoading is true the
+  // CanvasStateProvider (and the bridge that wires contextDispatchRef) is not
+  // mounted yet.
   useEffect(() => {
     loadStrategy();
-    loadDraftOrLatestVersion();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Load the canvas only once the provider is mounted (isLoading === false and
+  // strategy resolved). Dispatching earlier would no-op against the not-yet-wired
+  // contextDispatchRef and leave a blank canvas — a race that surfaced as an
+  // intermittent empty canvas on first open. Keyed on id so a re-navigation to
+  // the same page re-hydrates the canvas.
+  const loadedCanvasForIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (isLoading || !strategy || loadedCanvasForIdRef.current === id) return;
+    loadedCanvasForIdRef.current = id;
+    loadDraftOrLatestVersion();
+  }, [isLoading, strategy, id, loadDraftOrLatestVersion]);
 
   useEffect(() => {
     if (strategy) trackStrategyView(id);
