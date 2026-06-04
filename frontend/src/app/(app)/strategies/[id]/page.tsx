@@ -19,6 +19,7 @@ import {
   definitionToReactFlow,
   createDefaultDefinition,
 } from "@/lib/canvas-utils";
+import { resolveBuilderDefinition, hasBlocks } from "@/lib/strategy-builder-load";
 import { copyToClipboard, pasteFromClipboard } from "@/lib/clipboard-utils";
 import { trackStrategyView } from "@/lib/recent-views";
 import { generateExplanation } from "@/lib/explanation-generator";
@@ -309,15 +310,16 @@ function StrategyEditorPageInner({ params }: Props) {
   // --- Strategy alerts ---
   const alerts = useStrategyAlerts({ strategyId: id });
 
-  // --- Draft load: working copy always exists (ADR-0005), never falls back ---
+  // --- Draft load: working copy is the source of truth (ADR-0005), with a
+  //     blank-draft fallback to the latest frozen version (see
+  //     resolveBuilderDefinition). ---
   const { markHydrated } = draft;
   const loadDraftOrLatestVersion = useCallback(async () => {
-    const draftData = await StrategiesApiClient.getDraft(id);
-    const definition = draftData.definition_json as unknown as StrategyDefinition | null;
-    const { nodes: newNodes, edges: newEdges } =
-      definition && (definition as { blocks?: unknown[] }).blocks?.length
-        ? definitionToReactFlow(definition)
-        : definitionToReactFlow(createDefaultDefinition());
+    const definition = await resolveBuilderDefinition(id, StrategiesApiClient);
+
+    const { nodes: newNodes, edges: newEdges } = hasBlocks(definition)
+      ? definitionToReactFlow(definition as StrategyDefinition)
+      : definitionToReactFlow(createDefaultDefinition());
     contextDispatchRef.current?.({ type: "SET_NODES", payload: newNodes });
     contextDispatchRef.current?.({ type: "SET_EDGES", payload: newEdges });
     contextResetHistoryRef.current?.(newNodes, newEdges);
