@@ -165,8 +165,35 @@ Blockbuilders should commit, deliberately and against the gravitational pull of 
 
 ---
 
-### Open questions to take into the next session
-1. Is execution-free a permanent principle or a temporary stance? (This single answer reshapes §6 and §7.)
-2. Do we have clean activation data today, or is that the first job?
-3. NL→strategy authoring: build now as the wedge, or harden the verification/education story first?
-4. Are public profiles/badges defensible against "does this help someone find out if their idea works," or are they roadmap drift?
+## Resolved decisions (2026-06-05 session)
+
+The four open questions were answered directly. They cohere into one position, so they're recorded here as commitments rather than musings.
+
+### 1. Execution-free? → **Hybrid / signals-only.** *(Custody stays at zero.)*
+Blockbuilders never holds money and never trades, but it **may emit alerts/signals and export to execution platforms** (3Commas, exchanges, TradingView webhooks) so the user acts elsewhere. This is *augmentation without custody* — one deliberate notch up the autonomy slider, not a switch.
+
+**What this reshapes:**
+- **§4 / §1 (differentiation):** The competitive doc already noted 3Commas could be *complementary, not competitive* ("Blockbuilders helps you figure out *what* to do; 3Commas helps you *do it*"). Signals-only makes that literal: Blockbuilders becomes the **idea-validation + signal layer** that hands off to execution. The slider now reads: *human drafts → AI assists → engine verifies → (optional) signal emitted → user executes elsewhere.*
+- **§6 (viability):** Opens a retention/revenue door (alerts, "your tested idea just triggered," export) **without** taking on fiduciary/regulatory liability or the march-of-nines reliability burden of autonomous trading. The honesty/trust thesis survives intact: *we tell you if you're right and ping you when it fires; we never touch your money.*
+- **Guardrail:** signals are still verification-gated. We only let a user wire up an alert for a strategy they've *backtested* — the signal inherits the trust of the engine. No "blind" alerts. The moment a signal feels like a tip rather than a verified trigger, the trust moat erodes.
+
+### 2. Activation data? → **Partial / untrusted.**
+Events exist but the signup → first-completed-backtest funnel is incomplete or untrusted. **First job: audit and clean the activation funnel** before relying on it. Every other bet in §9 is unfalsifiable until this number is trustworthy.
+
+### 3. NL→strategy authoring? → **Build the NL wedge now.**
+Prototype a single natural-language input that drafts a strategy graph + auto-backtests (reuse the wizard's existing auto-save + auto-backtest path), and A/B it against the blank canvas. Ship it as the **smallest verifiable increment** (one drafted strategy, shown on the canvas, accept/edit/reject) — the leash *is* the eval harness (§9).
+
+### 4. Profiles / badges / digests? → **Roadmap drift — prune/freeze.**
+They don't defend "does this help someone find out if their idea works." Stop investing; freeze or hide. **Important distinction:** this prunes *vanity social* — it does **not** kill §7's distribution play. The **shareable verified-result artifact** (the "Wordle result" pattern) is a different, surviving mechanism: it distributes the *honest result*, not a follower count.
+
+---
+
+## Sequenced next actions (derived from the decisions)
+
+1. **Audit & fix the activation funnel** (decision #2). Make signup → first-completed-backtest a trustworthy number. *Prerequisite for everything below — without it, the NL A/B in step 2 can't be read.*
+2. **Prototype the NL wedge** (decision #3): single NL box → drafted graph → auto-backtest, on a leash (accept/edit/reject). A/B vs. blank canvas; primary metric = activation lift from step 1.
+3. **Freeze profiles/badges/digests** (decision #4); redirect that surface area toward the wedge and the verification loop.
+4. **Spike the shareable verified-result artifact** (§7) — public, linkable, screenshot-ready honest result — as the organic distribution seed.
+5. **Design the signals-only handoff** (decision #1) as a *later* expand step, verification-gated: alert/export only for backtested strategies. Not now; on the roadmap behind activation + wedge proof.
+
+**Updated synthesis risk:** the original worry was "drifting toward execution." The signals-only decision converts that drift into a *bounded, deliberate* move — custody stays at zero, signals stay verification-gated. The residual risk is now narrower: letting signals degrade into un-verified tips. Guard the gate, not the gravity.
