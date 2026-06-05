@@ -1,0 +1,142 @@
+# Blockbuilders — Action Backlog
+
+**Status:** Derived backlog (companion to `BRAINSTORM.md`)
+**Date:** 2026-06-05
+**Source:** Strategy brainstorm + the four resolved decisions (signals-only / activation untrusted / build NL wedge now / prune profiles).
+**How to read each item:** **Problem** = the pain or gap this addresses. **Proposed deepening** = the concrete build. **Wins** = what we get if it lands.
+
+**Tags:** `P0/P1/P2` = priority · `S/M/L` = rough effort.
+**Critical path:** `#1 → #2 → (#4,#5,#6) → #7`. Everything in Groups C–G assumes the wedge (Group B) is proving out.
+
+---
+
+## A. Activation & Instrumentation — *resolved decision #2: activation data is partial/untrusted, fix it first*
+
+### 1. Rebuild the activation funnel event `[P0 · S]`
+- **Problem:** Signup → first-completed-backtest is the only moment the core promise is delivered, yet the funnel is incomplete/untrusted. Every strategic bet downstream is unfalsifiable until this number is reliable.
+- **Proposed deepening:** Define one canonical activation event in PostHog (`backtest_completed` attributed to a user's *first* run), deduped across retries and the wizard auto-backtest path. Backfill historically where possible; document the definition so it stops drifting.
+- **Wins:** A single trustworthy north-star number; unblocks the NL A/B (#7) and the retention split (#3); stops decisions being made on vibes.
+
+### 2. Time-to-first-backtest + drop-off cohorts `[P0 · S]`
+- **Problem:** We know *whether* people activate, not *where* they stall or *which entry path* works. Wizard, blank canvas, and template clone likely have very different drop-off.
+- **Proposed deepening:** Add a `time_to_first_backtest` measure and segment the funnel by entry path and by NL-vs-manual authoring. Surface the biggest drop-off step on a dashboard.
+- **Wins:** Pinpoints the friction Alex hits; tells us which authoring path to invest in; gives the NL wedge a baseline to beat.
+
+### 3. "What you just learned" retention A/B `[P0 · S]`
+- **Problem:** §2 of the brainstorm bets that *honest, felt narrative* drives return visits — but it's an assumption, not a measured fact. The card already exists behind a flag.
+- **Proposed deepening:** Split-test return-rate and second-backtest-rate for users who see the narrative card vs. those who don't, using the existing `showFirstRunExplanations` flag.
+- **Wins:** Validates (or kills) the severity-as-retention thesis cheaply; if positive, justifies investing in narrative/coaching (#12, #19).
+
+---
+
+## B. The NL Wedge — *resolved decision #3: build the "type your idea" wedge now*
+
+### 4. NL input → drafted strategy graph `[P0 · L]`
+- **Problem:** The block canvas forces users to *compile their intuition by hand* — a learning cliff. Alex arrives wanting his belief adjudicated, not wanting to assemble a graph. This is the Software-3.0 gap.
+- **Proposed deepening:** A single natural-language box ("buy ETH when RSI drops below 30") that drafts a valid block graph. Smallest verifiable increment: **one** strategy, drawn on the existing canvas, using existing block types only.
+- **Wins:** Collapses the distance between intuition and a testable strategy; the headline differentiator vs. Composer (which couples to money) and TradingView (which needs Pine Script).
+
+### 5. Accept / edit / reject diff UI on the canvas `[P0 · M]`
+- **Problem:** A black-box "here's your strategy, trust me" forfeits trust and verifiability — exactly what Karpathy warns against. The human must stay on the leash.
+- **Proposed deepening:** Render the AI's draft as a reviewable diff on the canvas (highlight added blocks/connections), with explicit Accept / Edit / Reject. Nothing auto-applies.
+- **Wins:** Keeps the human in the loop (the autonomy slider); produces a clean accept/reject signal for evals; turns the AI into an assistant, not an oracle.
+
+### 6. Wire NL output into the wizard auto-backtest path `[P0 · M]`
+- **Problem:** A draft that doesn't immediately get *tested* leaves the user at the un-resolved belief — the wedge promise ("find out if you're right") is unfulfilled.
+- **Proposed deepening:** Reuse the existing wizard auto-save + auto-backtest flow so NL → graph → completed backtest happens in one continuous motion, ending on the result/narrative.
+- **Wins:** Delivers the full magic moment in one flow; maximizes activation (#1); reuses proven plumbing rather than building new.
+
+### 7. A/B harness: NL box vs. blank canvas `[P1 · S]`
+- **Problem:** We're betting the wedge ("adjudicate my idea") beats the current authoring model — but it's the brainstorm's #1 untested assumption.
+- **Proposed deepening:** Randomize new users between NL-first and blank-canvas-first onboarding; primary metric is activation lift (from #1), secondary is 7-day return.
+- **Wins:** Turns the core strategic bet into an eval, not a story; a clear go/no-go on where to point the roadmap.
+
+### 8. Map NL output to existing validation rules `[P1 · M]`
+- **Problem:** An LLM draft can be subtly invalid (no entry signal, dangling connection), which would break the auto-backtest and poison the wedge's first impression.
+- **Proposed deepening:** Run every NL draft through the existing validation engine before rendering; if invalid, repair-or-explain rather than surfacing a broken graph. Reuse the plain-language error messages already in the product.
+- **Wins:** Guarantees drafts are always backtestable; reuses the trusted validation layer; no malformed first impressions.
+
+### 9. Cost-bound the inference `[P1 · S]`
+- **Problem:** Open-ended AI generation is a runaway cost center, and autonomous multi-step agent runs are expensive and hard to verify.
+- **Proposed deepening:** Constrain to small, single-shot drafts (one strategy per call), cache common intents, and cap per-user draft volume. The human verify step (#5) naturally bounds spend.
+- **Wins:** Predictable unit economics for the AI feature; the leash doubles as a cost ceiling; aligns with the augmentation-not-autonomy model.
+
+---
+
+## C. Verification / Trust Moat — *§4: trust in the number is the real defensibility*
+
+### 10. Public "How the backtest works" trust page `[P1 · S]`
+- **Problem:** "We explain it better" is a thin moat anyone can copy. The hard-to-copy asset is *belief in the number* — but trust is invisible unless we make it legible.
+- **Proposed deepening:** A transparent page documenting fee/slippage/spread defaults, OHLCV-only limitations, next-candle-open execution, and the no-look-ahead guarantee — in plain language, linked from every result.
+- **Wins:** Converts conservative engineering into a marketed differentiator; the thing Composer (brokerage-coupled) and TradingView (results-for-experts) structurally forfeit.
+
+### 11. Golden-backtest regression suite `[P1 · M]`
+- **Problem:** Trust compounds only if the number never silently drifts. A subtle engine regression would erode the one asset that's hard to rebuild.
+- **Proposed deepening:** A suite of known-good "golden" strategies + expected metrics, run in CI, that fails the build on any deviation. Include explicit look-ahead-bias tests.
+- **Wins:** Protects the moat mechanically; lets us refactor the engine without fear; underwrites the trust page (#10) with real guarantees.
+
+### 12. Sharpen the narrative into *felt* severity `[P1 · S]`
+- **Problem:** A metric ("-12%") is information; a felt cost ("this conviction would have lost you $1,240 vs. just holding") is a painkiller. The current narrative is close but under-leveraged.
+- **Proposed deepening:** Extend the narrative/"what you just learned" generation to express results in dollar terms and as a buy-and-hold delta, colored, framed as "what this idea would have cost/made you."
+- **Wins:** Turns every result into emotional resolution of a real belief; powers the retention A/B (#3) and the shareable artifact (#13).
+
+---
+
+## D. Distribution — *§7: organic only; incumbents own paid channels*
+
+### 13. Shareable verified-result artifact `[P1 · M]`
+- **Problem:** Education/confidence products have weak built-in virality, and we just pruned vanity social (#18). We need a distribution unit that fits the philosophy.
+- **Proposed deepening:** A public, linkable, screenshot/OG-image-ready page for a single honest result ("I tested 'buy every RSI<30 dip' on ETH — here's what it did"). The "Wordle result" pattern applied to trading beliefs.
+- **Wins:** Self-seeding top-of-funnel; distributes *the honest result*, not a follower count; inherently humbling/credible, which fits the trust brand.
+
+### 14. `llms.txt` + clean docs for agent-legibility `[P2 · S]`
+- **Problem:** The new consumers of products are also LLMs (Software 3.0). When someone asks an assistant "how do I backtest a crypto idea without code," we're invisible if we're not legible to it.
+- **Proposed deepening:** Publish an `llms.txt` and clean, structured docs describing what Blockbuilders does and how. Lays groundwork for a future MCP-style "test this idea" interface other AIs can call.
+- **Wins:** A distribution channel incumbents aren't positioned for; positions us as *the verification backend* general assistants delegate to.
+
+### 15. Literacy track from glossary + templates `[P2 · L]`
+- **Problem:** §2's episodic-engagement churn — the pain fades between losses, so a spike-only tool bleeds users. Karpathy's Eureka bet says durable value is *ramping a human to competence*.
+- **Proposed deepening:** A guided "learn strategy literacy by testing real ideas" track built on existing assets (metrics glossary, "what this teaches," contextual tooltips, templates). Progress from intuition → understanding drawdown → a tested playbook.
+- **Wins:** Retention between pain spikes; SEO/content surface; activates the deferred "educator" persona; teachers share what teaches.
+
+---
+
+## E. Signals-Only Handoff — *resolved decision #1: augmentation without custody; verification-gated; later*
+
+### 16. Alert on a backtested strategy `[P2 · M]`
+- **Problem:** Once a user trusts a strategy, the build→verify loop ends and they leave — there's no reason to return until the next idea. And they still execute on gut elsewhere.
+- **Proposed deepening:** Let users enable "ping me when this triggers" — **only** for a strategy that has a completed backtest, so the alert inherits the engine's trust. Reuse the existing scheduled-re-backtest + notification plumbing.
+- **Wins:** A recurring reason to return without taking custody; extends one notch up the autonomy slider while preserving "we never touch your money."
+
+### 17. Export to execution platforms `[P2 · M]`
+- **Problem:** Users who want to act have to manually rebuild their tested idea in 3Commas/TradingView — friction that pushes them to abandon the verified version and trade on vibes.
+- **Proposed deepening:** Export a backtested strategy as a TradingView webhook alert / 3Commas-compatible config / CSV. The hand-off, never the trade.
+- **Wins:** Makes 3Commas etc. *complementary, not competitive* (as the competitive analysis predicted); completes the "validate here, execute there" loop without custody/regulatory exposure.
+
+---
+
+## F. Prune & Focus — *resolved decision #4: profiles/badges/digests are roadmap drift*
+
+### 18. Freeze/hide profiles, badges, digests `[P1 · S]`
+- **Problem:** These don't defend the core sentence ("does this help someone find out if their idea works?"). They consume surface area and maintenance for vanity-metric value.
+- **Proposed deepening:** Feature-flag them off or hide entry points; freeze further investment. **Keep only** the shareable verified-result artifact (#13) — a distinct, surviving distribution mechanism, not social vanity.
+- **Wins:** Reclaims focus and surface area for the wedge and trust loop; reduces cognitive load on Alex; sharpens the product story.
+
+---
+
+## G. Retention Loop
+
+### 19. Polish the tweak-and-re-test loop `[P2 · M]`
+- **Problem:** The build→backtest→inspect→tweak loop is the heart of iteration, but if iteration doesn't *teach*, users churn after one disappointing result instead of improving.
+- **Proposed deepening:** Side-by-side run comparison plus plain-English "why your idea underperformed" coaching (e.g., "your stop was too tight — it exited before the recovery"). Deterministic, derived from existing metrics/trades.
+- **Wins:** Converts a failed test into a learning step (the Eureka loop); deepens engagement; feeds the literacy track (#15).
+
+### 20. Pain-spike re-engagement `[P2 · M]`
+- **Problem:** §8/§2 — engagement is exogenously driven by crypto volatility; the pain (and the urge to act) spikes on drawdowns, exactly when rational testing is most valuable and least practiced.
+- **Proposed deepening:** A trigger on significant market drops that nudges lapsed users: "The market just dropped X% — test your thesis before you react." Respect notification preferences; verification-gated framing, never a tip.
+- **Wins:** Meets the user at peak pain with the rational alternative to panic; counters episodic churn; reinforces the "lab, not casino" brand.
+
+---
+
+## Suggested first sprint
+`#1` (funnel) → `#2` (cohorts) → `#3` (narrative A/B) in parallel as the instrumentation foundation, then `#4 → #5 → #6` as the wedge slice, with `#7` switched on the moment #1 is trustworthy. Hold Groups E–G until the wedge shows activation lift — right moves, wrong time if pulled forward.
