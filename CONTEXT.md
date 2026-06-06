@@ -135,7 +135,14 @@ These name the seams around external price data.
   engine's trust: it can only watch logic that was actually
   backtested. Editing the working copy does not change what a live
   Trigger watches; re-verifying produces a new version the user must
-  deliberately re-bind. Not yet built (see `docs/BRAINSTORM.md`
-  decision #1). _Avoid_: signal (reserved for the internal port/block
+  deliberately re-bind. Evaluated on **closed OHLCV candles of the
+  same timeframe the backtest used**, never on intrabar/spot price —
+  so its firing semantics match the engine's candle-close model
+  exactly (an intrabar condition can trip then un-trip by close,
+  something the backtest never saw). Version-binding makes "inherits
+  engine trust" true at the logic level; candle-close evaluation
+  makes it true at the data level. Not yet built (see
+  `docs/BRAINSTORM.md` decision #1). _Avoid_: signal (reserved for
+  the internal port/block
   concept), alert (reserve for generic system notifications), webhook
   (an implementation detail).
