@@ -31,6 +31,16 @@ These come from `PRODUCT.md` and describe what the product *is*.
   public profile (`Strategy.is_published`). A social/showcase
   action, unrelated to versioning or backtests. _Avoid_: using
   "publish" for freezing a version or for autosave.
+- **Shared backtest** — a public, link-only view of a single
+  backtest *result*, reached by an unguessable token
+  (`/share/backtests/{token}`). Three defining properties:
+  *token-gated* (not on a profile, not tied to a handle),
+  *result-only* (shows metrics + equity curve, **never** the
+  strategy graph), and *verification-gated* (only a real Backtest
+  can produce one). The surviving organic-distribution artifact
+  (the "Wordle result" pattern) — distinct from Publish, which it
+  outlives when vanity-social surfaces are frozen. _Avoid_: publish
+  (that is profile visibility), public profile, share link.
 - **Archive (a strategy)** — hide a strategy from the active list
   and free a plan slot (`Strategy.is_archived`). Frozen versions
   and backtest history are preserved, not deleted. The only archive
