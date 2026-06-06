@@ -122,11 +122,15 @@ These name the seams around external price data.
   `signal`, …). Currently implicit; candidate for a small shared
   module.
 - **Trigger** — an outbound notification fired at the user (or an
-  external execution platform) when a *backtested* strategy's
-  conditions are met on live data. The "signals-only / no custody"
-  expand step: Blockbuilders never trades, it only fires a Trigger
-  the user acts on elsewhere. Always verification-gated — a Trigger
-  can only exist for a strategy that has been backtested. Not yet
-  built (see `docs/BRAINSTORM.md` decision #1). _Avoid_: signal
-  (reserved for the internal port/block concept), alert (reserve for
-  generic system notifications), webhook (an implementation detail).
+  external execution platform) when a strategy's conditions are met
+  on live data. The "signals-only / no custody" expand step:
+  Blockbuilders never trades, it only fires a Trigger the user acts
+  on elsewhere. **Bound to a specific frozen Strategy version, never
+  to the working copy** — this is what lets a Trigger inherit the
+  engine's trust: it can only watch logic that was actually
+  backtested. Editing the working copy does not change what a live
+  Trigger watches; re-verifying produces a new version the user must
+  deliberately re-bind. Not yet built (see `docs/BRAINSTORM.md`
+  decision #1). _Avoid_: signal (reserved for the internal port/block
+  concept), alert (reserve for generic system notifications), webhook
+  (an implementation detail).
