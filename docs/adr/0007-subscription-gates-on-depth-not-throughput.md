@@ -5,7 +5,7 @@
 - **Related**: [ADR-0006](./0006-nl-wedge-drafts-new-strategies.md) (NL
   wedge auto-backtests every draft), [ADR-0002](./0002-single-writer-price-cache.md)
   (price cache), [ADR-0005](./0005-working-copy-separate-from-versions.md)
-  (version dedup); [CONTEXT.md](../../CONTEXT.md) — Backtest, Trigger,
+  (version dedup); [CONTEXT.md](../../CONTEXT.md) — Backtest, Alert,
   Shared backtest; `docs/BRAINSTORM.md` §6 + decisions #1/#3
 
 ## Context
@@ -48,12 +48,14 @@ verification *depth*, never on idea *throughput*.**
 - **`max_backtests_per_day` is demoted** from primary gate to a coarse
   anti-abuse ceiling (or dropped). It is no longer a monetization
   lever.
-- **Triggers (decision #1) are an expansion lever inside the
+- **Alerts (decision #1) are an expansion lever inside the
   subscription**, not a separate funnel business — one notch up the
   autonomy slider, sold as a Premium feature (concurrent live
-  Triggers, export). They double as the §2 churn antidote: a Trigger
+  Alerts, export). They double as the §2 churn antidote: an Alert
   that pings a dormant user when their tested idea fires is the
   between-spikes re-engagement hook that episodic pain otherwise lacks.
+  (The Alert system already ships — see decision #1; the lever is
+  hardening + gating it, not building it.)
 
 Cost is amortized by existing seams: ADR-0002's single-writer price
 cache shares market-data fetch across users, and ADR-0005's

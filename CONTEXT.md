@@ -126,23 +126,30 @@ These name the seams around external price data.
 - **TradeExit vocabulary** — the enum of exit reasons (`tp`, `sl`,
   `signal`, …). Currently implicit; candidate for a small shared
   module.
-- **Trigger** — an outbound notification fired at the user (or an
-  external execution platform) when a strategy's conditions are met
-  on live data. The "signals-only / no custody" expand step:
-  Blockbuilders never trades, it only fires a Trigger the user acts
-  on elsewhere. **Bound to a specific frozen Strategy version, never
-  to the working copy** — this is what lets a Trigger inherit the
-  engine's trust: it can only watch logic that was actually
-  backtested. Editing the working copy does not change what a live
-  Trigger watches; re-verifying produces a new version the user must
-  deliberately re-bind. Evaluated on **closed OHLCV candles of the
-  same timeframe the backtest used**, never on intrabar/spot price —
-  so its firing semantics match the engine's candle-close model
-  exactly (an intrabar condition can trip then un-trip by close,
-  something the backtest never saw). Version-binding makes "inherits
-  engine trust" true at the logic level; candle-close evaluation
-  makes it true at the data level. Not yet built (see
-  `docs/BRAINSTORM.md` decision #1). _Avoid_: signal (reserved for
-  the internal port/block
-  concept), alert (reserve for generic system notifications), webhook
-  (an implementation detail).
+- **Alert** — a user-configured rule that fires a **Notification**
+  (and optionally a webhook export to an execution platform) when a
+  condition is met. The shipped "signals-only / no custody" surface
+  (`alert_rules` table, `AlertsApiClient`): Blockbuilders never
+  trades, an Alert only pings the user / hands off elsewhere. Two
+  subtypes: a **performance alert** (bound to a strategy, evaluated
+  on its scheduled auto re-backtest) and a **price alert** (a bare
+  asset+threshold tripwire on spot price, with optional webhook).
+  **Target rules the shipped code does not yet meet:** a performance
+  alert should be *verification-gated* (creatable only for a
+  backtested strategy) and *bound to the frozen Strategy version*
+  that was backtested — not the mutable working copy — and should
+  fire on **closed candles of the backtested timeframe**, so it
+  inherits the engine's trust at both the logic and data levels.
+  Editing the working copy must not change what a live Alert watches.
+  The bare **price alert** does *not* inherit engine trust (no
+  strategy, spot-evaluated) — it is the "blind alert" the brainstorm
+  guardrail warns against; treat it as a separate un-verified product
+  or gate it. _Avoid_: signal (reserved for the internal port/block
+  concept), trigger (use "Alert" for the rule, "fires" for the
+  event), notification (that is the delivered message, not the rule),
+  webhook (one delivery channel, not the concept).
+- **Notification** — a delivered message in the user's inbox
+  (`notify_in_app`) or email (`notify_email`), e.g. a finished
+  backtest or a fired Alert. The *message*, distinct from the
+  **Alert** *rule* that produced it. _Avoid_: alert (that is the
+  rule), signal.
