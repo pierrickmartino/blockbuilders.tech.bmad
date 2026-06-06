@@ -111,3 +111,12 @@ These name the seams around external price data.
 - **TradeExit vocabulary** — the enum of exit reasons (`tp`, `sl`,
   `signal`, …). Currently implicit; candidate for a small shared
   module.
+- **Trigger** — an outbound notification fired at the user (or an
+  external execution platform) when a *backtested* strategy's
+  conditions are met on live data. The "signals-only / no custody"
+  expand step: Blockbuilders never trades, it only fires a Trigger
+  the user acts on elsewhere. Always verification-gated — a Trigger
+  can only exist for a strategy that has been backtested. Not yet
+  built (see `docs/BRAINSTORM.md` decision #1). _Avoid_: signal
+  (reserved for the internal port/block concept), alert (reserve for
+  generic system notifications), webhook (an implementation detail).
