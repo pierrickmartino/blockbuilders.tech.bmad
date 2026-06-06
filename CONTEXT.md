@@ -116,8 +116,13 @@ These name the seams around external price data.
 
 - **Strategy validator** — semantic checker for a whole strategy
   (connectivity, required signals, duplicate risk blocks).
-  Currently backend-only (`services/strategy_validation.py`);
-  candidate for promotion to a shared seam.
+  Currently backend-only (`services/strategy_validation.py`).
+  **Promotion committed** (not yet built): the NL wedge
+  (`docs/BRAINSTORM.md` decision #3) makes it a generation-time
+  gate — every LLM-drafted graph must pass the validator (with a
+  repair pass on failure) *before* the auto-backtest, so a
+  malformed draft never reaches the user. This moves it from
+  optional check toward load-bearing seam.
 - **TradeExit vocabulary** — the enum of exit reasons (`tp`, `sl`,
   `signal`, …). Currently implicit; candidate for a small shared
   module.

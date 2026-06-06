@@ -188,6 +188,10 @@ Events exist but the signup → first-completed-backtest funnel is incomplete or
 ### 3. NL→strategy authoring? → **Build the NL wedge now.**
 Prototype a single natural-language input that drafts a strategy graph + auto-backtests (reuse the wizard's existing auto-save + auto-backtest path), and A/B it against the blank canvas. Ship it as the **smallest verifiable increment** (one drafted strategy, shown on the canvas, accept/edit/reject) — the leash *is* the eval harness (§9).
 
+> **Data model pinned (2026-06-06 grilling session):** the wedge creates **new strategies**, it does not edit the current canvas — see ADR-0006. Accept keeps the strategy and mints a Shared backtest; edit drops it onto the canvas under normal autosave; reject **hard-deletes** the strategy + working copy + auto-frozen version + backtest run (no plan slot consumed).
+>
+> **Validity dependency (same session):** an LLM drafting an *open* graph (unlike the wizard's four safe templates) can emit invalid blocks/ports/edges, which would make the auto-backtest fail and turn the magic moment into an error screen. So the wedge **depends on promoting the Strategy validator** (`services/strategy_validation.py`) into a **generation-time gate**: draft → validate → repair-or-reject → *only then* auto-backtest. The validator is the leash's safety catch and the eval harness. See `CONTEXT.md` → **Strategy validator**.
+
 ### 4. Profiles / badges / digests? → **Roadmap drift — prune/freeze.**
 They don't defend "does this help someone find out if their idea works." Stop investing; freeze or hide. **Important distinction:** this prunes *vanity social* — it does **not** kill §7's distribution play. The **shareable verified-result artifact** (the "Wordle result" pattern) is a different, surviving mechanism: it distributes the *honest result*, not a follower count.
 
