@@ -102,6 +102,37 @@ These name the seams around external price data.
   subscription relationship only, not the code. _Avoid_: CoinDesk
   (in code), vendor.
 
+## Strategy & roadmap concepts
+
+These name the strategic bets the roadmap is built on. Use them
+exactly so the roadmap, brainstorm, and future work share one
+vocabulary. See `docs/ROADMAP.md` and `docs/BRAINSTORM.md` for the
+reasoning; ADR-0006 for the execution-free decision.
+
+- **Activation** — the share of signups who reach a *first completed
+  backtest*. The north-star metric: the only moment the core promise
+  is delivered. _Avoid_: "onboarding done", "conversion", "signup
+  rate".
+- **Idea check** — the wedge: a user types a trading idea in plain
+  English, the system drafts an auditable strategy graph on the
+  canvas (one draft, accept/edit/reject), and a trusted backtest
+  returns an honest verdict. Generation→verification, human on the
+  leash. _Avoid_: "NL wedge", "type your idea", "idea adjudication",
+  "resolve a belief".
+- **Verified-result artifact** — a public, linkable, screenshot-ready
+  page for a single honest backtest result. The organic distribution
+  unit; distributes the result, not a follower count. _Avoid_:
+  "Wordle result", "share card", "social post".
+- **Signals-only handoff** — the one permitted notch up the autonomy
+  slider: a verification-gated alert or export for a *backtested*
+  strategy. Augmentation without custody — we hand off, never trade.
+  _Avoid_: "execution", "automation", "live trading".
+- **Verification engine** — the backtest engine *as the moat*:
+  trusted, conservative, transparent about fees/slippage/limitations,
+  free of look-ahead bias. When the point is defensibility ("people
+  believe the number"), say verification engine; reserve plain
+  "Engine"/"Backtest" for the runtime components above.
+
 ## Adjacent terms (not yet load-bearing, on the radar)
 
 - **Strategy validator** — semantic checker for a whole strategy
