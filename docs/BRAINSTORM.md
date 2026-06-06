@@ -61,6 +61,14 @@ The throughline: **Blockbuilders should be the Iron Man suit of crypto strategy 
 - *The "aha" retention split:* do users who see the "What you just learned" narrative return more than those who don't?
 - *Wedge signal:* of returning users, are they iterating on strategies (confidence wedge) or asking "can I run this live" (execution wedge)? That single question routes the entire roadmap.
 
+> **Decision rule pinned (2026-06-06 grilling session).** The split routes between **two custody-free augmentation investments — never between augmentation and custody:**
+> - **Iterators dominate** → invest in the **iteration + literacy** loop (the §7.3 Eureka/retention bet): re-test ergonomics, "why your idea failed," strategy literacy.
+> - **Executors dominate** → invest in **verified Alerts + export** (the signals-only handoff, decision #1) — more verification-gated hand-off to where the user already trades.
+>
+> **Zero custody is a fixed constraint, not a variable this metric can flip.** The naïve rule "executors are winning → build execution" is forbidden: it would weaponise the dashboard to justify exactly the drift decision #1 and ADR-0007 exist to prevent. Executor demand validates the **Alert** expansion, not custody.
+>
+> *Measurement integrity:* both signals already exist in code — `results_viewed` / repeat `backtest_started` (iterator) and `AlertRule` create/activate (executor). But until Alerts are hardened (version-bound + verification-gated, action #5), "executor demand" is contaminated by the **blind price→webhook tripwire** — a price ping, not verified-strategy execution. Harden first, then the executor signal means what this split assumes.
+
 If we can't yet answer activation cleanly, that's the first instrumentation job — demand evidence is currently *latent in our own logs.*
 
 ---
@@ -155,7 +163,7 @@ This is where the Karpathy lens is most operational — he is, above all, an eva
 | **Severity/retention:** honest narrative drives return | Already have the "what you just learned" flag — split-test return rate with/without | No retention lift from the narrative |
 | **Differentiation:** trust is the moat | Survey + behavior: do users cite "I believe the number" as why they stay? Do they re-run others' shared results to check them? | Users treat the number as disposable; no verification behavior |
 | **Distribution:** verified results are shareable | Ship a public, linkable result artifact; measure share rate and referral signups | Nobody shares; no referral loop |
-| **Viability:** confidence is a subscription, not a funnel | Cohort renewal by usage pattern (iterators vs. would-be-executors) | Renewal concentrates only among users asking to go live |
+| **Viability:** confidence is a subscription, not a funnel | Cohort renewal by usage pattern (iterators vs. would-be-executors) — see the §3 decision rule: the split allocates between two custody-free bets and can never mandate execution | Renewal concentrates only among users asking to go live |
 
 **Karpathy's "keep the AI on a leash" as a testability principle for any AI feature we add:** ship the NL→strategy authoring in the *smallest verifiable increment* — draft *one* strategy the user immediately sees on the canvas and can accept/edit/reject — never a black-box "here are 10 strategies, trust me." This is simultaneously the *safest UX*, the *cheapest to evaluate* (one clear accept/reject signal per generation), and the *cheapest to run* (bounded inference). The leash is also the eval harness.
 
