@@ -107,6 +107,8 @@ This is the **generation–verification loop** as a wedge: the user *generates* 
 
 **Honest viability question to keep on the table:** is "confidence/education for retail crypto" a *subscription* business or a *funnel* business? The gravitational pull (every competitor felt it) is toward execution, where the money and retention are. Staying execution-free is a *philosophical* choice with a *revenue* cost. That trade-off should be made deliberately, with eyes open — not drifted into.
 
+> **Resolved (2026-06-06 grilling session) → ADR-0007.** Subscription is the primary engine (zero custody leaves no fat downstream basin to funnel into). It **gates on verification *depth* (`max_history_days`), never on idea *throughput*** — because the NL wedge auto-backtests every draft (ADR-0006), so gating `max_backtests_per_day` would throttle the magic moment. The wedge runs a cheap short-window backtest unthrottled; deep multi-cycle verification is the upsell; `max_backtests_per_day` is demoted to an anti-abuse ceiling. **Triggers** become an expansion lever *and* the §2 churn antidote. Cost is amortized by ADR-0002 (price cache) + ADR-0005 (version dedup). Consequence: the backtests/day gate must be reworked *before* the NL wedge ships.
+
 ---
 
 ## 7. Distribution path
