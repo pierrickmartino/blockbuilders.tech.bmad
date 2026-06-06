@@ -182,6 +182,8 @@ Blockbuilders never holds money and never trades, but it **may emit alerts/signa
 ### 2. Activation data? → **Partial / untrusted.**
 Events exist but the signup → first-completed-backtest funnel is incomplete or untrusted. **First job: audit and clean the activation funnel** before relying on it. Every other bet in §9 is unfalsifiable until this number is trustworthy.
 
+> **Definition pinned (2026-06-06 grilling session):** "completed backtest" means a **client-side "result viewed" event** — the human saw the verdict (equity curve + narrative) — *not* the backend `status == "completed"` row. Backend status can fire while the user has navigated away or on a 0-trade degenerate run; §9 defines activation as the moment value is *delivered to the human*, which is the verification moment. The funnel audit must standardize one "result viewed" event across all three entry points (wizard, NL wedge, manual run); today the wizard fires `auto_backtest_completed` off the *job*, which is the wrong meaning. A **rejected** NL-wedge draft still counts as activated (the user witnessed an honest verdict); because activation is an analytics event, it survives the ADR-0006 hard-delete. "Kept / iterated" belongs to the §9 iterators-vs-executors split, not to activation.
+
 ### 3. NL→strategy authoring? → **Build the NL wedge now.**
 Prototype a single natural-language input that drafts a strategy graph + auto-backtests (reuse the wizard's existing auto-save + auto-backtest path), and A/B it against the blank canvas. Ship it as the **smallest verifiable increment** (one drafted strategy, shown on the canvas, accept/edit/reject) — the leash *is* the eval harness (§9).
 
