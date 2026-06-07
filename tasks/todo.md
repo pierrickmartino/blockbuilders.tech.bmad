@@ -1,5 +1,29 @@
 # Tasks — in flight
 
+## Persist analytics consent server-side (Issue #533, implemented)
+
+Backend
+- [x] `User.analytics_consent: Optional[str]` (nullable `String(10)`, default `None`) in `app/models/user.py`
+- [x] Alembic migration `038_add_analytics_consent.py` (adds nullable column, no backfill — `null` = undecided)
+- [x] `AnalyticsConsentUpdateRequest` schema (`consent: Literal["accepted", "declined"]`) rejects any other value with 422
+- [x] `PATCH /users/me/analytics-consent` (`app/api/users.py`) — auth-required, persists `analytics_consent`, returns `MessageResponse`
+- [x] Tests in `tests/test_api_auth.py::TestAnalyticsConsent` — persists accepted/declined, requires auth (401), rejects invalid value (422)
+
+Frontend
+- [x] `AnalyticsApiClient.updateConsent()` thin client (`lib/api/analytics-client.ts`) wrapping `PATCH /users/me/analytics-consent`
+- [x] `setConsent()` (`lib/analytics.ts`) calls the endpoint when `localStorage.token` is present (no-op when anonymous); fire-and-forget, never throws
+- [x] Tests: `lib/api/__tests__/analytics-client.test.ts`, `lib/__tests__/analytics.test.ts` (authenticated accept/decline call endpoint, anonymous is a no-op)
+
+Verification
+- [x] RED→GREEN for both backend (`pytest tests/test_api_auth.py -k AnalyticsConsent` → 4 passed) and frontend (`vitest run` → 5 passed) following tracer-bullet TDD
+- [x] `pytest tests/test_api_auth.py tests/api/` → 101 passed
+- [x] `npx tsc --noEmit` → clean; `npx eslint` on changed files → clean
+- [x] Migration revision chain resolves to head `038` (verified via `ScriptDirectory`); full `alembic upgrade head` against a live Postgres not run here (no DB in this environment — pre-existing migration 002 is also incompatible with SQLite)
+
+Risks / gaps
+- `alembic upgrade head` should be re-verified against the real Postgres dev DB before/at deploy (this sandbox has no Postgres instance)
+- Wiring `posthog.identify`/`reset` and the `activation` service are separate slices of #531 — out of scope for #533
+
 ## Binance spot 400 fix — `symbols` array whitespace (Issue #490, implemented)
 
 Backend

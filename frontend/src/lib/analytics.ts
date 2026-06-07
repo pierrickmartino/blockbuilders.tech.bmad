@@ -1,4 +1,5 @@
 import posthog from "posthog-js";
+import { AnalyticsApiClient } from "@/lib/api/analytics-client";
 
 const CONSENT_KEY = "bb.analytics.consent";
 export const ANALYTICS_CONSENT_CHANGED_EVENT = "bb.analytics.consent.changed";
@@ -19,11 +20,22 @@ export function getConsent(): ConsentStatus {
   }
 }
 
+/** Persist the device's consent decision server-side when the user is authenticated. */
+function syncConsentToServer(consent: "accepted" | "declined"): void {
+  if (typeof window === "undefined") return;
+  if (!localStorage.getItem("token")) return;
+
+  AnalyticsApiClient.updateConsent(consent).catch(() => {
+    // Best-effort: localStorage remains the source of truth for this device.
+  });
+}
+
 /** Store consent and initialize/shutdown PostHog accordingly. */
 export function setConsent(accepted: boolean): void {
   if (typeof window === "undefined") return;
+  const consent: "accepted" | "declined" = accepted ? "accepted" : "declined";
   try {
-    localStorage.setItem(CONSENT_KEY, accepted ? "accepted" : "declined");
+    localStorage.setItem(CONSENT_KEY, consent);
   } catch {
     // Storage unavailable
   }
@@ -32,6 +44,8 @@ export function setConsent(accepted: boolean): void {
   } else {
     shutdownPostHog();
   }
+
+  syncConsentToServer(consent);
 
   window.dispatchEvent(new Event(ANALYTICS_CONSENT_CHANGED_EVENT));
 }
