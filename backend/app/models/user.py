@@ -111,3 +111,9 @@ class User(SQLModel, table=True):
 
     # Onboarding
     has_completed_onboarding: bool = Field(default=False)
+
+    # Analytics consent (per-device decision, last-writer-wins; null = undecided)
+    analytics_consent: Optional[str] = Field(
+        default=None,
+        sa_column=Column(String(10), nullable=True),
+    )
