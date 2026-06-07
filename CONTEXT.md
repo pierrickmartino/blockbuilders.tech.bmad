@@ -31,6 +31,16 @@ These come from `PRODUCT.md` and describe what the product *is*.
   public profile (`Strategy.is_published`). A social/showcase
   action, unrelated to versioning or backtests. _Avoid_: using
   "publish" for freezing a version or for autosave.
+- **Shared backtest** — a public, link-only view of a single
+  backtest *result*, reached by an unguessable token
+  (`/share/backtests/{token}`). Three defining properties:
+  *token-gated* (not on a profile, not tied to a handle),
+  *result-only* (shows metrics + equity curve, **never** the
+  strategy graph), and *verification-gated* (only a real Backtest
+  can produce one). The surviving organic-distribution artifact
+  (the "Wordle result" pattern) — distinct from Publish, which it
+  outlives when vanity-social surfaces are frozen. _Avoid_: publish
+  (that is profile visibility), public profile, share link.
 - **Archive (a strategy)** — hide a strategy from the active list
   and free a plan slot (`Strategy.is_archived`). Frozen versions
   and backtest history are preserved, not deleted. The only archive
@@ -106,8 +116,40 @@ These name the seams around external price data.
 
 - **Strategy validator** — semantic checker for a whole strategy
   (connectivity, required signals, duplicate risk blocks).
-  Currently backend-only (`services/strategy_validation.py`);
-  candidate for promotion to a shared seam.
+  Currently backend-only (`services/strategy_validation.py`).
+  **Promotion committed** (not yet built): the NL wedge
+  (`docs/BRAINSTORM.md` decision #3) makes it a generation-time
+  gate — every LLM-drafted graph must pass the validator (with a
+  repair pass on failure) *before* the auto-backtest, so a
+  malformed draft never reaches the user. This moves it from
+  optional check toward load-bearing seam.
 - **TradeExit vocabulary** — the enum of exit reasons (`tp`, `sl`,
   `signal`, …). Currently implicit; candidate for a small shared
   module.
+- **Alert** — a user-configured rule that fires a **Notification**
+  (and optionally a webhook export to an execution platform) when a
+  condition is met. The shipped "signals-only / no custody" surface
+  (`alert_rules` table, `AlertsApiClient`): Blockbuilders never
+  trades, an Alert only pings the user / hands off elsewhere. Two
+  subtypes: a **performance alert** (bound to a strategy, evaluated
+  on its scheduled auto re-backtest) and a **price alert** (a bare
+  asset+threshold tripwire on spot price, with optional webhook).
+  **Target rules the shipped code does not yet meet:** a performance
+  alert should be *verification-gated* (creatable only for a
+  backtested strategy) and *bound to the frozen Strategy version*
+  that was backtested — not the mutable working copy — and should
+  fire on **closed candles of the backtested timeframe**, so it
+  inherits the engine's trust at both the logic and data levels.
+  Editing the working copy must not change what a live Alert watches.
+  The bare **price alert** does *not* inherit engine trust (no
+  strategy, spot-evaluated) — it is the "blind alert" the brainstorm
+  guardrail warns against; treat it as a separate un-verified product
+  or gate it. _Avoid_: signal (reserved for the internal port/block
+  concept), trigger (use "Alert" for the rule, "fires" for the
+  event), notification (that is the delivered message, not the rule),
+  webhook (one delivery channel, not the concept).
+- **Notification** — a delivered message in the user's inbox
+  (`notify_in_app`) or email (`notify_email`), e.g. a finished
+  backtest or a fired Alert. The *message*, distinct from the
+  **Alert** *rule* that produced it. _Avoid_: alert (that is the
+  rule), signal.
