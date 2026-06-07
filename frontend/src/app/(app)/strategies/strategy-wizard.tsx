@@ -218,6 +218,10 @@ export function StrategyWizard({ isFirstRun, onClose, onComplete, onSkipToCanvas
         const detail = await BacktestsApiClient.get(res.run_id);
         if (detail.status === "completed") {
           updateBacktestPhase("done");
+          trackEvent("auto_backtest_completed", {
+            strategy_id: strategy.id,
+            run_id: res.run_id,
+          }, user?.id);
           // Mark onboarding complete (non-critical)
           try {
             await UsersApiClient.completeOnboarding();

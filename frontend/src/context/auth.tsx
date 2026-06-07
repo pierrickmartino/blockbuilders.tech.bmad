@@ -13,7 +13,7 @@ import { ApiError } from "@/lib/api";
 import { AuthApiClient } from "@/lib/api/auth-client";
 import { UsersApiClient } from "@/lib/api/users-client";
 import { User, Usage, ProfileResponse } from "@/types/auth";
-import { trackEvent, identifyUser, resetIdentity } from "@/lib/analytics";
+import { trackEvent } from "@/lib/analytics";
 
 interface AuthContextType {
   user: User | null;
@@ -88,7 +88,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("token", response.token);
     setUser(response.user);
     refreshUsage();
-    identifyUser(response.user.id);
     trackEvent("login_completed", { method: "email" }, response.user.id);
   };
 
@@ -98,7 +97,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("token", response.token);
     setUser(response.user);
     refreshUsage();
-    identifyUser(response.user.id);
     trackEvent("signup_completed", { method: "email" }, response.user.id);
   };
 
@@ -107,7 +105,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     queryClient.clear();
     setUser(null);
     setUsage(null);
-    resetIdentity();
   };
 
   const requestPasswordReset = async (email: string): Promise<string> => {
@@ -137,7 +134,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("token", response.token);
     setUser(response.user);
     refreshUsage();
-    identifyUser(response.user.id);
     trackEvent("login_completed", { method: `oauth_${provider}` }, response.user.id);
   };
 
