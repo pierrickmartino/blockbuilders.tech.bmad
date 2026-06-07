@@ -117,3 +117,8 @@ class User(SQLModel, table=True):
         default=None,
         sa_column=Column(String(10), nullable=True),
     )
+
+    # Activation anchor: timestamp of the user's first completed backtest.
+    # Distinct from `has_completed_onboarding` (a UI summary-card flag) — see
+    # CONTEXT.md and ADR-0007. Non-null means the user has activated.
+    activated_at: Optional[datetime] = Field(default=None)

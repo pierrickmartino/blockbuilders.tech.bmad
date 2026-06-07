@@ -36,8 +36,13 @@ def track_backend_event(
     strategy_id: UUID,
     correlation_id: UUID,
     duration_ms: int | None = None,
+    properties: dict[str, Any] | None = None,
 ) -> None:
     """Fire-and-forget backend event dispatch to PostHog.
+
+    `properties` carries arbitrary additional payload fields (e.g. `is_first`,
+    `triggered_by`, `source`) layered on top of the standard envelope below;
+    callers may not override the envelope's own keys.
 
     Safe no-op when PostHog is not configured.
     Never raises — dispatch failures are logged and swallowed.
@@ -57,17 +62,20 @@ def track_backend_event(
         )
         return
 
+    event_properties: dict[str, Any] = {
+        **(properties or {}),
+        "correlation_id": str(correlation_id),
+        "user_id": str(user_id),
+        "strategy_id": str(strategy_id),
+        "duration_ms": duration_ms,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
     try:
         client.capture(
             distinct_id=str(user_id),
             event=event_name,
-            properties={
-                "correlation_id": str(correlation_id),
-                "user_id": str(user_id),
-                "strategy_id": str(strategy_id),
-                "duration_ms": duration_ms,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-            },
+            properties=event_properties,
         )
     except Exception:
         logger.exception("Failed to emit analytics event %s", event_name)
