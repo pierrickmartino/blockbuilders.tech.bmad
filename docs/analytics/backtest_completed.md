@@ -63,9 +63,11 @@ Still emitted (unchanged): `backtest_started`, `auto_backtest_started`,
 
 ## Cutover & backfill
 
-- **Cutover date:** _(fill in on deploy)_. The `backtest_completed` name spans both
-  the old client-side and new server-side eras; filter on `source == "server"`
-  (and/or the presence of `is_first`) plus this date for a clean series.
+- **Cutover date:** 2026-06-07. The `backtest_completed` name spans both the old
+  client-side and new server-side eras; filter on `source == "server"` (and/or
+  the presence of `is_first`) plus this date for a clean series — events before
+  2026-06-07 are the retired client-side `backtest_completed` /
+  `auto_backtest_completed` history and lack both fields.
 - **Backfill:** an Alembic data migration seeds `User.activated_at` from each
   user's earliest completed run. Events are **not** replayed into PostHog (no
   historical consent records). Pre-cutover activation is computed from the DB.
