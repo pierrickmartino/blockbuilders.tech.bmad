@@ -5,6 +5,8 @@ vi.mock("posthog-js", () => ({
     init: vi.fn(),
     capture: vi.fn(),
     opt_out_capturing: vi.fn(),
+    identify: vi.fn(),
+    reset: vi.fn(),
   },
 }));
 
@@ -57,5 +59,67 @@ describe("setConsent", () => {
     setConsent(true);
 
     expect(mockAnalyticsClient.updateConsent).not.toHaveBeenCalled();
+  });
+});
+
+describe("identifyUser", () => {
+  beforeEach(() => {
+    vi.resetModules();
+    vi.clearAllMocks();
+    localStorage.clear();
+  });
+
+  afterEach(() => {
+    localStorage.clear();
+    vi.unstubAllEnvs();
+  });
+
+  it("never identifies the PostHog person before consent has been accepted", async () => {
+    const posthogModule = await import("posthog-js");
+    const mockPosthog = vi.mocked(posthogModule.default);
+    const { identifyUser } = await import("@/lib/analytics");
+
+    identifyUser("42");
+
+    expect(mockPosthog.identify).not.toHaveBeenCalled();
+  });
+
+  it("identifies the PostHog person with String(user.id) once consent is accepted", async () => {
+    vi.stubEnv("NEXT_PUBLIC_POSTHOG_KEY", "phc_test_key");
+
+    const posthogModule = await import("posthog-js");
+    const mockPosthog = vi.mocked(posthogModule.default);
+    const { setConsent, identifyUser } = await import("@/lib/analytics");
+
+    setConsent(true);
+    identifyUser("42");
+
+    expect(mockPosthog.identify).toHaveBeenCalledWith("42");
+  });
+});
+
+describe("resetIdentity", () => {
+  beforeEach(() => {
+    vi.resetModules();
+    vi.clearAllMocks();
+    localStorage.clear();
+  });
+
+  afterEach(() => {
+    localStorage.clear();
+    vi.unstubAllEnvs();
+  });
+
+  it("detaches the session from its identified PostHog person on logout", async () => {
+    vi.stubEnv("NEXT_PUBLIC_POSTHOG_KEY", "phc_test_key");
+
+    const posthogModule = await import("posthog-js");
+    const mockPosthog = vi.mocked(posthogModule.default);
+    const { setConsent, resetIdentity } = await import("@/lib/analytics");
+
+    setConsent(true);
+    resetIdentity();
+
+    expect(mockPosthog.reset).toHaveBeenCalled();
   });
 });

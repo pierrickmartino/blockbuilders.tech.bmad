@@ -82,6 +82,21 @@ function shutdownPostHog(): void {
   initialized = false;
 }
 
+/** Identify the current user to PostHog so frontend events and worker events resolve to the same person. No-ops unless consent has been accepted. */
+export function identifyUser(userId: string): void {
+  if (getConsent() !== "accepted") return;
+  if (!initialized) return;
+
+  posthog.identify(String(userId));
+}
+
+/** Detach the session from its identified PostHog person, e.g. on logout. */
+export function resetIdentity(): void {
+  if (!initialized) return;
+
+  posthog.reset();
+}
+
 /** Track an event. No-ops silently if consent not given or PostHog not ready. */
 export function trackEvent(
   name: string,
