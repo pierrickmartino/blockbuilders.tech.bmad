@@ -31,6 +31,7 @@ from app.backtest.errors import BacktestError, StrategyInvalidError
 from app.schemas.strategy import StrategyDefinitionValidate
 from app.services.alert_evaluator import evaluate_alerts_for_run
 from app.services.spot_price_cache import SpotPriceCache
+from app.services.activation import record_activation
 from app.services.analytics import track_backend_event, flush_backend_events
 from app.services.strategy_validation import validate_strategy
 
@@ -329,21 +330,20 @@ def run_backtest_job(
                     evaluate_alerts_for_run(run, session)
 
                 # Mark user as onboarded on first completed backtest
-                onboarding_user = session.get(User, run.user_id)
-                if onboarding_user and not onboarding_user.has_completed_onboarding:
-                    onboarding_user.has_completed_onboarding = True
-                    session.add(onboarding_user)
+                run_user = session.get(User, run.user_id)
+                if run_user and not run_user.has_completed_onboarding:
+                    run_user.has_completed_onboarding = True
+                    session.add(run_user)
 
                 session.commit()
 
                 duration_ms = int((time.monotonic() - started_at) * 1000)
-                track_backend_event(
-                    "backtest_job_completed",
-                    user_id=run.user_id,
-                    strategy_id=run.strategy_id,
-                    correlation_id=run.id,
-                    duration_ms=duration_ms,
-                )
+
+                # Canonical activation signal — single source of truth for
+                # "a backtest finished". Replaces the old `backtest_job_completed`
+                # event; see docs/analytics/backtest_completed.md and ADR-0007.
+                if run_user:
+                    record_activation(run_user, run, session, duration_ms)
 
                 logger.info("backtest_completed")
 
