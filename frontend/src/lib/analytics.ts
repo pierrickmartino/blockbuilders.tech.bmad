@@ -83,3 +83,24 @@ export function trackEvent(
     timestamp: new Date().toISOString(),
   });
 }
+
+/**
+ * Bind PostHog's identity to the authenticated user. PostHog automatically
+ * aliases the pre-login `$anon_distinct_id` to this identity, stitching the
+ * anonymous session into the user's timeline.
+ * No-ops silently if consent not given or PostHog not ready.
+ */
+export function identifyUser(userId: string): void {
+  if (getConsent() !== "accepted") return;
+  if (!initialized) return;
+
+  posthog.identify(userId);
+}
+
+/** Clear PostHog's identity (e.g. on logout). No-ops silently if consent not given or PostHog not ready. */
+export function resetIdentity(): void {
+  if (getConsent() !== "accepted") return;
+  if (!initialized) return;
+
+  posthog.reset();
+}

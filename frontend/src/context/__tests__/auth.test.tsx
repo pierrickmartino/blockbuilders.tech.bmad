@@ -5,6 +5,7 @@ import React from "react";
 import { AuthProvider, useAuth } from "@/context/auth";
 import * as authClientModule from "@/lib/api/auth-client";
 import * as usersClientModule from "@/lib/api/users-client";
+import * as analyticsModule from "@/lib/analytics";
 
 vi.mock("@/lib/api/auth-client", () => ({
   AuthApiClient: {
@@ -28,10 +29,15 @@ vi.mock("@/lib/api/users-client", () => ({
   usersKeys: { all: () => ["users"], me: () => ["users", "me"] },
 }));
 
-vi.mock("@/lib/analytics", () => ({ trackEvent: vi.fn() }));
+vi.mock("@/lib/analytics", () => ({
+  trackEvent: vi.fn(),
+  identifyUser: vi.fn(),
+  resetIdentity: vi.fn(),
+}));
 
 const mockAuthClient = vi.mocked(authClientModule.AuthApiClient);
 const mockUsersClient = vi.mocked(usersClientModule.UsersApiClient);
+const mockAnalytics = vi.mocked(analyticsModule);
 
 const mockUser = {
   id: "user-1",
@@ -141,5 +147,77 @@ describe("AuthProvider cache-clear contract", () => {
     });
 
     expect(queryClient.getQueryCache().getAll()).toHaveLength(0);
+  });
+});
+
+describe("AuthProvider analytics identity binding", () => {
+  let queryClient: QueryClient;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorage.clear();
+    queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  });
+
+  it("identifies the user with PostHog after a successful email login", async () => {
+    mockAuthClient.login.mockResolvedValueOnce({ token: "tok", user: mockUser });
+
+    const { result } = renderHook(() => useAuth(), {
+      wrapper: makeWrapper(queryClient),
+    });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await act(async () => {
+      await result.current.login("test@example.com", "secret");
+    });
+
+    expect(mockAnalytics.identifyUser).toHaveBeenCalledWith(mockUser.id);
+  });
+
+  it("identifies the user with PostHog after a successful signup", async () => {
+    mockAuthClient.signup.mockResolvedValueOnce({ token: "tok", user: mockUser });
+
+    const { result } = renderHook(() => useAuth(), {
+      wrapper: makeWrapper(queryClient),
+    });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await act(async () => {
+      await result.current.signup("new@example.com", "pass");
+    });
+
+    expect(mockAnalytics.identifyUser).toHaveBeenCalledWith(mockUser.id);
+  });
+
+  it("identifies the user with PostHog after a successful OAuth completion", async () => {
+    mockAuthClient.completeOAuth.mockResolvedValueOnce({ token: "tok", user: mockUser });
+
+    const { result } = renderHook(() => useAuth(), {
+      wrapper: makeWrapper(queryClient),
+    });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await act(async () => {
+      await result.current.completeOAuth("google", "code", "state");
+    });
+
+    expect(mockAnalytics.identifyUser).toHaveBeenCalledWith(mockUser.id);
+  });
+
+  it("resets the PostHog identity on logout", async () => {
+    const { result } = renderHook(() => useAuth(), {
+      wrapper: makeWrapper(queryClient),
+    });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    act(() => {
+      result.current.logout();
+    });
+
+    expect(mockAnalytics.resetIdentity).toHaveBeenCalledTimes(1);
   });
 });
