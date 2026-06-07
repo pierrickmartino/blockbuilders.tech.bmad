@@ -28,6 +28,7 @@ import { useAuth } from "@/context/auth";
 import { useBacktestResults } from "@/hooks/useBacktestResults";
 import { useBatchBacktestResults } from "@/hooks/useBatchBacktestResults";
 import { useRestoreSnapshot } from "@/hooks/useRestoreSnapshot";
+import { useResultViewedTracking } from "@/hooks/useResultViewedTracking";
 import { Strategy, StrategyVersion } from "@/types/strategy";
 import {
   BacktestListItem,
@@ -588,6 +589,10 @@ export default function StrategyBacktestPage({ params }: Props) {
       previousStatus !== undefined &&
       previousStatus !== "completed"
     ) {
+      // Job telemetry only (poll-transition signal) — NOT the activation
+      // signal. Activation is the canonical `results_viewed` event, fired
+      // by useResultViewedTracking when the verdict actually renders. See
+      // ADR-0008.
       trackEvent("backtest_completed", {
         strategy_id: id,
         run_id: detail.run_id,
@@ -747,18 +752,15 @@ export default function StrategyBacktestPage({ params }: Props) {
     }
   }, [id, selectedRunId, strategy]);
 
-  // Track results_viewed analytics event
-  const trackedResultsRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (
-      selectedRun?.status === "completed" &&
-      selectedRunId &&
-      trackedResultsRef.current !== selectedRunId
-    ) {
-      trackedResultsRef.current = selectedRunId;
-      trackEvent("results_viewed", { strategy_id: id, run_id: selectedRunId }, user?.id);
-    }
-  }, [selectedRun?.status, selectedRunId, id, user?.id]);
+  // Canonical activation event (ADR-0008): fires `results_viewed` once per
+  // completed run, deduped inside the shared tracker.
+  useResultViewedTracking({
+    runId: selectedRunId,
+    status: selectedRun?.status ?? null,
+    strategyId: id,
+    entryPath: "manual",
+    userId: user?.id,
+  });
 
   // Fetch user plan to check for premium features
   useEffect(() => {
