@@ -2,7 +2,7 @@
 
 import { type CSSProperties, use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   LineChart,
   Line,
@@ -28,7 +28,7 @@ import { useAuth } from "@/context/auth";
 import { useBacktestResults } from "@/hooks/useBacktestResults";
 import { useBatchBacktestResults } from "@/hooks/useBatchBacktestResults";
 import { useRestoreSnapshot } from "@/hooks/useRestoreSnapshot";
-import { useResultViewedTracking } from "@/hooks/useResultViewedTracking";
+import { useResultViewedTracking, type ResultsViewedEntryPath } from "@/hooks/useResultViewedTracking";
 import { Strategy, StrategyVersion } from "@/types/strategy";
 import {
   BacktestListItem,
@@ -484,9 +484,18 @@ function computeSkewCallout(returnBuckets: DistributionBucket[]): string {
 export default function StrategyBacktestPage({ params }: Props) {
   const { id } = use(params);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { timezone } = useDisplay();
   const { user } = useAuth();
   const isMobile = useIsMobile();
+
+  // Entry-path glue for the canonical results_viewed activation event
+  // (ADR-0008): the wizard preselects the just-completed run via
+  // `?run={runId}&entry_path=wizard` so the verdict renders immediately
+  // instead of landing on a run list. Any other landing is a manual visit.
+  const preselectedRunId = searchParams.get("run");
+  const entryPath: ResultsViewedEntryPath =
+    searchParams.get("entry_path") === "wizard" ? "wizard" : "manual";
 
   const [strategy, setStrategy] = useState<Strategy | null>(null);
   const [strategyVersion, setStrategyVersion] = useState<StrategyVersion | null>(null);
@@ -506,7 +515,7 @@ export default function StrategyBacktestPage({ params }: Props) {
   const [backtests, setBacktests] = useState<BacktestListItem[]>([]);
   const [totalBacktests, setTotalBacktests] = useState<number | undefined>(undefined);
   const [isLoadingBacktests, setIsLoadingBacktests] = useState(false);
-  const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
+  const [selectedRunId, setSelectedRunId] = useState<string | null>(() => preselectedRunId);
   const [selectedRunIds, setSelectedRunIds] = useState<Set<string>>(new Set());
 
   // Pagination state for backtest runs list
@@ -758,7 +767,7 @@ export default function StrategyBacktestPage({ params }: Props) {
     runId: selectedRunId,
     status: selectedRun?.status ?? null,
     strategyId: id,
-    entryPath: "manual",
+    entryPath,
     userId: user?.id,
   });
 
