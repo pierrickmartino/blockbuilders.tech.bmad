@@ -112,6 +112,31 @@ These name the seams around external price data.
   subscription relationship only, not the code. _Avoid_: CoinDesk
   (in code), vendor.
 
+## Analytics concepts
+
+These name the activation north-star and its instrumentation.
+
+- **Activation** — the north-star moment: a user *sees the verdict*
+  of their **first** backtest (equity curve + narrative actually
+  rendered to the human), not merely the backend job finishing.
+  Canonically the first per-user occurrence of the **results_viewed**
+  event, fired identically across every entry path (wizard, manual
+  run, NL wedge). A draft the user ultimately rejects still counts —
+  they witnessed an honest verdict — so Activation is recorded on
+  verdict render, independent of any later keep/reject, and survives
+  the NL-wedge hard-delete (ADR-0006). _Avoid_: "completed backtest"
+  meaning the backend `status == "completed"` row; equating
+  activation with job completion.
+- **results_viewed** — the single canonical client event marking that
+  the human saw a backtest verdict; its first occurrence per
+  identified user *is* Activation. Client-side and consent-gated, so
+  the canonical activation rate is read over consenting users, with
+  the server-side job-completion count kept only as a coverage check.
+  Per-user identity comes from `posthog.identify(user.id)` at auth.
+  _Avoid_: `backtest_completed`, `auto_backtest_completed` (these are
+  job-completion telemetry, not view events, and must not be used as
+  the activation signal).
+
 ## Adjacent terms (not yet load-bearing, on the radar)
 
 - **Strategy validator** — semantic checker for a whole strategy
