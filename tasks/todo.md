@@ -1,43 +1,5 @@
 # Tasks — in flight
 
-## Stitch PostHog identity across the activation funnel (Issue #534, implemented)
-
-Frontend
-- [x] `identifyUser(userId)` (`lib/analytics.ts`) — calls `posthog.identify(String(userId))`, gated on consent accepted + PostHog initialized; no-ops otherwise
-- [x] `resetIdentity()` (`lib/analytics.ts`) — calls `posthog.reset()`, gated on PostHog initialized
-- [x] Wired `identifyUser(response.user.id)` into `login`, `signup`, and `completeOAuth` in `context/auth.tsx` (before the existing `trackEvent` calls, so funnel events resolve to the identified person)
-- [x] Wired `resetIdentity()` into `logout` in `context/auth.tsx`
-- [x] Tests: `lib/__tests__/analytics.test.ts` (`identifyUser`/`resetIdentity` describe blocks — gated on consent, called with `String(user.id)`, posthog mocked) and `context/__tests__/auth.test.tsx` (login/signup identify with `user.id`, logout resets identity)
-
-Verification
-- [x] `npx vitest run src/lib/__tests__/analytics.test.ts src/context/__tests__/auth.test.tsx` → 12 passed
-- [x] `npm run lint` → 0 errors (pre-existing warnings only, none introduced)
-- [x] `npx tsc --noEmit` → clean
-
-## Persist analytics consent server-side (Issue #533, implemented)
-
-Backend
-- [x] `User.analytics_consent: Optional[str]` (nullable `String(10)`, default `None`) in `app/models/user.py`
-- [x] Alembic migration `038_add_analytics_consent.py` (adds nullable column, no backfill — `null` = undecided)
-- [x] `AnalyticsConsentUpdateRequest` schema (`consent: Literal["accepted", "declined"]`) rejects any other value with 422
-- [x] `PATCH /users/me/analytics-consent` (`app/api/users.py`) — auth-required, persists `analytics_consent`, returns `MessageResponse`
-- [x] Tests in `tests/test_api_auth.py::TestAnalyticsConsent` — persists accepted/declined, requires auth (401), rejects invalid value (422)
-
-Frontend
-- [x] `AnalyticsApiClient.updateConsent()` thin client (`lib/api/analytics-client.ts`) wrapping `PATCH /users/me/analytics-consent`
-- [x] `setConsent()` (`lib/analytics.ts`) calls the endpoint when `localStorage.token` is present (no-op when anonymous); fire-and-forget, never throws
-- [x] Tests: `lib/api/__tests__/analytics-client.test.ts`, `lib/__tests__/analytics.test.ts` (authenticated accept/decline call endpoint, anonymous is a no-op)
-
-Verification
-- [x] RED→GREEN for both backend (`pytest tests/test_api_auth.py -k AnalyticsConsent` → 4 passed) and frontend (`vitest run` → 5 passed) following tracer-bullet TDD
-- [x] `pytest tests/test_api_auth.py tests/api/` → 101 passed
-- [x] `npx tsc --noEmit` → clean; `npx eslint` on changed files → clean
-- [x] Migration revision chain resolves to head `038` (verified via `ScriptDirectory`); full `alembic upgrade head` against a live Postgres not run here (no DB in this environment — pre-existing migration 002 is also incompatible with SQLite)
-
-Risks / gaps
-- `alembic upgrade head` should be re-verified against the real Postgres dev DB before/at deploy (this sandbox has no Postgres instance)
-- Wiring `posthog.identify`/`reset` and the `activation` service are separate slices of #531 — out of scope for #533
-
 ## Binance spot 400 fix — `symbols` array whitespace (Issue #490, implemented)
 
 Backend

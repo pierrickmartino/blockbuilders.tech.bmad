@@ -565,6 +565,8 @@ export default function StrategyBacktestPage({ params }: Props) {
 
   // Use custom hook for backtest results (trades, equity curve, benchmark, polling)
   const prevRunStatusByIdRef = useRef<Map<string, BacktestStatus>>(new Map());
+  const userIdRef = useRef(user?.id);
+  useEffect(() => { userIdRef.current = user?.id; }, [user?.id]);
 
   const handleRunDetailFetched = useCallback((detail: BacktestStatusResponse) => {
     setError(null);
@@ -580,8 +582,21 @@ export default function StrategyBacktestPage({ params }: Props) {
       )
     );
 
+    const previousStatus = prevRunStatusByIdRef.current.get(detail.run_id);
+    if (
+      detail.status === "completed" &&
+      previousStatus !== undefined &&
+      previousStatus !== "completed"
+    ) {
+      trackEvent("backtest_completed", {
+        strategy_id: id,
+        run_id: detail.run_id,
+        total_return_pct: detail.summary?.total_return_pct,
+        num_trades: detail.summary?.num_trades,
+      }, userIdRef.current);
+    }
     prevRunStatusByIdRef.current.set(detail.run_id, detail.status);
-  }, []);
+  }, [id]);
 
   // Comparison selection handlers
   const handleSelectRun = useCallback((runId: string, checked: boolean) => {

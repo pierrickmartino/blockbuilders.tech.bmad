@@ -1,4 +1,4 @@
-from typing import Literal, Optional, List
+from typing import Optional, List
 from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field
@@ -29,10 +29,6 @@ class UserResponse(BaseModel):
 class AuthResponse(BaseModel):
     token: str
     user: UserResponse
-
-
-class AnalyticsConsentUpdateRequest(BaseModel):
-    consent: Literal["accepted", "declined"]
 
 
 class UserUpdateRequest(BaseModel):

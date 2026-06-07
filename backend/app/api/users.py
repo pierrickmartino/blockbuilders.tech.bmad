@@ -10,7 +10,6 @@ from app.models.backtest_run import BacktestRun
 from app.models.strategy import Strategy
 from app.models.user import User
 from app.schemas.auth import (
-    AnalyticsConsentUpdateRequest,
     MessageResponse,
     ProfileResponse,
     SettingsResponse,
@@ -138,17 +137,3 @@ def complete_onboarding(
         session.add(user)
         session.commit()
     return MessageResponse(message="Onboarding completed")
-
-
-@router.patch("/me/analytics-consent", response_model=MessageResponse)
-def update_analytics_consent(
-    data: AnalyticsConsentUpdateRequest,
-    user: User = Depends(get_current_user),
-    session: Session = Depends(get_session),
-) -> MessageResponse:
-    """Persist the user's analytics consent decision (last-writer-wins)."""
-    user.analytics_consent = data.consent
-    user.updated_at = datetime.now(timezone.utc)
-    session.add(user)
-    session.commit()
-    return MessageResponse(message="Consent preference saved")
