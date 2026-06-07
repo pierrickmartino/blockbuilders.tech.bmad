@@ -1,5 +1,19 @@
 # Tasks — in flight
 
+## Stitch PostHog identity across the activation funnel (Issue #534, implemented)
+
+Frontend
+- [x] `identifyUser(userId)` (`lib/analytics.ts`) — calls `posthog.identify(String(userId))`, gated on consent accepted + PostHog initialized; no-ops otherwise
+- [x] `resetIdentity()` (`lib/analytics.ts`) — calls `posthog.reset()`, gated on PostHog initialized
+- [x] Wired `identifyUser(response.user.id)` into `login`, `signup`, and `completeOAuth` in `context/auth.tsx` (before the existing `trackEvent` calls, so funnel events resolve to the identified person)
+- [x] Wired `resetIdentity()` into `logout` in `context/auth.tsx`
+- [x] Tests: `lib/__tests__/analytics.test.ts` (`identifyUser`/`resetIdentity` describe blocks — gated on consent, called with `String(user.id)`, posthog mocked) and `context/__tests__/auth.test.tsx` (login/signup identify with `user.id`, logout resets identity)
+
+Verification
+- [x] `npx vitest run src/lib/__tests__/analytics.test.ts src/context/__tests__/auth.test.tsx` → 12 passed
+- [x] `npm run lint` → 0 errors (pre-existing warnings only, none introduced)
+- [x] `npx tsc --noEmit` → clean
+
 ## Persist analytics consent server-side (Issue #533, implemented)
 
 Backend
