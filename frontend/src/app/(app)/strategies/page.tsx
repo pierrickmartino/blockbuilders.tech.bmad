@@ -1400,13 +1400,20 @@ export default function StrategiesPage() {
               router.replace("/strategies");
             }
           }}
-          onComplete={(strategyId) => {
+          onComplete={(strategyId, runId) => {
             setShowWizard(false);
-            router.push(
-              isFirstRun
-                ? `/strategies/${strategyId}/backtest`
-                : `/strategies/${strategyId}`
-            );
+            if (isFirstRun) {
+              // Preselect the just-completed run so its verdict renders
+              // immediately and the canonical results_viewed activation
+              // event fires with entry_path: "wizard" (ADR-0008).
+              router.push(
+                runId
+                  ? `/strategies/${strategyId}/backtest?run=${runId}&entry_path=wizard`
+                  : `/strategies/${strategyId}/backtest`
+              );
+            } else {
+              router.push(`/strategies/${strategyId}`);
+            }
             refreshUsage();
           }}
           onSkipToCanvas={() => {

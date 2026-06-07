@@ -36,7 +36,7 @@ type BacktestPhase = "idle" | "enqueuing" | "polling" | "done" | "error";
 interface Props {
   isFirstRun?: boolean;
   onClose: () => void;
-  onComplete: (strategyId: string) => void;
+  onComplete: (strategyId: string, runId?: string) => void;
   onSkipToCanvas?: () => void;
 }
 
@@ -218,6 +218,11 @@ export function StrategyWizard({ isFirstRun, onClose, onComplete, onSkipToCanvas
         const detail = await BacktestsApiClient.get(res.run_id);
         if (detail.status === "completed") {
           updateBacktestPhase("done");
+          // Job telemetry only (job-completion signal) — NOT the activation
+          // signal. Activation is the canonical `results_viewed` event, fired
+          // once the wizard navigates to the rendered verdict and the shared
+          // useResultViewedTracking hook sees the run as completed. See
+          // ADR-0008.
           trackEvent("auto_backtest_completed", {
             strategy_id: strategy.id,
             run_id: res.run_id,
@@ -229,7 +234,7 @@ export function StrategyWizard({ isFirstRun, onClose, onComplete, onSkipToCanvas
           } catch {
             // Don't block navigation
           }
-          onComplete(strategy.id);
+          onComplete(strategy.id, res.run_id);
           return;
         }
         if (detail.status === "failed") {
