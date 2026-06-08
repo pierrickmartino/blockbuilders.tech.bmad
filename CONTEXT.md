@@ -153,6 +153,14 @@ These name the activation north-star and its instrumentation.
   `entry_path`; note `nl_wedge` (an entry path) and `nl` (an authoring
   mode) are related but distinct — an NL-drafted strategy is
   `entry_path = nl_wedge`, `authoring_mode = nl`.
+- **Time to activation** — the latency form of **Activation**: elapsed
+  time from a user's `signup_completed` to their **first**
+  `results_viewed` (first verdict viewed). Derived in PostHog as the
+  activation funnel's time-to-convert; sliceable by **Entry path** /
+  **Authoring mode**. _Avoid_: `time_to_first_backtest` (the name
+  implies the *job/run*, reviving the job-vs-view drift ADR-0008
+  retired); anchoring the terminal on `backtest_started` or
+  `backtest_job_completed`.
 
 ## Adjacent terms (not yet load-bearing, on the radar)
 
