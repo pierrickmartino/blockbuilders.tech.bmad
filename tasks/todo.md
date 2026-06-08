@@ -1,5 +1,23 @@
 # Tasks — in flight
 
+## Template clone emits the strategy_created "authored" milestone (Issue #558, implemented)
+
+Frontend
+- [x] `templates/page.tsx` `handleClone`: after a successful clone, fires `trackEvent("strategy_created", { asset, timeframe, source: "template_clone", entry_path: strategy.entry_path }, user?.id)` — `entry_path` is read from the clone response's *persisted* value (`StrategyEntryPath.TEMPLATE_CLONE`, stamped server-side per #556), never a hardcoded literal
+- [x] Wired `useAuth()` (for `user?.id`) and `trackEvent` into the templates page, mirroring the existing `new-strategy-modal.tsx`/`strategy-wizard.tsx` `strategy_created` emissions — those three paths are untouched
+
+Tests
+- [x] `templates/__tests__/templates-page.test.tsx` — tracer-bullet TDD: (1) clicking Clone fires `strategy_created` carrying `entry_path: "template_clone"`; (2) fires exactly once per clone (no duplicate authored milestones)
+
+Verification
+- [x] RED→GREEN confirmed: both tests failed (`trackEvent` never called) before the `trackEvent` call landed, passed after
+- [x] `npx vitest run src/app/(app)/strategies/` → 3 files / 14 passed, zero regressions in sibling modal/wizard suites
+- [x] `npx tsc --noEmit` → clean
+- [x] `npx eslint` on touched/added files → clean
+
+Risks / gaps
+- The payload doesn't yet carry `authoring_mode` or use the `resolveCohort` resolver — that uniform cohort-prop wiring across all four `strategy_created` emissions (plus `backtest_started`/`auto_backtest_started`) is explicitly #560's job, not this thin end-to-end slice (whose acceptance criteria asks only for `entry_path`)
+
 ## Cohort resolver: pure entry_path → { entry_path, authoring_mode } (Issue #557, implemented)
 
 Frontend
