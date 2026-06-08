@@ -6,7 +6,7 @@ from sqlmodel import Session, select, func
 from app.api.deps import get_current_user
 from app.core.database import get_session
 from app.models.strategy_template import StrategyTemplate
-from app.models.strategy import Strategy
+from app.models.strategy import Strategy, StrategyEntryPath
 from app.models.user import User
 from app.schemas.strategy_template import TemplateResponse, TemplateDetailResponse
 from app.schemas.strategy import StrategyResponse
@@ -106,12 +106,15 @@ def clone_template(
             detail=f"Strategy limit reached ({max_allowed}). Upgrade your plan, purchase additional slots, or archive existing strategies.",
         )
 
-    # Create new strategy from template
+    # Create new strategy from template — the route stamps `template_clone`
+    # unconditionally (ADR-0009): unlike the shared create endpoint, it needs
+    # no client input to know its own provenance.
     new_strategy = Strategy(
         user_id=user.id,
         name=template.name,
         asset=template.asset,
         timeframe=template.timeframe,
+        entry_path=StrategyEntryPath.TEMPLATE_CLONE,
     )
     session.add(new_strategy)
     session.commit()
@@ -127,6 +130,7 @@ def clone_template(
         name=new_strategy.name,
         asset=new_strategy.asset,
         timeframe=new_strategy.timeframe,
+        entry_path=new_strategy.entry_path,
         is_archived=new_strategy.is_archived,
         auto_update_enabled=new_strategy.auto_update_enabled,
         auto_update_lookback_days=new_strategy.auto_update_lookback_days,

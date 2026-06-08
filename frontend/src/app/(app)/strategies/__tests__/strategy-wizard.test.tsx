@@ -50,6 +50,7 @@ const STRATEGY: Strategy = {
   name: "My BTC Strategy",
   asset: "BTC/USDT",
   timeframe: "1d",
+  entry_path: null,
   is_archived: false,
   auto_update_enabled: false,
   auto_update_lookback_days: 90,

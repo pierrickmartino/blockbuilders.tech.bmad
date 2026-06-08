@@ -54,7 +54,12 @@ export default function NewStrategyModal({ open, onOpenChange, onCreated, onOpen
     setError(null);
 
     try {
-      const strategy = await StrategiesApiClient.create({ name: name.trim(), asset, timeframe });
+      const strategy = await StrategiesApiClient.create({
+        name: name.trim(),
+        asset,
+        timeframe,
+        entry_path: "blank_canvas",
+      });
       refreshUsage();
       trackEvent("strategy_created", { asset, timeframe, source: "modal" }, user?.id);
       onCreated(strategy);

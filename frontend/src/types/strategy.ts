@@ -1,3 +1,11 @@
+/**
+ * How a strategy came to exist — the launch-surface cohort dimension
+ * persisted on `Strategy.entry_path` (CONTEXT.md → Entry path; ADR-0009).
+ * `null` covers strategies that predate the column or paths that don't
+ * stamp it (e.g. JSON import) — never a guessed value.
+ */
+export type StrategyEntryPath = "wizard" | "blank_canvas" | "template_clone" | "nl_wedge";
+
 export interface StrategyTag {
   id: string;
   name: string;
@@ -10,6 +18,7 @@ export interface Strategy {
   name: string;
   asset: string;
   timeframe: string;
+  entry_path: StrategyEntryPath | null;
   is_archived: boolean;
   auto_update_enabled: boolean;
   auto_update_lookback_days: number;
@@ -52,6 +61,11 @@ export interface StrategyCreateRequest {
   name: string;
   asset: string;
   timeframe: string;
+  /** Self-reported launch surface, stamped once at creation (ADR-0009).
+   * Omit for routes that don't know their path (e.g. JSON import) — the
+   * column stays `null` rather than guessing. `template_clone` is rejected
+   * here; only the dedicated clone route may stamp it. */
+  entry_path?: Exclude<StrategyEntryPath, "template_clone">;
 }
 
 export interface StrategyUpdateRequest {

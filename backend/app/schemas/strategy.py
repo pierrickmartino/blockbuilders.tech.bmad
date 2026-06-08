@@ -5,6 +5,18 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field, field_validator
 
+from app.models.strategy import StrategyEntryPath
+
+# Entry paths a creation request may self-report (CONTEXT.md → Entry path;
+# ADR-0009). `template_clone` is excluded: it is stamped exclusively by the
+# dedicated clone route, which needs no client input to know its own
+# provenance — a client must not be able to claim it through this endpoint.
+CLIENT_STAMPABLE_ENTRY_PATHS = {
+    StrategyEntryPath.WIZARD,
+    StrategyEntryPath.BLANK_CANVAS,
+    StrategyEntryPath.NL_WEDGE,
+}
+
 # Supported trading pairs (~50 tokens)
 ALLOWED_ASSETS = [
     # Major pairs
@@ -69,6 +81,7 @@ class StrategyCreateRequest(BaseModel):
     name: str = Field(min_length=1, max_length=100)
     asset: str
     timeframe: str
+    entry_path: Optional[StrategyEntryPath] = None
 
     @field_validator("asset")
     @classmethod
@@ -82,6 +95,14 @@ class StrategyCreateRequest(BaseModel):
     def validate_timeframe(cls, v: str) -> str:
         if v not in ALLOWED_TIMEFRAMES:
             raise ValueError(f"Timeframe must be one of: {', '.join(ALLOWED_TIMEFRAMES)}")
+        return v
+
+    @field_validator("entry_path")
+    @classmethod
+    def validate_entry_path(cls, v: Optional[StrategyEntryPath]) -> Optional[StrategyEntryPath]:
+        if v is not None and v not in CLIENT_STAMPABLE_ENTRY_PATHS:
+            allowed = ", ".join(p.value for p in CLIENT_STAMPABLE_ENTRY_PATHS)
+            raise ValueError(f"entry_path must be one of: {allowed}")
         return v
 
 
@@ -152,6 +173,7 @@ class StrategyResponse(BaseModel):
     name: str
     asset: str
     timeframe: str
+    entry_path: Optional[StrategyEntryPath] = None
     is_archived: bool
     auto_update_enabled: bool
     auto_update_lookback_days: int

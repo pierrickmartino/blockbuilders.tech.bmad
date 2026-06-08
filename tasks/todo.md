@@ -1,5 +1,34 @@
 # Tasks — in flight
 
+## Persist Strategy.entry_path + stamp at all four creation routes (Issue #556, implemented)
+
+Backend
+- [x] `StrategyEntryPath(str, Enum)` added to `app/models/strategy.py` with exactly four values (`wizard | blank_canvas | template_clone | nl_wedge`); `Strategy.entry_path` is a nullable `SAEnum` column (no backfill — pre-existing rows read `null`)
+- [x] Alembic migration `038_add_strategy_entry_path.py` — `CREATE TYPE strategy_entry_path_enum` + nullable `entry_path` column on `strategies`
+- [x] `StrategyCreateRequest.entry_path` (optional) with a `field_validator` restricting client-settable values to `CLIENT_STAMPABLE_ENTRY_PATHS` (`wizard | blank_canvas | nl_wedge`) — `template_clone` is rejected with 422 so only the dedicated clone route can stamp it
+- [x] `StrategyResponse.entry_path` added; `create_strategy` passes `data.entry_path` through to the model and response
+- [x] `clone_template` route stamps `StrategyEntryPath.TEMPLATE_CLONE` unconditionally (server-only, unspoofable) and returns it on the response
+- [x] No `authoring_mode` column added (per ADR-0009 — derived later from `entry_path`)
+
+Frontend
+- [x] `StrategyEntryPath` union type + `Strategy.entry_path: StrategyEntryPath | null` + `StrategyCreateRequest.entry_path?: Exclude<StrategyEntryPath, "template_clone">` added to `src/types/strategy.ts`
+- [x] `new-strategy-modal.tsx` sends `entry_path: "blank_canvas"` on create
+- [x] `strategy-wizard.tsx` sends `entry_path: "wizard"` on create
+- [x] Updated mock `Strategy` fixtures missing the new required field in `strategies-client.test.ts`, `strategy-templates-client.test.ts`, `StrategyHeader.load-version.test.tsx`, `strategy-wizard.test.tsx`
+
+Tests
+- [x] `backend/tests/api/test_strategy_entry_path.py` — 6 integration tests (blank-canvas, wizard, template-clone, null-default, nl_wedge accepted, template_clone rejected with 422), all RED-confirmed before implementation then GREEN after
+
+Verification
+- [x] `pytest tests/api/test_strategy_entry_path.py -v` → 6 passed
+- [x] Full backend suite → 897 passed, zero regressions
+- [x] `npx tsc --noEmit` → error count unchanged at 6257 before/after (all pre-existing module-resolution issues from incomplete `node_modules` in this remote env; the two `entry_path`-shaped TS2741 errors my change introduced are now fixed)
+- [x] Docs check: `CONTEXT.md`, ADR-0009, runbook §7, `ANALYTICS_SETUP.md` already describe the four-value `entry_path` model, persistence, no-backfill semantics, and server-only `template_clone` stamping accurately — no edits needed (forward-written ahead of this slice; the runbook's claim that the manual backtest page "no longer hard-codes `manual`" describes a later frontend slice, not this one)
+
+Risks / gaps
+- Frontend vitest suite cannot run in this remote environment (`frontend/node_modules` absent — `npx vitest run` fails resolving `vitest/config`); type-check is the only available frontend verification
+- NL-wedge route doesn't exist yet (later backlog, blocked behind this PRD) — the shared create endpoint accepts `entry_path: "nl_wedge"` pre-emptively per user direction so the future route needs no backend change
+
 ## Binance spot 400 fix — `symbols` array whitespace (Issue #490, implemented)
 
 Backend
