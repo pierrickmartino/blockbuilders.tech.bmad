@@ -6,6 +6,7 @@ import { UsersApiClient } from "@/lib/api/users-client";
 import { StrategiesApiClient } from "@/lib/api/strategies-client";
 import { BacktestsApiClient } from "@/lib/api/backtests-client";
 import { trackEvent } from "@/lib/analytics";
+import { resolveCohort } from "@/lib/cohort-resolver";
 import { useAuth } from "@/context/auth";
 import { generateTemplate, type WizardAnswers } from "./wizard-template-generator";
 import { StepName } from "./wizard-steps/step-name";
@@ -182,6 +183,7 @@ export function StrategyWizard({ isFirstRun, onClose, onComplete, onSkipToCanvas
         asset: state.answers.asset,
         timeframe: state.answers.timeframe,
         source: "wizard",
+        ...resolveCohort(strategy.entry_path),
       }, user?.id);
 
       // Non-first-run: existing behavior
@@ -208,6 +210,7 @@ export function StrategyWizard({ isFirstRun, onClose, onComplete, onSkipToCanvas
         strategy_id: strategy.id,
         run_id: res.run_id,
         source: "wizard_first_run",
+        ...resolveCohort(strategy.entry_path),
       }, user?.id);
 
       updateBacktestPhase("polling");

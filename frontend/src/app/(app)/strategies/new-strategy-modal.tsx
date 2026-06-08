@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ApiError } from "@/lib/api";
 import { StrategiesApiClient } from "@/lib/api/strategies-client";
 import { trackEvent } from "@/lib/analytics";
+import { resolveCohort } from "@/lib/cohort-resolver";
 import { useAuth } from "@/context/auth";
 import { Strategy, ALLOWED_ASSETS, ALLOWED_TIMEFRAMES, AllowedAsset } from "@/types/strategy";
 import { Button } from "@/components/ui/button";
@@ -61,7 +62,11 @@ export default function NewStrategyModal({ open, onOpenChange, onCreated, onOpen
         entry_path: "blank_canvas",
       });
       refreshUsage();
-      trackEvent("strategy_created", { asset, timeframe, source: "modal" }, user?.id);
+      trackEvent(
+        "strategy_created",
+        { asset, timeframe, source: "modal", ...resolveCohort(strategy.entry_path) },
+        user?.id
+      );
       onCreated(strategy);
       onOpenChange(false);
     } catch (err) {

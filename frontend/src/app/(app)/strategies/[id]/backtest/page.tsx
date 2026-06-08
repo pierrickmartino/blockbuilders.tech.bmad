@@ -50,6 +50,7 @@ import { DataAvailabilitySection } from "@/components/DataAvailabilitySection";
 import { ShareBacktestModal } from "@/components/ShareBacktestModal";
 import { TransactionCostAnalysis } from "@/components/TransactionCostAnalysis";
 import { trackBacktestView } from "@/lib/recent-views";
+import { trackBacktestStarted } from "@/lib/backtest-tracking";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   DropdownMenu,
@@ -886,12 +887,14 @@ export default function StrategyBacktestPage({ params }: Props) {
     setIsSubmitting(true);
     try {
       const res = await BacktestsApiClient.create(payload as unknown as BacktestCreateRequest);
-      trackEvent("backtest_started", {
-        strategy_id: id,
-        run_id: res.run_id,
-        date_from: dateFrom,
-        date_to: dateTo,
-      }, user?.id);
+      trackBacktestStarted({
+        strategyId: id,
+        entryPath: strategy?.entry_path ?? null,
+        runId: res.run_id,
+        dateFrom,
+        dateTo,
+        userId: user?.id,
+      });
       toast.success("Backtest started", { description: "It will update automatically when finished." });
       setSelectedRunId(res.run_id);
       await loadBacktests();

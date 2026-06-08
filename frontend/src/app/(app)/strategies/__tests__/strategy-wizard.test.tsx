@@ -50,7 +50,7 @@ const STRATEGY: Strategy = {
   name: "My BTC Strategy",
   asset: "BTC/USDT",
   timeframe: "1d",
-  entry_path: null,
+  entry_path: "wizard",
   is_archived: false,
   auto_update_enabled: false,
   auto_update_lookback_days: 90,
@@ -164,5 +164,62 @@ describe("StrategyWizard — first-run activation handoff (#548)", () => {
     const trackedEventNames = mockTrackEvent.mock.calls.map(([eventName]) => eventName);
     expect(trackedEventNames).toContain("auto_backtest_completed");
     expect(trackedEventNames).not.toContain("results_viewed");
+  });
+});
+
+describe("StrategyWizard — funnel events carry the resolved cohort (#560)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockStrategiesClient.create.mockResolvedValue(STRATEGY);
+    mockStrategiesClient.putDraft.mockResolvedValue(undefined);
+    mockBacktestsClient.create.mockResolvedValue(CREATED_RUN);
+    mockBacktestsClient.get.mockResolvedValue(COMPLETED_RUN);
+    mockUsersClient.completeOnboarding.mockResolvedValue(undefined);
+  });
+
+  it("fires strategy_created and auto_backtest_started carrying the persisted wizard entry path and its manual authoring mode", async () => {
+    render(
+      <StrategyWizard
+        isFirstRun
+        onClose={vi.fn()}
+        onComplete={vi.fn()}
+        onSkipToCanvas={vi.fn()}
+      />
+    );
+
+    vi.useFakeTimers();
+    try {
+      await completeFirstRunWizard();
+    } finally {
+      vi.useRealTimers();
+    }
+
+    const cohort = expect.objectContaining({ entry_path: "wizard", authoring_mode: "manual" });
+    expect(mockTrackEvent).toHaveBeenCalledWith("strategy_created", cohort, "user-1");
+    expect(mockTrackEvent).toHaveBeenCalledWith("auto_backtest_started", cohort, "user-1");
+  });
+
+  it("resolves a null persisted entry path into the unknown cohort instead of a guessed literal", async () => {
+    mockStrategiesClient.create.mockResolvedValue({ ...STRATEGY, entry_path: null });
+
+    render(
+      <StrategyWizard
+        isFirstRun
+        onClose={vi.fn()}
+        onComplete={vi.fn()}
+        onSkipToCanvas={vi.fn()}
+      />
+    );
+
+    vi.useFakeTimers();
+    try {
+      await completeFirstRunWizard();
+    } finally {
+      vi.useRealTimers();
+    }
+
+    const unknownCohort = expect.objectContaining({ entry_path: "unknown", authoring_mode: "unknown" });
+    expect(mockTrackEvent).toHaveBeenCalledWith("strategy_created", unknownCohort, "user-1");
+    expect(mockTrackEvent).toHaveBeenCalledWith("auto_backtest_started", unknownCohort, "user-1");
   });
 });
