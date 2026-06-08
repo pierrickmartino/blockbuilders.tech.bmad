@@ -28,7 +28,7 @@ import { useAuth } from "@/context/auth";
 import { useBacktestResults } from "@/hooks/useBacktestResults";
 import { useBatchBacktestResults } from "@/hooks/useBatchBacktestResults";
 import { useRestoreSnapshot } from "@/hooks/useRestoreSnapshot";
-import { useResultViewedTracking, type ResultsViewedEntryPath } from "@/hooks/useResultViewedTracking";
+import { useResultViewedTracking } from "@/hooks/useResultViewedTracking";
 import { Strategy, StrategyVersion } from "@/types/strategy";
 import {
   BacktestListItem,
@@ -489,15 +489,9 @@ export default function StrategyBacktestPage({ params }: Props) {
   const { user } = useAuth();
   const isMobile = useIsMobile();
 
-  // Entry-path glue for the canonical results_viewed activation event
-  // (ADR-0008): the wizard preselects the just-completed run via
-  // `?run={runId}&entry_path=wizard` so the verdict renders immediately
-  // instead of landing on a run list. Any other landing can't yet report
-  // its true persisted path from here, so it surfaces honestly as the
-  // `unknown` cohort (ADR-0009) rather than the retired `manual` literal.
+  // The wizard preselects the just-completed run via `?run={runId}` so the
+  // verdict renders immediately instead of landing on a run list (ADR-0008).
   const preselectedRunId = searchParams.get("run");
-  const entryPath: ResultsViewedEntryPath =
-    searchParams.get("entry_path") === "wizard" ? "wizard" : "unknown";
 
   const [strategy, setStrategy] = useState<Strategy | null>(null);
   const [strategyVersion, setStrategyVersion] = useState<StrategyVersion | null>(null);
@@ -764,12 +758,16 @@ export default function StrategyBacktestPage({ params }: Props) {
   }, [id, selectedRunId, strategy]);
 
   // Canonical activation event (ADR-0008): fires `results_viewed` once per
-  // completed run, deduped inside the shared tracker.
+  // completed run, deduped inside the shared tracker. `entryPath` is the
+  // loaded strategy's true persisted value (ADR-0009) — gating `status` on
+  // `strategy` being loaded ensures the event never fires on a `null`
+  // placeholder while the strategy is still in flight, which would otherwise
+  // get permanently baked in as the `unknown` cohort by dedup.
   useResultViewedTracking({
     runId: selectedRunId,
-    status: selectedRun?.status ?? null,
+    status: strategy ? selectedRun?.status ?? null : null,
     strategyId: id,
-    entryPath,
+    entryPath: strategy?.entry_path ?? null,
     userId: user?.id,
   });
 

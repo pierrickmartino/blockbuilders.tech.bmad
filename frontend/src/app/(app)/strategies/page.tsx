@@ -1404,11 +1404,13 @@ export default function StrategiesPage() {
             setShowWizard(false);
             if (isFirstRun) {
               // Preselect the just-completed run so its verdict renders
-              // immediately and the canonical results_viewed activation
-              // event fires with entry_path: "wizard" (ADR-0008).
+              // immediately (ADR-0008). The canonical results_viewed event
+              // then reports the strategy's persisted entry_path ("wizard"
+              // for wizard-created strategies) via the cohort resolver
+              // (ADR-0009) — no query-param hint needed.
               router.push(
                 runId
-                  ? `/strategies/${strategyId}/backtest?run=${runId}&entry_path=wizard`
+                  ? `/strategies/${strategyId}/backtest?run=${runId}`
                   : `/strategies/${strategyId}/backtest`
               );
             } else {
