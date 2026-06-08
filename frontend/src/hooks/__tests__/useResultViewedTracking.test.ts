@@ -2,6 +2,7 @@ import { renderHook, cleanup } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { useResultViewedTracking } from "../useResultViewedTracking";
 import { trackEvent } from "@/lib/analytics";
+import type { StrategyEntryPath } from "@/types/strategy";
 
 vi.mock("@/lib/analytics", () => ({
   trackEvent: vi.fn(),
@@ -20,7 +21,7 @@ describe("useResultViewedTracking", () => {
         runId: "run-fires-once",
         status: "completed",
         strategyId: "strat-1",
-        entryPath: "unknown",
+        entryPath: null,
       })
     );
 
@@ -40,7 +41,7 @@ describe("useResultViewedTracking", () => {
           runId: `run-${status}`,
           status,
           strategyId: "strat-1",
-          entryPath: "unknown",
+          entryPath: null,
         })
       );
 
@@ -48,15 +49,21 @@ describe("useResultViewedTracking", () => {
     }
   );
 
-  it.each(["unknown", "wizard", "nl_wedge", "blank_canvas", "template_clone"] as const)(
-    "sends the standardized payload with entry_path %s",
-    (entryPath) => {
+  it.each([
+    [null, "unknown", "unknown"],
+    ["wizard", "wizard", "manual"],
+    ["blank_canvas", "blank_canvas", "manual"],
+    ["template_clone", "template_clone", "manual"],
+    ["nl_wedge", "nl_wedge", "nl"],
+  ] as const)(
+    "resolves the persisted entry_path %s into the cohort { entry_path: %s, authoring_mode: %s } the payload carries",
+    (persistedEntryPath, expectedEntryPath, expectedAuthoringMode) => {
       renderHook(() =>
         useResultViewedTracking({
-          runId: `run-payload-${entryPath}`,
+          runId: `run-payload-${expectedEntryPath}`,
           status: "completed",
           strategyId: "strat-payload",
-          entryPath,
+          entryPath: persistedEntryPath,
           userId: "user-1",
         })
       );
@@ -65,20 +72,49 @@ describe("useResultViewedTracking", () => {
         "results_viewed",
         {
           strategy_id: "strat-payload",
-          run_id: `run-payload-${entryPath}`,
-          entry_path: entryPath,
+          run_id: `run-payload-${expectedEntryPath}`,
+          entry_path: expectedEntryPath,
+          authoring_mode: expectedAuthoringMode,
         },
         "user-1"
       );
     }
   );
 
-  it("does not emit a duplicate event on re-render or remount for the same runId", () => {
-    const props = {
+  it("maps an unrecognised persisted entry_path to the unknown cohort instead of passing it through", () => {
+    renderHook(() =>
+      useResultViewedTracking({
+        runId: "run-payload-garbage",
+        status: "completed",
+        strategyId: "strat-payload",
+        entryPath: "not-a-real-path" as unknown as StrategyEntryPath,
+        userId: "user-1",
+      })
+    );
+
+    expect(mockTrackEvent).toHaveBeenCalledWith(
+      "results_viewed",
+      {
+        strategy_id: "strat-payload",
+        run_id: "run-payload-garbage",
+        entry_path: "unknown",
+        authoring_mode: "unknown",
+      },
+      "user-1"
+    );
+  });
+
+  it("does not emit a duplicate event on re-render, remount, or a changed entry_path for the same runId", () => {
+    const props: {
+      runId: string;
+      status: "completed";
+      strategyId: string;
+      entryPath: StrategyEntryPath | null;
+    } = {
       runId: "run-dedup",
-      status: "completed" as const,
+      status: "completed",
       strategyId: "strat-1",
-      entryPath: "unknown" as const,
+      entryPath: null,
     };
 
     const { rerender, unmount } = renderHook(
@@ -88,13 +124,17 @@ describe("useResultViewedTracking", () => {
     );
 
     // Re-render with the same runId (e.g. unrelated state change)
-    rerender({ entryPath: "unknown" });
-    rerender({ entryPath: "unknown" });
+    rerender({ entryPath: null });
+
+    // Cross-entry-path navigation to the same run: the persisted entry_path
+    // now resolves to a different cohort, but the run is already tracked —
+    // the enlarged payload must not affect the once-per-run_id dedup key.
+    rerender({ entryPath: "wizard" });
 
     // Remount: unmount the host component, then mount it again
     unmount();
     cleanup();
-    renderHook(() => useResultViewedTracking(props));
+    renderHook(() => useResultViewedTracking({ ...props, entryPath: "blank_canvas" }));
 
     expect(mockTrackEvent).toHaveBeenCalledTimes(1);
   });
