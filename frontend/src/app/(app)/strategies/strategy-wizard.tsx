@@ -172,6 +172,7 @@ export function StrategyWizard({ isFirstRun, onClose, onComplete, onSkipToCanvas
         name: state.answers.name.trim(),
         asset: state.answers.asset,
         timeframe: state.answers.timeframe,
+        entry_path: "wizard",
       });
 
       // Seed the working draft — version snapshots are created on first backtest

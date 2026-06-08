@@ -24,6 +24,7 @@ const mockStrategy: Strategy = {
   name: "Test Strategy",
   asset: "BTC/USDT",
   timeframe: "1d",
+  entry_path: null,
   is_archived: false,
   auto_update_enabled: false,
   auto_update_lookback_days: 30,

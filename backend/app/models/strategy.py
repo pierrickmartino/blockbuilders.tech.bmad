@@ -1,7 +1,21 @@
 from datetime import datetime
+from enum import Enum
 from typing import Optional
 from uuid import UUID, uuid4
-from sqlmodel import SQLModel, Field
+
+from sqlalchemy import Enum as SAEnum
+from sqlmodel import Column, Field, SQLModel
+
+
+class StrategyEntryPath(str, Enum):
+    """How a strategy came to exist — the launch-surface cohort dimension
+    (CONTEXT.md → Entry path; ADR-0009). Stamped once at creation; never
+    backfilled for pre-existing rows (they read `null`)."""
+
+    WIZARD = "wizard"
+    BLANK_CANVAS = "blank_canvas"
+    TEMPLATE_CLONE = "template_clone"
+    NL_WEDGE = "nl_wedge"
 
 
 class Strategy(SQLModel, table=True):
@@ -12,6 +26,13 @@ class Strategy(SQLModel, table=True):
     name: str
     asset: str  # e.g. "BTC/USDT"
     timeframe: str  # e.g. "1h", "4h"
+    entry_path: Optional[StrategyEntryPath] = Field(
+        default=None,
+        sa_column=Column(
+            SAEnum(StrategyEntryPath, name="strategy_entry_path_enum", values_callable=lambda e: [m.value for m in e]),
+            nullable=True,
+        ),
+    )
     is_archived: bool = Field(default=False)
     is_published: bool = Field(default=False)
     auto_update_enabled: bool = Field(default=False)

@@ -148,6 +148,10 @@ def create_strategy(
         name=data.name,
         asset=data.asset,
         timeframe=data.timeframe,
+        # Stamped once at creation from the caller's self-reported launch
+        # surface (ADR-0009). `None` when the caller doesn't report one (e.g.
+        # JSON import) — the column stays null rather than guessing.
+        entry_path=data.entry_path,
     )
     session.add(strategy)
     session.commit()
@@ -161,6 +165,7 @@ def create_strategy(
         name=strategy.name,
         asset=strategy.asset,
         timeframe=strategy.timeframe,
+        entry_path=strategy.entry_path,
         is_archived=strategy.is_archived,
         auto_update_enabled=strategy.auto_update_enabled,
         auto_update_lookback_days=strategy.auto_update_lookback_days,
