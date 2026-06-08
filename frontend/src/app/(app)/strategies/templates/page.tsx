@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { Loader2, Plus, Search, Sparkles } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { StrategyTemplatesApiClient, strategyTemplatesKeys } from "@/lib/api/strategy-templates-client";
+import { trackEvent } from "@/lib/analytics";
+import { useAuth } from "@/context/auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -101,6 +103,7 @@ function TemplateCardSkeleton() {
 
 export default function TemplatesPage() {
   const router = useRouter();
+  const { user } = useAuth();
   const [cloningId, setCloningId] = useState<string | null>(null);
   const [cloneErrors, setCloneErrors] = useState<Record<string, string>>({});
   const [previewTemplate, setPreviewTemplate] =
@@ -127,6 +130,14 @@ export default function TemplatesPage() {
 
     try {
       const strategy = await StrategyTemplatesApiClient.clone(templateId);
+      // Closes the funnel hole where cloners were invisible until they viewed
+      // a result (#558): the clone route persists `template_clone` (#556), so
+      // this is the strategy's true entry path — never a hardcoded literal.
+      trackEvent(
+        "strategy_created",
+        { asset: strategy.asset, timeframe: strategy.timeframe, source: "template_clone", entry_path: strategy.entry_path },
+        user?.id
+      );
       router.push(`/strategies/${strategy.id}`);
     } catch (err) {
       setCloneErrors((prev) => ({
