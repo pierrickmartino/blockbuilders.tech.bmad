@@ -20,7 +20,7 @@ describe("useResultViewedTracking", () => {
         runId: "run-fires-once",
         status: "completed",
         strategyId: "strat-1",
-        entryPath: "manual",
+        entryPath: "unknown",
       })
     );
 
@@ -40,7 +40,7 @@ describe("useResultViewedTracking", () => {
           runId: `run-${status}`,
           status,
           strategyId: "strat-1",
-          entryPath: "manual",
+          entryPath: "unknown",
         })
       );
 
@@ -48,7 +48,7 @@ describe("useResultViewedTracking", () => {
     }
   );
 
-  it.each(["manual", "wizard", "nl_wedge"] as const)(
+  it.each(["unknown", "wizard", "nl_wedge", "blank_canvas", "template_clone"] as const)(
     "sends the standardized payload with entry_path %s",
     (entryPath) => {
       renderHook(() =>
@@ -78,7 +78,7 @@ describe("useResultViewedTracking", () => {
       runId: "run-dedup",
       status: "completed" as const,
       strategyId: "strat-1",
-      entryPath: "manual" as const,
+      entryPath: "unknown" as const,
     };
 
     const { rerender, unmount } = renderHook(
@@ -88,8 +88,8 @@ describe("useResultViewedTracking", () => {
     );
 
     // Re-render with the same runId (e.g. unrelated state change)
-    rerender({ entryPath: "manual" });
-    rerender({ entryPath: "manual" });
+    rerender({ entryPath: "unknown" });
+    rerender({ entryPath: "unknown" });
 
     // Remount: unmount the host component, then mount it again
     unmount();
