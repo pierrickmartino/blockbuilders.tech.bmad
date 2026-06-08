@@ -1,5 +1,24 @@
 # Tasks — in flight
 
+## Cohort resolver: pure entry_path → { entry_path, authoring_mode } (Issue #557, implemented)
+
+Frontend
+- [x] `frontend/src/lib/cohort-resolver.ts` — pure `resolveCohort(entryPath: string | null): Cohort` (no I/O, no React, no PostHog): `nl_wedge → authoring_mode "nl"`; `wizard | blank_canvas | template_clone → authoring_mode "manual"` (path passed through unchanged); `null` and any unrecognised/garbage string → the `unknown` cohort sentinel for *both* fields (never surfaced as a real path)
+- [x] `ResultsViewedEntryPath` (in `useResultViewedTracking.ts`) expanded from the legacy `manual | wizard | nl_wedge` to `StrategyEntryPath | "unknown"` — retires the `manual` catch-all per ADR-0009
+- [x] Fixed the resulting `tsc` breakage: the manual backtest page's hardcoded `"manual"` fallback (no longer a valid `entry_path`) now reports the honest `"unknown"` cohort until a later slice (#559) wires the true persisted path through this resolver; updated `"manual"` literals in `useResultViewedTracking.test.ts` fixtures to `"unknown"`/new union members
+
+Tests
+- [x] `frontend/src/lib/__tests__/cohort-resolver.test.ts` — 11 cases (tracer-bullet TDD, one behavior at a time): `nl_wedge → nl`; each of `wizard | blank_canvas | template_clone → manual` (path passed through); `null → unknown`; 6 garbage-string cases including the retired `"manual"` literal itself, all → `unknown` (regression-proofs that the legacy value is no longer passed through)
+
+Verification
+- [x] RED→GREEN per behavior (tracer bullets): each new `it`/`it.each` block confirmed failing before the matching switch-branch landed
+- [x] `npx vitest run` → 42 files / 492 passed, zero regressions
+- [x] `npx tsc --noEmit` → clean
+- [x] `npx eslint` on all touched/added files → clean
+
+Risks / gaps
+- The manual backtest page still doesn't source its true persisted `entry_path` (that's #559's job — read the loaded strategy's value through this resolver); the `"unknown"` fallback here is an honest interim value, not the final wiring
+
 ## Persist Strategy.entry_path + stamp at all four creation routes (Issue #556, implemented)
 
 Backend

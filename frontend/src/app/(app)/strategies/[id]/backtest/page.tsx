@@ -492,10 +492,12 @@ export default function StrategyBacktestPage({ params }: Props) {
   // Entry-path glue for the canonical results_viewed activation event
   // (ADR-0008): the wizard preselects the just-completed run via
   // `?run={runId}&entry_path=wizard` so the verdict renders immediately
-  // instead of landing on a run list. Any other landing is a manual visit.
+  // instead of landing on a run list. Any other landing can't yet report
+  // its true persisted path from here, so it surfaces honestly as the
+  // `unknown` cohort (ADR-0009) rather than the retired `manual` literal.
   const preselectedRunId = searchParams.get("run");
   const entryPath: ResultsViewedEntryPath =
-    searchParams.get("entry_path") === "wizard" ? "wizard" : "manual";
+    searchParams.get("entry_path") === "wizard" ? "wizard" : "unknown";
 
   const [strategy, setStrategy] = useState<Strategy | null>(null);
   const [strategyVersion, setStrategyVersion] = useState<StrategyVersion | null>(null);
