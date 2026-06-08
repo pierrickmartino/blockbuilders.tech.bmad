@@ -38,7 +38,7 @@ Blockbuilders uses [PostHog](https://posthog.com) for privacy-respecting product
 | `backtest_completed`, `auto_backtest_completed` | Frontend (browser SDK) | **Job telemetry only** — must never be used as the activation signal |
 | `backtest_job_completed` | Backend (worker, server SDK) | **Coverage line** — server-side first-completion proxy, not consent-gated |
 
-> **Activation (north-star)**: the **first per-user occurrence of `results_viewed`** — the moment the equity curve + narrative actually render to a human, not the moment the backend job reaches `status == "completed"`. It fires identically across every entry path via a single shared hook, carrying `entry_path ∈ { manual | wizard | nl_wedge }`. See [`docs/adr/0008-activation-is-first-result-viewed.md`](docs/adr/0008-activation-is-first-result-viewed.md) and [`docs/activation-metric-runbook.md`](docs/activation-metric-runbook.md).
+> **Activation (north-star)**: the **first per-user occurrence of `results_viewed`** — the moment the equity curve + narrative actually render to a human, not the moment the backend job reaches `status == "completed"`. It fires identically across every entry path via a single shared hook, carrying `entry_path` (today `manual | wizard | nl_wedge`; ACTIONS #2 splits `manual` into `blank_canvas | template_clone` and adds a derived `authoring_mode`). See [`docs/adr/0008-activation-is-first-result-viewed.md`](docs/adr/0008-activation-is-first-result-viewed.md), [`docs/adr/0009-activation-drop-off-cohorts.md`](docs/adr/0009-activation-drop-off-cohorts.md), and [`docs/activation-metric-runbook.md`](docs/activation-metric-runbook.md).
 
 ---
 
@@ -194,8 +194,8 @@ Activation is the **first per-user `results_viewed`** event, emitted by a single
 
 - `useResultViewedTracking` (`frontend/src/hooks/useResultViewedTracking.ts`) fires `results_viewed` exactly once per `runId`, the moment a completed run's verdict renders.
 - Dedup is keyed on `runId` alone (module-scoped `Set`), so re-renders, remounts, and cross-entry-path navigation to the same run never double-count.
-- Payload: `{ strategy_id, run_id, entry_path }` where `entry_path ∈ { manual | wizard | nl_wedge }`.
-  - **manual** — the manual backtest page adopts the shared tracker.
+- Payload: `{ strategy_id, run_id, entry_path }` where `entry_path ∈ { manual | wizard | nl_wedge }` **today**. ACTIONS #2 / ADR-0009 evolves this: `entry_path` becomes `wizard | blank_canvas | template_clone | nl_wedge` (read from a persisted `strategies.entry_path` column, retiring `manual`), plus a derived `authoring_mode ∈ { nl | manual }`.
+  - **manual** — the manual backtest page adopts the shared tracker. (Post-#2: reports the strategy's true persisted path instead of hard-coding `manual`.)
   - **wizard** — the first-run wizard preselects its just-completed run and navigates to `/strategies/{id}/backtest?run={runId}&entry_path=wizard` so the verdict actually renders.
 - `backtest_completed` / `auto_backtest_completed` are **job telemetry only** and must never be treated as the activation signal.
 
@@ -248,7 +248,7 @@ Create a **Funnel** insight named e.g. **"Activation — first result viewed"**:
 | Date range | **Starts at the cutover date `2026-06-07`** — never earlier (see Action 6) |
 
 - **Do not add a consent filter** — the funnel is *implicitly* consent-scoped: both events and `posthog.identify` no-op without accepted consent, so only consenting, identified users can ever enter it.
-- **Optional breakdown**: break Step 2 down by `entry_path` to get drop-off by `manual` / `wizard` / `nl_wedge`. This is the seam for the entry-path cohorts — optional on this insight, not required for the north-star number itself.
+- **Optional breakdown**: break Step 2 down by `entry_path` to get drop-off by entry path. This is the seam for the entry-path cohorts — optional on this insight, not required for the north-star number itself. The full diagnostic funnel, `time_to_activation`, attribution, and the cohort cutover live in [`activation-metric-runbook.md`](docs/activation-metric-runbook.md) §7 and [ADR-0009](docs/adr/0009-activation-drop-off-cohorts.md).
 
 ### Action 4 — Build the coverage line (job-based proxy, clearly labeled)
 

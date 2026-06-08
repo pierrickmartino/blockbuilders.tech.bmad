@@ -136,6 +136,31 @@ These name the activation north-star and its instrumentation.
   _Avoid_: `backtest_completed`, `auto_backtest_completed` (these are
   job-completion telemetry, not view events, and must not be used as
   the activation signal).
+- **Entry path** — *how a strategy came to exist*, the launch-surface
+  cohort dimension for the activation funnel. Four values:
+  `wizard`, `blank_canvas`, `template_clone`, `nl_wedge`. Orthogonal to
+  **Authoring mode**. Supersedes the original three-valued
+  `entry_path` (`manual | wizard | nl_wedge`): the old catch-all
+  `manual` is split into the two paths it was hiding (`blank_canvas`,
+  `template_clone`). _Avoid_: `manual` (retired — it conflated blank
+  canvas with template clone); reusing this for authoring method.
+- **Authoring mode** — *how the strategy graph was authored*, the
+  second cohort dimension, orthogonal to **Entry path**. Two values:
+  `nl` (drafted from the natural-language box) and `manual` (assembled
+  on the canvas, including the wizard and template paths). Lets the NL
+  wedge be measured against hand-authoring (ACTIONS #7) independently
+  of which surface launched the strategy. _Avoid_: folding this into
+  `entry_path`; note `nl_wedge` (an entry path) and `nl` (an authoring
+  mode) are related but distinct — an NL-drafted strategy is
+  `entry_path = nl_wedge`, `authoring_mode = nl`.
+- **Time to activation** — the latency form of **Activation**: elapsed
+  time from a user's `signup_completed` to their **first**
+  `results_viewed` (first verdict viewed). Derived in PostHog as the
+  activation funnel's time-to-convert; sliceable by **Entry path** /
+  **Authoring mode**. _Avoid_: `time_to_first_backtest` (the name
+  implies the *job/run*, reviving the job-vs-view drift ADR-0008
+  retired); anchoring the terminal on `backtest_started` or
+  `backtest_job_completed`.
 
 ## Adjacent terms (not yet load-bearing, on the radar)
 
