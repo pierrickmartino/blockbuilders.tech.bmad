@@ -28,12 +28,14 @@ Build it in PostHog as a **funnel insight**:
   who take longer than the window to see their first verdict.
 - **Date range**: starts at the **cutover date** (see §4) — never earlier.
 
-`results_viewed` carries `{ strategy_id, run_id, entry_path }`
-(`entry_path ∈ { manual | wizard | nl_wedge }`,
+`results_viewed` carries `{ strategy_id, run_id, entry_path, authoring_mode }`
+(`entry_path ∈ { wizard | blank_canvas | template_clone | nl_wedge }`,
+`authoring_mode ∈ { nl | manual }`,
 `frontend/src/hooks/useResultViewedTracking.ts`). Breaking the funnel down
-by `entry_path` is the seam for the drop-off-by-entry-path cohorts
-(ACTIONS #2) — optional on this insight, not required for the north-star
-number itself.
+by `entry_path` is the seam for the drop-off cohorts (ACTIONS #2) — optional
+on this insight, not required for the north-star number itself. The cohort
+dimensions, the diagnostic funnel, and their own cutover are specified in
+§8 below and in [ADR-0009](./adr/0009-activation-drop-off-cohorts.md).
 
 ## 2. Consenting-user scope
 
@@ -145,10 +147,82 @@ defects — call them out in the dashboard notes so nobody "fixes" them later.
 - [ ] Spot-check: sample a few funnel `distinct_id`s and confirm each has
       an `$identify` event (no anonymous leakage into the canonical count)
 
-## 7. Maintenance
+## 7. Drop-off cohorts & time-to-activation (diagnostic layer — ACTIONS #2)
+
+This layer refines *where* and *for whom* activation stalls. It is a
+**diagnostic**, never a replacement for the canonical north-star in §1. Full
+rationale: [ADR-0009](./adr/0009-activation-drop-off-cohorts.md).
+
+### 7.1 Cohort dimensions
+
+Two **orthogonal** properties, carried on every event from `strategy_created`
+onward (and on `results_viewed`):
+
+- **`entry_path`** — launch surface: `wizard | blank_canvas |
+  template_clone | nl_wedge`. **Persisted on the `strategies` row**, stamped
+  once at creation, so it is stable across reloads/sessions and the manual
+  backtest page reports the *true* origin (it no longer hard-codes
+  `"manual"`). The old catch-all `manual` is **retired**.
+- **`authoring_mode`** — `nl | manual`. **Derived** from `entry_path`
+  (`nl_wedge → nl`, else `manual`); not stored (ADR-0006 ⇒ NL only drafts
+  new strategies).
+
+### 7.2 Diagnostic funnel (4 semantic milestones)
+
+Build a **second** funnel insight, "Activation drop-off by step", path-agnostic
+via "any-of" event mapping:
+
+| Step | Milestone | Event(s) |
+|------|-----------|----------|
+| 1 | Signed up | `signup_completed` |
+| 2 | Strategy authored | `strategy_created` (any source) |
+| 3 | Backtest enqueued | `backtest_started` **or** `auto_backtest_started` |
+| 4 | Verdict viewed | `results_viewed` |
+
+- **Label it a diagnostic.** Its overall conversion is *stricter* than the §1
+  canonical rate (it requires steps 2–3) and must **never** be quoted as "the
+  activation rate". The "biggest drop-off step" is simply the largest
+  step-to-step fall in this viz.
+- **Breakdown** by `entry_path` (and/or `authoring_mode`) with **attribution
+  at step 2 ("Strategy authored")**, the first step where the path is known.
+- **First-touch, per-user.** A user is attributed to their *first* authored
+  strategy's `entry_path`. Users who bounce **between step 1 and step 2** have
+  no path → name that bucket "(no path — bounced before authoring)" rather
+  than hide it.
+
+### 7.3 Time to activation
+
+`time_to_activation` = elapsed time from `signup_completed` to first
+`results_viewed`. Read it as the funnel's **PostHog-native time-to-convert**
+(median / p90 / distribution), sliceable by `entry_path`. **No new event or
+numeric property** — do not compute a client-side number; it would drift from
+the funnel. Do **not** call this `time_to_first_backtest` (implies the
+job/run; see ADR-0008).
+
+### 7.4 Cohort cutover (separate from §4)
+
+The cohort breakdown is trustworthy only from the date `entry_path` ships and
+all four creation paths stamp it — a **later** date than the 2026-06-07
+activation cutover. Add its **own annotation** on that deploy date; entry-path
+breakdowns start there. The §1 canonical 2-step series keeps running unbroken
+from 2026-06-07. **No backfill:** strategies created before the column exists
+have `entry_path = null` and appear as an explicit `unknown` cohort — never
+retro-guessed.
+
+### 7.5 HITL checklist (diagnostic layer)
+
+- [ ] Diagnostic funnel built (4 steps above), labelled "diagnostic — not the
+      activation rate", placed on the existing "Activation north-star" dashboard
+- [ ] Breakdown by `entry_path`, attribution at step 2; pre-authoring bounce
+      bucket named, `unknown` cohort visible
+- [ ] `time_to_activation` tile = funnel time-to-convert (no client number)
+- [ ] Cohort cutover annotation added on the `entry_path` deploy date; no
+      backfill of pre-column strategies
+
+## 8. Maintenance
 
 If the activation definition ever needs to change, update **this runbook**,
 `CONTEXT.md` (Analytics concepts), and `docs/adr/0008-...` together — they
 must never drift apart. A new ADR supersedes 0008; this runbook then points
 at the new one and records a new cutover date (never edits the old one in
-place).
+place). Cohort-layer (§7) changes track `docs/adr/0009-...` the same way.
