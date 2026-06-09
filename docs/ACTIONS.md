@@ -24,7 +24,7 @@
 
 ### 3. "What you just learned" retention A/B `[P0 · S]`
 - **Problem:** §2 of the brainstorm bets that *honest, felt narrative* drives return visits — but it's an assumption, not a measured fact. The card already exists behind a flag.
-- **Proposed deepening:** Split-test return-rate and second-backtest-rate for users who see the narrative card vs. those who don't, using the existing `showFirstRunExplanations` flag.
+- **Proposed deepening:** Split-test return-rate and second-backtest-rate for users who see the **"What you just learned"** card (`WhatYouLearnedCard`) vs. those who don't. Layer a PostHog experiment flag on the existing first-run gate (`bb.first_run_summary_card_seen` localStorage key — there is no `showFirstRunExplanations` flag in code); leave the always-on backend `NarrativeCard` on in both arms. See ADR-0010 for the full design (scope, metrics, enrollment, ship rule).
 - **Wins:** Validates (or kills) the severity-as-retention thesis cheaply; if positive, justifies investing in narrative/coaching (#12, #19).
 
 ---

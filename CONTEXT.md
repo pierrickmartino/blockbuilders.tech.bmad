@@ -162,6 +162,26 @@ These name the activation north-star and its instrumentation.
   retired); anchoring the terminal on `backtest_started` or
   `backtest_job_completed`.
 
+## First-run & retention surfaces
+
+These name two distinct result-page cards that the backlog (`docs/ACTIONS.md`
+#3, #12) repeatedly conflates as "the narrative card". They are different
+components with different lifecycles — keep them apart.
+
+- **What-you-learned card** — the **first-run-only**, frontend-computed
+  strategy-vs-buy-and-hold delta summary shown once per device under the
+  `bb.first_run_summary_card_seen` gate, suppressed when benchmark data is
+  absent. The card the retention A/B (#3) manipulates. See
+  `frontend/src/components/WhatYouLearnedCard.tsx`. _Avoid_: "narrative card"
+  (that is a different, always-on component); "showFirstRunExplanations"
+  (a flag name that does not exist in code).
+- **Narrative card** — the **always-on**, backend-generated prose verdict
+  rendered on every completed run that has a narrative (not first-run-scoped).
+  Left **on in both arms** of the #3 A/B, so it is never the experiment's
+  manipulated variable. See `frontend/src/components/NarrativeCard.tsx` and
+  `backend/app/backtest/narrative.py`. _Avoid_: equating with the
+  What-you-learned card; treating it as first-run-gated.
+
 ## Adjacent terms (not yet load-bearing, on the radar)
 
 - **Strategy validator** — semantic checker for a whole strategy

@@ -994,7 +994,7 @@ Plain-Language Error Messages
 **What You Just Learned Summary Card (Implemented):**
 - On the user's first-ever backtest results view, a dedicated card titled **"What you just learned"** appears below the metrics grid.
 - Card copy is 1–2 plain-language sentences summarizing what was tested and how it performed versus buy-and-hold (including the percentage-point delta, colored green/red).
-- Gated by the same `showFirstRunExplanations` localStorage flag used for first-run metric overlays; hidden on second and later results views.
+- Gated by its own `bb.first_run_summary_card_seen` localStorage key (separate from the first-run metric overlays, which use a different dismissal key) and requires completed onboarding; hidden once dismissed. A planned retention A/B (ADR-0010) layers a PostHog experiment flag on top of this gate to split-test the card.
 - If benchmark return data is unavailable, the card is suppressed silently.
 
 
