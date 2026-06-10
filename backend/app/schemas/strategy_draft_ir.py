@@ -15,6 +15,28 @@ from typing import Annotated, Any, Literal, Union
 
 from pydantic import BaseModel, Field
 
+# The drafter's vocabulary: a minimal hand-listed subset of the block
+# catalogue (ADR-0011). Every type here must be resolvable by
+# `GraphCompiler` via `catalogue_lookup()`. Full catalogue projection is a
+# future slice.
+BlockType = Literal[
+    "rsi",
+    "sma",
+    "ema",
+    "constant",
+    "price",
+    "compare",
+    "crossover",
+    "entry_signal",
+    "exit_signal",
+    "stop_loss",
+    "take_profit",
+    "trailing_stop",
+    "time_exit",
+    "position_size",
+    "max_drawdown",
+]
+
 
 class DraftedBlockIR(BaseModel):
     """One block in the semantic IR.
@@ -24,7 +46,7 @@ class DraftedBlockIR(BaseModel):
     """
 
     ref: str
-    type: str
+    type: BlockType
     label: str | None = None
     params: dict[str, Any] = Field(default_factory=dict)
 

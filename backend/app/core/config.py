@@ -38,6 +38,9 @@ class Settings(BaseSettings):
 
     # Strategy drafter (NL wedge, ADR-0011) — flag-gated, off by default
     strategy_drafter_enabled: bool = False
+    strategy_drafter_provider: str = "anthropic"
+    strategy_drafter_model: str = "claude-sonnet-4-6"
+    anthropic_api_key: str = ""
 
     # Data quality validation
     data_quality_lookback_days: int = 90
