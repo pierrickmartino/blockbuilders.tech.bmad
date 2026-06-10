@@ -8,6 +8,8 @@ import type {
   StrategyDraft,
   StrategyCreateRequest,
   StrategyUpdateRequest,
+  StrategyDraftFromNlRequest,
+  StrategyDraftFromNlResponse,
 } from "@/types/strategy";
 import type { ValidationResponse } from "@/types/canvas";
 
@@ -149,6 +151,30 @@ describe("StrategiesApiClient", () => {
         timeframe: "1d",
       });
       expect(result).toEqual(mockStrategy);
+    });
+  });
+
+  // ── draftFromNl ──────────────────────────────────────────────────────────
+
+  describe("draftFromNl()", () => {
+    it("calls POST /strategies/draft-from-nl with the request body", async () => {
+      const req: StrategyDraftFromNlRequest = {
+        nl_text: "buy when RSI is oversold",
+        asset: "BTC/USDT",
+        timeframe: "1d",
+      };
+      const res: StrategyDraftFromNlResponse = {
+        outcome: "success",
+        strategy_id: "strat-1",
+        reason: null,
+      };
+      mockApiFetch.mockResolvedValueOnce(res);
+      const result = await StrategiesApiClient.draftFromNl(req);
+      expect(mockApiFetch).toHaveBeenCalledWith("/strategies/draft-from-nl", {
+        method: "POST",
+        body: JSON.stringify(req),
+      });
+      expect(result).toEqual(res);
     });
   });
 

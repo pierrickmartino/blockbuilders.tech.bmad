@@ -6,6 +6,8 @@ import type {
   StrategyDraft,
   StrategyCreateRequest,
   StrategyUpdateRequest,
+  StrategyDraftFromNlRequest,
+  StrategyDraftFromNlResponse,
 } from "@/types/strategy";
 import type { ValidationResponse } from "@/types/canvas";
 
@@ -44,6 +46,13 @@ export const StrategiesApiClient = {
 
   async create(data: StrategyCreateRequest): Promise<Strategy> {
     return apiFetch<Strategy>("/strategies/", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  },
+
+  async draftFromNl(data: StrategyDraftFromNlRequest): Promise<StrategyDraftFromNlResponse> {
+    return apiFetch<StrategyDraftFromNlResponse>("/strategies/draft-from-nl", {
       method: "POST",
       body: JSON.stringify(data),
     });

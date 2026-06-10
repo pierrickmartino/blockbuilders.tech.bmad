@@ -83,6 +83,23 @@ export interface StrategyVersionCreateRequest {
   definition: Record<string, unknown>;
 }
 
+/** Request body for the NL wedge (ADR-0011, ADR-0006). `asset`/`timeframe`
+ * come from explicit UI controls and are authoritative — the drafter must
+ * ignore anything resembling them in `nl_text`. */
+export interface StrategyDraftFromNlRequest {
+  nl_text: string;
+  asset: string;
+  timeframe: string;
+}
+
+/** Response for the NL wedge. `success` returns a new strategy id;
+ * `declined`/`disabled` carry no strategy and nothing was persisted. */
+export interface StrategyDraftFromNlResponse {
+  outcome: "success" | "declined" | "disabled";
+  strategy_id: string | null;
+  reason: string | null;
+}
+
 // Supported trading pairs (~50 tokens)
 export const ALLOWED_ASSETS = [
   // Major pairs
