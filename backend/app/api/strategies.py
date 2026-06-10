@@ -214,7 +214,7 @@ def draft_strategy_from_nl(
     if errors:
         return StrategyDraftFromNlResponse(
             outcome="declined",
-            reason="The drafted strategy did not pass validation.",
+            reason=errors[0].user_message or errors[0].message,
         )
 
     strategy = Strategy(

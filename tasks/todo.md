@@ -1,5 +1,22 @@
 # Tasks — in flight
 
+## NL wedge slice 4: refusal path — declined arm + validator-invalid → plain-language, nothing persists (Issue #587, implemented)
+
+Backend
+- [x] `app/api/strategies.py` (`draft_strategy_from_nl`) — the validator-invalid branch now reuses the validator's plain-language `user_message` (falling back to its internal `message`) for `reason`, instead of a generic "did not pass validation" string. The `drafted | declined` IR union, `compile_graph`'s `GraphCompilationError → declined` mapping, and the `success: true` (HTTP 200, `outcome: "declined"`) refusal envelope already existed from slices 1–3 and needed no change.
+
+Tests
+- [x] `backend/tests/api/test_strategy_draft_from_nl.py` (+3 cases) — `test_draft_from_nl_declined_by_drafter_persists_nothing` (fake provider returns `DeclinedOutcome` → `outcome="declined"`, reason passed through, zero `Strategy`/`StrategyDraft` rows), `test_draft_from_nl_validator_invalid_persists_nothing` (a `drafted` IR with an entry condition but no exit → compiles fine, fails `collect_validation_errors` with `MISSING_EXIT` → `outcome="declined"` with the validator's plain-language message, zero rows persisted), `test_draft_from_nl_compile_error_persists_nothing` (IR with an unresolvable connection ref → `GraphCompilationError` → `outcome="declined"`, zero rows persisted).
+- [x] `backend/tests/test_strategy_drafter.py` — `test_llm_drafter_passes_through_declined_outcome` (fake provider) already covered the `StrategyDrafter` → `DeclinedOutcome` mapping from slice 2; no new drafter-level test needed.
+- [x] `frontend/src/app/(app)/strategies/draft/__tests__/draft-page.test.tsx` — "shows the decline reason without navigating when the drafter declines" already covers rendering `reason` inline and leaving the form in place for re-submission; no change needed.
+
+Verification
+- [x] `cd backend && /tmp/venv/bin/python -m pytest -q` → 952 passed
+- [x] `cd frontend && npx vitest run "src/app/(app)/strategies/draft/__tests__/draft-page.test.tsx"` → 4 passed
+
+Risks / gaps
+- None — all acceptance criteria for #587 were already structurally satisfied by slices 1–3 (discriminated `drafted | declined` IR, no-partial-persist guards, `success: true`/HTTP 200 refusal envelope, frontend reason rendering); this slice's only functional gap was the validator-invalid path's generic reason string, now fixed and tested.
+
 ## NL wedge slice 3: full catalogue ∪ risk-block vocabulary — DrafterVocabulary projection (Issue #586, implemented)
 
 Backend
