@@ -179,7 +179,10 @@ export default function DraftFromNlPage() {
             role="alert"
             className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm text-amber-700 dark:text-amber-400"
           >
-            {status.message}
+            <p>{status.message}</p>
+            {status.kind === "declined" && (
+              <p className="mt-1">Try rephrasing your idea above and submitting again.</p>
+            )}
           </div>
         )}
 

@@ -589,3 +589,28 @@ Verification
 
 Risks / gaps
 - `docker-compose.yml` not changed — backend secrets are passed via `env_file: .env` (no per-service `environment:` entries for existing keys like `ANTHROPIC_API_KEY`, `RESEND_API_KEY`, etc.), so the new keys follow the same pattern.
+
+## Issue #589 — NL wedge slice 5: infra-failure path — timeout + provider error → retryable, distinct from refusal (done)
+
+Backend
+- [x] `app/core/config.py`: added `strategy_drafter_timeout_seconds` (default `30.0`)
+- [x] `app/services/strategy_drafter.py`: `LLMStrategyDrafter.draft()` now passes `timeout=settings.strategy_drafter_timeout_seconds` to the `instructor` call; new `StrategyDrafterError` is raised (with a generic, safe message) when the call raises `anthropic.APIError`, `openai.APIError` (covers OpenRouter too), or `instructor.core.InstructorRetryException` (exhausted schema-retries). Full exception detail is logged server-side via `logger.error(..., exc_info=True)`; the raised message never includes provider/key/raw-exception detail.
+- [x] `app/api/strategies.py`: `draft-from-nl` catches `StrategyDrafterError` and raises `HTTPException(503, detail=<safe message>)` — the envelope's error path, distinct from the `declined` (`success: true`) refusal. No re-draft beyond `instructor`'s bounded schema-retries (single call, as before).
+- [x] `.env.example` / `README.md`: documented `STRATEGY_DRAFTER_TIMEOUT_SECONDS`
+
+Frontend
+- [x] `app/(app)/strategies/draft/page.tsx`: declined refusals now show a "Try rephrasing your idea above and submitting again." hint under the reason (amber box). Infra failures (503 `ApiError`) surface via the existing destructive/red `error` box with the backend's "...try again in a moment." message — visually and textually distinct from the amber refusal box.
+
+Tests
+- [x] `tests/test_strategy_drafter.py`: timeout passed to provider call; `StrategyDrafterError` raised for provider timeout / rate-limit / instructor retry-exhaustion; raised message doesn't leak provider exception detail
+- [x] `tests/api/test_strategy_draft_from_nl.py`: new infra-failure integration test — 503, safe `detail` (no provider/key leakage), persists zero `Strategy`/`StrategyDraft` rows. Existing tests cover success and the two refusal cases (declined arm + validator-invalid), so all three outcome classes are now covered.
+- [x] `app/(app)/strategies/draft/__tests__/draft-page.test.tsx`: declined shows reason + rephrase hint; infra failure (`ApiError(503, ...)`) shows "try again in a moment" in the destructive box, with no rephrase hint and no navigation
+
+Verification
+- [x] `pytest -q` → 968 passed
+- [x] `npx vitest run "src/app/(app)/strategies/draft/__tests__/draft-page.test.tsx"` → 5 passed
+- [x] `npx tsc --noEmit` → clean
+- [x] `npx eslint` on changed frontend files → clean
+
+Risks / gaps
+- `strategy_drafter_timeout_seconds` is a single bound for the whole `instructor` call, including its internal schema-retries — a slow-but-not-hung provider could still hit the timeout mid-retry; acceptable per the single-shot, bounded-retry design (ADR-0011).

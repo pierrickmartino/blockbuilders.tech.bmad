@@ -41,6 +41,7 @@ class Settings(BaseSettings):
     strategy_drafter_provider: str = "anthropic"
     strategy_drafter_model: str = "claude-sonnet-4-6"
     strategy_drafter_base_url: str = ""
+    strategy_drafter_timeout_seconds: float = 30.0
     anthropic_api_key: str = ""
     openai_api_key: str = ""
     openrouter_api_key: str = ""

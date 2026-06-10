@@ -278,3 +278,41 @@ def test_draft_from_nl_compile_error_persists_nothing(client, auth_headers, sess
 
     assert session.exec(select(Strategy).where(Strategy.user_id == user.id)).first() is None
     assert session.exec(select(StrategyDraft)).first() is None
+
+
+# ── slice 5: infra-failure path — timeout/provider error -> retryable ────
+#
+# Provider timeouts, 5xx/rate-limit/auth errors, and exhausted instructor
+# schema-retries map to the envelope's *error* path (HTTP error response),
+# distinct from the `declined` refusal (`success: true`). Nothing persists,
+# and no provider/key/exception detail leaks to the client.
+
+def test_draft_from_nl_infra_failure_returns_error_and_persists_nothing(
+    client, auth_headers, session, user, monkeypatch
+):
+    from app.services.strategy_drafter import StrategyDrafterError
+
+    monkeypatch.setattr(settings, "strategy_drafter_enabled", True)
+
+    class _RaisingDrafter:
+        def draft(self, nl_text: str):
+            raise StrategyDrafterError("Couldn't draft a strategy right now. Please try again in a moment.")
+
+    monkeypatch.setattr("app.api.strategies.get_strategy_drafter", lambda: _RaisingDrafter())
+
+    response = client.post(
+        "/strategies/draft-from-nl",
+        json={"nl_text": "buy when RSI drops below 30", "asset": "BTC/USDT", "timeframe": "1d"},
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 503
+    body = response.json()
+    assert "try again" in body["detail"].lower()
+    # No internal/provider detail leaks to the client.
+    assert "anthropic" not in body["detail"].lower()
+    assert "openai" not in body["detail"].lower()
+    assert "api key" not in body["detail"].lower()
+
+    assert session.exec(select(Strategy).where(Strategy.user_id == user.id)).first() is None
+    assert session.exec(select(StrategyDraft)).first() is None

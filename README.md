@@ -192,6 +192,7 @@ Key configuration (see `backend/app/core/config.py`):
 | `STRATEGY_DRAFTER_PROVIDER` | `anthropic` | LLM provider used by the Strategy drafter: `anthropic`, `openai`, or `openrouter` (ADR-0011) |
 | `STRATEGY_DRAFTER_MODEL` | `claude-sonnet-4-6` | LLM model used by the Strategy drafter |
 | `STRATEGY_DRAFTER_BASE_URL` | (empty) | Optional base URL override for the selected provider's client (proxy/self-host); OpenRouter defaults to its API URL when unset |
+| `STRATEGY_DRAFTER_TIMEOUT_SECONDS` | 30 | Per-request timeout for the Strategy drafter's LLM call; a hung provider yields a retryable error instead of hanging the request |
 | `ANTHROPIC_API_KEY` | (empty) | Anthropic API key (server-side only); required when `STRATEGY_DRAFTER_PROVIDER=anthropic` and the wedge is enabled |
 | `OPENAI_API_KEY` | (empty) | OpenAI API key (server-side only); required when `STRATEGY_DRAFTER_PROVIDER=openai` and the wedge is enabled |
 | `OPENROUTER_API_KEY` | (empty) | OpenRouter API key (server-side only); required when `STRATEGY_DRAFTER_PROVIDER=openrouter` and the wedge is enabled |

@@ -98,6 +98,25 @@ class FakeInstructorClient:
         self.chat = _FakeChat(result, self.calls)
 
 
+class _FakeRaisingCompletions:
+    def __init__(self, exc, calls):
+        self._exc = exc
+        self._calls = calls
+
+    def create(self, **kwargs):
+        self._calls.append(kwargs)
+        raise self._exc
+
+
+class FakeRaisingInstructorClient:
+    """Mimics a provider/instructor call that raises before returning."""
+
+    def __init__(self, exc):
+        self.calls: list[dict] = []
+        self.chat = _FakeChat(None, self.calls)
+        self.chat.completions = _FakeRaisingCompletions(exc, self.calls)
+
+
 def test_llm_drafter_returns_drafted_outcome_from_fake_provider():
     from app.schemas.strategy_draft_ir import DraftedBlockIR, DraftedIR, DraftedOutcome
     from app.services.strategy_drafter import LLMStrategyDrafter
@@ -144,6 +163,95 @@ def test_llm_drafter_passes_through_declined_outcome():
 
     assert result.outcome == "declined"
     assert result.reason == "No block supports that indicator."
+
+
+def test_llm_drafter_passes_configured_timeout_to_provider_call(monkeypatch):
+    from app.core.config import settings
+    from app.schemas.strategy_draft_ir import DraftedIR, DraftedOutcome
+    from app.services.strategy_drafter import LLMStrategyDrafter
+
+    monkeypatch.setattr(settings, "strategy_drafter_timeout_seconds", 12.5)
+
+    fake_result = DraftedOutcome(ir=DraftedIR(blocks=[], connections=[]))
+    client = FakeInstructorClient(fake_result)
+
+    drafter = LLMStrategyDrafter(client=client, model="claude-sonnet-4-6")
+    drafter.draft("buy when RSI is oversold")
+
+    assert client.calls[0]["timeout"] == 12.5
+
+
+# ── infra-failure mapping: timeout/5xx/rate-limit/auth/retry-exhaustion ───
+#
+# These map to `StrategyDrafterError`, distinct from a `declined` refusal:
+# the endpoint maps this to the envelope's error path (issue #589).
+
+def test_llm_drafter_raises_strategy_drafter_error_on_provider_timeout():
+    import httpx
+    import anthropic
+
+    from app.services.strategy_drafter import LLMStrategyDrafter, StrategyDrafterError
+
+    request = httpx.Request("POST", "https://api.anthropic.com/v1/messages")
+    client = FakeRaisingInstructorClient(anthropic.APITimeoutError(request=request))
+
+    drafter = LLMStrategyDrafter(client=client, model="claude-sonnet-4-6")
+
+    with pytest.raises(StrategyDrafterError):
+        drafter.draft("buy when RSI is oversold")
+
+
+def test_llm_drafter_raises_strategy_drafter_error_on_rate_limit():
+    import httpx
+    import openai
+
+    from app.services.strategy_drafter import LLMStrategyDrafter, StrategyDrafterError
+
+    request = httpx.Request("POST", "https://api.openai.com/v1/chat/completions")
+    response = httpx.Response(429, request=request)
+    client = FakeRaisingInstructorClient(
+        openai.RateLimitError("rate limited", response=response, body=None)
+    )
+
+    drafter = LLMStrategyDrafter(client=client, model="gpt-4o")
+
+    with pytest.raises(StrategyDrafterError):
+        drafter.draft("buy when RSI is oversold")
+
+
+def test_llm_drafter_raises_strategy_drafter_error_on_retry_exhaustion():
+    from instructor.core import InstructorRetryException
+
+    from app.services.strategy_drafter import LLMStrategyDrafter, StrategyDrafterError
+
+    client = FakeRaisingInstructorClient(
+        InstructorRetryException("schema retries exhausted", n_attempts=3, total_usage=0)
+    )
+
+    drafter = LLMStrategyDrafter(client=client, model="claude-sonnet-4-6")
+
+    with pytest.raises(StrategyDrafterError):
+        drafter.draft("buy when RSI is oversold")
+
+
+def test_strategy_drafter_error_message_does_not_leak_provider_detail():
+    import httpx
+    import anthropic
+
+    from app.services.strategy_drafter import LLMStrategyDrafter, StrategyDrafterError
+
+    request = httpx.Request("POST", "https://api.anthropic.com/v1/messages")
+    secret_detail = "sk-ant-super-secret-key-12345"
+    client = FakeRaisingInstructorClient(
+        anthropic.APIError(secret_detail, request=request, body=None)
+    )
+
+    drafter = LLMStrategyDrafter(client=client, model="claude-sonnet-4-6")
+
+    with pytest.raises(StrategyDrafterError) as exc_info:
+        drafter.draft("buy when RSI is oversold")
+
+    assert secret_detail not in str(exc_info.value)
 
 
 # ── factory: switches between stub and LLM drafter based on config ───────

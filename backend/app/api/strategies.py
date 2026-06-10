@@ -39,7 +39,7 @@ from app.schemas.strategy import (
     ValidationResponse,
 )
 from app.services.graph_compiler import GraphCompilationError, compile_graph
-from app.services.strategy_drafter import get_strategy_drafter
+from app.services.strategy_drafter import StrategyDrafterError, get_strategy_drafter
 from app.services.strategy_validation import collect_validation_errors
 
 router = APIRouter(prefix="/strategies", tags=["strategies"])
@@ -194,12 +194,17 @@ def draft_strategy_from_nl(
     the drafter never sees them and must not infer them from `nl_text`.
     Three outcomes, nothing partial persists: `success` (one Strategy +
     working copy created), `declined` (drafter or validator couldn't
-    produce a usable graph), `disabled` (feature flag off).
+    produce a usable graph), `disabled` (feature flag off). A bounded-timeout
+    provider error or exhausted instructor schema-retries raises a 503 — a
+    retryable infra failure, distinct from `declined` (issue #589).
     """
     if not settings.strategy_drafter_enabled:
         return StrategyDraftFromNlResponse(outcome="disabled")
 
-    result = get_strategy_drafter().draft(data.nl_text)
+    try:
+        result = get_strategy_drafter().draft(data.nl_text)
+    except StrategyDrafterError as exc:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc))
 
     if result.outcome == "declined":
         return StrategyDraftFromNlResponse(outcome="declined", reason=result.reason)
