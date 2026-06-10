@@ -1,5 +1,24 @@
 # Tasks — in flight
 
+## NL wedge slice 3: full catalogue ∪ risk-block vocabulary — DrafterVocabulary projection (Issue #586, implemented)
+
+Backend
+- [x] `app/services/drafter_vocabulary.py` (new) — pure, zero-I/O `DrafterVocabulary` projection (ADR-0011 decision 6): `RISK_BLOCK_SPECS` (hand-defined `BlockSpec`s for the 6 inline risk/exit blocks, bounds mirroring `strategy_validation.validate_block_params`), `vocabulary_block_types()` (catalogue ∪ risk blocks, sorted by category/type), `vocabulary_spec`/`vocabulary_param_specs`/`vocabulary_description` (per-type lookups, `ParamSpec`s straight from `BlockSpec.params`), `render_prompt_vocabulary()` (compact prompt text grouped by category — label, one-liner "what it does/when to use", param shapes). A block not in the hand-curated `_DESCRIPTIONS` dict falls back to `f"{label} ({category} block)."`, so newly-catalogued blocks remain draftable with no change here.
+- [x] `app/schemas/strategy_draft_ir.py` — `BlockType` is now `Literal[tuple(vocabulary_block_types())]`, derived from the catalogue ∪ risk-block union (29 types, up from the slice-2 hand-listed 15) instead of a static hand-listed `Literal`.
+- [x] `app/services/strategy_drafter.py` — `_SYSTEM_PROMPT`'s "Available block types" section is now generated via `render_prompt_vocabulary()` instead of a hand-written block list; the static "Rules" section is unchanged.
+
+Tests
+- [x] `backend/tests/test_drafter_vocabulary.py` (new, 25 cases, 100% coverage) — module purity; vocabulary == catalogue ∪ `RISK_BLOCK_SPECS` (set equality); each risk block draftable and disjoint from `CATALOGUE`; sample catalogue blocks draftable; `vocabulary_param_specs` matches `BlockSpec.params`/`RISK_BLOCK_SPECS` for every catalogue/risk type; unknown type → `()`; prompt vocabulary lists every block type, includes descriptions and param shapes; param with no min/max bound renders correctly; new-catalogue-block-auto-appears property (monkeypatch `CATALOGUE`, assert it appears in both `vocabulary_block_types()` and `render_prompt_vocabulary()`).
+
+Verification
+- [x] `cd backend && python -m pytest -q` → 949 passed, including the 25 new `test_drafter_vocabulary.py` cases
+- [x] `cd backend && python -m pytest tests/test_drafter_vocabulary.py --cov=app.services.drafter_vocabulary --cov-report=term-missing` → 100% coverage
+- [x] `ruff check` on all changed/added files → clean
+
+Risks / gaps
+- Catalogue block one-liner descriptions in `_DESCRIPTIONS` are hand-curated for all 23 current catalogue blocks + 6 risk blocks; a new catalogue block without a curated entry still appears (via the generic fallback) but with a less informative prompt description — acceptable per the acceptance criteria ("no drafter code change" required, not "no prompt-quality follow-up").
+- The `compare` block's `operator` enum now exposes all of `_OPERATOR_MAP`'s aliases (`>`, `above`, `gt`, `greater_than`, ...) in the prompt, vs. the slice-2 hand-written prompt's terse `[">", "<", ">=", "<="]` — more verbose but accurate to the catalogue; not expected to affect drafting quality since `instructor` retries on schema mismatches.
+
 ## NL wedge slice 1: walking skeleton — NL box → stub drafter → compile → validate → persist → canvas (Issue #584, implemented)
 
 Backend

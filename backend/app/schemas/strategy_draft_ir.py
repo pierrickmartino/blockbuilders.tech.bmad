@@ -15,27 +15,13 @@ from typing import Annotated, Any, Literal, Union
 
 from pydantic import BaseModel, Field
 
-# The drafter's vocabulary: a minimal hand-listed subset of the block
-# catalogue (ADR-0011). Every type here must be resolvable by
-# `GraphCompiler` via `catalogue_lookup()`. Full catalogue projection is a
-# future slice.
-BlockType = Literal[
-    "rsi",
-    "sma",
-    "ema",
-    "constant",
-    "price",
-    "compare",
-    "crossover",
-    "entry_signal",
-    "exit_signal",
-    "stop_loss",
-    "take_profit",
-    "trailing_stop",
-    "time_exit",
-    "position_size",
-    "max_drawdown",
-]
+from app.services.drafter_vocabulary import vocabulary_block_types
+
+# The drafter's vocabulary: the Block Catalogue ∪ the inline risk blocks,
+# projected by `DrafterVocabulary` (ADR-0011). Every type here is resolvable
+# by `GraphCompiler` via `catalogue_lookup()` or is one of the six inline
+# risk blocks. New catalogue blocks appear here automatically.
+BlockType = Literal[tuple(vocabulary_block_types())]
 
 
 class DraftedBlockIR(BaseModel):
