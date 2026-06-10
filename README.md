@@ -206,6 +206,17 @@ MinIO root credentials for local storage (used by Docker Compose):
 | `MINIO_ROOT_USER` | `minioadmin` | MinIO root user |
 | `MINIO_ROOT_PASSWORD` | `minioadmin` | MinIO root password |
 
+Frontend build-time variables (`NEXT_PUBLIC_*`, inlined at build time — passed as build args in `frontend/Dockerfile` and `docker-compose.yml`):
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `NEXT_PUBLIC_POSTHOG_KEY` | - | PostHog project key (frontend analytics) |
+| `NEXT_PUBLIC_POSTHOG_HOST` | `https://us.i.posthog.com` | PostHog ingestion host |
+| `NEXT_PUBLIC_APP_ENV` | `development` | App environment; gates dev-only flag overrides |
+| `NEXT_PUBLIC_DEV_FORCE_CANVAS_FLAG_HEALTH_BAR` | - | Dev-only override for the `canvas_flag_health_bar` feature flag |
+| `NEXT_PUBLIC_DEV_FORCE_CANVAS_FLAG_INLINE_POPOVER` | - | Dev-only override for the `canvas_flag_inline_popover` feature flag |
+| `NEXT_PUBLIC_DEV_FORCE_WJL_VARIANT` | - | Dev-only override for the `wjl_retention_ab` experiment (ADR-0010); set to `control` or `test` to force the What-you-learned card variant without PostHog/consent. Ignored outside a dev environment. |
+
 ## Production Deployment
 
 Use the production compose file and an explicit env file:
