@@ -5,13 +5,15 @@ from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.core.config import settings
+from app.core.config import settings, validate_strategy_drafter_config
 from app.core.logging import setup_logging, correlation_id_var, generate_correlation_id
 from app.services.exceptions import DomainError
 
 setup_logging()
 
 logger = logging.getLogger(__name__)
+
+validate_strategy_drafter_config(settings)
 
 from app.api.alerts import router as alerts_router
 from app.api.auth import router as auth_router

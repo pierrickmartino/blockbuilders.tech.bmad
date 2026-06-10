@@ -567,3 +567,25 @@ Verification
 Risks / gaps
 - Frontend test runner not present in this repo (no `npm test` script); per direction, no Vitest/RTL added — TC-01/02/03/04/07/09/10 cannot be auto-verified, only via manual + Storybook.
 - 11 unrelated backend tests still fail on main (`test_api_auth`, `test_billing`) — pre-existing 401/403 idiom & Stripe webhook setup, untouched by this feature.
+
+---
+
+## Issue #588 — NL wedge slice 6: provider-agnostic drafter config (done)
+
+Backend
+- [x] `app/core/config.py`: added `strategy_drafter_base_url`, `openai_api_key`, `openrouter_api_key`; added `STRATEGY_DRAFTER_PROVIDER_KEYS` map and `validate_strategy_drafter_config()` (fail-fast for the *selected* provider only)
+- [x] `app/main.py`: calls `validate_strategy_drafter_config(settings)` at startup
+- [x] `app/services/strategy_drafter.py`: `get_strategy_drafter()` now selects the `instructor` client (`from_anthropic` / `from_openai`) per `strategy_drafter_provider`, applies `strategy_drafter_base_url` (OpenRouter defaults to `https://openrouter.ai/api/v1` when unset), and looks up the per-provider key via `STRATEGY_DRAFTER_PROVIDER_KEYS`
+- [x] `requirements.txt`: added explicit `openai` dependency (now imported directly)
+- [x] `.env.example` / `README.md`: documented `STRATEGY_DRAFTER_BASE_URL`, `OPENAI_API_KEY`, `OPENROUTER_API_KEY`
+
+Tests
+- [x] `tests/test_strategy_drafter.py`: client selection per provider (anthropic/openai/openrouter), base_url override, stub fallback when selected key missing
+- [x] `tests/test_config.py` (new): startup validation — disabled skips check, missing selected key raises, present key passes, other providers' keys not required, unsupported provider raises
+
+Verification
+- [x] `pytest -q` → 962 passed
+- [x] Manual: `STRATEGY_DRAFTER_ENABLED=true` + missing selected key → `import app.main` raises `RuntimeError`; with key set → imports cleanly
+
+Risks / gaps
+- `docker-compose.yml` not changed — backend secrets are passed via `env_file: .env` (no per-service `environment:` entries for existing keys like `ANTHROPIC_API_KEY`, `RESEND_API_KEY`, etc.), so the new keys follow the same pattern.

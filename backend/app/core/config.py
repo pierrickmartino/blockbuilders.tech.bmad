@@ -40,7 +40,10 @@ class Settings(BaseSettings):
     strategy_drafter_enabled: bool = False
     strategy_drafter_provider: str = "anthropic"
     strategy_drafter_model: str = "claude-sonnet-4-6"
+    strategy_drafter_base_url: str = ""
     anthropic_api_key: str = ""
+    openai_api_key: str = ""
+    openrouter_api_key: str = ""
 
     # Data quality validation
     data_quality_lookback_days: int = 90
@@ -92,3 +95,35 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+# Maps each `strategy_drafter_provider` value to the Settings field holding
+# its API key (ADR-0011). Used by the drafter factory and startup validation.
+STRATEGY_DRAFTER_PROVIDER_KEYS: dict[str, str] = {
+    "anthropic": "anthropic_api_key",
+    "openai": "openai_api_key",
+    "openrouter": "openrouter_api_key",
+}
+
+
+def validate_strategy_drafter_config(settings: "Settings") -> None:
+    """Fail fast if the *selected* drafter provider's API key is missing.
+
+    Only runs when `strategy_drafter_enabled` is true. Unused providers'
+    keys are not required.
+    """
+    if not settings.strategy_drafter_enabled:
+        return
+
+    provider = settings.strategy_drafter_provider
+    key_field = STRATEGY_DRAFTER_PROVIDER_KEYS.get(provider)
+    if key_field is None:
+        raise RuntimeError(
+            f"strategy_drafter_provider={provider!r} is not supported "
+            f"(expected one of {sorted(STRATEGY_DRAFTER_PROVIDER_KEYS)})"
+        )
+
+    if not getattr(settings, key_field):
+        raise RuntimeError(
+            f"strategy_drafter_enabled=true requires {key_field} to be set "
+            f"for strategy_drafter_provider={provider!r}"
+        )

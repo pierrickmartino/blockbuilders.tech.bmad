@@ -189,9 +189,12 @@ Key configuration (see `backend/app/core/config.py`):
 | `SCHEDULER_ENABLED` | true | Enable/disable scheduled jobs |
 | `SCHEDULER_HOUR_UTC` | 2 | Hour (UTC) for daily scheduler run |
 | `STRATEGY_DRAFTER_ENABLED` | false | Enable the NL wedge `POST /strategies/draft-from-nl` endpoint |
-| `STRATEGY_DRAFTER_PROVIDER` | `anthropic` | LLM provider used by the Strategy drafter (ADR-0011) |
+| `STRATEGY_DRAFTER_PROVIDER` | `anthropic` | LLM provider used by the Strategy drafter: `anthropic`, `openai`, or `openrouter` (ADR-0011) |
 | `STRATEGY_DRAFTER_MODEL` | `claude-sonnet-4-6` | LLM model used by the Strategy drafter |
-| `ANTHROPIC_API_KEY` | (empty) | Anthropic API key (server-side only); falls back to the stub drafter when unset |
+| `STRATEGY_DRAFTER_BASE_URL` | (empty) | Optional base URL override for the selected provider's client (proxy/self-host); OpenRouter defaults to its API URL when unset |
+| `ANTHROPIC_API_KEY` | (empty) | Anthropic API key (server-side only); required when `STRATEGY_DRAFTER_PROVIDER=anthropic` and the wedge is enabled |
+| `OPENAI_API_KEY` | (empty) | OpenAI API key (server-side only); required when `STRATEGY_DRAFTER_PROVIDER=openai` and the wedge is enabled |
+| `OPENROUTER_API_KEY` | (empty) | OpenRouter API key (server-side only); required when `STRATEGY_DRAFTER_PROVIDER=openrouter` and the wedge is enabled |
 | `CORS_ORIGINS` | `http://localhost:3000` | Comma-separated allowed origins |
 | `DEFAULT_MAX_STRATEGIES` | 10 | Max strategies per user |
 | `DEFAULT_MAX_BACKTESTS_PER_DAY` | 50 | Max backtests per day |
