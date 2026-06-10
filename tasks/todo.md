@@ -614,3 +614,20 @@ Verification
 
 Risks / gaps
 - `strategy_drafter_timeout_seconds` is a single bound for the whole `instructor` call, including its internal schema-retries — a slow-but-not-hung provider could still hit the timeout mid-retry; acceptable per the single-shot, bounded-retry design (ADR-0011).
+
+## Issue #590 — NL wedge slice 7: draft-funnel instrumentation (done)
+
+Frontend
+- [x] `app/(app)/strategies/draft/page.tsx`: `handleSubmit` now fires consent-gated PostHog events via the existing `trackEvent` wrapper — `nl_draft_requested` on every real submit (after the empty-text guard), then exactly one of `nl_draft_drafted` (success), `nl_draft_declined` (declined outcome, includes `reason`), or `nl_draft_errored` (catch block, infra failure). All events carry `{ asset, timeframe, ...resolveCohort("nl_wedge") }` (`entry_path: "nl_wedge"`, `authoring_mode: "nl"`), consistent with the existing `strategy_created`/`results_viewed` events. The `disabled` outcome (feature flag off) is not part of the success/refusal/infra-failure taxonomy — `nl_draft_requested` fires but none of the three terminal events do. No new DB column for `authoring_mode` (cohort stays derived client-side).
+
+Tests
+- [x] `app/(app)/strategies/draft/__tests__/draft-page.test.tsx`: extended to 6 tests — added a case asserting `nl_draft_requested` does not fire on the empty-description client-side guard, and assertions for `nl_draft_requested`/`nl_draft_drafted` (success), `nl_draft_requested`/`nl_draft_declined` (declined), `nl_draft_requested`/`nl_draft_errored` (infra failure, with drafted/declined NOT firing), and `nl_draft_requested` only (disabled, with none of the three terminal events firing).
+
+Verification
+- [x] `npx vitest run "src/app/(app)/strategies/draft/__tests__/draft-page.test.tsx"` → 6 passed
+- [x] `npx vitest run "src/app/(app)/strategies"` → 24 passed (no regressions in sibling strategy tests)
+- [x] `npx tsc --noEmit` → clean
+- [x] `npx eslint` on changed files → clean
+
+Risks / gaps
+- None. No env vars added/changed; PostHog wiring and consent gating reused as-is.

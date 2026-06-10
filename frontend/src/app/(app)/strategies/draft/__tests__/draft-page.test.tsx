@@ -51,6 +51,15 @@ describe("DraftFromNlPage", () => {
     expect(screen.getByRole("button", { name: /generate strategy/i })).toBeInTheDocument();
   });
 
+  it("does not fire nl_draft_requested when the description is empty", () => {
+    render(<DraftFromNlPage />);
+    fireEvent.click(screen.getByRole("button", { name: /generate strategy/i }));
+
+    expect(screen.getByText(/describe your strategy first/i)).toBeInTheDocument();
+    expect(mockStrategiesClient.draftFromNl).not.toHaveBeenCalled();
+    expect(mockTrackEvent).not.toHaveBeenCalledWith("nl_draft_requested", expect.anything(), expect.anything());
+  });
+
   it("submits nl_text with the selected asset/timeframe, shows a loading state, and navigates to the canvas on success", async () => {
     let resolveDraft: (value: StrategyDraftFromNlResponse) => void = () => {};
     mockStrategiesClient.draftFromNl.mockReturnValue(
@@ -70,11 +79,23 @@ describe("DraftFromNlPage", () => {
 
     expect(screen.getByRole("button", { name: /generating/i })).toBeDisabled();
 
+    expect(mockTrackEvent).toHaveBeenCalledWith(
+      "nl_draft_requested",
+      expect.objectContaining({ entry_path: "nl_wedge", authoring_mode: "nl" }),
+      "user-1"
+    );
+
     resolveDraft({ outcome: "success", strategy_id: "strategy-1", reason: null });
 
     await waitFor(() => {
       expect(mockPush).toHaveBeenCalledWith("/strategies/strategy-1");
     });
+
+    expect(mockTrackEvent).toHaveBeenCalledWith(
+      "nl_draft_drafted",
+      expect.objectContaining({ entry_path: "nl_wedge", authoring_mode: "nl" }),
+      "user-1"
+    );
 
     expect(mockTrackEvent).toHaveBeenCalledWith(
       "strategy_created",
@@ -98,6 +119,19 @@ describe("DraftFromNlPage", () => {
     });
     expect(screen.getByText(/rephrasing your idea/i)).toBeInTheDocument();
     expect(mockPush).not.toHaveBeenCalled();
+
+    expect(mockTrackEvent).toHaveBeenCalledWith(
+      "nl_draft_requested",
+      expect.objectContaining({ entry_path: "nl_wedge", authoring_mode: "nl" }),
+      "user-1"
+    );
+    expect(mockTrackEvent).toHaveBeenCalledWith(
+      "nl_draft_declined",
+      expect.objectContaining({ entry_path: "nl_wedge", authoring_mode: "nl" }),
+      "user-1"
+    );
+    expect(mockTrackEvent).not.toHaveBeenCalledWith("nl_draft_drafted", expect.anything(), expect.anything());
+    expect(mockTrackEvent).not.toHaveBeenCalledWith("nl_draft_errored", expect.anything(), expect.anything());
   });
 
   it("shows a transient retry message, distinct from a refusal, on infra failure", async () => {
@@ -113,6 +147,19 @@ describe("DraftFromNlPage", () => {
     expect(alert).toHaveClass("text-destructive");
     expect(screen.queryByText(/rephrasing your idea/i)).not.toBeInTheDocument();
     expect(mockPush).not.toHaveBeenCalled();
+
+    expect(mockTrackEvent).toHaveBeenCalledWith(
+      "nl_draft_requested",
+      expect.objectContaining({ entry_path: "nl_wedge", authoring_mode: "nl" }),
+      "user-1"
+    );
+    expect(mockTrackEvent).toHaveBeenCalledWith(
+      "nl_draft_errored",
+      expect.objectContaining({ entry_path: "nl_wedge", authoring_mode: "nl" }),
+      "user-1"
+    );
+    expect(mockTrackEvent).not.toHaveBeenCalledWith("nl_draft_drafted", expect.anything(), expect.anything());
+    expect(mockTrackEvent).not.toHaveBeenCalledWith("nl_draft_declined", expect.anything(), expect.anything());
   });
 
   it("shows a disabled message when the drafter feature flag is off", async () => {
@@ -129,5 +176,14 @@ describe("DraftFromNlPage", () => {
       expect(screen.getByText(/not available/i)).toBeInTheDocument();
     });
     expect(mockPush).not.toHaveBeenCalled();
+
+    expect(mockTrackEvent).toHaveBeenCalledWith(
+      "nl_draft_requested",
+      expect.objectContaining({ entry_path: "nl_wedge", authoring_mode: "nl" }),
+      "user-1"
+    );
+    expect(mockTrackEvent).not.toHaveBeenCalledWith("nl_draft_drafted", expect.anything(), expect.anything());
+    expect(mockTrackEvent).not.toHaveBeenCalledWith("nl_draft_declined", expect.anything(), expect.anything());
+    expect(mockTrackEvent).not.toHaveBeenCalledWith("nl_draft_errored", expect.anything(), expect.anything());
   });
 });
