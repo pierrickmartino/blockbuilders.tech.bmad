@@ -26,5 +26,6 @@ Do not re-plan. Do not ask architectural questions.
 - List every file changed.
 - State tests run and whether they passed.
 - State docs updated (or explain why not).
+- If any env var was added/removed, double-check it is propagated to all layers (`.env.example`, `README.md`, `backend/app/core/config.py` or `frontend/Dockerfile` + `docker-compose.yml`).
 - Update tasks/todo.md and tasks/lessons.md.
 - Flag remaining risks.
