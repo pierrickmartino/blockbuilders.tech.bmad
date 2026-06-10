@@ -278,7 +278,7 @@ In PostHog, add an **annotation** on **`2026-06-07`** reading e.g. *"Activation 
 
 Sample a handful of `distinct_id`s that appear in the canonical funnel and confirm **each resolves to an identified person** (has a `$identify` event in its history). If anonymous-only `distinct_id`s show up in the funnel, the consent/identity gating broke — investigate before trusting the number.
 
-### HITL checklist
+### HITL checklist (north-star — Actions 1–7)
 
 - [ ] Events confirmed arriving with correct properties (Action 1)
 - [ ] Canonical funnel: `signup_completed → results_viewed`, unique users, first-time, no window cap (Action 3)
@@ -287,6 +287,106 @@ Sample a handful of `distinct_id`s that appear in the canonical funnel and confi
 - [ ] Dashboard caption documents consent scope, no-backfill/cutover, and proxy semantics (Action 5)
 - [ ] `2026-06-07` cutover annotation added (Action 6)
 - [ ] Spot-checked funnel `distinct_id`s all have an `$identify` event (Action 7)
+
+---
+
+## Manual PostHog Actions — Diagnostic Layer (drop-off cohorts)
+
+> **Tracks GitHub [#561](https://github.com/pierrickmartino/blockbuilders.tech.bmad/issues/561)** — HITL. Spec: [`activation-metric-runbook.md`](docs/activation-metric-runbook.md) §7 and [ADR-0009](docs/adr/0009-activation-drop-off-cohorts.md). **Only start once the cohort events are actually flowing** (the `entry_path` column is stamped on all four creation paths and `results_viewed` carries `entry_path` / `authoring_mode`). This layer is a **diagnostic** — it never replaces the canonical north-star above.
+
+### Action 8 — Build the drop-off diagnostic funnel
+
+On the **existing "Activation north-star" dashboard**, add a **second, clearly labelled** funnel insight — e.g. **"Activation drop-off by step (diagnostic — not the activation rate)"**. Use **"any-of" event mapping** per step:
+
+| Step | Milestone | Event(s) |
+|------|-----------|----------|
+| 1 | Signed up | `signup_completed` |
+| 2 | Strategy authored | `strategy_created` (any source) |
+| 3 | Backtest enqueued | `backtest_started` **or** `auto_backtest_started` |
+| 4 | Verdict viewed | `results_viewed` |
+
+- **Label it a diagnostic.** Its overall conversion is *stricter* than the canonical §1 rate (it requires steps 2–3) and must **never** be quoted as "the activation rate", summed with, or compared to the canonical 2-step funnel. The "biggest drop-off step" is simply the largest step-to-step fall in this viz.
+- Keep the canonical 2-step funnel (Action 3) **untouched and visibly separated** from this diagnostic.
+
+### Action 9 — Break down by `entry_path` with attribution at "strategy authored"
+
+- **Breakdown** the diagnostic funnel by `entry_path` (`wizard | blank_canvas | template_clone | nl_wedge`), optionally also `authoring_mode` (`nl | manual`).
+- **Attribution at step 2 ("Strategy authored")** — the first step where the path is known. **First-touch, per-user**: a user is attributed to their *first* authored strategy's `entry_path`.
+- Users who **bounce between step 1 and step 2** have no path → name that bucket **"(no path — bounced before authoring)"** rather than hiding it.
+- Strategies created **before** the `entry_path` column existed have `entry_path = null` → surface them as an explicit **`unknown`** cohort. Never retro-guess a path.
+
+### Action 10 — Add the `time_to_activation` tile
+
+- Add a tile reading the funnel's **PostHog-native time-to-convert** from `signup_completed` to first `results_viewed` (median / p90 / distribution), **sliceable by `entry_path`**.
+- **No client-side number / no new event or numeric property** — read it off the funnel so it can never drift. Do **not** call this `time_to_first_backtest` (that implies the job/run; see ADR-0008).
+
+### Action 11 — Add the cohort cutover annotation (separate from `2026-06-07`)
+
+- Add a **second annotation** on the **`entry_path` deploy date** (the date all four creation paths started stamping the column) — **distinct** from the `2026-06-07` activation cutover.
+- Entry-path breakdowns are trustworthy **only from that date** — start them there.
+- The canonical 2-step series (§1) keeps running **unbroken from `2026-06-07`** and is never re-based to this newer date.
+
+### HITL checklist (diagnostic layer — Actions 8–11)
+
+- [ ] Diagnostic funnel built (4 steps, any-of mapping), labelled "diagnostic — not the activation rate", on the existing dashboard (Action 8)
+- [ ] Breakdown by `entry_path`, attribution at step 2; "(no path)" bounce bucket named; `unknown` cohort visible (Action 9)
+- [ ] `time_to_activation` tile = funnel time-to-convert, sliceable by `entry_path`, no client-side number (Action 10)
+- [ ] Cohort cutover annotation added on the `entry_path` deploy date; no backfill of pre-column strategies (Action 11)
+- [ ] Canonical 2-step funnel unchanged, continues from `2026-06-07`, never summed/compared with the diagnostic (Actions 8 & 11)
+
+---
+
+## Manual PostHog Actions — Retention A/B Experiment (`wjl_retention_ab`)
+
+> **Tracks GitHub [#573](https://github.com/pierrickmartino/blockbuilders.tech.bmad/issues/573)** — HITL. Spec: [ADR-0010](docs/adr/0010-what-you-learned-retention-ab.md). This experiment manipulates **only the `WhatYouLearnedCard`**; the always-on `NarrativeCard` stays on in **both** arms. **Do not start it until exposure data is confirmed flowing** from the code path (the card wired behind the flag) — see Action 14.
+
+### Action 12 — Create the `wjl_retention_ab` experiment
+
+In **Experiments**, create an experiment on the feature flag **`wjl_retention_ab`**:
+
+| Setting | Value |
+|---------|-------|
+| Variants | `control` / `test` |
+| Split | **50 / 50** |
+| Assignment | Per identified **`user.id`** (sticky, first-touch — `posthog.identify` runs at auth) |
+| Statistics | **Two-sided, 95% significance / 80% power** on the primary metric |
+| Duration | Let **PostHog's calculator** set it from the **live baseline** |
+
+- Enrollment is read **once per user**, at the first benchmark-present completed verdict (the card's true eligibility). Unenrolled users (declined consent, PostHog not ready, flag unresolved) default to **seeing the card** — so the analyzed population is consenting users with a resolved variant.
+
+### Action 13 — Define the metrics
+
+| Metric | Type | Definition |
+|--------|------|------------|
+| **Second-backtest-rate** | **Primary** | User has **≥ 2 distinct `run_id`s** with a `results_viewed` within **7 days** of enrollment. **Distinct `run_id`s, not raw event count** — the in-memory `results_viewed` dedup resets on reload. View-based, consistent with ADR-0008. |
+| **7-day return-rate** | Secondary | **≥ 1 `page_view`** on a calendar day **after** the enrollment day, within 7 days. |
+| **Activation rate** | **Guardrail** | Must stay **flat** across arms. `results_viewed` fires independently of the card, so any movement signals an **instrumentation bug, not an effect** — investigate before trusting the result. |
+
+- No event-schema change: PostHog joins these to the experiment via the flag-exposure event; `results_viewed` / `page_view` payloads are untouched.
+
+### Action 14 — Confirm exposure before starting
+
+Before pressing **Start**, confirm the flag-exposure (`$feature_flag_called`) events for `wjl_retention_ab` are actually arriving from the code path, with both `control` and `test` appearing. **If no exposure is flowing, fix the deployment first** — an experiment with no exposure data produces nothing.
+
+### Action 15 — Record the pre-registered decision rules in the runbook
+
+Capture the experiment definition and **both** rules in [`docs/activation-metric-runbook.md`](docs/activation-metric-runbook.md) so they travel with the result:
+
+- **Three-way ship rule (pre-registered):**
+  - **Positive & significant** → keep the card for all + greenlight #12/#19.
+  - **Null** → keep the card (cheap, harmless); do **not** greenlight #12/#19 on this evidence.
+  - **Negative** → remove the card.
+- **Null-interpretation guard (must be recorded with the experiment):** because the always-on `NarrativeCard` is present in **both** arms, a null disproves only the *incremental* value of the What-you-learned card **on top of** the existing narrative — **not** the broader severity-as-retention thesis. Do **not** cancel #12/#19 on a misread.
+
+### HITL checklist (retention A/B — Actions 12–15)
+
+- [ ] `wjl_retention_ab` experiment created: `control` / `test`, 50/50, per-`user.id` sticky assignment (Action 12)
+- [ ] Primary metric = ≥ 2 distinct `run_id`s with `results_viewed` within 7 days of enrollment (Action 13)
+- [ ] Secondary metric = ≥ 1 `page_view` on a later calendar day within 7 days (Action 13)
+- [ ] Activation-rate guardrail configured and confirmed flat across arms after launch (Action 13)
+- [ ] Powering/duration set from the live baseline (two-sided, 95% / 80%) (Action 12)
+- [ ] Exposure confirmed flowing before the experiment is started (Action 14)
+- [ ] Runbook records the experiment definition, all three metrics, the three-way ship rule, and the null-interpretation guard (Action 15)
 
 ---
 
