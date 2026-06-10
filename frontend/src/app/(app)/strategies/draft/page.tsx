@@ -52,6 +52,9 @@ export default function DraftFromNlPage() {
     setError(null);
     setStatus(null);
 
+    const cohort = resolveCohort("nl_wedge");
+    trackEvent("nl_draft_requested", { asset, timeframe, ...cohort }, user?.id);
+
     try {
       const result = await StrategiesApiClient.draftFromNl({
         nl_text: nlText.trim(),
@@ -68,6 +71,7 @@ export default function DraftFromNlPage() {
       }
 
       if (result.outcome === "declined") {
+        trackEvent("nl_draft_declined", { asset, timeframe, reason: result.reason, ...cohort }, user?.id);
         setStatus({
           kind: "declined",
           message: result.reason ?? "Couldn't generate a strategy from that description.",
@@ -75,13 +79,11 @@ export default function DraftFromNlPage() {
         return;
       }
 
-      trackEvent(
-        "strategy_created",
-        { asset, timeframe, source: "nl_wedge", ...resolveCohort("nl_wedge") },
-        user?.id
-      );
+      trackEvent("nl_draft_drafted", { asset, timeframe, ...cohort }, user?.id);
+      trackEvent("strategy_created", { asset, timeframe, source: "nl_wedge", ...cohort }, user?.id);
       router.push(`/strategies/${result.strategy_id}`);
     } catch (err) {
+      trackEvent("nl_draft_errored", { asset, timeframe, ...cohort }, user?.id);
       setError(
         err instanceof ApiError
           ? err.message
