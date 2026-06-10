@@ -22,6 +22,14 @@ Your only job: execute the ## Implementation Plan in the spec file.
 See .claude/skills/build-feature.md.
 Do not re-plan. Do not ask architectural questions.
 
+## Adding or removing an environment variable
+Any new/removed env var MUST be propagated to every layer in the same change — do not stop at the code that reads it:
+- `.env.example` — add the key (with a comment if non-obvious).
+- `README.md` § Environment Variables — document name, default, and purpose.
+- Backend vars: `backend/app/core/config.py`.
+- Frontend `NEXT_PUBLIC_*` vars: `frontend/Dockerfile` (`ARG` + `ENV`) and `docker-compose.yml` build args — they are inlined at build time. Add to `docker-compose.prod.yml` too if used in prod.
+- Grep the repo for a sibling var (e.g. an existing `NEXT_PUBLIC_DEV_FORCE_*`) and mirror every place it appears.
+
 ## After coding
 - List every file changed.
 - State tests run and whether they passed.
