@@ -159,3 +159,91 @@ def test_get_strategy_drafter_returns_llm_drafter_when_api_key_configured(monkey
 
     assert isinstance(drafter, LLMStrategyDrafter)
     assert drafter._model == "claude-sonnet-4-6"
+
+
+# ── factory: provider-agnostic client selection (ADR-0011, issue #588) ───
+
+def test_get_strategy_drafter_builds_anthropic_client_for_anthropic_provider(monkeypatch):
+    import anthropic
+
+    from app.core.config import settings
+    from app.services.strategy_drafter import LLMStrategyDrafter, get_strategy_drafter
+
+    monkeypatch.setattr(settings, "strategy_drafter_provider", "anthropic")
+    monkeypatch.setattr(settings, "anthropic_api_key", "sk-ant-test-key")
+    monkeypatch.setattr(settings, "openai_api_key", "")
+    monkeypatch.setattr(settings, "openrouter_api_key", "")
+    monkeypatch.setattr(settings, "strategy_drafter_base_url", "")
+
+    drafter = get_strategy_drafter()
+
+    assert isinstance(drafter, LLMStrategyDrafter)
+    assert isinstance(drafter._client.client, anthropic.Anthropic)
+
+
+def test_get_strategy_drafter_builds_openai_client_for_openai_provider(monkeypatch):
+    import openai
+
+    from app.core.config import settings
+    from app.services.strategy_drafter import LLMStrategyDrafter, get_strategy_drafter
+
+    monkeypatch.setattr(settings, "strategy_drafter_provider", "openai")
+    monkeypatch.setattr(settings, "anthropic_api_key", "")
+    monkeypatch.setattr(settings, "openai_api_key", "sk-openai-test-key")
+    monkeypatch.setattr(settings, "openrouter_api_key", "")
+    monkeypatch.setattr(settings, "strategy_drafter_base_url", "")
+
+    drafter = get_strategy_drafter()
+
+    assert isinstance(drafter, LLMStrategyDrafter)
+    assert isinstance(drafter._client.client, openai.OpenAI)
+    assert str(drafter._client.client.base_url) == "https://api.openai.com/v1/"
+
+
+def test_get_strategy_drafter_builds_openrouter_client_with_default_base_url(monkeypatch):
+    import openai
+
+    from app.core.config import settings
+    from app.services.strategy_drafter import LLMStrategyDrafter, get_strategy_drafter
+
+    monkeypatch.setattr(settings, "strategy_drafter_provider", "openrouter")
+    monkeypatch.setattr(settings, "anthropic_api_key", "")
+    monkeypatch.setattr(settings, "openai_api_key", "")
+    monkeypatch.setattr(settings, "openrouter_api_key", "sk-or-test-key")
+    monkeypatch.setattr(settings, "strategy_drafter_base_url", "")
+
+    drafter = get_strategy_drafter()
+
+    assert isinstance(drafter, LLMStrategyDrafter)
+    assert isinstance(drafter._client.client, openai.OpenAI)
+    assert str(drafter._client.client.base_url) == "https://openrouter.ai/api/v1/"
+
+
+def test_get_strategy_drafter_uses_configured_base_url_override(monkeypatch):
+    from app.core.config import settings
+    from app.services.strategy_drafter import LLMStrategyDrafter, get_strategy_drafter
+
+    monkeypatch.setattr(settings, "strategy_drafter_provider", "anthropic")
+    monkeypatch.setattr(settings, "anthropic_api_key", "sk-ant-test-key")
+    monkeypatch.setattr(settings, "openai_api_key", "")
+    monkeypatch.setattr(settings, "openrouter_api_key", "")
+    monkeypatch.setattr(settings, "strategy_drafter_base_url", "https://proxy.example.com")
+
+    drafter = get_strategy_drafter()
+
+    assert isinstance(drafter, LLMStrategyDrafter)
+    assert str(drafter._client.client.base_url) == "https://proxy.example.com"
+
+
+def test_get_strategy_drafter_returns_stub_when_selected_provider_key_missing(monkeypatch):
+    from app.core.config import settings
+    from app.services.strategy_drafter import StubStrategyDrafter, get_strategy_drafter
+
+    monkeypatch.setattr(settings, "strategy_drafter_provider", "openai")
+    monkeypatch.setattr(settings, "anthropic_api_key", "sk-ant-present-but-unused")
+    monkeypatch.setattr(settings, "openai_api_key", "")
+    monkeypatch.setattr(settings, "openrouter_api_key", "")
+
+    drafter = get_strategy_drafter()
+
+    assert isinstance(drafter, StubStrategyDrafter)

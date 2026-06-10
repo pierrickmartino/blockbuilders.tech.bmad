@@ -16,8 +16,9 @@ from typing import Any, Protocol
 
 import anthropic
 import instructor
+import openai
 
-from app.core.config import settings
+from app.core.config import STRATEGY_DRAFTER_PROVIDER_KEYS, settings
 from app.schemas.strategy_draft_ir import (
     DraftedBlockIR,
     DraftedConnectionIR,
@@ -117,9 +118,30 @@ class LLMStrategyDrafter:
         )
 
 
+_OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
+
+
+def _build_instructor_client(provider: str, api_key: str) -> Any:
+    base_url = settings.strategy_drafter_base_url or None
+
+    if provider == "anthropic":
+        return instructor.from_anthropic(anthropic.Anthropic(api_key=api_key, base_url=base_url))
+    if provider == "openai":
+        return instructor.from_openai(openai.OpenAI(api_key=api_key, base_url=base_url))
+    if provider == "openrouter":
+        return instructor.from_openai(
+            openai.OpenAI(api_key=api_key, base_url=base_url or _OPENROUTER_BASE_URL)
+        )
+
+    raise ValueError(f"Unsupported strategy_drafter_provider: {provider!r}")
+
+
 def get_strategy_drafter() -> StrategyDrafter:
-    if not settings.anthropic_api_key:
+    provider = settings.strategy_drafter_provider
+    key_field = STRATEGY_DRAFTER_PROVIDER_KEYS.get(provider)
+    api_key = getattr(settings, key_field, "") if key_field else ""
+    if not api_key:
         return StubStrategyDrafter()
 
-    client = instructor.from_anthropic(anthropic.Anthropic(api_key=settings.anthropic_api_key))
+    client = _build_instructor_client(provider, api_key)
     return LLMStrategyDrafter(client=client, model=settings.strategy_drafter_model)
