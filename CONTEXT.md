@@ -189,10 +189,21 @@ components with different lifecycles — keep them apart.
   Currently backend-only (`services/strategy_validation.py`).
   **Promotion committed** (not yet built): the NL wedge
   (`docs/BRAINSTORM.md` decision #3) makes it a generation-time
-  gate — every LLM-drafted graph must pass the validator (with a
+  gate — every drafted graph must pass the validator (with a
   repair pass on failure) *before* the auto-backtest, so a
   malformed draft never reaches the user. This moves it from
   optional check toward load-bearing seam.
+- **Strategy drafter** — the seam that turns a natural-language
+  idea into a candidate strategy graph (the NL wedge,
+  `docs/ACTIONS.md` #4). Provider-agnostic by design: like the
+  **Price Provider**, it abstracts an external vendor (the LLM)
+  behind one interface so the model can be swapped or configured
+  (Anthropic, OpenAI, OpenRouter, …) without touching callers. Its
+  output is untrusted and is only ever surfaced after passing the
+  **Strategy validator**; an accepted draft becomes an ordinary
+  **Working copy** (ADR-0006). _Avoid_: "draft" alone (the UI
+  already calls the working copy the "draft" — the drafter
+  *produces* one, it is not the thing produced); "generator".
 - **TradeExit vocabulary** — the enum of exit reasons (`tp`, `sl`,
   `signal`, …). Currently implicit; candidate for a small shared
   module.
