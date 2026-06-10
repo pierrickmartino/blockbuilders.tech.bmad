@@ -166,3 +166,115 @@ def test_draft_from_nl_llm_drafter_persists_strategy_and_working_copy(
     block_types = {b["type"] for b in draft.definition_json["blocks"]}
     assert block_types == {"sma", "crossover", "entry_signal", "stop_loss"}
     assert len(draft.definition_json["connections"]) == 3
+
+
+# ── slice 4: refusal path — declined arm + validator-invalid → refusal ───
+#
+# Both cases return `success: true` (HTTP 200, outcome="declined") with a
+# plain-language `reason`, and persist zero rows (no Strategy, no
+# StrategyDraft).
+
+def test_draft_from_nl_declined_by_drafter_persists_nothing(client, auth_headers, session, user, monkeypatch):
+    from app.schemas.strategy_draft_ir import DeclinedOutcome
+    from app.services.strategy_drafter import LLMStrategyDrafter
+
+    monkeypatch.setattr(settings, "strategy_drafter_enabled", True)
+
+    fake_drafter = LLMStrategyDrafter(
+        client=FakeInstructorClient(DeclinedOutcome(reason="No block supports tracking tweets.")),
+        model="claude-sonnet-4-6",
+    )
+    monkeypatch.setattr("app.api.strategies.get_strategy_drafter", lambda: fake_drafter)
+
+    response = client.post(
+        "/strategies/draft-from-nl",
+        json={"nl_text": "buy when Elon tweets", "asset": "BTC/USDT", "timeframe": "1d"},
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["outcome"] == "declined"
+    assert body["strategy_id"] is None
+    assert body["reason"] == "No block supports tracking tweets."
+
+    assert session.exec(select(Strategy).where(Strategy.user_id == user.id)).first() is None
+    assert session.exec(select(StrategyDraft)).first() is None
+
+
+def test_draft_from_nl_validator_invalid_persists_nothing(client, auth_headers, session, user, monkeypatch):
+    """A `drafted` IR that compiles but fails the Strategy validator (here:
+    an entry condition with no exit) is mapped to the same refusal shape,
+    reusing the validator's plain-language message."""
+    from app.schemas.strategy_draft_ir import DraftedBlockIR, DraftedConnectionIR, DraftedIR, DraftedOutcome
+    from app.services.strategy_drafter import LLMStrategyDrafter
+
+    monkeypatch.setattr(settings, "strategy_drafter_enabled", True)
+
+    fake_ir = DraftedIR(
+        blocks=[
+            DraftedBlockIR(ref="rsi", type="rsi", label="RSI (14)", params={"period": 14, "source": "close"}),
+            DraftedBlockIR(ref="oversold", type="constant", label="Oversold (30)", params={"value": 30}),
+            DraftedBlockIR(ref="entry_compare", type="compare", label="RSI < 30", params={"operator": "<"}),
+            DraftedBlockIR(ref="entry", type="entry_signal", label="Entry Signal", params={}),
+        ],
+        connections=[
+            DraftedConnectionIR(from_ref="rsi", from_port="output", to_ref="entry_compare", to_port="left"),
+            DraftedConnectionIR(from_ref="oversold", from_port="output", to_ref="entry_compare", to_port="right"),
+            DraftedConnectionIR(from_ref="entry_compare", from_port="output", to_ref="entry", to_port="signal"),
+        ],
+    )
+    fake_drafter = LLMStrategyDrafter(
+        client=FakeInstructorClient(DraftedOutcome(ir=fake_ir)), model="claude-sonnet-4-6"
+    )
+    monkeypatch.setattr("app.api.strategies.get_strategy_drafter", lambda: fake_drafter)
+
+    response = client.post(
+        "/strategies/draft-from-nl",
+        json={"nl_text": "buy when RSI drops below 30", "asset": "BTC/USDT", "timeframe": "1d"},
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["outcome"] == "declined"
+    assert body["strategy_id"] is None
+    assert body["reason"] == "Add at least one exit rule (Exit Signal, Stop Loss, Take Profit, etc.)."
+
+    assert session.exec(select(Strategy).where(Strategy.user_id == user.id)).first() is None
+    assert session.exec(select(StrategyDraft)).first() is None
+
+
+def test_draft_from_nl_compile_error_persists_nothing(client, auth_headers, session, user, monkeypatch):
+    """A `drafted` IR the GraphCompiler can't expand (unknown ref) is also
+    mapped to the refusal shape and persists nothing."""
+    from app.schemas.strategy_draft_ir import DraftedBlockIR, DraftedConnectionIR, DraftedIR, DraftedOutcome
+    from app.services.strategy_drafter import LLMStrategyDrafter
+
+    monkeypatch.setattr(settings, "strategy_drafter_enabled", True)
+
+    fake_ir = DraftedIR(
+        blocks=[DraftedBlockIR(ref="rsi", type="rsi", label="RSI (14)", params={"period": 14})],
+        connections=[
+            DraftedConnectionIR(from_ref="rsi", from_port="output", to_ref="missing", to_port="signal"),
+        ],
+    )
+    fake_drafter = LLMStrategyDrafter(
+        client=FakeInstructorClient(DraftedOutcome(ir=fake_ir)), model="claude-sonnet-4-6"
+    )
+    monkeypatch.setattr("app.api.strategies.get_strategy_drafter", lambda: fake_drafter)
+
+    response = client.post(
+        "/strategies/draft-from-nl",
+        json={"nl_text": "buy when RSI drops below 30", "asset": "BTC/USDT", "timeframe": "1d"},
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["outcome"] == "declined"
+    assert body["strategy_id"] is None
+    assert "missing" in body["reason"]
+
+    assert session.exec(select(Strategy).where(Strategy.user_id == user.id)).first() is None
+    assert session.exec(select(StrategyDraft)).first() is None
