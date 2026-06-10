@@ -51,6 +51,8 @@ import { ShareBacktestModal } from "@/components/ShareBacktestModal";
 import { TransactionCostAnalysis } from "@/components/TransactionCostAnalysis";
 import { trackBacktestView } from "@/lib/recent-views";
 import { trackBacktestStarted } from "@/lib/backtest-tracking";
+import { getSummaryCardSeen, markSummaryCardSeen } from "@/lib/summary-card-storage";
+import { useWjlCardEnrollment } from "@/hooks/useWjlCardEnrollment";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   DropdownMenu,
@@ -125,21 +127,6 @@ const PERIOD_PRESETS: PeriodOption[] = [
 
 /** Period presets available for batch selection (excludes "custom"). */
 const BATCH_PERIOD_PRESETS = PERIOD_PRESETS.filter((p) => p.value !== "custom");
-
-
-const SUMMARY_CARD_KEY = "bb.first_run_summary_card_seen";
-
-function getSummaryCardSeen(): boolean {
-  if (typeof window === "undefined") return true;
-  try { return localStorage.getItem(SUMMARY_CARD_KEY) === "true"; }
-  catch { return true; }
-}
-
-function markSummaryCardSeen(): void {
-  if (typeof window === "undefined") return;
-  try { localStorage.setItem(SUMMARY_CARD_KEY, "true"); }
-  catch { /* storage unavailable */ }
-}
 
 type PeriodType = "month" | "quarter" | "weekday";
 
@@ -1002,6 +989,21 @@ export default function StrategyBacktestPage({ params }: Props) {
   const isZeroTradeNarrativeMode =
     isZeroTradeRun && Boolean(selectedRun?.narrative);
 
+  // What-you-learned card eligibility (ADR-0010): completed, non-zero-trade
+  // run, with summary, first-run gate open, and a non-null benchmark return.
+  // This is the wjl_retention_ab enrollment/exposure moment.
+  const wjlEligible = Boolean(
+    showSummaryCard &&
+      selectedRun?.status === "completed" &&
+      !isZeroTradeNarrativeMode &&
+      selectedRun?.summary != null &&
+      selectedRun.summary.benchmark_return_pct != null
+  );
+
+  const showWhatYouLearnedCard = useWjlCardEnrollment(wjlEligible, () =>
+    setShowSummaryCard(false)
+  );
+
   // Merge equity curve and benchmark for chart
   const chartData = useMemo(() => {
     if (equityCurve.length === 0) return [];
@@ -1261,8 +1263,8 @@ export default function StrategyBacktestPage({ params }: Props) {
               positionStats={positionStatsForKPI}
             />
 
-            {/* What You Learned — first-run only */}
-            {showSummaryCard &&
+            {/* What You Learned — first-run only, gated by wjl_retention_ab (ADR-0010) */}
+            {showWhatYouLearnedCard &&
               selectedRun.summary.benchmark_return_pct != null && (
                 <WhatYouLearnedCard
                   strategyReturnPct={selectedRun.summary.total_return_pct}

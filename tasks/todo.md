@@ -1,5 +1,25 @@
 # Tasks — in flight
 
+## Wire What-you-learned card behind wjl_retention_ab end-to-end (Issue #572, implemented)
+
+Frontend
+- [x] `frontend/src/lib/summary-card-storage.ts` (new) — extracted `getSummaryCardSeen`/`markSummaryCardSeen`/`SUMMARY_CARD_KEY` out of the backtest results page so the storage side-effects can be mocked from a hook test
+- [x] `frontend/src/hooks/useWjlCardEnrollment.ts` (new) — `useWjlCardEnrollment(eligible, onSuppressSession?)`: at the first render where `eligible` is true (the enrollment/exposure moment), reads `getExperimentVariant(WJL_EXPERIMENT_FLAG)` once via `useMemo` and applies `decideWhatYouLearnedCard`; an effect closes the persistent gate (`markSummaryCardSeen()`) when `closeGateNow`, and calls `onSuppressSession` only for the control arm (`closeGateNow && !renderCard`) to clear the in-session gate immediately
+- [x] `frontend/src/app/(app)/strategies/[id]/backtest/page.tsx` — added `wjlEligible` (the card's existing eligibility conjunction: completed, non-zero-trade, has `summary`, `showSummaryCard` gate open, `benchmark_return_pct != null`); wired `useWjlCardEnrollment(wjlEligible, () => setShowSummaryCard(false))`; replaced the card's `showSummaryCard &&` render guard with `showWhatYouLearnedCard &&`. `onDismiss` (markSummaryCardSeen + setShowSummaryCard(false)) and the always-on `NarrativeCard` are untouched; `useResultViewedTracking` wiring is untouched.
+
+Tests
+- [x] `frontend/src/hooks/__tests__/useWjlCardEnrollment.test.ts` (new, 11 cases): `renderCard=true`+gate-closed for `test`; `renderCard=true`+gate-not-closed for `undefined` (unenrolled); `renderCard=false`+gate-closed+`onSuppressSession` called for `control`; `onSuppressSession` not called for `test`/`undefined`; not eligible → `renderCard=false` and variant never read; variant read exactly once across re-renders while eligible; `it.each` regression guard — `results_viewed` fires exactly once per `run_id` for `control`/`test`/`undefined` alike (alongside `useResultViewedTracking`)
+
+Verification
+- [x] RED→GREEN confirmed: all 10 hook tests failed (module not found) before `useWjlCardEnrollment.ts` existed, passed after
+- [x] `npx vitest run` → 47 files / 533 passed, zero regressions
+- [x] `npx tsc --noEmit` → clean
+- [x] `npx eslint` on touched/added files → clean
+
+Risks / gaps
+- M4 (PostHog experiment + metric setup, runbook update) is HITL/out of scope for this slice per #570 — not done here
+- The "no flash" behavior relies on the same hydration pattern as the existing `showSummaryCard` state (starts `false`/not-yet-evaluated, settles via effect on mount) — consistent with current UX, no new regression introduced
+
 ## Template clone emits the strategy_created "authored" milestone (Issue #558, implemented)
 
 Frontend
