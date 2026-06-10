@@ -994,8 +994,9 @@ Plain-Language Error Messages
 **What You Just Learned Summary Card (Implemented):**
 - On the user's first-ever backtest results view, a dedicated card titled **"What you just learned"** appears below the metrics grid.
 - Card copy is 1–2 plain-language sentences summarizing what was tested and how it performed versus buy-and-hold (including the percentage-point delta, colored green/red).
-- Gated by its own `bb.first_run_summary_card_seen` localStorage key (separate from the first-run metric overlays, which use a different dismissal key) and requires completed onboarding; hidden once dismissed. A planned retention A/B (ADR-0010) layers a PostHog experiment flag on top of this gate to split-test the card.
-- If benchmark return data is unavailable, the card is suppressed silently.
+- Gated by its own `bb.first_run_summary_card_seen` localStorage key (separate from the first-run metric overlays, which use a different dismissal key) and requires completed onboarding; hidden once dismissed.
+- If benchmark return data is unavailable, the card is suppressed silently — and this benchmark-null first run never enrolls in the retention A/B below.
+- **Retention A/B (ADR-0010, Implemented):** at the first benchmark-present completed first-run verdict, the `wjl_retention_ab` PostHog experiment variant is read once (`getExperimentVariant`) and `decideWhatYouLearnedCard` applied: `test` → card shown, then the `bb.first_run_summary_card_seen` gate closes immediately (show-once); `control` → card suppressed and the gate closes immediately so it never re-evaluates; `undefined` (no consent / not enrolled) → card shown with today's persist-until-dismissed behavior, gate untouched. The always-on Narrative card and the `results_viewed`/`page_view` activation events are unaffected in both arms.
 
 
 **Narrative Summary Generation (Backend)** *(📝 Spec Ready)*
