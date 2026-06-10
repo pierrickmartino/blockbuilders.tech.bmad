@@ -12,11 +12,13 @@ sibling of the Price Provider seam (ADR-0003).
 """
 from __future__ import annotations
 
+import logging
 from typing import Any, Protocol
 
 import anthropic
 import instructor
 import openai
+from instructor.core import InstructorRetryException
 
 from app.core.config import STRATEGY_DRAFTER_PROVIDER_KEYS, settings
 from app.schemas.strategy_draft_ir import (
@@ -27,6 +29,31 @@ from app.schemas.strategy_draft_ir import (
     DraftResult,
 )
 from app.services.drafter_vocabulary import render_prompt_vocabulary
+
+logger = logging.getLogger(__name__)
+
+# User-facing message for infra failures (issue #589). Deliberately generic —
+# never includes provider/key/raw-exception detail; full detail is logged
+# server-side via `logger.error(..., exc_info=True)`.
+_INFRA_FAILURE_MESSAGE = "Couldn't draft a strategy right now. Please try again in a moment."
+
+# Provider/instructor exceptions that map to the envelope's error path
+# (timeout, 5xx, rate-limit, auth, exhausted instructor schema-retries) —
+# distinct from a `declined` refusal. `anthropic.APIError` and
+# `openai.APIError` (which OpenRouter also raises, via the OpenAI SDK) cover
+# the full provider-error class for their respective SDKs.
+_INFRA_FAILURE_EXCEPTIONS = (anthropic.APIError, openai.APIError, InstructorRetryException)
+
+
+class StrategyDrafterError(Exception):
+    """Raised when the drafter call fails for an infrastructure reason.
+
+    Covers a bounded-timeout provider call, provider errors (timeout/5xx/
+    rate-limit/auth), and `instructor` exhausting its bounded schema-retries.
+    The endpoint maps this to the envelope's error path — a retryable
+    "couldn't draft right now, try again" outcome, distinct from a
+    `declined` refusal (ADR-0011, issue #589).
+    """
 
 
 class StrategyDrafter(Protocol):
@@ -107,15 +134,20 @@ class LLMStrategyDrafter:
         self._model = model
 
     def draft(self, nl_text: str) -> DraftResult:
-        return self._client.chat.completions.create(
-            model=self._model,
-            max_tokens=4096,
-            response_model=DraftResult,
-            messages=[
-                {"role": "system", "content": _SYSTEM_PROMPT},
-                {"role": "user", "content": nl_text},
-            ],
-        )
+        try:
+            return self._client.chat.completions.create(
+                model=self._model,
+                max_tokens=4096,
+                timeout=settings.strategy_drafter_timeout_seconds,
+                response_model=DraftResult,
+                messages=[
+                    {"role": "system", "content": _SYSTEM_PROMPT},
+                    {"role": "user", "content": nl_text},
+                ],
+            )
+        except _INFRA_FAILURE_EXCEPTIONS as exc:
+            logger.error("Strategy drafter call failed: %s", exc, exc_info=True)
+            raise StrategyDrafterError(_INFRA_FAILURE_MESSAGE) from exc
 
 
 _OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"

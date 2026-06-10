@@ -4,6 +4,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import DraftFromNlPage from "../page";
 import { StrategiesApiClient } from "@/lib/api/strategies-client";
 import { trackEvent } from "@/lib/analytics";
+import { ApiError } from "@/lib/api";
 import type { StrategyDraftFromNlResponse } from "@/types/strategy";
 
 const mockPush = vi.fn();
@@ -82,7 +83,7 @@ describe("DraftFromNlPage", () => {
     );
   });
 
-  it("shows the decline reason without navigating when the drafter declines", async () => {
+  it("shows the decline reason and a rephrase hint without navigating when the drafter declines", async () => {
     mockStrategiesClient.draftFromNl.mockResolvedValue({
       outcome: "declined",
       strategy_id: null,
@@ -95,6 +96,22 @@ describe("DraftFromNlPage", () => {
     await waitFor(() => {
       expect(screen.getByText("I can't express that with the available blocks yet.")).toBeInTheDocument();
     });
+    expect(screen.getByText(/rephrasing your idea/i)).toBeInTheDocument();
+    expect(mockPush).not.toHaveBeenCalled();
+  });
+
+  it("shows a transient retry message, distinct from a refusal, on infra failure", async () => {
+    mockStrategiesClient.draftFromNl.mockRejectedValue(
+      new ApiError(503, "Couldn't draft a strategy right now. Please try again in a moment.")
+    );
+
+    render(<DraftFromNlPage />);
+    fillAndSubmit("buy when RSI drops below 30");
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent(/try again in a moment/i);
+    expect(alert).toHaveClass("text-destructive");
+    expect(screen.queryByText(/rephrasing your idea/i)).not.toBeInTheDocument();
     expect(mockPush).not.toHaveBeenCalled();
   });
 
