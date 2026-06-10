@@ -106,6 +106,46 @@ class StrategyCreateRequest(BaseModel):
         return v
 
 
+class StrategyDraftFromNlRequest(BaseModel):
+    """Request body for POST /strategies/draft-from-nl (ADR-0011, ADR-0006).
+
+    `asset`/`timeframe` come from explicit UI controls and are authoritative;
+    the drafter must ignore anything resembling them in `nl_text`.
+    """
+
+    nl_text: str = Field(min_length=1, max_length=2000)
+    asset: str
+    timeframe: str
+
+    @field_validator("asset")
+    @classmethod
+    def validate_asset(cls, v: str) -> str:
+        if v not in ALLOWED_ASSETS:
+            raise ValueError(f"Asset must be one of: {', '.join(ALLOWED_ASSETS)}")
+        return v
+
+    @field_validator("timeframe")
+    @classmethod
+    def validate_timeframe(cls, v: str) -> str:
+        if v not in ALLOWED_TIMEFRAMES:
+            raise ValueError(f"Timeframe must be one of: {', '.join(ALLOWED_TIMEFRAMES)}")
+        return v
+
+
+class StrategyDraftFromNlResponse(BaseModel):
+    """Response body for POST /strategies/draft-from-nl.
+
+    `success`: a new Strategy was created; `strategy_id` is set, `reason` is None.
+    `declined`: the drafter (or validator) could not produce a usable graph;
+    `reason` explains why, `strategy_id` is None. Nothing partial is persisted.
+    `disabled`: the `strategy_drafter_enabled` flag is off.
+    """
+
+    outcome: Literal["success", "declined", "disabled"]
+    strategy_id: Optional[UUID] = None
+    reason: Optional[str] = None
+
+
 class StrategyUpdateRequest(BaseModel):
     name: Optional[str] = Field(default=None, min_length=1, max_length=100)
     asset: Optional[str] = None

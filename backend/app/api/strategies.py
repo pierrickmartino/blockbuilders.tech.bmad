@@ -7,11 +7,12 @@ from sqlalchemy import case, extract, literal
 from sqlmodel import Session, select, func, and_
 
 from app.api.deps import get_current_user
+from app.core.config import settings
 from app.core.database import get_session
 from app.core.plans import get_plan_limits
 from app.models.alert_rule import AlertRule
 from app.models.backtest_run import BacktestRun
-from app.models.strategy import Strategy
+from app.models.strategy import Strategy, StrategyEntryPath
 from app.models.strategy_tag import StrategyTag
 from app.models.strategy_tag_link import StrategyTagLink
 from app.models.strategy_draft import StrategyDraft
@@ -24,6 +25,8 @@ from app.schemas.strategy import (
     BulkStrategyTagRequest,
     StrategyCreateRequest,
     StrategyDefinitionValidate,
+    StrategyDraftFromNlRequest,
+    StrategyDraftFromNlResponse,
     StrategyDraftResponse,
     StrategyDraftUpsertRequest,
     StrategyResponse,
@@ -35,6 +38,8 @@ from app.schemas.strategy import (
     ValidationError,
     ValidationResponse,
 )
+from app.services.graph_compiler import GraphCompilationError, compile_graph
+from app.services.strategy_drafter import get_strategy_drafter
 from app.services.strategy_validation import collect_validation_errors
 
 router = APIRouter(prefix="/strategies", tags=["strategies"])
@@ -175,6 +180,57 @@ def create_strategy(
         updated_at=strategy.updated_at,
         tags=[],
     )
+
+
+@router.post("/draft-from-nl", response_model=StrategyDraftFromNlResponse)
+def draft_strategy_from_nl(
+    data: StrategyDraftFromNlRequest,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> StrategyDraftFromNlResponse:
+    """Draft a new strategy from NL text (NL wedge, ADR-0011/ADR-0006).
+
+    `asset`/`timeframe` come from explicit UI controls and are authoritative;
+    the drafter never sees them and must not infer them from `nl_text`.
+    Three outcomes, nothing partial persists: `success` (one Strategy +
+    working copy created), `declined` (drafter or validator couldn't
+    produce a usable graph), `disabled` (feature flag off).
+    """
+    if not settings.strategy_drafter_enabled:
+        return StrategyDraftFromNlResponse(outcome="disabled")
+
+    result = get_strategy_drafter().draft(data.nl_text)
+
+    if result.outcome == "declined":
+        return StrategyDraftFromNlResponse(outcome="declined", reason=result.reason)
+
+    try:
+        definition = compile_graph(result.ir)
+    except GraphCompilationError as exc:
+        return StrategyDraftFromNlResponse(outcome="declined", reason=str(exc))
+
+    parsed_definition = StrategyDefinitionValidate.model_validate(definition)
+    errors = collect_validation_errors(parsed_definition)
+    if errors:
+        return StrategyDraftFromNlResponse(
+            outcome="declined",
+            reason="The drafted strategy did not pass validation.",
+        )
+
+    strategy = Strategy(
+        user_id=user.id,
+        name=data.nl_text[:100],
+        asset=data.asset,
+        timeframe=data.timeframe,
+        entry_path=StrategyEntryPath.NL_WEDGE,
+    )
+    session.add(strategy)
+    session.commit()
+    session.refresh(strategy)
+
+    upsert_working_copy(strategy, definition, session)
+
+    return StrategyDraftFromNlResponse(outcome="success", strategy_id=strategy.id)
 
 
 @router.get("/", response_model=list[StrategyWithMetricsResponse])

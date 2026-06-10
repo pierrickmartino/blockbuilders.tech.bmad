@@ -72,6 +72,7 @@ import {
   X,
   Loader2,
   RefreshCw,
+  Sparkles,
 } from "lucide-react";
 
 type SortField = "name" | "updated_at" | "total_return" | "last_run" | "asset"
@@ -780,6 +781,14 @@ export default function StrategiesPage() {
               aria-label="Search strategies"
             />
           </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => router.push("/strategies/draft")}
+          >
+            <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+            Generate from description
+          </Button>
           <Button
             variant="outline"
             size="sm"

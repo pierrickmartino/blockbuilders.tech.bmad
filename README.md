@@ -188,6 +188,7 @@ Key configuration (see `backend/app/core/config.py`):
 | `DATA_QUALITY_VOLUME_THRESHOLD` | 95.0 | Minimum % of candles with non-zero volume |
 | `SCHEDULER_ENABLED` | true | Enable/disable scheduled jobs |
 | `SCHEDULER_HOUR_UTC` | 2 | Hour (UTC) for daily scheduler run |
+| `STRATEGY_DRAFTER_ENABLED` | false | Enable the NL wedge `POST /strategies/draft-from-nl` endpoint |
 | `CORS_ORIGINS` | `http://localhost:3000` | Comma-separated allowed origins |
 | `DEFAULT_MAX_STRATEGIES` | 10 | Max strategies per user |
 | `DEFAULT_MAX_BACKTESTS_PER_DAY` | 50 | Max backtests per day |

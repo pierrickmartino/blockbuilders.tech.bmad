@@ -36,6 +36,9 @@ class Settings(BaseSettings):
     scheduler_hour_utc: int = 2  # 02:00 UTC default
     scheduler_enabled: bool = True
 
+    # Strategy drafter (NL wedge, ADR-0011) — flag-gated, off by default
+    strategy_drafter_enabled: bool = False
+
     # Data quality validation
     data_quality_lookback_days: int = 90
     data_quality_gap_threshold: float = 2.0

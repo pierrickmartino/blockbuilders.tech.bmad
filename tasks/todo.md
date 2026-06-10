@@ -1,5 +1,44 @@
 # Tasks — in flight
 
+## NL wedge slice 1: walking skeleton — NL box → stub drafter → compile → validate → persist → canvas (Issue #584, implemented)
+
+Backend
+- [x] `app/schemas/strategy_draft_ir.py` (new) — semantic IR for the drafter/compiler seam (ADR-0011): `DraftedBlockIR`, `DraftedConnectionIR`, `DraftedIR`, discriminated `DraftResult = DraftedOutcome | DeclinedOutcome`
+- [x] `app/services/graph_compiler.py` (new) — pure, zero-I/O `compile_graph(ir) -> dict`: mints `f"{type}-{n}"` block ids, resolves Ports against the Block Catalogue, assigns deterministic column/row layout positions, builds `connections` in the `{from_port,to_port}` shape consumed by `StrategyDefinitionValidate`. Raises `GraphCompilationError` for unknown refs/ports/block types.
+- [x] `app/services/strategy_drafter.py` (new) — `StrategyDrafter` Protocol + `StubStrategyDrafter` (always returns a fixed RSI-oversold-bounce `DraftedOutcome` IR, no LLM) + `get_strategy_drafter()` factory — the seam later slices swap a real LLM provider into (sibling of Price Provider, ADR-0003)
+- [x] `app/core/config.py` — added `strategy_drafter_enabled: bool = False`
+- [x] `app/schemas/strategy.py` — added `StrategyDraftFromNlRequest` (`nl_text` 1–2000 chars, `asset`/`timeframe` validated like `StrategyCreateRequest`) and `StrategyDraftFromNlResponse` (`outcome: success|declined|disabled`, `strategy_id`, `reason`)
+- [x] `app/api/strategies.py` — `POST /strategies/draft-from-nl`: flag check → `get_strategy_drafter().draft()` → `compile_graph()` → `StrategyDefinitionValidate` + `collect_validation_errors()` gate → on success persists `Strategy(entry_path=NL_WEDGE)` + working copy via `upsert_working_copy`; declined/disabled paths persist nothing
+
+Frontend (new dedicated route, per user decision)
+- [x] `src/components/ui/textarea.tsx` (new) — shadcn-style Textarea primitive, mirrors `Input`'s classes
+- [x] `src/types/strategy.ts` — added `StrategyDraftFromNlRequest`/`StrategyDraftFromNlResponse`
+- [x] `src/lib/api/strategies-client.ts` — added `StrategiesApiClient.draftFromNl(...)`
+- [x] `src/app/(app)/strategies/draft/page.tsx` (new) — NL textarea + asset picker + timeframe selector + submit; loading state; success → `router.push(/strategies/{id})` + `strategy_created` (`source: "nl_wedge"`, cohort via `resolveCohort("nl_wedge")`); declined/disabled outcomes shown inline, nothing persisted client-side
+- [x] `src/app/(app)/strategies/page.tsx` — added a "Generate from description" button linking to `/strategies/draft`
+
+Tests
+- [x] `backend/tests/test_graph_compiler.py` (new, 12 cases) — module purity, id minting/uniqueness, connection resolution, layout positions, determinism, port-resolution errors (unknown output/input port, unknown ref), risk-block handling, label defaults, full round-trip through `StrategyDefinitionValidate`
+- [x] `backend/tests/test_strategy_drafter.py` (new, 5 cases) — module purity, stub returns `DraftedOutcome`, determinism, factory returns `StubStrategyDrafter`, stub IR compiles + validates with zero errors
+- [x] `backend/tests/api/test_strategy_draft_from_nl.py` (new, 3 cases) — auth required (401), disabled-flag → `{outcome:"disabled"}` with nothing persisted, success → `{outcome:"success", strategy_id}` + exactly one `Strategy(entry_path=nl_wedge)` + populated `strategy_drafts` row
+- [x] `frontend/src/lib/api/__tests__/strategies-client.test.ts` — `draftFromNl()` request/response contract
+- [x] `frontend/src/app/(app)/strategies/draft/__tests__/draft-page.test.tsx` (new, 4 cases) — renders form controls; submit → loading → success navigates + tracks `strategy_created`; declined shows reason inline; disabled shows unavailable message
+
+Verification
+- [x] RED→GREEN confirmed for each new module (graph_compiler, strategy_drafter, draft-from-nl endpoint, draft page) before implementing
+- [x] `cd backend && .venv/bin/python -m pytest -q` → 917 passed
+- [x] `cd frontend && npx vitest run` → 48 files / 538 passed
+- [x] `cd frontend && npx tsc --noEmit` → clean
+- [x] `cd frontend && npx eslint` on touched/added files → clean (2 pre-existing warnings on `strategies/page.tsx`, unrelated)
+
+Docs / env
+- [x] `STRATEGY_DRAFTER_ENABLED=false` added to `.env.example` and `README.md` env table; `docker-compose.yml` uses `env_file: .env` for the `api`/`worker` services so no per-var listing needed there
+
+Risks / gaps
+- `DrafterVocabulary` (real LLM-backed drafting) is explicitly out of scope for this slice (#583 PRD) — `StubStrategyDrafter` always returns the same RSI-oversold-bounce IR regardless of `nl_text`
+- New-strategy `name` is derived by truncating `nl_text` to 100 chars; no dedicated naming heuristic — acceptable for the walking-skeleton slice, may want a friendlier default later
+- Frontend dev-server smoke test (typing in the NL box, submitting, navigating to canvas) was not run interactively in this session — covered by the Vitest integration test instead
+
 ## Wire What-you-learned card behind wjl_retention_ab end-to-end (Issue #572, implemented)
 
 Frontend
