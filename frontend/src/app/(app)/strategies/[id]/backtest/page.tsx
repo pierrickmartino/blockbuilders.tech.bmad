@@ -30,6 +30,7 @@ import { useBatchBacktestResults } from "@/hooks/useBatchBacktestResults";
 import { useRestoreSnapshot } from "@/hooks/useRestoreSnapshot";
 import { useResultViewedTracking } from "@/hooks/useResultViewedTracking";
 import { useDraftReviewState } from "@/hooks/useDraftReviewState";
+import { useDeferredDelete } from "@/hooks/useDeferredDelete";
 import { Strategy, StrategyVersion } from "@/types/strategy";
 import {
   BacktestListItem,
@@ -770,6 +771,34 @@ export default function StrategyBacktestPage({ params }: Props) {
     userId: user?.id,
   });
 
+  // NL-wedge Reject (ADR-0012 §7, Module D): one click hides the review
+  // controls and starts a grace-window Undo toast. Only once the window
+  // elapses without Undo does the hard-delete commit and
+  // `nl_draft_outcome = rejected` get logged; Undo or an interrupt (e.g.
+  // navigating away) resolves to keep — nothing is deleted or logged.
+  const [isRejectPending, setIsRejectPending] = useState(false);
+
+  const { scheduleDelete: scheduleReject } = useDeferredDelete({
+    onCommit: () => {
+      void (async () => {
+        try {
+          await StrategiesApiClient.delete(id);
+          draftReview.reject();
+          router.push("/strategies");
+        } catch (err) {
+          setIsRejectPending(false);
+          setError(err instanceof Error ? err.message : "Failed to reject strategy");
+        }
+      })();
+    },
+    onUndo: () => setIsRejectPending(false),
+  });
+
+  const handleReject = useCallback(() => {
+    setIsRejectPending(true);
+    scheduleReject(`"${strategy?.name ?? "Strategy"}" rejected`);
+  }, [scheduleReject, strategy?.name]);
+
   // Fetch user plan to check for premium features
   useEffect(() => {
     UsersApiClient.getProfile()
@@ -1268,14 +1297,15 @@ export default function StrategyBacktestPage({ params }: Props) {
               <div className="h-px flex-1 bg-border" />
             </div>
 
-            {/* NL-wedge review surface (ADR-0012, Module B) */}
-            {draftReview.isUnderReview && (
+            {/* NL-wedge review surface (ADR-0012, Module B/D) */}
+            {draftReview.isUnderReview && !isRejectPending && (
               <DraftReviewControls
                 onAccept={draftReview.accept}
                 onEdit={() => {
                   draftReview.edit();
                   router.push(`/strategies/${id}`);
                 }}
+                onReject={handleReject}
               />
             )}
 

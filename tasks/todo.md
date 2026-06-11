@@ -690,3 +690,23 @@ Verification
 
 Risks / gaps
 - None. No env vars added/changed; PostHog wiring and consent gating reused as-is.
+
+## Issue #604 — NL-wedge #5 — Reject with Undo (deferred delete) on the review surface (done)
+
+Frontend
+- [x] `hooks/useDeferredDelete.ts` (new, Module D): generic grace-window delete hook (ADR-0012 §7), matching the canvas node-delete pattern (`handlePopoverDeleteNode`). `scheduleDelete(message)` shows a 5s sonner Undo toast (`DEFERRED_DELETE_GRACE_MS`) and starts a timer; `onCommit` runs only if the window elapses without Undo; clicking Undo cancels the timer and runs `onUndo`; an unmount before the window elapses (interrupt) cancels the pending timer too — resolves to keep, with no commit.
+- [x] `components/backtest/DraftReviewControls.tsx`: added a `Reject` button (destructive-styled, `Trash2` icon, no confirmation dialog) alongside Edit/Accept, via a new required `onReject` prop.
+- [x] `app/(app)/strategies/[id]/backtest/page.tsx`: wired Reject — clicking it hides the review controls (`isRejectPending`) and calls `scheduleReject` with the strategy name. On commit: `StrategiesApiClient.delete(id)` (the #602 cascade endpoint) → `draftReview.reject()` (logs `nl_draft_outcome = rejected` and clears the under-review storage flag, per Module B from #603) → redirect to `/strategies`. On Undo or interrupt, `isRejectPending` resets (or the component unmounts) and nothing is deleted or logged — `draftReview.reject()` is only called at commit time, so the existing reducer/hook from #603 needed no changes.
+
+Tests
+- [x] `hooks/__tests__/useDeferredDelete.test.ts` (new): grace-window fire (commits after `DEFERRED_DELETE_GRACE_MS` with no Undo), cancel-on-undo (Undo toast action cancels the timer and runs `onUndo`, `onCommit` never fires), resolve-to-keep-on-interrupt (unmount before the window elapses cancels the pending commit), and the Undo toast shape/duration — all four "encouraged" Module D behaviors from the issue.
+- [x] `components/backtest/__tests__/DraftReviewControls.test.tsx`: extended to require `onReject`; added a "renders Reject" case and a one-click-no-dialog case (`onReject` fires, no `role="dialog"` appears).
+
+Verification
+- [x] `npx vitest run` (full frontend suite) → 592 passed (57 files)
+- [x] `npx tsc --noEmit` → clean
+- [x] `npx eslint` on changed files → clean
+
+Risks / gaps
+- No env vars added/changed.
+- If `StrategiesApiClient.delete(id)` fails after the grace window elapses, the page surfaces the error via the existing `error` banner and resets `isRejectPending` so the review controls reappear; the strategy remains (nothing was deleted), consistent with "no silent loss."
