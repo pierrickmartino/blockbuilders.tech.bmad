@@ -49,6 +49,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Card, CardContent } from "@/components/ui/card";
+import { AiDraftedBadge } from "@/components/AiDraftedBadge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -1164,6 +1165,7 @@ export default function StrategiesPage() {
                               </TooltipContent>
                             </Tooltip>
                           )}
+                          <AiDraftedBadge entryPath={strategy.entry_path} />
                         </div>
                         {strategy.tags && strategy.tags.length > 0 && (
                           <div className="flex flex-wrap gap-1">
@@ -1289,6 +1291,7 @@ export default function StrategiesPage() {
                             </TooltipContent>
                           </Tooltip>
                         )}
+                        <AiDraftedBadge entryPath={strategy.entry_path} />
                         {strategy.tags?.map((tag) => (
                           <Badge key={tag.id} variant="outline" className="text-xs">
                             {tag.name}
