@@ -188,6 +188,17 @@ These name the activation north-star and its instrumentation.
   accept/reject (ACTIONS #5's stale framing); folding `edited`/`kept`
   into `accepted`; treating `rejected` as un-activation.
 
+- **Onboarding arm** — the randomized onboarding front door a *new* user
+  is assigned to for the #7 A/B (ADR-0014): `nl_wedge` (the natural-language
+  box) vs `wizard` (the status-quo default). The control is the **wizard**,
+  the surface new users actually meet today (`auth/callback` routes
+  un-onboarded users to `?wizard=true`) — *not* the "blank canvas" the
+  backlog title names. Distinct from **Entry path**: the arm is the surface a
+  user was *assigned* (intent-to-treat, fixed at signup), while `entry_path`
+  records the surface a strategy was *actually* born from. _Avoid_: "NL vs
+  blank canvas" (the blank canvas is not the new-user control — the wizard
+  is); conflating the assigned arm with the realized `entry_path`.
+
 ## First-run & retention surfaces
 
 These name two distinct result-page cards that the backlog (`docs/ACTIONS.md`
