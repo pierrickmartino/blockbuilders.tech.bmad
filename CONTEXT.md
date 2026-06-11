@@ -175,12 +175,13 @@ These name the activation north-star and its instrumentation.
   user reviews its verdict (ACTIONS #5), logged as a single graded
   dimension on the `nl_draft_*` event family, **not** a boolean
   accept/reject. Four values: `accepted` (kept + shareable artifact
-  minted), `edited` (kept, then hand-edited on the canvas), `kept`
+  minted), `edited` (kept, chose to refine on the canvas — fires when
+  the user clicks **Edit**, not on a provable graph mutation), `kept`
   (stays in the list, no artifact — the abandonment-modal "Keep" or a
   hard browser exit), `rejected` (hard-deleted per ADR-0006). `edited`
   is first-class on purpose: it is the drafter's most actionable signal
-  (a draft that was *close* but needed correction), so collapsing it
-  into `accepted` is forbidden. **Decoupled from Activation**: the
+  (a draft that was *close* enough to keep but the user felt they had to
+  refine), so collapsing it into `accepted` is forbidden. **Decoupled from Activation**: the
   outcome says nothing about whether the user activated — a `rejected`
   draft still counts as Activation (the verdict was witnessed; see
   **Activation**, which survives the hard-delete). _Avoid_: a boolean
