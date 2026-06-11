@@ -6,6 +6,7 @@ import { StrategiesApiClient } from "@/lib/api/strategies-client";
 import { BacktestsApiClient } from "@/lib/api/backtests-client";
 import { UsersApiClient } from "@/lib/api/users-client";
 import { trackEvent } from "@/lib/analytics";
+import { startAutoBacktest } from "@/lib/start-auto-backtest";
 import type { Strategy } from "@/types/strategy";
 import type { BacktestCreateResponse, BacktestStatusResponse } from "@/types/backtest";
 
@@ -40,10 +41,19 @@ vi.mock("@/lib/analytics", () => ({
   trackEvent: vi.fn(),
 }));
 
+vi.mock("@/lib/start-auto-backtest", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/start-auto-backtest")>();
+  return {
+    ...actual,
+    startAutoBacktest: vi.fn(actual.startAutoBacktest),
+  };
+});
+
 const mockStrategiesClient = vi.mocked(StrategiesApiClient);
 const mockBacktestsClient = vi.mocked(BacktestsApiClient);
 const mockUsersClient = vi.mocked(UsersApiClient);
 const mockTrackEvent = vi.mocked(trackEvent);
+const mockStartAutoBacktest = vi.mocked(startAutoBacktest);
 
 const STRATEGY: Strategy = {
   id: "strategy-123",
@@ -221,5 +231,84 @@ describe("StrategyWizard — funnel events carry the resolved cohort (#560)", ()
     const unknownCohort = expect.objectContaining({ entry_path: "unknown", authoring_mode: "unknown" });
     expect(mockTrackEvent).toHaveBeenCalledWith("strategy_created", unknownCohort, "user-1");
     expect(mockTrackEvent).toHaveBeenCalledWith("auto_backtest_started", unknownCohort, "user-1");
+  });
+});
+
+describe("StrategyWizard — first-run enqueue routes through startAutoBacktest (#614)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockStrategiesClient.create.mockResolvedValue(STRATEGY);
+    mockStrategiesClient.putDraft.mockResolvedValue(undefined);
+    mockBacktestsClient.create.mockResolvedValue(CREATED_RUN);
+    mockBacktestsClient.get.mockResolvedValue(COMPLETED_RUN);
+    mockUsersClient.completeOnboarding.mockResolvedValue(undefined);
+  });
+
+  it("calls startAutoBacktest with the strategy's entry path and the wizard_first_run source, preserving the 1-year window and auto_backtest_started telemetry", async () => {
+    render(
+      <StrategyWizard
+        isFirstRun
+        onClose={vi.fn()}
+        onComplete={vi.fn()}
+        onSkipToCanvas={vi.fn()}
+      />
+    );
+
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-11T12:00:00.000Z"));
+    try {
+      await completeFirstRunWizard();
+    } finally {
+      vi.useRealTimers();
+    }
+
+    expect(mockStartAutoBacktest).toHaveBeenCalledWith({
+      strategyId: STRATEGY.id,
+      entryPath: "wizard",
+      source: "wizard_first_run",
+      userId: "user-1",
+    });
+
+    // The 1-year window and the auto_backtest_started telemetry are now owned
+    // by the helper — assert they remain unchanged for the wizard path.
+    expect(mockBacktestsClient.create).toHaveBeenCalledWith({
+      strategy_id: STRATEGY.id,
+      date_from: "2025-06-11T12:00:00.000Z",
+      date_to: "2026-06-11T12:00:00.000Z",
+    });
+    expect(mockTrackEvent).toHaveBeenCalledWith(
+      "auto_backtest_started",
+      expect.objectContaining({
+        source: "wizard_first_run",
+        entry_path: "wizard",
+        authoring_mode: "manual",
+      }),
+      "user-1"
+    );
+  });
+
+  it("does not call startAutoBacktest when the wizard completes a non-first run", async () => {
+    const onComplete = vi.fn();
+
+    render(<StrategyWizard onClose={vi.fn()} onComplete={onComplete} />);
+
+    const nameInput = screen.getByPlaceholderText("e.g., BTC MA Crossover Daily");
+    fireEvent.change(nameInput, { target: { value: "My BTC Strategy" } });
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    for (let i = 0; i < 4; i++) {
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    }
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Create Strategy" }));
+    });
+
+    expect(onComplete).toHaveBeenCalledWith(STRATEGY.id);
+    expect(mockStartAutoBacktest).not.toHaveBeenCalled();
+    expect(mockBacktestsClient.create).not.toHaveBeenCalled();
+    expect(mockTrackEvent).not.toHaveBeenCalledWith(
+      "auto_backtest_started",
+      expect.anything(),
+      expect.anything()
+    );
   });
 });

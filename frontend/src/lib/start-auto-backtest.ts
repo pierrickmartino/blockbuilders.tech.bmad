@@ -9,9 +9,14 @@ const AUTO_BACKTEST_WINDOW_YEARS = 1;
 
 export interface StartAutoBacktestParams {
   strategyId: string;
-  /** The persisted `entry_path` that triggered this auto-backtest, used both
-   * as the `auto_backtest_started` `source` and to resolve the cohort. */
+  /** The persisted `entry_path` that triggered this auto-backtest, used to
+   * resolve the cohort and, unless `source` is given, the
+   * `auto_backtest_started` `source`. */
   entryPath: StrategyEntryPath | null;
+  /** Override for the `auto_backtest_started` `source` field when it differs
+   * from `entryPath` (e.g. the wizard's `wizard_first_run`). Defaults to
+   * `entryPath`. */
+  source?: string | null;
   userId?: string;
 }
 
@@ -28,6 +33,7 @@ export interface StartAutoBacktestResult {
 export async function startAutoBacktest({
   strategyId,
   entryPath,
+  source,
   userId,
 }: StartAutoBacktestParams): Promise<StartAutoBacktestResult> {
   const now = new Date();
@@ -45,7 +51,7 @@ export async function startAutoBacktest({
     {
       strategy_id: strategyId,
       run_id: runId,
-      source: entryPath,
+      source: source ?? entryPath,
       ...resolveCohort(entryPath),
     },
     userId

@@ -1,5 +1,26 @@
 # Tasks — in flight
 
+## Issue #614 — Route the strategy wizard's enqueue through the shared startAutoBacktest helper (done)
+
+Behavior-preserving refactor (ADR-0013 §4): the wizard's first-run auto-backtest enqueue now goes through the same `startAutoBacktest` helper introduced for the NL wedge in #613, so the 1-year window and `auto_backtest_started` telemetry are defined in exactly one place.
+
+Frontend
+- [x] `src/lib/start-auto-backtest.ts` — added an optional `source?: string | null` param to `StartAutoBacktestParams`, defaulting to `entryPath` when omitted (unchanged for the wedge's `nl_wedge` call). Lets a caller's `auto_backtest_started.source` differ from the `entryPath` used to resolve the cohort.
+- [x] `src/app/(app)/strategies/strategy-wizard.tsx` — `handleComplete`'s first-run branch replaces the inline `yearAgo`/`now` window computation, `BacktestsApiClient.create`, and `auto_backtest_started` `trackEvent` call with `startAutoBacktest({ strategyId: strategy.id, entryPath: strategy.entry_path, source: "wizard_first_run", userId: user?.id })`. The returned `runId` drives the existing poll loop, `auto_backtest_completed` telemetry, and `onComplete(strategy.id, runId)` — all unchanged. `isFirstRun` gating, the in-dialog poll-then-navigate loop, and non-first-run behavior are untouched.
+
+Tests
+- [x] `src/lib/__tests__/start-auto-backtest.test.ts` (+1) — caller-supplied `source` overrides the `auto_backtest_started.source` while the cohort is still resolved from `entryPath`.
+- [x] `src/app/(app)/strategies/__tests__/strategy-wizard.test.tsx` (+2, new describe block) — first-run completion calls `startAutoBacktest` with `{ entryPath: "wizard", source: "wizard_first_run" }` and the resulting `BacktestsApiClient.create` call/`auto_backtest_started` telemetry still carry the 1-year window and the `wizard`/`manual` cohort; non-first-run completion does not call `startAutoBacktest` or enqueue a backtest.
+
+Verification
+- [x] `cd frontend && npx vitest run "src/app/(app)/strategies/__tests__/strategy-wizard.test.tsx" "src/lib/__tests__/start-auto-backtest.test.ts"` → 10 passed
+- [x] `cd frontend && npx vitest run` (full suite) → 612 passed (60 files)
+- [x] `cd frontend && npx tsc --noEmit` → clean
+- [x] `cd frontend && npx eslint` on changed files → clean
+
+Risks / gaps
+- No env vars added/changed. No backend or schema changes.
+
 ## NL-wedge #5 — Review surface core: Accept/Edit + running→verdict + disposition state machine (Issue #603, implemented — Module B)
 
 Scope decision (sessionStorage full slice): #603 is logically gated on #6 (auto-backtest-on-draft) which doesn't exist yet, so there's no real "land on result page in running→verdict" flow today. Built Module B (`draftReviewReducer` + `useDraftReviewState`) self-contained behind a sessionStorage flag keyed by strategy id, so it's fully testable now and the Accept/Edit controls + canvas banner light up automatically once #6 lands and redirects to the result page.

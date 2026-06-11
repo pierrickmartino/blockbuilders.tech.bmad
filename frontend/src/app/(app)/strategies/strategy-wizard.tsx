@@ -7,6 +7,7 @@ import { StrategiesApiClient } from "@/lib/api/strategies-client";
 import { BacktestsApiClient } from "@/lib/api/backtests-client";
 import { trackEvent } from "@/lib/analytics";
 import { resolveCohort } from "@/lib/cohort-resolver";
+import { startAutoBacktest } from "@/lib/start-auto-backtest";
 import { useAuth } from "@/context/auth";
 import { generateTemplate, type WizardAnswers } from "./wizard-template-generator";
 import { StepName } from "./wizard-steps/step-name";
@@ -196,22 +197,12 @@ export function StrategyWizard({ isFirstRun, onClose, onComplete, onSkipToCanvas
       setSavedStrategyId(strategy.id);
       updateBacktestPhase("enqueuing");
 
-      const now = new Date();
-      const yearAgo = new Date(now);
-      yearAgo.setFullYear(yearAgo.getFullYear() - 1);
-
-      const res = await BacktestsApiClient.create({
-        strategy_id: strategy.id,
-        date_from: yearAgo.toISOString(),
-        date_to: now.toISOString(),
-      });
-
-      trackEvent("auto_backtest_started", {
-        strategy_id: strategy.id,
-        run_id: res.run_id,
+      const { runId } = await startAutoBacktest({
+        strategyId: strategy.id,
+        entryPath: strategy.entry_path,
         source: "wizard_first_run",
-        ...resolveCohort(strategy.entry_path),
-      }, user?.id);
+        userId: user?.id,
+      });
 
       updateBacktestPhase("polling");
 
@@ -219,7 +210,7 @@ export function StrategyWizard({ isFirstRun, onClose, onComplete, onSkipToCanvas
       const maxAttempts = 60;
       for (let i = 0; i < maxAttempts; i++) {
         await new Promise((r) => setTimeout(r, 5000));
-        const detail = await BacktestsApiClient.get(res.run_id);
+        const detail = await BacktestsApiClient.get(runId);
         if (detail.status === "completed") {
           updateBacktestPhase("done");
           // Job telemetry only (job-completion signal) — NOT the activation
@@ -229,7 +220,7 @@ export function StrategyWizard({ isFirstRun, onClose, onComplete, onSkipToCanvas
           // ADR-0008.
           trackEvent("auto_backtest_completed", {
             strategy_id: strategy.id,
-            run_id: res.run_id,
+            run_id: runId,
           }, user?.id);
           // Mark onboarding complete (non-critical)
           try {
@@ -238,7 +229,7 @@ export function StrategyWizard({ isFirstRun, onClose, onComplete, onSkipToCanvas
           } catch {
             // Don't block navigation
           }
-          onComplete(strategy.id, res.run_id);
+          onComplete(strategy.id, runId);
           return;
         }
         if (detail.status === "failed") {
