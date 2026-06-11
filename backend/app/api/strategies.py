@@ -10,7 +10,6 @@ from app.api.deps import get_current_user
 from app.core.config import settings
 from app.core.database import get_session
 from app.core.plans import get_plan_limits
-from app.models.alert_rule import AlertRule
 from app.models.backtest_run import BacktestRun
 from app.models.strategy import Strategy, StrategyEntryPath
 from app.models.strategy_tag import StrategyTag
@@ -25,6 +24,7 @@ from app.schemas.strategy import (
     BulkStrategyTagRequest,
     StrategyCreateRequest,
     StrategyDefinitionValidate,
+    StrategyDeleteResponse,
     StrategyDraftFromNlRequest,
     StrategyDraftFromNlResponse,
     StrategyDraftResponse,
@@ -39,6 +39,7 @@ from app.schemas.strategy import (
     ValidationResponse,
 )
 from app.services.graph_compiler import GraphCompilationError, compile_graph
+from app.services.strategy_deletion import delete_strategy_cascade
 from app.services.strategy_drafter import StrategyDrafterError, get_strategy_drafter
 from app.services.strategy_validation import collect_validation_errors
 
@@ -791,6 +792,18 @@ def bulk_tag_strategies(
     )
 
 
+@router.delete("/{strategy_id}", response_model=StrategyDeleteResponse)
+def delete_strategy(
+    strategy_id: UUID,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> StrategyDeleteResponse:
+    """Permanently delete a strategy and all related data (ADR-0006 reject)."""
+    delete_strategy_cascade(strategy_id, user, session)
+    session.commit()
+    return StrategyDeleteResponse(id=strategy_id, deleted=True)
+
+
 @router.post("/bulk/delete", response_model=BulkStrategyResponse)
 def bulk_delete_strategies(
     data: BulkStrategyRequest,
@@ -799,48 +812,31 @@ def bulk_delete_strategies(
 ) -> BulkStrategyResponse:
     """Permanently delete multiple strategies and all related data."""
     # First pass: verify ownership for all strategies, collect valid ones
-    valid_strategies = []
+    valid_ids = []
     failed_ids = []
 
     for strategy_id in data.strategy_ids:
         try:
-            strategy = get_user_strategy(strategy_id, user, session)
-            valid_strategies.append((strategy_id, strategy))
+            get_user_strategy(strategy_id, user, session)
+            valid_ids.append(strategy_id)
         except HTTPException:
             failed_ids.append(strategy_id)
 
-    if not valid_strategies:
+    if not valid_ids:
         return BulkStrategyResponse(
             success_count=0,
             failed_count=len(failed_ids),
             failed_ids=failed_ids,
         )
 
-    # Second pass: delete all valid strategies in batched operations
-    valid_ids = [sid for sid, _ in valid_strategies]
+    # Second pass: delete all valid strategies via the shared cascade
     try:
-        # Bulk delete dependent rows
-        session.query(AlertRule).filter(AlertRule.strategy_id.in_(valid_ids)).delete(
-            synchronize_session=False
-        )
-        session.query(BacktestRun).filter(BacktestRun.strategy_id.in_(valid_ids)).delete(
-            synchronize_session=False
-        )
-        session.query(StrategyVersion).filter(
-            StrategyVersion.strategy_id.in_(valid_ids)
-        ).delete(synchronize_session=False)
-        session.query(StrategyTagLink).filter(
-            StrategyTagLink.strategy_id.in_(valid_ids)
-        ).delete(synchronize_session=False)
-
-        # Delete the strategies themselves
-        session.query(Strategy).filter(Strategy.id.in_(valid_ids)).delete(
-            synchronize_session=False
-        )
+        for strategy_id in valid_ids:
+            delete_strategy_cascade(strategy_id, user, session)
         session.commit()
 
         return BulkStrategyResponse(
-            success_count=len(valid_strategies),
+            success_count=len(valid_ids),
             failed_count=len(failed_ids),
             failed_ids=failed_ids,
         )

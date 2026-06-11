@@ -1,5 +1,30 @@
 # Tasks — in flight
 
+## NL-wedge #5 — Reject cascade: extract delete_strategy_cascade + hard-delete endpoint (Issue #602, implemented)
+
+Backend
+- [x] `app/services/exceptions.py` — added `StrategyNotFound` (`DomainError`, 404)
+- [x] `app/services/strategy_deletion.py` (new) — `delete_strategy_cascade(strategy_id, user, session)`: ownership-checked (raises `StrategyNotFound` if not owned), hard-deletes `AlertRule`, `BacktestRun`, `StrategyVersion`, `StrategyTagLink`, and `StrategyDraft` (working copy) rows for the strategy, then the `Strategy` row itself. Does not commit — caller owns the transaction. Idempotent: re-running after partial deletion is a no-op for already-removed rows; re-running after full deletion raises `StrategyNotFound`.
+- [x] `app/api/strategies.py` — `bulk_delete_strategies` re-pointed at `delete_strategy_cascade` (looped per id, single commit, all-or-nothing on exception — same response contract as before); new `DELETE /strategies/{strategy_id}` endpoint calls the cascade + commits, returns `StrategyDeleteResponse`
+- [x] `app/schemas/strategy.py` — added `StrategyDeleteResponse {id, deleted}`
+
+Frontend
+- [x] `src/lib/api/strategies-client.ts` — added `StrategiesApiClient.delete(id)` → `DELETE /strategies/{id}`
+
+Tests
+- [x] `backend/tests/services/test_strategy_deletion.py` (new, mandated module A) — full-cascade removal (working copy, version, backtest run, alert rule, tag link all gone), ownership enforcement (`StrategyNotFound` for another user's strategy and for a nonexistent id), idempotent/safe behavior on an already-partially-deleted strategy (pre-removed backtest run + alert rule; cascade still finishes; second call raises `StrategyNotFound`)
+- [x] `backend/tests/api/test_docs_backend_cases.py` — new `DELETE /strategies/{id}` tests (happy path returns `{id, deleted: true}`, 404 on re-delete, 404 + no-op for an unowned strategy); existing bulk-delete test untouched and still passes
+- [x] `frontend/src/lib/api/__tests__/strategies-client.test.ts` — `delete()` request/response contract
+
+Verification
+- [x] `cd backend && python -m pytest -q` → 974 passed
+- [x] `cd frontend && npx vitest run src/lib/api/__tests__/strategies-client.test.ts` → 34 passed
+- [x] `cd frontend && npx tsc --noEmit` → clean
+
+Risks / gaps
+- The cascade does not touch `SharedBacktestLink` rows (FK to `backtest_runs.id`), matching the pre-existing `bulk_delete_strategies` behavior — out of scope per #602's explicit list (working copy, frozen version(s), backtest run(s), alert rule(s)). If a strategy's backtest run was ever shared, its `shared_backtest_links` row becomes orphaned; not introduced by this change.
+- No frontend UI wiring for the single-delete endpoint — #602 only asks for the API-client method; the Reject UI itself is a separate slice per ADR-0012.
+
 ## NL wedge slice 4: refusal path — declined arm + validator-invalid → plain-language, nothing persists (Issue #587, implemented)
 
 Backend

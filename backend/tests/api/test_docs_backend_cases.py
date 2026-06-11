@@ -4,6 +4,7 @@ from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
+from sqlmodel import select
 
 from app.models.backtest_run import BacktestRun
 from app.models.strategy import Strategy
@@ -195,6 +196,36 @@ def test_bulk_delete_endpoint_deletes_and_reports_failures(client, auth_headers,
     assert invalid_id in body["failed_ids"]
 
     assert client.get(f"/strategies/{valid_id}", headers=auth_headers).status_code == 404
+
+
+def test_delete_strategy_endpoint_hard_deletes_and_reports_not_found(client, auth_headers, seeded_objects):
+    strategy_id = str(seeded_objects["strategy"].id)
+
+    response = client.delete(f"/strategies/{strategy_id}", headers=auth_headers)
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["id"] == strategy_id
+    assert body["deleted"] is True
+
+    assert client.get(f"/strategies/{strategy_id}", headers=auth_headers).status_code == 404
+
+    # Deleting again (or deleting an unowned/unknown strategy) is a 404
+    again = client.delete(f"/strategies/{strategy_id}", headers=auth_headers)
+    assert again.status_code == 404
+
+
+def test_delete_strategy_endpoint_rejects_unowned_strategy(client, auth_headers, session):
+    other_strategy = Strategy(id=uuid4(), user_id=uuid4(), name="Other", asset="BTC/USDT", timeframe="1d")
+    session.add(other_strategy)
+    session.commit()
+
+    response = client.delete(f"/strategies/{other_strategy.id}", headers=auth_headers)
+
+    assert response.status_code == 404
+    assert session.exec(
+        select(Strategy).where(Strategy.id == other_strategy.id)
+    ).first() is not None
 
 
 
