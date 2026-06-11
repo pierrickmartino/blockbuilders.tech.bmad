@@ -144,6 +144,16 @@ These name the activation north-star and its instrumentation.
   `manual` is split into the two paths it was hiding (`blank_canvas`,
   `template_clone`). _Avoid_: `manual` (retired — it conflated blank
   canvas with template clone); reusing this for authoring method.
+- **AI-drafted** — the user-facing provenance label for a strategy
+  born from the NL wedge, rendered as a badge wherever the strategy
+  surfaces (list, canvas header, result page). A pure projection of
+  `entry_path = nl_wedge` — **no new column, no new status**. Marks
+  *origin*, not current authorship: it is permanent and **survives
+  Edit** (a heavily hand-edited AI draft is still "AI-drafted"), so it
+  intentionally tracks `entry_path` (origin), not `authoring_mode`
+  (which a human edit would falsify). _Avoid_: "AI-generated" /
+  "AI-built" (overclaim ongoing AI authorship the user's edits may have
+  replaced); a separate `is_ai` flag (redundant with `entry_path`).
 - **Authoring mode** — *how the strategy graph was authored*, the
   second cohort dimension, orthogonal to **Entry path**. Two values:
   `nl` (drafted from the natural-language box) and `manual` (assembled
@@ -161,6 +171,22 @@ These name the activation north-star and its instrumentation.
   implies the *job/run*, reviving the job-vs-view drift ADR-0008
   retired); anchoring the terminal on `backtest_started` or
   `backtest_job_completed`.
+- **Draft outcome** — the terminal disposition of an NL draft after the
+  user reviews its verdict (ACTIONS #5), logged as a single graded
+  dimension on the `nl_draft_*` event family, **not** a boolean
+  accept/reject. Four values: `accepted` (kept + shareable artifact
+  minted), `edited` (kept, chose to refine on the canvas — fires when
+  the user clicks **Edit**, not on a provable graph mutation), `kept`
+  (stays in the list, no artifact — the abandonment-modal "Keep" or a
+  hard browser exit), `rejected` (hard-deleted per ADR-0006). `edited`
+  is first-class on purpose: it is the drafter's most actionable signal
+  (a draft that was *close* enough to keep but the user felt they had to
+  refine), so collapsing it into `accepted` is forbidden. **Decoupled from Activation**: the
+  outcome says nothing about whether the user activated — a `rejected`
+  draft still counts as Activation (the verdict was witnessed; see
+  **Activation**, which survives the hard-delete). _Avoid_: a boolean
+  accept/reject (ACTIONS #5's stale framing); folding `edited`/`kept`
+  into `accepted`; treating `rejected` as un-activation.
 
 ## First-run & retention surfaces
 

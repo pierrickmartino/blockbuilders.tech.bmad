@@ -40,6 +40,7 @@
 - **Problem:** A black-box "here's your strategy, trust me" forfeits trust and verifiability — exactly what Karpathy warns against. The human must stay on the leash.
 - **Proposed deepening:** Render the AI's draft as a reviewable diff on the canvas (highlight added blocks/connections), with explicit Accept / Edit / Reject. Nothing auto-applies.
 - **Wins:** Keeps the human in the loop (the autonomy slider); produces a clean accept/reject signal for evals; turns the AI into an assistant, not an oracle.
+- **⚠️ Superseded framing — see ADR-0012 for the resolved design.** This 2026-06-05 wording predates ADR-0006/0011 and is stale on four points: the decision is a **post-backtest disposition on the result page**, not a pre-apply diff gate on the canvas; there is **no diff** (a new strategy has no baseline); the signal is a **four-way graded `Draft outcome`** (`accepted/edited/kept/rejected`), not a binary; and **#5 depends on #6** (you cannot judge a verdict that does not exist), so the `(#5,#6)` parallelism above is really `#6 → #5`.
 
 ### 6. Wire NL output into the wizard auto-backtest path `[P0 · M]`
 - **Problem:** A draft that doesn't immediately get *tested* leaves the user at the un-resolved belief — the wedge promise ("find out if you're right") is unfulfilled.
