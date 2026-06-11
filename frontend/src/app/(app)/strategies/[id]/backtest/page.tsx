@@ -31,6 +31,7 @@ import { useRestoreSnapshot } from "@/hooks/useRestoreSnapshot";
 import { useResultViewedTracking } from "@/hooks/useResultViewedTracking";
 import { useDraftReviewState } from "@/hooks/useDraftReviewState";
 import { useDeferredDelete } from "@/hooks/useDeferredDelete";
+import { useExitGuard } from "@/hooks/useExitGuard";
 import { Strategy, StrategyVersion } from "@/types/strategy";
 import {
   BacktestListItem,
@@ -51,6 +52,7 @@ import { LowTradeCountWarning } from "@/components/LowTradeCountWarning";
 import { DataAvailabilitySection } from "@/components/DataAvailabilitySection";
 import { ShareBacktestModal } from "@/components/ShareBacktestModal";
 import { DraftReviewControls } from "@/components/backtest/DraftReviewControls";
+import { DraftExitGuardModal } from "@/components/DraftExitGuardModal";
 import { TransactionCostAnalysis } from "@/components/TransactionCostAnalysis";
 import { trackBacktestView } from "@/lib/recent-views";
 import { trackBacktestStarted } from "@/lib/backtest-tracking";
@@ -798,6 +800,20 @@ export default function StrategyBacktestPage({ params }: Props) {
     setIsRejectPending(true);
     scheduleReject(`"${strategy?.name ?? "Strategy"}" rejected`);
   }, [scheduleReject, strategy?.name]);
+
+  // NL-wedge confirm-on-exit guard (ADR-0012 §6, Module C). In-app
+  // navigation away from an under-review draft opens a Keep / Discard /
+  // Cancel modal; Discard hard-deletes via the same #602 cascade as Reject.
+  // A hard browser exit only shows the native beforeunload prompt and
+  // always resolves to keep — no unload-delete is attempted.
+  const exitGuard = useExitGuard({
+    isArmed: draftReview.isUnderReview,
+    onKeep: draftReview.keep,
+    onDiscard: async () => {
+      await StrategiesApiClient.delete(id);
+      draftReview.reject();
+    },
+  });
 
   // Fetch user plan to check for premium features
   useEffect(() => {
@@ -1659,6 +1675,14 @@ export default function StrategyBacktestPage({ params }: Props) {
           onClose={() => setSelectedTradeIdx(null)}
         />
       )}
+
+      {/* NL-wedge confirm-on-exit guard (ADR-0012 §6, Module C) */}
+      <DraftExitGuardModal
+        open={exitGuard.isModalOpen}
+        onKeep={exitGuard.handleKeep}
+        onDiscard={exitGuard.handleDiscard}
+        onCancel={exitGuard.handleCancel}
+      />
 
       {/* Keyboard Shortcuts Modal */}
       <KeyboardShortcutsModal

@@ -710,3 +710,29 @@ Verification
 Risks / gaps
 - No env vars added/changed.
 - If `StrategiesApiClient.delete(id)` fails after the grace window elapses, the page surfaces the error via the existing `error` banner and resets `isRejectPending` so the review controls reappear; the strategy remains (nothing was deleted), consistent with "no silent loss."
+
+## Issue #605 — NL-wedge #5 — Confirm-on-exit guard (abandonment) (done)
+
+Frontend
+- [x] `hooks/useExitGuard.ts` (new, Module C): `useExitGuard({ isArmed, onKeep, onDiscard })`. Two effects, both gated on `isArmed` (= `draftReview.isUnderReview`, so the guard arms while under review and disarms on any explicit disposition with no extra wiring):
+  - `beforeunload`: `event.preventDefault()` + `event.returnValue = ""` shows the native prompt only. A hard exit (tab close/refresh/URL change) always resolves to keep — neither `onKeep` nor `onDiscard` is ever called from this handler (no unload-delete attempted, ADR-0012 §6).
+  - Document-level capture-phase `click` listener: intercepts left-clicks on same-tab in-app `<a>` (Next.js `Link`) elements (skips modifier-clicks, `target="_blank"`, and `#` hash links), calls `event.preventDefault()` (which Next's `Link` checks via `defaultPrevented` before navigating), stashes `() => router.push(href)` as the pending navigation, and opens the modal.
+  - `handleKeep`: calls `onKeep` (→ `draftReview.keep()`, logs `nl_draft_outcome = kept`), closes the modal, then runs the pending navigation.
+  - `handleDiscard`: awaits `onDiscard()`, then closes the modal and runs the pending navigation.
+  - `handleCancel`: closes the modal and drops the pending navigation — stays on the page.
+- [x] `components/DraftExitGuardModal.tsx` (new): shadcn `Dialog` with Keep / Discard / Cancel actions (`Discard` destructive-styled); dismissing via `onOpenChange(false)` (e.g. Escape) routes through `onCancel`.
+- [x] `app/(app)/strategies/[id]/backtest/page.tsx`: wired `useExitGuard({ isArmed: draftReview.isUnderReview, onKeep: draftReview.keep, onDiscard: async () => { await StrategiesApiClient.delete(id); draftReview.reject(); } })` and rendered `<DraftExitGuardModal />` alongside the other page modals. Discard reuses the same `StrategiesApiClient.delete` (#602 cascade) → `draftReview.reject()` sequence as the Reject button (#604), but calls it directly (no deferred-delete grace window) since the user is already navigating away.
+
+Tests
+- [x] `hooks/__tests__/useExitGuard.test.ts` (new, 7 tests): beforeunload `preventDefault` while armed / not while disarmed, with `onKeep`/`onDiscard` never called (hard-exit resolves to keep); in-app link click intercepted + opens modal while armed / not intercepted while disarmed; Keep closes the modal, calls `onKeep`, and runs the pending `router.push`; Discard closes the modal, awaits `onDiscard` (the delete), and runs the pending navigation; Cancel closes the modal without calling `onKeep`/`onDiscard` or navigating.
+- [x] `components/__tests__/DraftExitGuardModal.test.tsx` (new, 6 tests): hidden when closed; renders Keep/Discard/Cancel when open; each button invokes its handler; Escape (dialog dismiss) routes to `onCancel`.
+
+Verification
+- [x] `npx vitest run` (full frontend suite) → 605 passed (59 files)
+- [x] `npx tsc --noEmit` → clean
+- [x] `npx eslint` on changed files → clean
+
+Risks / gaps
+- No env vars added/changed.
+- In-app interception only covers anchor-based (`<Link>`) navigation via the document-level click listener; a handful of `router.push(...)` calls triggered from non-link buttons elsewhere on the page (e.g. the "Compare" action) are not intercepted. This matches the issue's mandated coverage (in-app modal interception via navigation links + hard-exit) and keeps the slice small; broadening to all programmatic navigation is out of scope here.
+- Per ADR-0012 §6/the issue, hard browser exit intentionally does not log `nl_draft_outcome = kept` (unreliable on unload) — the draft simply persists as an ordinary strategy and is treated as kept by omission, consistent with the accepted "tab-closed drafts accumulate as kept" cost.
