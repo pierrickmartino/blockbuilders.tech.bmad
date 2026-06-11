@@ -6,6 +6,7 @@ import { Strategy, StrategyVersion, StrategyVersionDetail } from "@/types/strate
 import { ValidationError } from "@/types/canvas";
 import { formatDateTime, TimezoneMode } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
+import { AiDraftedBadge } from "@/components/AiDraftedBadge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -204,6 +205,7 @@ export function StrategyHeader({
           <Badge variant="secondary" className="hidden flex-shrink-0 sm:inline-flex">
             {strategy.timeframe}
           </Badge>
+          <AiDraftedBadge entryPath={strategy.entry_path} className="flex-shrink-0" />
 
           {/* Tags preview (compact) */}
           {strategy.tags && strategy.tags.length > 0 && (

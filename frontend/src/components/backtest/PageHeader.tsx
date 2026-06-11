@@ -15,6 +15,7 @@ import {
   exportMetricsToJSON,
 } from "@/lib/backtest-export";
 import { StatusBadge } from "@/components/backtest/StatusBadge";
+import { AiDraftedBadge } from "@/components/AiDraftedBadge";
 import { RestoreSnapshotButton } from "@/components/backtest/RestoreSnapshotButton";
 import { CalendarDays, Download, Play, Share2 } from "lucide-react";
 
@@ -160,6 +161,7 @@ export function BacktestPageHeader({
             <span className="inline-flex items-center rounded border border-border bg-secondary px-2.5 py-1 font-mono text-xs text-muted-foreground">
               {strategy.timeframe}
             </span>
+            <AiDraftedBadge entryPath={strategy.entry_path} />
             {runStatus && <StatusBadge status={runStatus} />}
             <span
               className="inline-flex items-center gap-2 rounded border border-border bg-secondary px-2.5 py-1 font-mono text-xs text-muted-foreground"
