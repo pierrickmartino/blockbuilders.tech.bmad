@@ -1,5 +1,39 @@
 # Tasks — in flight
 
+## NL-wedge #5 — Review surface core: Accept/Edit + running→verdict + disposition state machine (Issue #603, implemented — Module B)
+
+Scope decision (sessionStorage full slice): #603 is logically gated on #6 (auto-backtest-on-draft) which doesn't exist yet, so there's no real "land on result page in running→verdict" flow today. Built Module B (`draftReviewReducer` + `useDraftReviewState`) self-contained behind a sessionStorage flag keyed by strategy id, so it's fully testable now and the Accept/Edit controls + canvas banner light up automatically once #6 lands and redirects to the result page.
+
+Frontend
+- [x] `src/lib/draft-review-reducer.ts` (new) — pure reducer: `DraftOutcome = "accepted" | "edited" | "kept" | "rejected"`; `DraftReviewState { isUnderReview, outcome }`; `INIT` arms review (no-op if already armed or already disposed); `ACCEPT`/`EDIT`/`KEEP`/`REJECT` disarm with the matching outcome (no-op if not under review)
+- [x] `src/lib/draft-review-storage.ts` (new) — sessionStorage helpers `markDraftUnderReview`/`isDraftUnderReview`/`resolveDraftReview`, keyed `bb.nl_draft_review:{strategyId}`; `typeof window === "undefined"` + try/catch guarded (UI-only, ADR-0005, no schema change)
+- [x] `src/hooks/useDraftReviewState.ts` (new) — wraps the reducer; `INIT`s when `entryPath === "nl_wedge"` and storage flags the strategy; `accept/edit/keep/reject` dispatch the matching action, clear storage, and fire `nl_draft_outcome` (`{strategy_id, outcome, ...resolveCohort(entryPath)}`) via `trackEvent`, guarded so disposed/never-armed states no-op
+- [x] `src/components/DraftReviewBanner.tsx` (new) — non-committal canvas banner ("AI draft — under review"), UI-only, renders nothing when not visible
+- [x] `src/components/backtest/DraftReviewControls.tsx` (new) — result-page Accept/Edit controls (Sparkles/Check/Pencil icons, primary-tinted card matching `AiDraftedBadge` tokens)
+- [x] `src/app/(app)/strategies/draft/page.tsx` — calls `markDraftUnderReview(result.strategy_id)` on successful draft, before navigating to the strategy
+- [x] `src/app/(app)/strategies/[id]/backtest/page.tsx` — instantiates `useDraftReviewState`; renders `<DraftReviewControls>` above the KPI strip when a completed run is under review; Accept → `accept()`; Edit → `edit()` + navigate to canvas; passes `shareLocked={isUnderReview}` to `BacktestPageHeader`
+- [x] `src/app/(app)/strategies/[id]/page.tsx` (canvas) — added `useAuth`; instantiates `useDraftReviewState`; renders `<DraftReviewBanner visible={isUnderReview} />` above `<StrategyHeader>`
+- [x] `src/components/backtest/PageHeader.tsx` — new `shareLocked?: boolean` prop; Share button now gated on `showActions && !shareLocked` (split from Export, which stays under `showActions`)
+
+Tests (mandated: each disposition → correct `nl_draft_outcome`; `edited` fires on Edit choice; exit-guard arms/disarms)
+- [x] `src/lib/__tests__/draft-review-reducer.test.ts` (new, 13 tests) — INIT/ACCEPT/EDIT/KEEP/REJECT transitions, no-op guards, immutability
+- [x] `src/lib/__tests__/draft-review-storage.test.ts` (new, 5 tests) — mark/check/resolve, per-strategy scoping
+- [x] `src/hooks/__tests__/useDraftReviewState.test.ts` (new, 11 tests) — init gating on `entry_path`/storage flag, accept/edit payload + storage clear, exit-guard arm (`isUnderReview = true`) and disarm on each of the 4 dispositions
+- [x] `src/components/__tests__/DraftReviewBanner.test.tsx` (new, 2 tests)
+- [x] `src/components/backtest/__tests__/DraftReviewControls.test.tsx` (new, 3 tests)
+- [x] `src/components/backtest/__tests__/PageHeader.test.tsx` (new, 2 tests) — Share hidden / Export kept when `shareLocked`
+- [x] `src/app/(app)/strategies/draft/__tests__/draft-page.test.tsx` (+1) — `markDraftUnderReview("strategy-1")` called on success
+
+Verification
+- [x] `cd frontend && npx vitest run` → 587 passed (56 files)
+- [x] `cd frontend && npx tsc --noEmit` → clean
+- [x] `cd frontend && npm run lint` → 0 errors, 23 warnings (all pre-existing, none in touched files except one pre-existing unrelated `loadVersions` unused-var warning in `[id]/page.tsx`)
+
+Risks / gaps
+- Reject button/one-click+Undo flow is explicitly out of scope for this slice (follow-up per #603); `REJECT`/`KEEP` actions exist in the reducer/hook for completeness but have no UI entry point yet.
+- No dedicated page-level integration test for `backtest/page.tsx` or `[id]/page.tsx` (both >800 lines, no existing test harness) — coverage lives at the reducer/storage/hook/component level, which is where the mandated behaviors are fully exercised.
+- The Accept/Edit surface and canvas banner are inert until #6 (auto-backtest-on-draft) actually redirects users to the result page in a `running→verdict` state — `markDraftUnderReview` is called today, so the surface activates automatically once #6 ships.
+
 ## NL-wedge #5 — Reject cascade: extract delete_strategy_cascade + hard-delete endpoint (Issue #602, implemented)
 
 Backend

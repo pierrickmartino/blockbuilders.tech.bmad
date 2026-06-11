@@ -7,6 +7,7 @@ import { Node, Edge, ReactFlowInstance, ReactFlowProvider } from "@xyflow/react"
 import { StrategiesApiClient } from "@/lib/api/strategies-client";
 import { StrategyTagsApiClient } from "@/lib/api/strategy-tags-client";
 import { useDisplay } from "@/context/display";
+import { useAuth } from "@/context/auth";
 import { CanvasStateProvider, useCanvasState } from "@/context/CanvasStateContext";
 import { Strategy, StrategyTag, StrategyVersion, StrategyVersionDetail, StrategyExportFile } from "@/types/strategy";
 import {
@@ -27,6 +28,7 @@ import StrategyCanvas, { CanvasEdge } from "@/components/canvas/StrategyCanvas";
 import BlockPalette from "@/components/canvas/BlockPalette";
 import BlockLibrarySheet from "@/components/canvas/BlockLibrarySheet";
 import { useIndicatorMode } from "@/hooks/useIndicatorMode";
+import { useDraftReviewState } from "@/hooks/useDraftReviewState";
 import { useStrategyDraft } from "@/hooks/use-strategy-draft";
 import { useStrategyAlerts } from "@/hooks/use-strategy-alerts";
 import InspectorPanel from "@/components/canvas/InspectorPanel";
@@ -45,6 +47,7 @@ import {
 } from "lucide-react";
 import { KeyboardShortcutsModal } from "@/components/KeyboardShortcutsModal";
 import { isInputElement } from "@/lib/keyboard-shortcuts";
+import { DraftReviewBanner } from "@/components/DraftReviewBanner";
 import { StrategyHeader } from "./_components/StrategyHeader";
 import { StrategySettingsSheet } from "./_components/StrategySettingsSheet";
 import CommandPalette from "@/components/canvas/CommandPalette";
@@ -148,6 +151,7 @@ function CanvasKeyboardHandler({
 function StrategyEditorPageInner({ params }: Props) {
   const { id } = use(params);
   const router = useRouter();
+  const { user } = useAuth();
   const { timezone, isMobileCanvasMode, nodeDisplayMode, setNodeDisplayMode } = useDisplay();
 
   // Strategy metadata state
@@ -222,6 +226,14 @@ function StrategyEditorPageInner({ params }: Props) {
       validationErrorCallbackRef.current?.(errors);
       setValidationErrors(errors);
     },
+  });
+
+  // NL-wedge review surface (ADR-0012, Module B): "AI draft — under review"
+  // banner is UI-only (ADR-0005) — no persisted status.
+  const draftReview = useDraftReviewState({
+    strategyId: id,
+    entryPath: strategy?.entry_path ?? null,
+    userId: user?.id,
   });
 
   // --- Data loading ---
@@ -557,6 +569,7 @@ function StrategyEditorPageInner({ params }: Props) {
 
   return (
     <div className="flex h-screen flex-col">
+      <DraftReviewBanner visible={draftReview.isUnderReview} />
       <StrategyHeader
         strategy={strategy}
         strategyId={id}

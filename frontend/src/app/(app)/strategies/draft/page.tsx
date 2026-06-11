@@ -8,6 +8,7 @@ import { ApiError } from "@/lib/api";
 import { StrategiesApiClient } from "@/lib/api/strategies-client";
 import { trackEvent } from "@/lib/analytics";
 import { resolveCohort } from "@/lib/cohort-resolver";
+import { markDraftUnderReview } from "@/lib/draft-review-storage";
 import { useAuth } from "@/context/auth";
 import { ALLOWED_ASSETS, ALLOWED_TIMEFRAMES } from "@/types/strategy";
 import { Button } from "@/components/ui/button";
@@ -81,6 +82,9 @@ export default function DraftFromNlPage() {
 
       trackEvent("nl_draft_drafted", { asset, timeframe, ...cohort }, user?.id);
       trackEvent("strategy_created", { asset, timeframe, source: "nl_wedge", ...cohort }, user?.id);
+      if (result.strategy_id) {
+        markDraftUnderReview(result.strategy_id);
+      }
       router.push(`/strategies/${result.strategy_id}`);
     } catch (err) {
       trackEvent("nl_draft_errored", { asset, timeframe, ...cohort }, user?.id);
