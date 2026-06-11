@@ -46,6 +46,7 @@
 - **Problem:** A draft that doesn't immediately get *tested* leaves the user at the un-resolved belief — the wedge promise ("find out if you're right") is unfulfilled.
 - **Proposed deepening:** Reuse the existing wizard auto-save + auto-backtest flow so NL → graph → completed backtest happens in one continuous motion, ending on the result/narrative.
 - **Wins:** Delivers the full magic moment in one flow; maximizes activation (#1); reuses proven plumbing rather than building new.
+- **⚠️ Stale framing — see ADR-0013 for the resolved design.** "Reuse the existing wizard flow" is imprecise on two points: the wizard auto-backtests **only on `isFirstRun`** and **polls in-dialog** before navigating, whereas the wedge auto-backtests **every draft** and **navigates-into-running** (lands on the result page while the run is still going, letting the result page's own poller drive running→verdict — ADR-0012 §9). The auto-backtest is **client-orchestrated from the draft page** (the drafter endpoint stays generation-only per ADR-0011), uses the **same 1-year window** as the wizard for `wizard`-vs-`nl_wedge` cohort comparability (#7), and shares only a small `startAutoBacktest` enqueue helper — the wizard's `isFirstRun` gating is untouched.
 
 ### 7. A/B harness: NL box vs. blank canvas `[P1 · S]`
 - **Problem:** We're betting the wedge ("adjudicate my idea") beats the current authoring model — but it's the brainstorm's #1 untested assumption.
