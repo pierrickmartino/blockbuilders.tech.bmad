@@ -86,6 +86,8 @@ interface BacktestPageHeaderProps {
   selectedPeriodCount: number;
   runStatus?: BacktestStatus | null;
   runRange?: string | null;
+  /** Hides the Share action while an NL-wedge draft is under review (ADR-0012). */
+  shareLocked?: boolean;
 }
 
 export function BacktestPageHeader({
@@ -106,11 +108,13 @@ export function BacktestPageHeader({
   selectedPeriodCount,
   runStatus = null,
   runRange = null,
+  shareLocked = false,
 }: BacktestPageHeaderProps) {
   const showActions =
     selectedRun?.status === "completed" &&
     selectedRun.summary &&
     !isZeroTradeNarrativeMode;
+  const showShare = showActions && !shareLocked;
   const showRestore =
     selectedRun?.status === "completed" &&
     selectedRun.strategy_version_number != null &&
@@ -183,17 +187,19 @@ export function BacktestPageHeader({
               isRestoring={isRestoring}
             />
           )}
+          {showShare && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onShare}
+              className="gap-2"
+            >
+              <Share2 className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Share</span>
+            </Button>
+          )}
           {showActions && (
             <>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onShare}
-                className="gap-2"
-              >
-                <Share2 className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Share</span>
-              </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm" className="gap-2">

@@ -29,6 +29,7 @@ import { useBacktestResults } from "@/hooks/useBacktestResults";
 import { useBatchBacktestResults } from "@/hooks/useBatchBacktestResults";
 import { useRestoreSnapshot } from "@/hooks/useRestoreSnapshot";
 import { useResultViewedTracking } from "@/hooks/useResultViewedTracking";
+import { useDraftReviewState } from "@/hooks/useDraftReviewState";
 import { Strategy, StrategyVersion } from "@/types/strategy";
 import {
   BacktestListItem,
@@ -48,6 +49,7 @@ import { NarrativeCard } from "@/components/NarrativeCard";
 import { LowTradeCountWarning } from "@/components/LowTradeCountWarning";
 import { DataAvailabilitySection } from "@/components/DataAvailabilitySection";
 import { ShareBacktestModal } from "@/components/ShareBacktestModal";
+import { DraftReviewControls } from "@/components/backtest/DraftReviewControls";
 import { TransactionCostAnalysis } from "@/components/TransactionCostAnalysis";
 import { trackBacktestView } from "@/lib/recent-views";
 import { trackBacktestStarted } from "@/lib/backtest-tracking";
@@ -759,6 +761,15 @@ export default function StrategyBacktestPage({ params }: Props) {
     userId: user?.id,
   });
 
+  // NL-wedge review surface (ADR-0012, Module B): Accept keeps the strategy
+  // and unlocks Share; Edit keeps the strategy and routes to the canvas as an
+  // ordinary working copy.
+  const draftReview = useDraftReviewState({
+    strategyId: id,
+    entryPath: strategy?.entry_path ?? null,
+    userId: user?.id,
+  });
+
   // Fetch user plan to check for premium features
   useEffect(() => {
     UsersApiClient.getProfile()
@@ -1152,6 +1163,7 @@ export default function StrategyBacktestPage({ params }: Props) {
         selectedPeriodCount={selectedPeriods.size}
         runStatus={selectedRun?.status ?? null}
         runRange={selectedRunRange}
+        shareLocked={draftReview.isUnderReview}
       />
 
       {/* Main Content */}
@@ -1255,6 +1267,17 @@ export default function StrategyBacktestPage({ params }: Props) {
               </span>
               <div className="h-px flex-1 bg-border" />
             </div>
+
+            {/* NL-wedge review surface (ADR-0012, Module B) */}
+            {draftReview.isUnderReview && (
+              <DraftReviewControls
+                onAccept={draftReview.accept}
+                onEdit={() => {
+                  draftReview.edit();
+                  router.push(`/strategies/${id}`);
+                }}
+              />
+            )}
 
             {/* KPI Strip */}
             <KPIStrip

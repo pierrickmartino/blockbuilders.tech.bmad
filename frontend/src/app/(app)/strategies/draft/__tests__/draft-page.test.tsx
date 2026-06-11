@@ -4,6 +4,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import DraftFromNlPage from "../page";
 import { StrategiesApiClient } from "@/lib/api/strategies-client";
 import { trackEvent } from "@/lib/analytics";
+import { markDraftUnderReview } from "@/lib/draft-review-storage";
 import { ApiError } from "@/lib/api";
 import type { StrategyDraftFromNlResponse } from "@/types/strategy";
 
@@ -27,8 +28,13 @@ vi.mock("@/lib/analytics", () => ({
   trackEvent: vi.fn(),
 }));
 
+vi.mock("@/lib/draft-review-storage", () => ({
+  markDraftUnderReview: vi.fn(),
+}));
+
 const mockStrategiesClient = vi.mocked(StrategiesApiClient);
 const mockTrackEvent = vi.mocked(trackEvent);
+const mockMarkDraftUnderReview = vi.mocked(markDraftUnderReview);
 
 function fillAndSubmit(nlText = "buy when RSI is oversold") {
   fireEvent.change(screen.getByLabelText(/describe your strategy/i), {
@@ -102,6 +108,8 @@ describe("DraftFromNlPage", () => {
       expect.objectContaining({ entry_path: "nl_wedge", authoring_mode: "nl" }),
       "user-1"
     );
+
+    expect(mockMarkDraftUnderReview).toHaveBeenCalledWith("strategy-1");
   });
 
   it("shows the decline reason and a rephrase hint without navigating when the drafter declines", async () => {
