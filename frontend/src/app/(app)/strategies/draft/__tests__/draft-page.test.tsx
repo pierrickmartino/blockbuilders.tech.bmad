@@ -1,10 +1,12 @@
 import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { toast } from "sonner";
 import DraftFromNlPage from "../page";
 import { StrategiesApiClient } from "@/lib/api/strategies-client";
 import { trackEvent } from "@/lib/analytics";
 import { markDraftUnderReview } from "@/lib/draft-review-storage";
+import { startAutoBacktest } from "@/lib/start-auto-backtest";
 import { ApiError } from "@/lib/api";
 import type { StrategyDraftFromNlResponse } from "@/types/strategy";
 
@@ -32,9 +34,22 @@ vi.mock("@/lib/draft-review-storage", () => ({
   markDraftUnderReview: vi.fn(),
 }));
 
+vi.mock("@/lib/start-auto-backtest", () => ({
+  startAutoBacktest: vi.fn(),
+}));
+
+vi.mock("sonner", () => ({
+  toast: {
+    error: vi.fn(),
+    success: vi.fn(),
+  },
+}));
+
 const mockStrategiesClient = vi.mocked(StrategiesApiClient);
 const mockTrackEvent = vi.mocked(trackEvent);
 const mockMarkDraftUnderReview = vi.mocked(markDraftUnderReview);
+const mockStartAutoBacktest = vi.mocked(startAutoBacktest);
+const mockToast = vi.mocked(toast);
 
 function fillAndSubmit(nlText = "buy when RSI is oversold") {
   fireEvent.change(screen.getByLabelText(/describe your strategy/i), {
@@ -66,13 +81,14 @@ describe("DraftFromNlPage", () => {
     expect(mockTrackEvent).not.toHaveBeenCalledWith("nl_draft_requested", expect.anything(), expect.anything());
   });
 
-  it("submits nl_text with the selected asset/timeframe, shows a loading state, and navigates to the canvas on success", async () => {
+  it("submits nl_text with the selected asset/timeframe, shows a loading state, starts the auto-backtest, and navigates to the result page with the run preselected on success", async () => {
     let resolveDraft: (value: StrategyDraftFromNlResponse) => void = () => {};
     mockStrategiesClient.draftFromNl.mockReturnValue(
       new Promise<StrategyDraftFromNlResponse>((resolve) => {
         resolveDraft = resolve;
       })
     );
+    mockStartAutoBacktest.mockResolvedValue({ runId: "run-1" });
 
     render(<DraftFromNlPage />);
     fillAndSubmit("buy when RSI is oversold");
@@ -94,7 +110,7 @@ describe("DraftFromNlPage", () => {
     resolveDraft({ outcome: "success", strategy_id: "strategy-1", reason: null });
 
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith("/strategies/strategy-1");
+      expect(mockPush).toHaveBeenCalledWith("/strategies/strategy-1/backtest?run=run-1");
     });
 
     expect(mockTrackEvent).toHaveBeenCalledWith(
@@ -110,6 +126,34 @@ describe("DraftFromNlPage", () => {
     );
 
     expect(mockMarkDraftUnderReview).toHaveBeenCalledWith("strategy-1");
+
+    expect(mockStartAutoBacktest).toHaveBeenCalledWith({
+      strategyId: "strategy-1",
+      entryPath: "nl_wedge",
+      userId: "user-1",
+    });
+
+    expect(mockTrackEvent).not.toHaveBeenCalledWith("auto_backtest_completed", expect.anything(), expect.anything());
+  });
+
+  it("navigates to the result page without ?run= and shows a toast when the auto-backtest enqueue fails, leaving the strategy under review", async () => {
+    mockStrategiesClient.draftFromNl.mockResolvedValue({
+      outcome: "success",
+      strategy_id: "strategy-1",
+      reason: null,
+    });
+    mockStartAutoBacktest.mockRejectedValue(new Error("enqueue failed"));
+
+    render(<DraftFromNlPage />);
+    fillAndSubmit("buy when RSI is oversold");
+
+    await waitFor(() => {
+      expect(mockPush).toHaveBeenCalledWith("/strategies/strategy-1/backtest");
+    });
+
+    expect(mockPush).not.toHaveBeenCalledWith(expect.stringContaining("?run="));
+    expect(mockMarkDraftUnderReview).toHaveBeenCalledWith("strategy-1");
+    expect(mockToast.error).toHaveBeenCalledWith("Couldn't start the backtest — run it here");
   });
 
   it("shows the decline reason and a rephrase hint without navigating when the drafter declines", async () => {
