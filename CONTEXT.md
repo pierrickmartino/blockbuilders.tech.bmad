@@ -144,6 +144,16 @@ These name the activation north-star and its instrumentation.
   `manual` is split into the two paths it was hiding (`blank_canvas`,
   `template_clone`). _Avoid_: `manual` (retired — it conflated blank
   canvas with template clone); reusing this for authoring method.
+- **AI-drafted** — the user-facing provenance label for a strategy
+  born from the NL wedge, rendered as a badge wherever the strategy
+  surfaces (list, canvas header, result page). A pure projection of
+  `entry_path = nl_wedge` — **no new column, no new status**. Marks
+  *origin*, not current authorship: it is permanent and **survives
+  Edit** (a heavily hand-edited AI draft is still "AI-drafted"), so it
+  intentionally tracks `entry_path` (origin), not `authoring_mode`
+  (which a human edit would falsify). _Avoid_: "AI-generated" /
+  "AI-built" (overclaim ongoing AI authorship the user's edits may have
+  replaced); a separate `is_ai` flag (redundant with `entry_path`).
 - **Authoring mode** — *how the strategy graph was authored*, the
   second cohort dimension, orthogonal to **Entry path**. Two values:
   `nl` (drafted from the natural-language box) and `manual` (assembled
