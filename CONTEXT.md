@@ -171,6 +171,21 @@ These name the activation north-star and its instrumentation.
   implies the *job/run*, reviving the job-vs-view drift ADR-0008
   retired); anchoring the terminal on `backtest_started` or
   `backtest_job_completed`.
+- **Draft outcome** — the terminal disposition of an NL draft after the
+  user reviews its verdict (ACTIONS #5), logged as a single graded
+  dimension on the `nl_draft_*` event family, **not** a boolean
+  accept/reject. Four values: `accepted` (kept + shareable artifact
+  minted), `edited` (kept, then hand-edited on the canvas), `kept`
+  (stays in the list, no artifact — the abandonment-modal "Keep" or a
+  hard browser exit), `rejected` (hard-deleted per ADR-0006). `edited`
+  is first-class on purpose: it is the drafter's most actionable signal
+  (a draft that was *close* but needed correction), so collapsing it
+  into `accepted` is forbidden. **Decoupled from Activation**: the
+  outcome says nothing about whether the user activated — a `rejected`
+  draft still counts as Activation (the verdict was witnessed; see
+  **Activation**, which survives the hard-delete). _Avoid_: a boolean
+  accept/reject (ACTIONS #5's stale framing); folding `edited`/`kept`
+  into `accepted`; treating `rejected` as un-activation.
 
 ## First-run & retention surfaces
 
