@@ -65,4 +65,27 @@ describe("startAutoBacktest", () => {
       "user-1"
     );
   });
+
+  it("fires auto_backtest_started with a caller-supplied source while still resolving the cohort from entryPath", async () => {
+    mockCreate.mockResolvedValue({ run_id: "run-456", status: "pending" } as BacktestCreateResponse);
+
+    await startAutoBacktest({
+      strategyId: "strategy-1",
+      entryPath: "wizard",
+      source: "wizard_first_run",
+      userId: "user-1",
+    });
+
+    expect(mockTrackEvent).toHaveBeenCalledWith(
+      "auto_backtest_started",
+      {
+        strategy_id: "strategy-1",
+        run_id: "run-456",
+        source: "wizard_first_run",
+        entry_path: "wizard",
+        authoring_mode: "manual",
+      },
+      "user-1"
+    );
+  });
 });
