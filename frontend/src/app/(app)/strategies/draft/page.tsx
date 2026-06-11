@@ -4,11 +4,13 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Loader2, Sparkles } from "lucide-react";
+import { toast } from "sonner";
 import { ApiError } from "@/lib/api";
 import { StrategiesApiClient } from "@/lib/api/strategies-client";
 import { trackEvent } from "@/lib/analytics";
 import { resolveCohort } from "@/lib/cohort-resolver";
 import { markDraftUnderReview } from "@/lib/draft-review-storage";
+import { startAutoBacktest } from "@/lib/start-auto-backtest";
 import { useAuth } from "@/context/auth";
 import { ALLOWED_ASSETS, ALLOWED_TIMEFRAMES } from "@/types/strategy";
 import { Button } from "@/components/ui/button";
@@ -82,10 +84,27 @@ export default function DraftFromNlPage() {
 
       trackEvent("nl_draft_drafted", { asset, timeframe, ...cohort }, user?.id);
       trackEvent("strategy_created", { asset, timeframe, source: "nl_wedge", ...cohort }, user?.id);
-      if (result.strategy_id) {
-        markDraftUnderReview(result.strategy_id);
+
+      const strategyId = result.strategy_id;
+      if (!strategyId) {
+        router.push("/strategies");
+        return;
       }
-      router.push(`/strategies/${result.strategy_id}`);
+
+      markDraftUnderReview(strategyId);
+      const backtestUrl = `/strategies/${strategyId}/backtest`;
+
+      try {
+        const { runId } = await startAutoBacktest({
+          strategyId,
+          entryPath: "nl_wedge",
+          userId: user?.id,
+        });
+        router.push(`${backtestUrl}?run=${runId}`);
+      } catch {
+        toast.error("Couldn't start the backtest — run it here");
+        router.push(backtestUrl);
+      }
     } catch (err) {
       trackEvent("nl_draft_errored", { asset, timeframe, ...cohort }, user?.id);
       setError(
