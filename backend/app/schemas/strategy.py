@@ -313,3 +313,8 @@ class BulkStrategyResponse(BaseModel):
     failed_count: int
     failed_ids: list[UUID] = Field(default_factory=list)
     error_message: str | None = None
+
+
+class StrategyDeleteResponse(BaseModel):
+    id: UUID
+    deleted: bool = True

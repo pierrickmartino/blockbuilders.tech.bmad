@@ -346,4 +346,23 @@ describe("StrategiesApiClient", () => {
       });
     });
   });
+
+  // ── delete ────────────────────────────────────────────────────────────────
+
+  describe("delete()", () => {
+    it("calls DELETE /strategies/{id}", async () => {
+      mockApiFetch.mockResolvedValueOnce({ id: "strat-1", deleted: true });
+      await StrategiesApiClient.delete("strat-1");
+      expect(mockApiFetch).toHaveBeenCalledWith("/strategies/strat-1", {
+        method: "DELETE",
+      });
+    });
+
+    it("returns the delete response", async () => {
+      const res = { id: "strat-1", deleted: true };
+      mockApiFetch.mockResolvedValueOnce(res);
+      const result = await StrategiesApiClient.delete("strat-1");
+      expect(result).toEqual(res);
+    });
+  });
 });

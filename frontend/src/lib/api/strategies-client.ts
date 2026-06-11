@@ -21,6 +21,11 @@ interface BulkResponse {
   failed_ids: string[];
 }
 
+interface StrategyDeleteResponse {
+  id: string;
+  deleted: boolean;
+}
+
 export const strategiesKeys = {
   all: (): string[] => ["strategies"],
   lists: (): string[] => ["strategies", "list"],
@@ -121,6 +126,12 @@ export const StrategiesApiClient = {
     return apiFetch<BulkResponse>("/strategies/bulk/delete", {
       method: "POST",
       body: JSON.stringify({ strategy_ids: strategyIds }),
+    });
+  },
+
+  async delete(id: string): Promise<StrategyDeleteResponse> {
+    return apiFetch<StrategyDeleteResponse>(`/strategies/${id}`, {
+      method: "DELETE",
     });
   },
 };

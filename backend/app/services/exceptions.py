@@ -67,6 +67,16 @@ class StrategyHasNoVersions(DomainError):
         return {"detail": "Strategy has no saved versions"}
 
 
+class StrategyNotFound(DomainError):
+    status_code = 404
+
+    def __init__(self) -> None:
+        super().__init__("Strategy not found")
+
+    def detail(self) -> dict:
+        return {"detail": "Strategy not found"}
+
+
 class ShareLinkNotFound(DomainError):
     status_code = 404
 
