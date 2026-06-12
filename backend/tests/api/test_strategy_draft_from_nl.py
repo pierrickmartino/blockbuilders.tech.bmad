@@ -427,3 +427,100 @@ def test_draft_from_nl_repair_exhausted_draft_returns_declined(client, auth_head
 
     assert session.exec(select(Strategy).where(Strategy.user_id == user.id)).first() is None
     assert session.exec(select(StrategyDraft)).first() is None
+
+
+# ── issue #626: repair-resolution telemetry (clean | repaired | declined) ──
+#
+# Server-side aggregate signal, emitted once per draft-from-nl request as a
+# structured log on `app.api.strategies` — orthogonal to Draft outcome, not
+# a client `nl_draft_*` event. Reuses the repair-loop test doubles above.
+
+def _resolution_log_records(caplog):
+    return [r for r in caplog.records if r.message == "strategy_draft_resolution"]
+
+
+def test_draft_from_nl_clean_draft_logs_clean_resolution(client, auth_headers, session, user, monkeypatch, caplog):
+    """The first draft validates with no repair call -> `clean`."""
+    monkeypatch.setattr(settings, "strategy_drafter_enabled", True)
+
+    with caplog.at_level("INFO", logger="app.api.strategies"):
+        response = client.post(
+            "/strategies/draft-from-nl",
+            json={"nl_text": "buy when RSI is oversold", "asset": "BTC/USDT", "timeframe": "1d"},
+            headers=auth_headers,
+        )
+
+    assert response.status_code == 200
+    assert response.json()["outcome"] == "success"
+
+    records = _resolution_log_records(caplog)
+    assert len(records) == 1
+    assert records[0].resolution == "clean"
+
+
+def test_draft_from_nl_repaired_draft_logs_repaired_resolution(client, auth_headers, session, user, monkeypatch, caplog):
+    """An invalid first draft that a repair turns valid -> `repaired`."""
+    monkeypatch.setattr(settings, "strategy_drafter_enabled", True)
+    monkeypatch.setattr("app.api.strategies.get_strategy_drafter", lambda: DraftsInvalidThenValid())
+
+    with caplog.at_level("INFO", logger="app.api.strategies"):
+        response = client.post(
+            "/strategies/draft-from-nl",
+            json={"nl_text": "buy when RSI drops below 30", "asset": "BTC/USDT", "timeframe": "1d"},
+            headers=auth_headers,
+        )
+
+    assert response.status_code == 200
+    assert response.json()["outcome"] == "success"
+
+    records = _resolution_log_records(caplog)
+    assert len(records) == 1
+    assert records[0].resolution == "repaired"
+
+
+def test_draft_from_nl_repair_exhausted_logs_declined_resolution(client, auth_headers, session, user, monkeypatch, caplog):
+    """A repair-exhausted decline -> `declined`."""
+    monkeypatch.setattr(settings, "strategy_drafter_enabled", True)
+    monkeypatch.setattr("app.api.strategies.get_strategy_drafter", lambda: DraftsInvalidTwice())
+
+    with caplog.at_level("INFO", logger="app.api.strategies"):
+        response = client.post(
+            "/strategies/draft-from-nl",
+            json={"nl_text": "buy when RSI drops below 30", "asset": "BTC/USDT", "timeframe": "1d"},
+            headers=auth_headers,
+        )
+
+    assert response.status_code == 200
+    assert response.json()["outcome"] == "declined"
+
+    records = _resolution_log_records(caplog)
+    assert len(records) == 1
+    assert records[0].resolution == "declined"
+
+
+def test_draft_from_nl_model_declined_logs_declined_resolution(client, auth_headers, session, user, monkeypatch, caplog):
+    """A model-declined first draft (no repair attempted) -> `declined`."""
+    from app.schemas.strategy_draft_ir import DeclinedOutcome
+    from app.services.strategy_drafter import LLMStrategyDrafter
+
+    monkeypatch.setattr(settings, "strategy_drafter_enabled", True)
+
+    fake_drafter = LLMStrategyDrafter(
+        client=FakeInstructorClient(DeclinedOutcome(reason="No block supports tracking tweets.")),
+        model="claude-sonnet-4-6",
+    )
+    monkeypatch.setattr("app.api.strategies.get_strategy_drafter", lambda: fake_drafter)
+
+    with caplog.at_level("INFO", logger="app.api.strategies"):
+        response = client.post(
+            "/strategies/draft-from-nl",
+            json={"nl_text": "buy when Elon tweets", "asset": "BTC/USDT", "timeframe": "1d"},
+            headers=auth_headers,
+        )
+
+    assert response.status_code == 200
+    assert response.json()["outcome"] == "declined"
+
+    records = _resolution_log_records(caplog)
+    assert len(records) == 1
+    assert records[0].resolution == "declined"

@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timezone
 from uuid import UUID
 
@@ -42,6 +43,8 @@ from app.services.strategy_deletion import delete_strategy_cascade
 from app.services.strategy_draft_pipeline import DraftPipelineDeclined, draft_and_repair
 from app.services.strategy_drafter import StrategyDrafterError, get_strategy_drafter
 from app.services.strategy_validation import collect_validation_errors
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/strategies", tags=["strategies"])
 
@@ -207,6 +210,10 @@ def draft_strategy_from_nl(
         pipeline_result = draft_and_repair(get_strategy_drafter(), data.nl_text)
     except StrategyDrafterError as exc:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc))
+
+    # Repair-resolution telemetry (issue #626): server-side aggregate signal
+    # for tuning `strategy_drafter_max_repairs`, independent of Draft outcome.
+    logger.info("strategy_draft_resolution", extra={"resolution": pipeline_result.resolution})
 
     if isinstance(pipeline_result, DraftPipelineDeclined):
         return StrategyDraftFromNlResponse(outcome="declined", reason=pipeline_result.reason)

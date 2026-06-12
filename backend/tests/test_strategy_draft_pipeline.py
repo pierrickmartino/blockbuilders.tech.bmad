@@ -114,6 +114,7 @@ def test_clean_first_try_returns_success_with_no_repair_call():
 
     assert isinstance(result, DraftPipelineSuccess)
     assert len(result.definition["blocks"]) > 0
+    assert result.resolution == "clean"
 
 
 def test_invalid_then_valid_repair_returns_success():
@@ -127,6 +128,7 @@ def test_invalid_then_valid_repair_returns_success():
     assert nl_text == "buy when RSI drops below 30"
     assert prior_ir == _INVALID_IR_NO_EXIT
     assert errors[0].code == "MISSING_EXIT"
+    assert result.resolution == "repaired"
 
 
 def test_invalid_then_still_invalid_declines_with_repaired_error():
@@ -134,6 +136,7 @@ def test_invalid_then_still_invalid_declines_with_repaired_error():
 
     assert isinstance(result, DraftPipelineDeclined)
     assert "Percentage must be between" in result.reason
+    assert result.resolution == "declined"
 
 
 def test_redraft_declines_returns_declined_with_model_reason():
@@ -141,6 +144,7 @@ def test_redraft_declines_returns_declined_with_model_reason():
 
     assert isinstance(result, DraftPipelineDeclined)
     assert result.reason == "Still can't express this with the available blocks."
+    assert result.resolution == "declined"
 
 
 def test_max_repairs_zero_declines_without_repair_attempt(monkeypatch):
@@ -152,3 +156,4 @@ def test_max_repairs_zero_declines_without_repair_attempt(monkeypatch):
     assert isinstance(result, DraftPipelineDeclined)
     assert result.reason == "Add at least one exit rule (Exit Signal, Stop Loss, Take Profit, etc.)."
     assert drafter.redraft_calls == []
+    assert result.resolution == "declined"
