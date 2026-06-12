@@ -1,0 +1,62 @@
+"""Repair-orchestrator helper (ADR-0015) — owns the `draft -> compile ->
+validate [-> redraft]*` cadence for the NL wedge's draft-from-nl endpoint.
+
+The compiler and Strategy validator stay outside the `StrategyDrafter` seam
+(ADR-0011); this helper wires them together with an injected drafter, bounded
+by `strategy_drafter_max_repairs`. Nothing partial persists on any
+intermediate failure — the caller decides what to do with the result.
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Any
+
+from app.core.config import settings
+from app.schemas.strategy import StrategyDefinitionValidate
+from app.services.graph_compiler import GraphCompilationError, compile_graph
+from app.services.strategy_drafter import StrategyDrafter
+from app.services.strategy_validation import collect_validation_errors
+
+
+@dataclass(frozen=True)
+class DraftPipelineSuccess:
+    """A drafted graph that compiled and passed the Strategy validator."""
+
+    definition: dict[str, Any]
+
+
+@dataclass(frozen=True)
+class DraftPipelineDeclined:
+    """Nothing persisted; `reason` is the plain-language refusal to surface."""
+
+    reason: str
+
+
+DraftPipelineResult = DraftPipelineSuccess | DraftPipelineDeclined
+
+
+def draft_and_repair(drafter: StrategyDrafter, nl_text: str) -> DraftPipelineResult:
+    """Run the repair pass (ADR-0015): re-generate up to `max_repairs` times
+    on validator failure before declining."""
+    result = drafter.draft(nl_text)
+    attempt = 0
+
+    while True:
+        if result.outcome == "declined":
+            return DraftPipelineDeclined(reason=result.reason)
+
+        try:
+            definition = compile_graph(result.ir)
+        except GraphCompilationError as exc:
+            return DraftPipelineDeclined(reason=str(exc))
+
+        parsed_definition = StrategyDefinitionValidate.model_validate(definition)
+        errors = collect_validation_errors(parsed_definition)
+        if not errors:
+            return DraftPipelineSuccess(definition=definition)
+
+        if attempt >= settings.strategy_drafter_max_repairs:
+            return DraftPipelineDeclined(reason=errors[0].user_message or errors[0].message)
+
+        result = drafter.redraft(nl_text, result.ir, errors)
+        attempt += 1

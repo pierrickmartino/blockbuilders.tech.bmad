@@ -21,6 +21,7 @@ from sqlmodel import select
 from app.core.config import settings
 from app.models.strategy import Strategy, StrategyEntryPath
 from app.models.strategy_draft import StrategyDraft
+from app.schemas.strategy_draft_ir import DraftedBlockIR, DraftedConnectionIR, DraftedIR, DraftedOutcome
 
 
 def test_draft_from_nl_requires_auth(client, monkeypatch):
@@ -313,6 +314,116 @@ def test_draft_from_nl_infra_failure_returns_error_and_persists_nothing(
     assert "anthropic" not in body["detail"].lower()
     assert "openai" not in body["detail"].lower()
     assert "api key" not in body["detail"].lower()
+
+    assert session.exec(select(Strategy).where(Strategy.user_id == user.id)).first() is None
+    assert session.exec(select(StrategyDraft)).first() is None
+
+
+# ── issue #625: the repair pass (ADR-0015) ────────────────────────────────
+#
+# A draft that compiles but fails the validator gets one error-informed
+# `redraft` attempt (default `strategy_drafter_max_repairs = 1`) before
+# falling through to `declined`. Repair is always LLM re-generation — these
+# fakes are small, intention-named `StrategyDrafter` doubles, not
+# `unittest.mock` scripting.
+
+_VALID_RSI_BOUNCE_IR = DraftedIR(
+    blocks=[
+        DraftedBlockIR(ref="rsi", type="rsi", label="RSI (14)", params={"period": 14, "source": "close"}),
+        DraftedBlockIR(ref="oversold", type="constant", label="Oversold (30)", params={"value": 30}),
+        DraftedBlockIR(ref="overbought", type="constant", label="Overbought (70)", params={"value": 70}),
+        DraftedBlockIR(ref="entry_compare", type="compare", label="RSI < 30", params={"operator": "<"}),
+        DraftedBlockIR(ref="exit_compare", type="compare", label="RSI > 70", params={"operator": ">"}),
+        DraftedBlockIR(ref="entry", type="entry_signal", label="Entry Signal", params={}),
+        DraftedBlockIR(ref="exit", type="exit_signal", label="Exit Signal", params={}),
+    ],
+    connections=[
+        DraftedConnectionIR(from_ref="rsi", from_port="output", to_ref="entry_compare", to_port="left"),
+        DraftedConnectionIR(from_ref="oversold", from_port="output", to_ref="entry_compare", to_port="right"),
+        DraftedConnectionIR(from_ref="entry_compare", from_port="output", to_ref="entry", to_port="signal"),
+        DraftedConnectionIR(from_ref="rsi", from_port="output", to_ref="exit_compare", to_port="left"),
+        DraftedConnectionIR(from_ref="overbought", from_port="output", to_ref="exit_compare", to_port="right"),
+        DraftedConnectionIR(from_ref="exit_compare", from_port="output", to_ref="exit", to_port="signal"),
+    ],
+)
+
+# Entry only, no exit -> fails the validator's MISSING_EXIT check.
+_INVALID_NO_EXIT_IR = DraftedIR(
+    blocks=[
+        DraftedBlockIR(ref="rsi", type="rsi", label="RSI (14)", params={"period": 14, "source": "close"}),
+        DraftedBlockIR(ref="oversold", type="constant", label="Oversold (30)", params={"value": 30}),
+        DraftedBlockIR(ref="entry_compare", type="compare", label="RSI < 30", params={"operator": "<"}),
+        DraftedBlockIR(ref="entry", type="entry_signal", label="Entry Signal", params={}),
+    ],
+    connections=[
+        DraftedConnectionIR(from_ref="rsi", from_port="output", to_ref="entry_compare", to_port="left"),
+        DraftedConnectionIR(from_ref="oversold", from_port="output", to_ref="entry_compare", to_port="right"),
+        DraftedConnectionIR(from_ref="entry_compare", from_port="output", to_ref="entry", to_port="signal"),
+    ],
+)
+
+
+class DraftsInvalidThenValid:
+    """First draft fails the validator (no exit); the repair pass fixes it."""
+
+    def draft(self, nl_text: str):
+        return DraftedOutcome(ir=_INVALID_NO_EXIT_IR)
+
+    def redraft(self, nl_text: str, prior_ir, errors):
+        return DraftedOutcome(ir=_VALID_RSI_BOUNCE_IR)
+
+
+class DraftsInvalidTwice:
+    """Both the first draft and the repair pass fail the validator (no exit)."""
+
+    def draft(self, nl_text: str):
+        return DraftedOutcome(ir=_INVALID_NO_EXIT_IR)
+
+    def redraft(self, nl_text: str, prior_ir, errors):
+        return DraftedOutcome(ir=_INVALID_NO_EXIT_IR)
+
+
+def test_draft_from_nl_repair_needing_draft_returns_success(client, auth_headers, session, user, monkeypatch):
+    monkeypatch.setattr(settings, "strategy_drafter_enabled", True)
+    monkeypatch.setattr("app.api.strategies.get_strategy_drafter", lambda: DraftsInvalidThenValid())
+
+    response = client.post(
+        "/strategies/draft-from-nl",
+        json={"nl_text": "buy when RSI drops below 30", "asset": "BTC/USDT", "timeframe": "1d"},
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["outcome"] == "success"
+    assert body["reason"] is None
+    strategy_id = body["strategy_id"]
+    assert strategy_id is not None
+
+    strategy = session.exec(select(Strategy).where(Strategy.user_id == user.id)).one()
+    assert str(strategy.id) == strategy_id
+
+    draft = session.exec(select(StrategyDraft).where(StrategyDraft.strategy_id == strategy.id)).first()
+    assert draft is not None
+    block_types = {b["type"] for b in draft.definition_json["blocks"]}
+    assert "exit_signal" in block_types
+
+
+def test_draft_from_nl_repair_exhausted_draft_returns_declined(client, auth_headers, session, user, monkeypatch):
+    monkeypatch.setattr(settings, "strategy_drafter_enabled", True)
+    monkeypatch.setattr("app.api.strategies.get_strategy_drafter", lambda: DraftsInvalidTwice())
+
+    response = client.post(
+        "/strategies/draft-from-nl",
+        json={"nl_text": "buy when RSI drops below 30", "asset": "BTC/USDT", "timeframe": "1d"},
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["outcome"] == "declined"
+    assert body["strategy_id"] is None
+    assert body["reason"] == "Add at least one exit rule (Exit Signal, Stop Loss, Take Profit, etc.)."
 
     assert session.exec(select(Strategy).where(Strategy.user_id == user.id)).first() is None
     assert session.exec(select(StrategyDraft)).first() is None

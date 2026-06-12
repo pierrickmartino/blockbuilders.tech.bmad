@@ -34,6 +34,24 @@ def test_stub_drafter_returns_drafted_outcome():
     assert len(result.ir.blocks) > 0
 
 
+# ── stub drafter: redraft (repair pass, ADR-0015) is also failure-free ────
+
+def test_stub_drafter_redraft_returns_drafted_outcome():
+    from app.schemas.strategy import ValidationError
+    from app.schemas.strategy_draft_ir import DraftedIR, DraftedOutcome
+    from app.services.strategy_drafter import StubStrategyDrafter
+
+    drafter = StubStrategyDrafter()
+    prior_ir = DraftedIR(blocks=[], connections=[])
+    errors = [ValidationError(code="MISSING_EXIT", message="Strategy has no exit rule.")]
+
+    result = drafter.redraft("buy when RSI is oversold", prior_ir, errors)
+
+    assert isinstance(result, DraftedOutcome)
+    assert result.outcome == "drafted"
+    assert len(result.ir.blocks) > 0
+
+
 # ── determinism: same input -> same IR ────────────────────────────────────
 
 def test_stub_drafter_is_deterministic():
@@ -149,6 +167,86 @@ def test_llm_drafter_calls_provider_with_response_model_and_nl_text():
     assert call["model"] == "claude-sonnet-4-6"
     assert call["response_model"] is DraftResult
     assert any("buy when RSI is oversold" in m["content"] for m in call["messages"])
+
+
+# ── LLM drafter: redraft (repair pass, ADR-0015) ──────────────────────────
+
+def test_llm_drafter_redraft_calls_provider_with_prior_ir_and_error_messages():
+    from app.schemas.strategy import ValidationError
+    from app.schemas.strategy_draft_ir import DraftedBlockIR, DraftedIR, DraftedOutcome, DraftResult
+    from app.services.strategy_drafter import LLMStrategyDrafter
+
+    fake_result = DraftedOutcome(ir=DraftedIR(blocks=[], connections=[]))
+    client = FakeInstructorClient(fake_result)
+
+    prior_ir = DraftedIR(
+        blocks=[DraftedBlockIR(ref="rsi", type="rsi", params={"period": 14})],
+        connections=[],
+    )
+    errors = [
+        ValidationError(
+            code="MISSING_EXIT",
+            message="Strategy has no exit rule.",
+            user_message="Add at least one exit rule.",
+        )
+    ]
+
+    drafter = LLMStrategyDrafter(client=client, model="claude-sonnet-4-6")
+    result = drafter.redraft("buy when RSI is oversold", prior_ir, errors)
+
+    assert result is fake_result
+    assert len(client.calls) == 1
+    call = client.calls[0]
+    assert call["model"] == "claude-sonnet-4-6"
+    assert call["response_model"] is DraftResult
+
+    joined_content = " ".join(m["content"] for m in call["messages"])
+    assert "buy when RSI is oversold" in joined_content
+    # Carries the prior IR for re-generation context.
+    assert "rsi" in joined_content
+    # Carries the validator's terse internal `message`, not `user_message`.
+    assert "Strategy has no exit rule." in joined_content
+    assert "Add at least one exit rule." not in joined_content
+
+
+def test_llm_drafter_redraft_passes_through_declined_outcome():
+    from app.schemas.strategy import ValidationError
+    from app.schemas.strategy_draft_ir import DeclinedOutcome, DraftedIR
+    from app.services.strategy_drafter import LLMStrategyDrafter
+
+    fake_result = DeclinedOutcome(reason="Still can't express this with the available blocks.")
+    client = FakeInstructorClient(fake_result)
+
+    drafter = LLMStrategyDrafter(client=client, model="claude-sonnet-4-6")
+    result = drafter.redraft(
+        "buy when the moon is full",
+        DraftedIR(blocks=[], connections=[]),
+        [ValidationError(code="MISSING_EXIT", message="Strategy has no exit rule.")],
+    )
+
+    assert result.outcome == "declined"
+    assert result.reason == "Still can't express this with the available blocks."
+
+
+def test_llm_drafter_redraft_raises_strategy_drafter_error_on_provider_timeout():
+    import httpx
+    import anthropic
+
+    from app.schemas.strategy import ValidationError
+    from app.schemas.strategy_draft_ir import DraftedIR
+    from app.services.strategy_drafter import LLMStrategyDrafter, StrategyDrafterError
+
+    request = httpx.Request("POST", "https://api.anthropic.com/v1/messages")
+    client = FakeRaisingInstructorClient(anthropic.APITimeoutError(request=request))
+
+    drafter = LLMStrategyDrafter(client=client, model="claude-sonnet-4-6")
+
+    with pytest.raises(StrategyDrafterError):
+        drafter.redraft(
+            "buy when RSI is oversold",
+            DraftedIR(blocks=[], connections=[]),
+            [ValidationError(code="MISSING_EXIT", message="Strategy has no exit rule.")],
+        )
 
 
 def test_llm_drafter_passes_through_declined_outcome():

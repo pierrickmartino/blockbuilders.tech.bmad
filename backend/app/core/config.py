@@ -42,6 +42,10 @@ class Settings(BaseSettings):
     strategy_drafter_model: str = "claude-sonnet-4-6"
     strategy_drafter_base_url: str = ""
     strategy_drafter_timeout_seconds: float = 30.0
+    # Bounds the repair pass (ADR-0015): number of error-informed redraft
+    # attempts after a validator failure. `0` reproduces the pre-#8
+    # validate-and-decline behavior exactly (ops / #9 kill switch).
+    strategy_drafter_max_repairs: int = 1
     anthropic_api_key: str = ""
     openai_api_key: str = ""
     openrouter_api_key: str = ""
