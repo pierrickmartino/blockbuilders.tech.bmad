@@ -1,5 +1,22 @@
 # Tasks — in flight
 
+## Issue #634 — NL-wedge #9 — Draft page "slow down" message on drafter 429 (done)
+
+Frontend (ADR-0016 §3 — 429 is a serve failure, parallel to 503, with an honest retryable message)
+- [x] `app/(app)/strategies/draft/page.tsx`: extended `DraftStatus.kind` with `"rate_limited"`. In `handleSubmit`'s catch block, check `err instanceof ApiError && err.status === 429` *before* the generic `nl_draft_errored`/`error` fallback — sets `status` to `{ kind: "rate_limited", message: "You're drafting ideas faster than we allow right now — try again shortly." }` and returns (skips `nl_draft_errored`, since a 429 is an expected throttle, not an infra error). The shared `status` alert now picks `border-info/20 bg-info-soft text-info` styling for `rate_limited` (vs. the existing amber `declined`/`disabled` styling and the red `text-destructive` `error` styling), and the "Try rephrasing..." hint stays scoped to `declined` only.
+
+Tests
+- [x] `app/(app)/strategies/draft/__tests__/draft-page.test.tsx`: new test — `ApiError(429, ...)` renders the "slow down" message via the shared alert, distinct from `text-destructive` and `text-amber-700`, no rephrase hint, no navigation, and only `nl_draft_requested` fires (no `nl_draft_drafted`/`declined`/`errored`).
+
+Verification
+- [x] `npx vitest run` (full frontend suite) → 634 passed (63 files)
+- [x] `npx tsc --noEmit` → clean
+- [x] `npx eslint` on changed files → clean
+
+Risks / gaps
+- No env vars added/changed.
+- `nl_draft_errored` intentionally does not fire on 429 (distinguishes "client-side rate limit" from "infra failure" in analytics); only `nl_draft_requested` fires, same as the `disabled` path.
+
 ## Issue #632 — NL-wedge #9 — Anti-abuse ceiling on the drafter endpoint (429) (done)
 
 Backend (ADR-0016, extends ADR-0011's three-outcome contract + the 503 infra path from #589)

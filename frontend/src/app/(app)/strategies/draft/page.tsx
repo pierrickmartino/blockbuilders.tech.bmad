@@ -32,7 +32,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 
-type DraftStatus = { kind: "declined" | "disabled"; message: string } | null;
+type DraftStatus = { kind: "declined" | "disabled" | "rate_limited"; message: string } | null;
 
 export default function DraftFromNlPage() {
   const router = useRouter();
@@ -106,6 +106,14 @@ export default function DraftFromNlPage() {
         router.push(backtestUrl);
       }
     } catch (err) {
+      if (err instanceof ApiError && err.status === 429) {
+        setStatus({
+          kind: "rate_limited",
+          message: "You're drafting ideas faster than we allow right now — try again shortly.",
+        });
+        return;
+      }
+
       trackEvent("nl_draft_errored", { asset, timeframe, ...cohort }, user?.id);
       setError(
         err instanceof ApiError
@@ -202,7 +210,11 @@ export default function DraftFromNlPage() {
         {status && (
           <div
             role="alert"
-            className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm text-amber-700 dark:text-amber-400"
+            className={
+              status.kind === "rate_limited"
+                ? "rounded-lg border border-info/20 bg-info-soft px-4 py-3 text-sm text-info"
+                : "rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm text-amber-700 dark:text-amber-400"
+            }
           >
             <p>{status.message}</p>
             {status.kind === "declined" && (
