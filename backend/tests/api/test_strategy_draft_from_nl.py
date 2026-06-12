@@ -498,6 +498,109 @@ def test_draft_from_nl_repair_exhausted_logs_declined_resolution(client, auth_he
     assert records[0].resolution == "declined"
 
 
+# ── issue #632: anti-abuse ceiling (ADR-0016) ─────────────────────────────
+#
+# A per-user Redis fixed-window counter on POST /strategies/draft-from-nl.
+# The counter increments on entry, so success, declined, and infra-failure
+# all consume one unit; a draft-plus-repair is one unit. Tripping the
+# ceiling returns 429, parallel to the existing 503 infra path -- not folded
+# into the 200 `outcome` union.
+
+_DRAFT_PAYLOAD = {"nl_text": "buy when RSI is oversold", "asset": "BTC/USDT", "timeframe": "1d"}
+
+
+def test_draft_from_nl_requests_under_limit_unaffected(client, auth_headers, session, user, monkeypatch):
+    monkeypatch.setattr(settings, "strategy_drafter_enabled", True)
+    monkeypatch.setattr(settings, "strategy_drafter_max_per_window", 5)
+
+    for _ in range(5):
+        response = client.post("/strategies/draft-from-nl", json=_DRAFT_PAYLOAD, headers=auth_headers)
+        assert response.status_code == 200
+        assert response.json()["outcome"] == "success"
+
+
+def test_draft_from_nl_returns_429_once_limit_exceeded(client, auth_headers, session, user, monkeypatch):
+    monkeypatch.setattr(settings, "strategy_drafter_enabled", True)
+    monkeypatch.setattr(settings, "strategy_drafter_max_per_window", 1)
+
+    first = client.post("/strategies/draft-from-nl", json=_DRAFT_PAYLOAD, headers=auth_headers)
+    assert first.status_code == 200
+    assert first.json()["outcome"] == "success"
+
+    second = client.post("/strategies/draft-from-nl", json=_DRAFT_PAYLOAD, headers=auth_headers)
+    assert second.status_code == 429
+    body = second.json()
+    assert "try again" in body["detail"].lower()
+
+
+def test_draft_from_nl_disabled_path_does_not_consume_ceiling(client, auth_headers, session, user, monkeypatch):
+    monkeypatch.setattr(settings, "strategy_drafter_enabled", False)
+    monkeypatch.setattr(settings, "strategy_drafter_max_per_window", 1)
+
+    for _ in range(3):
+        response = client.post("/strategies/draft-from-nl", json=_DRAFT_PAYLOAD, headers=auth_headers)
+        assert response.status_code == 200
+        assert response.json()["outcome"] == "disabled"
+
+
+def test_draft_from_nl_declined_outcome_consumes_ceiling(client, auth_headers, session, user, monkeypatch):
+    from app.schemas.strategy_draft_ir import DeclinedOutcome
+    from app.services.strategy_drafter import LLMStrategyDrafter
+
+    monkeypatch.setattr(settings, "strategy_drafter_enabled", True)
+    monkeypatch.setattr(settings, "strategy_drafter_max_per_window", 1)
+
+    fake_drafter = LLMStrategyDrafter(
+        client=FakeInstructorClient(DeclinedOutcome(reason="No block supports tracking tweets.")),
+        model="claude-sonnet-4-6",
+    )
+    monkeypatch.setattr("app.api.strategies.get_strategy_drafter", lambda: fake_drafter)
+
+    payload = {"nl_text": "buy when Elon tweets", "asset": "BTC/USDT", "timeframe": "1d"}
+
+    first = client.post("/strategies/draft-from-nl", json=payload, headers=auth_headers)
+    assert first.status_code == 200
+    assert first.json()["outcome"] == "declined"
+
+    second = client.post("/strategies/draft-from-nl", json=payload, headers=auth_headers)
+    assert second.status_code == 429
+
+
+def test_draft_from_nl_infra_failure_consumes_ceiling(client, auth_headers, session, user, monkeypatch):
+    from app.services.strategy_drafter import StrategyDrafterError
+
+    monkeypatch.setattr(settings, "strategy_drafter_enabled", True)
+    monkeypatch.setattr(settings, "strategy_drafter_max_per_window", 1)
+
+    class _RaisingDrafter:
+        def draft(self, nl_text: str):
+            raise StrategyDrafterError("Couldn't draft a strategy right now. Please try again in a moment.")
+
+    monkeypatch.setattr("app.api.strategies.get_strategy_drafter", lambda: _RaisingDrafter())
+
+    first = client.post("/strategies/draft-from-nl", json=_DRAFT_PAYLOAD, headers=auth_headers)
+    assert first.status_code == 503
+
+    second = client.post("/strategies/draft-from-nl", json=_DRAFT_PAYLOAD, headers=auth_headers)
+    assert second.status_code == 429
+
+
+def test_draft_from_nl_repair_pass_consumes_exactly_one_unit(client, auth_headers, session, user, monkeypatch):
+    """A draft-plus-repair run (ADR-0015) is one request -> one unit, not two."""
+    monkeypatch.setattr(settings, "strategy_drafter_enabled", True)
+    monkeypatch.setattr(settings, "strategy_drafter_max_per_window", 1)
+    monkeypatch.setattr("app.api.strategies.get_strategy_drafter", lambda: DraftsInvalidThenValid())
+
+    payload = {"nl_text": "buy when RSI drops below 30", "asset": "BTC/USDT", "timeframe": "1d"}
+
+    first = client.post("/strategies/draft-from-nl", json=payload, headers=auth_headers)
+    assert first.status_code == 200
+    assert first.json()["outcome"] == "success"
+
+    second = client.post("/strategies/draft-from-nl", json=payload, headers=auth_headers)
+    assert second.status_code == 429
+
+
 def test_draft_from_nl_model_declined_logs_declined_resolution(client, auth_headers, session, user, monkeypatch, caplog):
     """A model-declined first draft (no repair attempted) -> `declined`."""
     from app.schemas.strategy_draft_ir import DeclinedOutcome

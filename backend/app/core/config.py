@@ -46,6 +46,11 @@ class Settings(BaseSettings):
     # attempts after a validator failure. `0` reproduces the pre-#8
     # validate-and-decline behavior exactly (ops / #9 kill switch).
     strategy_drafter_max_repairs: int = 1
+    # Anti-abuse ceiling (ADR-0016, #9): flat per-user rate limit on
+    # POST /strategies/draft-from-nl, identical across all tiers and
+    # deliberately kept out of PLAN_LIMITS (ADR-0007 — not a monetization lever).
+    strategy_drafter_max_per_window: int = 30
+    strategy_drafter_rate_limit_window_seconds: int = 3600
     anthropic_api_key: str = ""
     openai_api_key: str = ""
     openrouter_api_key: str = ""

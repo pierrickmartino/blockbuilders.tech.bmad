@@ -1,5 +1,26 @@
 # Tasks — in flight
 
+## Issue #632 — NL-wedge #9 — Anti-abuse ceiling on the drafter endpoint (429) (done)
+
+Backend (ADR-0016, extends ADR-0011's three-outcome contract + the 503 infra path from #589)
+- [x] `app/core/config.py`: added `strategy_drafter_max_per_window: int = 30` and `strategy_drafter_rate_limit_window_seconds: int = 3600` alongside the other `strategy_drafter_*` settings — flat, identical across tiers, deliberately not in `PLAN_LIMITS` (ADR-0007).
+- [x] `app/services/strategy_drafter_rate_limit.py` (new): `StrategyDrafterRateLimiter` — a deep module (constructor takes a `Redis` client + `max_per_window`/`window_seconds`), mirroring `market_data/circuit_breaker.py`'s shape. `allow(user_id) -> bool` does an atomic Redis `INCR` on `strategy_drafter_rate:{user_id}` (setting the TTL on the first increment), returns `count <= max_per_window`, and fails open (`True`) on any Redis exception — same pattern as `auth.py:_check_rate_limit`. `get_strategy_drafter_rate_limiter()` factory builds one from `settings`.
+- [x] `app/api/strategies.py`: `draft_strategy_from_nl` calls `get_strategy_drafter_rate_limiter().allow(user.id)` right after the `enabled` gate and before `draft_and_repair` — one `allow()` call per request, so success/declined/infra-failure/draft-plus-repair all consume exactly one unit, while `disabled` short-circuits before the guard runs and consumes nothing. On deny, raises `HTTPException(429, "You're drafting faster than we allow right now — try again shortly.")` — parallel to the existing 503 path, not folded into the `outcome` union.
+- [x] `.env.example` / `README.md`: added `STRATEGY_DRAFTER_MAX_PER_WINDOW=30` and `STRATEGY_DRAFTER_RATE_LIMIT_WINDOW_SECONDS=3600`. No `docker-compose.yml` change needed — like the other `strategy_drafter_*` vars, these flow through `env_file: .env` rather than being listed individually.
+
+Tests
+- [x] `tests/services/test_strategy_drafter_rate_limit.py` (new): allow-under-limit, deny-at-boundary, each `allow()` call burns a unit regardless of the caller's eventual outcome, per-user isolation, and fail-open when the Redis client raises (using a `fakeredis.FakeRedis()`-backed limiter, prior art `tests/test_price_router.py`'s `CircuitBreaker` fixtures).
+- [x] `tests/api/test_strategy_draft_from_nl.py`: 6 new endpoint tests — under-limit requests unaffected; 429 once `strategy_drafter_max_per_window` is exceeded (with the "try again" message); `disabled` path doesn't consume the ceiling even when `max_per_window=1`; `declined` outcome consumes a unit; the 503 infra-failure path consumes a unit; a draft-plus-repair (`DraftsInvalidThenValid`) consumes exactly one unit, not two.
+
+Verification
+- [x] `python3 -m pytest tests/services/test_strategy_drafter_rate_limit.py tests/api/test_strategy_draft_from_nl.py -q` → 25 passed
+- [x] `python3 -m pytest -q` (full backend suite) → 1000 passed
+
+Risks / gaps
+- New env vars (`STRATEGY_DRAFTER_MAX_PER_WINDOW`, `STRATEGY_DRAFTER_RATE_LIMIT_WINDOW_SECONDS`) propagated to `.env.example`, `README.md`, and `app/core/config.py`; not added to `PLAN_LIMITS` by design (ADR-0016).
+- No docs/CONTEXT.md changes — no new domain terminology; the ceiling is described in ADR-0016, already present.
+- Token observability (ADR-0016 item 4, structured per-request token logging) and the "no caching" decision (item 5) are separate concerns from #9's anti-abuse-ceiling acceptance criteria and are not part of this slice.
+
 ## Issue #626 — NL-wedge #8 — Repair-resolution telemetry (clean | repaired | declined) (done)
 
 Backend (ADR-0015, extends #625's repair-orchestrator helper)
