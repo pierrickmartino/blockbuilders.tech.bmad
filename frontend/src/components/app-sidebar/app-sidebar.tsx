@@ -7,7 +7,6 @@ import {
   LayoutDashboard,
   Layers,
   User,
-  HelpCircle,
   BarChart3,
   LogOut,
   ChevronUp,
@@ -70,11 +69,6 @@ const navItems = [
 ]
 
 const resourceItems = [
-  {
-    title: "How It Works",
-    url: "/how-backtests-work",
-    icon: HelpCircle,
-  },
   {
     title: "Metrics Glossary",
     url: "/metrics-glossary",
