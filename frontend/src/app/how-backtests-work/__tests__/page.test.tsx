@@ -37,3 +37,41 @@ describe("HowBacktestsWorkPage — public standalone surface (#640)", () => {
     expect(ctaLinks[0]).toHaveAttribute("href", "/strategies");
   });
 });
+
+describe("HowBacktestsWorkPage — cost-honesty copy (#641)", () => {
+  it("does not claim slippage or spread are fixed or immutable", () => {
+    render(<HowBacktestsWorkPage />);
+
+    expect(
+      screen.queryByText(/slippage and spread are fixed model defaults/i)
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/fixed model defaults/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/a fixed.*spread/i)).not.toBeInTheDocument();
+  });
+
+  it("communicates that fee, slippage, and spread are all configurable defaults", () => {
+    render(<HowBacktestsWorkPage />);
+
+    expect(
+      screen.getByText(
+        /fee, slippage, and spread are all configurable defaults/i
+      )
+    ).toBeInTheDocument();
+  });
+
+  it("notes that a specific result's settings may differ from the documented defaults", () => {
+    render(<HowBacktestsWorkPage />);
+
+    expect(
+      screen.getByText(/settings may differ from the documented defaults/i)
+    ).toBeInTheDocument();
+  });
+
+  it("keeps the documented default values unchanged", () => {
+    render(<HowBacktestsWorkPage />);
+
+    expect(screen.getAllByText("0.1%").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("0.05%").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("0.02%").length).toBeGreaterThan(0);
+  });
+});
