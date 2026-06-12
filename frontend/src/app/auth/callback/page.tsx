@@ -8,19 +8,25 @@ import { ApiError } from "@/lib/api";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
+import { getFeatureFlag, STRATEGY_DRAFTER_ENABLED_FLAG } from "@/lib/feature-flags";
+import { useOnboardingArmEnrollment } from "@/hooks/useOnboardingArmEnrollment";
 
 function OAuthCallbackHandler() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { user, completeOAuth } = useAuth();
   const [error, setError] = useState("");
+  const [drafterEnabled] = useState(() => getFeatureFlag(STRATEGY_DRAFTER_ENABLED_FLAG));
 
-  // Route based on onboarding flag once user is available
+  // Onboarding A/B routing fork (ADR-0014): resolves the arm and route once
+  // the user is available, enrolling via an exposure event where applicable.
+  const onboarding = useOnboardingArmEnrollment(user, drafterEnabled);
+
   useEffect(() => {
-    if (user) {
-      router.push(user.has_completed_onboarding ? "/dashboard" : "/strategies?wizard=true");
+    if (onboarding) {
+      router.push(onboarding.route);
     }
-  }, [user, router]);
+  }, [onboarding, router]);
 
   useEffect(() => {
     const code = searchParams.get("code");
