@@ -1,5 +1,26 @@
 # Tasks — in flight
 
+## Issue #625 — NL-wedge #8 — Repair loop: re-draft invalid graphs before declining (done)
+
+Backend (ADR-0015, extends ADR-0011/ADR-0006)
+- [x] `app/services/strategy_drafter.py`: `StrategyDrafter` Protocol gains `redraft(nl_text, prior_ir, errors) -> DraftResult`. `StubStrategyDrafter.redraft` returns the same valid stub IR (failure-free). `LLMStrategyDrafter.redraft` calls the provider with the original system prompt + `nl_text` + a new `_build_repair_prompt(prior_ir, errors)` user turn carrying the prior IR (`model_dump_json()`) and each error's terse internal `message` (never `user_message`). Same `_INFRA_FAILURE_EXCEPTIONS` mapping to `StrategyDrafterError` as `draft()`.
+- [x] `app/services/strategy_draft_pipeline.py` (new): `draft_and_repair(drafter, nl_text) -> DraftPipelineSuccess | DraftPipelineDeclined`. Owns `draft -> compile -> validate [-> redraft]*`, bounded by `settings.strategy_drafter_max_repairs`. Compile errors and drafter `declined` outcomes (first try or after redraft) decline immediately; a still-invalid repaired draft declines with the **repaired** attempt's freshest `errors[0].user_message or message`. The compiler and Strategy validator stay outside the drafter seam.
+- [x] `app/core/config.py`: added `strategy_drafter_max_repairs: int = 1` alongside the other `strategy_drafter_*` settings; `0` reproduces the pre-#8 validate-and-decline behavior exactly (loop body runs once, `attempt(0) >= 0` is immediately true).
+- [x] `app/api/strategies.py`: `draft_strategy_from_nl` now calls `draft_and_repair(get_strategy_drafter(), data.nl_text)` instead of inlining `compile_graph`/`collect_validation_errors`; the route handler only branches on `DraftPipelineDeclined` vs success. Removed now-unused `compile_graph`/`GraphCompilationError` imports (still used by `/validate` and `/draft/validate` via `collect_validation_errors`/`StrategyDefinitionValidate`, which stay).
+- [x] `.env.example`: added `STRATEGY_DRAFTER_MAX_REPAIRS=1`.
+
+Tests
+- [x] `tests/test_strategy_drafter.py`: `test_stub_drafter_redraft_returns_drafted_outcome`; LLM redraft tests — provider called with prior IR + internal `message` (not `user_message`) in the repair prompt, `declined` pass-through, infra-failure mapping on the repair call.
+- [x] `tests/test_strategy_draft_pipeline.py` (new, Module-A matrix, real `GraphCompiler` + Strategy validator — not mocked): clean-first-try → success with no repair call (`DraftsCleanFirstTry`); invalid → repair → valid → success (`DraftsInvalidThenValid`); invalid → repair → still-invalid (different error) → decline with the **repaired** error (`DraftsInvalidTwice`); invalid → redraft declines → decline with the model `reason` (`DraftsThenDeclines`); `max_repairs = 0` → straight decline, `redraft` never called.
+- [x] `tests/api/test_strategy_draft_from_nl.py`: two new endpoint-wiring tests — repair-needing draft (`DraftsInvalidThenValid`-style fake, missing-exit IR repaired to a valid RSI-bounce IR) → `200 success` persisting one Strategy + working copy; repair-exhausted draft (both attempts missing exit) → `200 declined` with the validator's `MISSING_EXIT` message. Existing slice-4 `test_draft_from_nl_validator_invalid_persists_nothing` still passes unchanged: the fake LLM client returns the same invalid IR on the repair call too, so the repeated `MISSING_EXIT` error is identical and the decline reason is unchanged.
+
+Verification
+- [x] `.venv/bin/pytest` (full backend suite) → 985 passed
+
+Risks / gaps
+- No new env vars beyond `STRATEGY_DRAFTER_MAX_REPAIRS` (default `1`, propagated to `.env.example`; `app/core/config.py` has its own default so no other layer needs it).
+- A repaired `drafted` IR that fails `compile_graph` (rather than the validator) declines immediately with the compile error, without consuming a further repair attempt — not exercised by the acceptance criteria's test matrix (which is scoped to validator failures), but consistent with the existing first-pass compile-error handling.
+
 ## Issue #619 — ACTIONS #7 Slice 1: Onboarding-arm assignment, routing & exposure harness (done)
 
 Frontend (ADR-0014)

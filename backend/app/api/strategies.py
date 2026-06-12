@@ -38,8 +38,8 @@ from app.schemas.strategy import (
     ValidationError,
     ValidationResponse,
 )
-from app.services.graph_compiler import GraphCompilationError, compile_graph
 from app.services.strategy_deletion import delete_strategy_cascade
+from app.services.strategy_draft_pipeline import DraftPipelineDeclined, draft_and_repair
 from app.services.strategy_drafter import StrategyDrafterError, get_strategy_drafter
 from app.services.strategy_validation import collect_validation_errors
 
@@ -189,39 +189,27 @@ def draft_strategy_from_nl(
     user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
 ) -> StrategyDraftFromNlResponse:
-    """Draft a new strategy from NL text (NL wedge, ADR-0011/ADR-0006).
+    """Draft a new strategy from NL text (NL wedge, ADR-0011/ADR-0006/ADR-0015).
 
     `asset`/`timeframe` come from explicit UI controls and are authoritative;
     the drafter never sees them and must not infer them from `nl_text`.
     Three outcomes, nothing partial persists: `success` (one Strategy +
-    working copy created), `declined` (drafter or validator couldn't
-    produce a usable graph), `disabled` (feature flag off). A bounded-timeout
-    provider error or exhausted instructor schema-retries raises a 503 — a
-    retryable infra failure, distinct from `declined` (issue #589).
+    working copy created), `declined` (drafter or validator couldn't produce
+    a usable graph, even after the bounded repair pass), `disabled` (feature
+    flag off). A bounded-timeout provider error or exhausted instructor
+    schema-retries raises a 503 — a retryable infra failure, distinct from
+    `declined` (issue #589).
     """
     if not settings.strategy_drafter_enabled:
         return StrategyDraftFromNlResponse(outcome="disabled")
 
     try:
-        result = get_strategy_drafter().draft(data.nl_text)
+        pipeline_result = draft_and_repair(get_strategy_drafter(), data.nl_text)
     except StrategyDrafterError as exc:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc))
 
-    if result.outcome == "declined":
-        return StrategyDraftFromNlResponse(outcome="declined", reason=result.reason)
-
-    try:
-        definition = compile_graph(result.ir)
-    except GraphCompilationError as exc:
-        return StrategyDraftFromNlResponse(outcome="declined", reason=str(exc))
-
-    parsed_definition = StrategyDefinitionValidate.model_validate(definition)
-    errors = collect_validation_errors(parsed_definition)
-    if errors:
-        return StrategyDraftFromNlResponse(
-            outcome="declined",
-            reason=errors[0].user_message or errors[0].message,
-        )
+    if isinstance(pipeline_result, DraftPipelineDeclined):
+        return StrategyDraftFromNlResponse(outcome="declined", reason=pipeline_result.reason)
 
     strategy = Strategy(
         user_id=user.id,
@@ -234,7 +222,7 @@ def draft_strategy_from_nl(
     session.commit()
     session.refresh(strategy)
 
-    upsert_working_copy(strategy, definition, session)
+    upsert_working_copy(strategy, pipeline_result.definition, session)
 
     return StrategyDraftFromNlResponse(outcome="success", strategy_id=strategy.id)
 

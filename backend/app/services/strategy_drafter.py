@@ -21,6 +21,7 @@ import openai
 from instructor.core import InstructorRetryException
 
 from app.core.config import STRATEGY_DRAFTER_PROVIDER_KEYS, settings
+from app.schemas.strategy import ValidationError
 from app.schemas.strategy_draft_ir import (
     DraftedBlockIR,
     DraftedConnectionIR,
@@ -61,6 +62,10 @@ class StrategyDrafter(Protocol):
 
     def draft(self, nl_text: str) -> DraftResult: ...
 
+    def redraft(self, nl_text: str, prior_ir: DraftedIR, errors: list[ValidationError]) -> DraftResult:
+        """Repair pass (ADR-0015): re-generate given the prior draft + failing checks."""
+        ...
+
 
 _STUB_IR = DraftedIR(
     blocks=[
@@ -87,6 +92,9 @@ class StubStrategyDrafter:
     """Always drafts the same RSI-oversold-bounce IR, regardless of `nl_text`."""
 
     def draft(self, nl_text: str) -> DraftResult:
+        return DraftedOutcome(ir=_STUB_IR)
+
+    def redraft(self, nl_text: str, prior_ir: DraftedIR, errors: list[ValidationError]) -> DraftResult:
         return DraftedOutcome(ir=_STUB_IR)
 
 
@@ -126,6 +134,25 @@ each risk block type is allowed.
 """
 
 
+def _build_repair_prompt(prior_ir: DraftedIR, errors: list[ValidationError]) -> str:
+    """Repair-pass prompt (ADR-0015): carries the prior IR + the validator's terse `message`s, never `user_message`."""
+    error_lines = "\n".join(f"- {error.message}" for error in errors)
+    return f"""\
+Your previous draft compiled but failed the Strategy validator with these
+errors:
+
+{error_lines}
+
+Your previous draft (semantic IR):
+
+{prior_ir.model_dump_json()}
+
+Fix these errors while staying faithful to the user's original idea above.
+Respond with a corrected `drafted` outcome, or a `declined` outcome with a
+`reason` if the idea still cannot be expressed with the available blocks.
+"""
+
+
 class LLMStrategyDrafter:
     """Drafts a semantic IR by calling an LLM via `instructor` (ADR-0011)."""
 
@@ -147,6 +174,23 @@ class LLMStrategyDrafter:
             )
         except _INFRA_FAILURE_EXCEPTIONS as exc:
             logger.error("Strategy drafter call failed: %s", exc, exc_info=True)
+            raise StrategyDrafterError(_INFRA_FAILURE_MESSAGE) from exc
+
+    def redraft(self, nl_text: str, prior_ir: DraftedIR, errors: list[ValidationError]) -> DraftResult:
+        try:
+            return self._client.chat.completions.create(
+                model=self._model,
+                max_tokens=4096,
+                timeout=settings.strategy_drafter_timeout_seconds,
+                response_model=DraftResult,
+                messages=[
+                    {"role": "system", "content": _SYSTEM_PROMPT},
+                    {"role": "user", "content": nl_text},
+                    {"role": "user", "content": _build_repair_prompt(prior_ir, errors)},
+                ],
+            )
+        except _INFRA_FAILURE_EXCEPTIONS as exc:
+            logger.error("Strategy drafter repair call failed: %s", exc, exc_info=True)
             raise StrategyDrafterError(_INFRA_FAILURE_MESSAGE) from exc
 
 
