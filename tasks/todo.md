@@ -1,5 +1,24 @@
 # Tasks — in flight
 
+## Issue #626 — NL-wedge #8 — Repair-resolution telemetry (clean | repaired | declined) (done)
+
+Backend (ADR-0015, extends #625's repair-orchestrator helper)
+- [x] `app/services/strategy_draft_pipeline.py`: added `DraftResolution = Literal["clean", "repaired", "declined"]` and a `resolution` field on both `DraftPipelineSuccess` and `DraftPipelineDeclined` (the latter defaults to `"declined"`). `draft_and_repair` computes `resolution` from the existing `attempt` counter — `"clean"` when the zeroth-attempt draft validates with no repair call, `"repaired"` when a later attempt (post-redraft) validates. Every `DraftPipelineDeclined` return (model-declined, compile error, repair-exhausted) is `"declined"` via the field default — no new branches.
+- [x] `app/api/strategies.py`: `draft_strategy_from_nl` logs one `logger.info("strategy_draft_resolution", extra={"resolution": pipeline_result.resolution})` per request, right after `draft_and_repair` returns (before branching on success/declined). Structured log via the existing `logging`/structlog setup — server-side aggregate, not consent-gated, not a client `nl_draft_*` event. Independent of `StrategyDraftFromNlResponse.outcome`/Draft outcome — no shared field.
+
+Tests
+- [x] `tests/test_strategy_draft_pipeline.py`: added `result.resolution` assertions to all 5 existing `draft_and_repair` cases — `clean` (clean-first-try), `repaired` (invalid-then-valid), `declined` (invalid-twice, redraft-declines, max-repairs=0).
+- [x] `tests/api/test_strategy_draft_from_nl.py`: 4 new endpoint tests using `caplog.at_level("INFO", logger="app.api.strategies")`, reusing `DraftsInvalidThenValid`/`DraftsInvalidTwice` from #625 plus a model-declined `LLMStrategyDrafter` double — assert exactly one `strategy_draft_resolution` record with `resolution` `clean`/`repaired`/`declined`/`declined` respectively.
+
+Verification
+- [x] `python3 -m pytest tests/test_strategy_draft_pipeline.py tests/api/test_strategy_draft_from_nl.py -v` → 19 passed
+- [x] `python3 -m pytest -q` (full backend suite) → 989 passed
+
+Risks / gaps
+- No env vars added/changed.
+- No docs/CONTEXT.md changes — reuses the existing **Repair pass** glossary entry; no new terminology introduced.
+- The `disabled` (feature-flag-off) and 503 infra-failure (`StrategyDrafterError`) paths return before `draft_and_repair` produces a result, so they emit no `strategy_draft_resolution` log — matches the issue's three-value scope (`clean | repaired | declined`), which are "produced by the repair orchestrator."
+
 ## Issue #625 — NL-wedge #8 — Repair loop: re-draft invalid graphs before declining (done)
 
 Backend (ADR-0015, extends ADR-0011/ADR-0006)
