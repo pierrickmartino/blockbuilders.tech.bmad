@@ -54,7 +54,7 @@ const DEFAULT_SLIPPAGE_PCT = "0.05%";
 const DEFAULT_SPREAD_PCT = "0.02%";
 const FREE_ACTIVE_STRATEGIES = 10;
 const FREE_BACKTESTS_PER_DAY = 50;
-const LAST_UPDATED = "2026-05-09";
+const LAST_UPDATED = "2026-06-12";
 
 function DataText({ children }: { children: React.ReactNode }) {
   return <span className="data-text whitespace-nowrap">{children}</span>;
@@ -149,8 +149,9 @@ export default function HowBacktestsWorkPage() {
               <AssumptionRow label="Reset window" value="Midnight UTC" />
             </dl>
             <p className="mt-2 text-xs text-muted-foreground">
-              The fee is adjustable in run settings. Slippage and spread are
-              fixed model defaults.
+              Fee, slippage, and spread are all configurable defaults — set
+              per run or as account preferences. A specific result&apos;s
+              settings may differ from the documented defaults shown here.
             </p>
           </div>
         </header>
@@ -270,12 +271,15 @@ export default function HowBacktestsWorkPage() {
                     <strong className="text-foreground">Slippage:</strong> An
                     extra cost applied at entry and exit separately to
                     approximate worse fills. The default is{" "}
-                    <DataText>{DEFAULT_SLIPPAGE_PCT}</DataText> per fill.
+                    <DataText>{DEFAULT_SLIPPAGE_PCT}</DataText> per fill; run
+                    settings can override it.
                   </li>
                   <li>
-                    <strong className="text-foreground">Spread:</strong> A fixed{" "}
-                    <DataText>{DEFAULT_SPREAD_PCT}</DataText> spread is included
-                    in the transaction-cost breakdown.
+                    <strong className="text-foreground">Spread:</strong> An
+                    additional cost included in the transaction-cost
+                    breakdown. The default is{" "}
+                    <DataText>{DEFAULT_SPREAD_PCT}</DataText>; run settings can
+                    override it.
                   </li>
                   <li>
                     <strong className="text-foreground">Position size:</strong>{" "}
