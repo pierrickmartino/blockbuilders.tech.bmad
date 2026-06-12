@@ -1,5 +1,31 @@
 # Tasks — in flight
 
+## Issue #619 — ACTIONS #7 Slice 1: Onboarding-arm assignment, routing & exposure harness (done)
+
+Frontend (ADR-0014)
+- [x] `src/lib/experiment-variant.ts` — added `ONBOARDING_AB_FLAG = "onboarding_ab"`; `getDevVariantOverride` now also resolves `NEXT_PUBLIC_DEV_FORCE_ONBOARDING_AB_VARIANT` for this flag (mirrors `NEXT_PUBLIC_DEV_FORCE_WJL_VARIANT`/`WJL_EXPERIMENT_FLAG`), with no cross-application between the two flags' overrides
+- [x] `src/lib/onboarding-arm.ts` (new) — pure `resolveOnboardingArm({ variant, hasCompletedOnboarding, drafterEnabled }) -> { arm, route, enroll }` encoding the ADR-0014 truth table exactly: already-onboarded → `{arm: null, route: "/dashboard", enroll: false}`; drafter kill-switch off → `{arm: "wizard", route: "/strategies?wizard=true", enroll: false}`; `variant === "test"` → `{arm: "nl_wedge", route: "/strategies/draft", enroll: true}`; `variant === "control"` → `{arm: "wizard", route: WIZARD_ROUTE, enroll: true}`; `variant === undefined` → `{arm: "wizard", route: WIZARD_ROUTE, enroll: false}` (default-routed, never enrolled). Exports `WIZARD_ROUTE`/`NL_WEDGE_ROUTE`/`ONBOARDED_ROUTE` constants and the `OnboardingArm` type (`"wizard" | "nl_wedge"`, matching CONTEXT.md's existing "Onboarding arm" glossary entry).
+- [x] `src/lib/feature-flags.ts` — added `STRATEGY_DRAFTER_ENABLED_FLAG = "strategy_drafter_enabled"` (standalone constant, not part of `CANVAS_FLAGS`/`getCanvasFlags()`, so existing `canvas_flag_*`/`wjl_retention_ab` behavior is unchanged)
+- [x] `src/hooks/useOnboardingArmEnrollment.ts` (new) — thin enrollment hook mirroring `useWjlCardEnrollment`: for an already-onboarded user, resolves the decision without reading the PostHog variant at all; for a not-yet-onboarded user, reads `getExperimentVariant(ONBOARDING_AB_FLAG)` exactly once (via `useMemo` keyed on `Boolean(user)`) and calls `resolveOnboardingArm`; an effect fires `onboarding_ab_enrolled` (`{arm}`, keyed to `user.id`) via `trackEvent` exactly once, only when `enroll` is true. Returns `{ arm, route } | null` (`null` until `user` is available).
+- [x] `src/app/auth/callback/page.tsx` — replaced the hard-coded `router.push(user.has_completed_onboarding ? "/dashboard" : "/strategies?wizard=true")` with `useOnboardingArmEnrollment(user, drafterEnabled)` (where `drafterEnabled = getFeatureFlag(STRATEGY_DRAFTER_ENABLED_FLAG)`, read once via lazy `useState`) and `router.push(onboarding.route)` once resolved. The rest of the OAuth-completion flow (code/state validation, `completeOAuth`, error card) is unchanged.
+- [x] `.env.example`, `frontend/Dockerfile`, `docker-compose.yml` — added `NEXT_PUBLIC_DEV_FORCE_ONBOARDING_AB_VARIANT` (dev-only `"control" | "test" | empty` override, mirrors the WJL var's propagation through the build-arg chain)
+
+Tests
+- [x] `src/lib/__tests__/onboarding-arm.test.ts` (new, 5 cases) — one per truth-table branch, tracer-bullet TDD
+- [x] `src/lib/__tests__/experiment-variant.test.ts` (+3) — `onboarding_ab` dev-override returns `test`/`control` without consulting consent/PostHog; the WJL dev-override does not cross-apply to `onboarding_ab`
+- [x] `src/hooks/__tests__/useOnboardingArmEnrollment.test.ts` (new, 7 cases) — routes+enrolls for `test`/`control`; default-routes without enrolling for `undefined`; routes to wizard without enrolling when the drafter kill-switch is off (even for `test`); already-onboarded routes to `/dashboard` without reading the variant or enrolling; returns `null` while `user` is `null`; variant read + exposure event fire exactly once across re-renders
+- [x] `src/app/auth/callback/__tests__/page.test.tsx` (new, 6 cases) — routing-fork integration: `test` → NL box + enroll; `control` → wizard + enroll; `undefined` → wizard, no enroll; already-onboarded → `/dashboard`, no enroll, variant never read; drafter off → wizard, no enroll even for `test`; no push while `user` is `null`
+
+Verification
+- [x] RED→GREEN confirmed for each new module (decider, hook, page wiring) before implementing
+- [x] `cd frontend && npx vitest run` → 63 files / 633 passed, zero regressions
+- [x] `cd frontend && npx tsc --noEmit` → clean
+- [x] `cd frontend && npm run lint` → 0 errors, 23 warnings (all pre-existing; the one in `auth/callback/page.tsx` predates this change)
+
+Risks / gaps
+- The "thin query param on the NL box destination" mentioned as optional in the issue was not added — `/strategies/draft` already stamps `entry_path: "nl_wedge"` via `startAutoBacktest` independent of how the user arrived there, so no onboarding-specific signal is currently consumed downstream. Add one later if a consumer needs to distinguish onboarding-arm NL-box visits from other NL-box entry points.
+- No backend changes; `STRATEGY_DRAFTER_ENABLED_FLAG` reads the PostHog boolean flag (consistent with `canvas_flag_*`), not the backend's `STRATEGY_DRAFTER_ENABLED` env var directly — these must be kept in sync operationally (same as the existing drafter review-surface gating per ADR-0012 §9).
+
 ## Issue #614 — Route the strategy wizard's enqueue through the shared startAutoBacktest helper (done)
 
 Behavior-preserving refactor (ADR-0013 §4): the wizard's first-run auto-backtest enqueue now goes through the same `startAutoBacktest` helper introduced for the NL wedge in #613, so the 1-year window and `auto_backtest_started` telemetry are defined in exactly one place.

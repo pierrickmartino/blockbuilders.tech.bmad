@@ -2,6 +2,7 @@ import posthog from "posthog-js";
 import { getConsent } from "./analytics";
 
 export const WJL_EXPERIMENT_FLAG = "wjl_retention_ab" as const;
+export const ONBOARDING_AB_FLAG = "onboarding_ab" as const;
 
 export type ExperimentVariant = "control" | "test";
 
@@ -29,6 +30,8 @@ function getDevVariantOverride(key: string): ExperimentVariant | undefined {
   let raw: string | undefined;
   if (key === WJL_EXPERIMENT_FLAG) {
     raw = process.env.NEXT_PUBLIC_DEV_FORCE_WJL_VARIANT?.trim().toLowerCase();
+  } else if (key === ONBOARDING_AB_FLAG) {
+    raw = process.env.NEXT_PUBLIC_DEV_FORCE_ONBOARDING_AB_VARIANT?.trim().toLowerCase();
   }
   if (raw === "control" || raw === "test") return raw;
   return undefined;

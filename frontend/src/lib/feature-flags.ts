@@ -13,6 +13,9 @@ export const CANVAS_FLAGS = {
   inlinePopover: "canvas_flag_inline_popover",
 } as const;
 
+/** Strategy drafter (NL wedge) kill-switch flag (ADR-0011/ADR-0012 §9, ADR-0014 §7). */
+export const STRATEGY_DRAFTER_ENABLED_FLAG = "strategy_drafter_enabled" as const;
+
 export type CanvasFlagKey = (typeof CANVAS_FLAGS)[keyof typeof CANVAS_FLAGS];
 
 export type CanvasFlags = Record<CanvasFlagKey, boolean>;

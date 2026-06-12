@@ -144,4 +144,25 @@ describe("getExperimentVariant", () => {
     mockPosthog.getFeatureFlag.mockReturnValue("control");
     expect(getExperimentVariant("wjl_retention_ab")).toBe("control");
   });
+
+  it("returns the dev-override variant for onboarding_ab without consulting consent or posthog", () => {
+    vi.stubEnv("NEXT_PUBLIC_APP_ENV", "development");
+    vi.stubEnv("NEXT_PUBLIC_DEV_FORCE_ONBOARDING_AB_VARIANT", "test");
+    expect(getExperimentVariant("onboarding_ab")).toBe("test");
+    expect(mockGetConsent).not.toHaveBeenCalled();
+    expect(mockPosthog.getFeatureFlag).not.toHaveBeenCalled();
+  });
+
+  it("returns control from the onboarding_ab dev-override", () => {
+    vi.stubEnv("NEXT_PUBLIC_APP_ENV", "development");
+    vi.stubEnv("NEXT_PUBLIC_DEV_FORCE_ONBOARDING_AB_VARIANT", "control");
+    expect(getExperimentVariant("onboarding_ab")).toBe("control");
+  });
+
+  it("does not cross-apply the wjl dev-override to onboarding_ab", () => {
+    vi.stubEnv("NEXT_PUBLIC_APP_ENV", "development");
+    vi.stubEnv("NEXT_PUBLIC_DEV_FORCE_WJL_VARIANT", "test");
+    mockGetConsent.mockReturnValue(null);
+    expect(getExperimentVariant("onboarding_ab")).toBeUndefined();
+  });
 });
