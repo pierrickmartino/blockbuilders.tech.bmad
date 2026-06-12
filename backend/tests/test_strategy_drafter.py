@@ -25,13 +25,15 @@ def test_strategy_drafter_has_no_forbidden_imports():
 
 def test_stub_drafter_returns_drafted_outcome():
     from app.schemas.strategy_draft_ir import DraftedOutcome
+    from app.schemas.token_usage import TokenUsage
     from app.services.strategy_drafter import StubStrategyDrafter
 
-    result = StubStrategyDrafter().draft("buy when RSI is oversold")
+    result, usage = StubStrategyDrafter().draft("buy when RSI is oversold")
 
     assert isinstance(result, DraftedOutcome)
     assert result.outcome == "drafted"
     assert len(result.ir.blocks) > 0
+    assert usage == TokenUsage()
 
 
 # ── stub drafter: redraft (repair pass, ADR-0015) is also failure-free ────
@@ -39,17 +41,19 @@ def test_stub_drafter_returns_drafted_outcome():
 def test_stub_drafter_redraft_returns_drafted_outcome():
     from app.schemas.strategy import ValidationError
     from app.schemas.strategy_draft_ir import DraftedIR, DraftedOutcome
+    from app.schemas.token_usage import TokenUsage
     from app.services.strategy_drafter import StubStrategyDrafter
 
     drafter = StubStrategyDrafter()
     prior_ir = DraftedIR(blocks=[], connections=[])
     errors = [ValidationError(code="MISSING_EXIT", message="Strategy has no exit rule.")]
 
-    result = drafter.redraft("buy when RSI is oversold", prior_ir, errors)
+    result, usage = drafter.redraft("buy when RSI is oversold", prior_ir, errors)
 
     assert isinstance(result, DraftedOutcome)
     assert result.outcome == "drafted"
     assert len(result.ir.blocks) > 0
+    assert usage == TokenUsage()
 
 
 # ── determinism: same input -> same IR ────────────────────────────────────
@@ -58,8 +62,8 @@ def test_stub_drafter_is_deterministic():
     from app.services.strategy_drafter import StubStrategyDrafter
 
     drafter = StubStrategyDrafter()
-    first = drafter.draft("buy when RSI is oversold")
-    second = drafter.draft("buy when RSI is oversold")
+    first, _ = drafter.draft("buy when RSI is oversold")
+    second, _ = drafter.draft("buy when RSI is oversold")
 
     assert first.model_dump() == second.model_dump()
 
@@ -82,7 +86,7 @@ def test_stub_drafter_ir_compiles_and_validates():
     from app.services.strategy_drafter import StubStrategyDrafter
     from app.services.strategy_validation import collect_validation_errors
 
-    result = StubStrategyDrafter().draft("buy when RSI is oversold")
+    result, _ = StubStrategyDrafter().draft("buy when RSI is oversold")
 
     definition = compile_graph(result.ir)
     parsed = StrategyDefinitionValidate.model_validate(definition)
@@ -93,27 +97,55 @@ def test_stub_drafter_ir_compiles_and_validates():
 
 # ── LLM drafter: fake provider (no real LLM calls) ────────────────────────
 
+class _FakeUsage:
+    """Mimics a provider completion's `.usage` — either anthropic-style
+    (`input_tokens`/`output_tokens`) or openai-style (`prompt_tokens`/
+    `completion_tokens`), depending on which kwargs are set."""
+
+    def __init__(self, *, input_tokens=None, output_tokens=None, prompt_tokens=None, completion_tokens=None):
+        if input_tokens is not None:
+            self.input_tokens = input_tokens
+        if output_tokens is not None:
+            self.output_tokens = output_tokens
+        if prompt_tokens is not None:
+            self.prompt_tokens = prompt_tokens
+        if completion_tokens is not None:
+            self.completion_tokens = completion_tokens
+
+
+class _FakeCompletion:
+    """Mimics a provider completion object carrying `.usage`."""
+
+    def __init__(self, usage=None):
+        self.usage = usage
+
+
 class _FakeCompletions:
-    def __init__(self, result, calls):
+    def __init__(self, result, calls, completion=None):
         self._result = result
         self._calls = calls
+        self._completion = completion
 
     def create(self, **kwargs):
         self._calls.append(kwargs)
         return self._result
 
+    def create_with_completion(self, **kwargs):
+        self._calls.append(kwargs)
+        return self._result, self._completion
+
 
 class _FakeChat:
-    def __init__(self, result, calls):
-        self.completions = _FakeCompletions(result, calls)
+    def __init__(self, result, calls, completion=None):
+        self.completions = _FakeCompletions(result, calls, completion)
 
 
 class FakeInstructorClient:
-    """Mimics instructor's `client.chat.completions.create(...)` interface."""
+    """Mimics instructor's `client.chat.completions.create_with_completion(...)` interface."""
 
-    def __init__(self, result):
+    def __init__(self, result, completion=None):
         self.calls: list[dict] = []
-        self.chat = _FakeChat(result, self.calls)
+        self.chat = _FakeChat(result, self.calls, completion)
 
 
 class _FakeRaisingCompletions:
@@ -122,6 +154,10 @@ class _FakeRaisingCompletions:
         self._calls = calls
 
     def create(self, **kwargs):
+        self._calls.append(kwargs)
+        raise self._exc
+
+    def create_with_completion(self, **kwargs):
         self._calls.append(kwargs)
         raise self._exc
 
@@ -147,7 +183,7 @@ def test_llm_drafter_returns_drafted_outcome_from_fake_provider():
     client = FakeInstructorClient(fake_result)
 
     drafter = LLMStrategyDrafter(client=client, model="claude-sonnet-4-6")
-    result = drafter.draft("buy when RSI is oversold")
+    result, _usage = drafter.draft("buy when RSI is oversold")
 
     assert result is fake_result
 
@@ -167,6 +203,52 @@ def test_llm_drafter_calls_provider_with_response_model_and_nl_text():
     assert call["model"] == "claude-sonnet-4-6"
     assert call["response_model"] is DraftResult
     assert any("buy when RSI is oversold" in m["content"] for m in call["messages"])
+
+
+# ── LLM drafter: token usage (ADR-0016 §4, issue #633) ────────────────────
+
+def test_llm_drafter_draft_returns_token_usage_from_anthropic_style_completion():
+    from app.schemas.strategy_draft_ir import DraftedIR, DraftedOutcome
+    from app.schemas.token_usage import TokenUsage
+    from app.services.strategy_drafter import LLMStrategyDrafter
+
+    fake_result = DraftedOutcome(ir=DraftedIR(blocks=[], connections=[]))
+    completion = _FakeCompletion(usage=_FakeUsage(input_tokens=120, output_tokens=80))
+    client = FakeInstructorClient(fake_result, completion=completion)
+
+    drafter = LLMStrategyDrafter(client=client, model="claude-sonnet-4-6")
+    _result, usage = drafter.draft("buy when RSI is oversold")
+
+    assert usage == TokenUsage(input_tokens=120, output_tokens=80)
+
+
+def test_llm_drafter_draft_returns_token_usage_from_openai_style_completion():
+    from app.schemas.strategy_draft_ir import DraftedIR, DraftedOutcome
+    from app.schemas.token_usage import TokenUsage
+    from app.services.strategy_drafter import LLMStrategyDrafter
+
+    fake_result = DraftedOutcome(ir=DraftedIR(blocks=[], connections=[]))
+    completion = _FakeCompletion(usage=_FakeUsage(prompt_tokens=200, completion_tokens=50))
+    client = FakeInstructorClient(fake_result, completion=completion)
+
+    drafter = LLMStrategyDrafter(client=client, model="gpt-4o")
+    _result, usage = drafter.draft("buy when RSI is oversold")
+
+    assert usage == TokenUsage(input_tokens=200, output_tokens=50)
+
+
+def test_llm_drafter_draft_returns_zero_usage_when_completion_has_no_usage():
+    from app.schemas.strategy_draft_ir import DraftedIR, DraftedOutcome
+    from app.schemas.token_usage import TokenUsage
+    from app.services.strategy_drafter import LLMStrategyDrafter
+
+    fake_result = DraftedOutcome(ir=DraftedIR(blocks=[], connections=[]))
+    client = FakeInstructorClient(fake_result, completion=None)
+
+    drafter = LLMStrategyDrafter(client=client, model="claude-sonnet-4-6")
+    _result, usage = drafter.draft("buy when RSI is oversold")
+
+    assert usage == TokenUsage()
 
 
 # ── LLM drafter: redraft (repair pass, ADR-0015) ──────────────────────────
@@ -192,7 +274,7 @@ def test_llm_drafter_redraft_calls_provider_with_prior_ir_and_error_messages():
     ]
 
     drafter = LLMStrategyDrafter(client=client, model="claude-sonnet-4-6")
-    result = drafter.redraft("buy when RSI is oversold", prior_ir, errors)
+    result, _usage = drafter.redraft("buy when RSI is oversold", prior_ir, errors)
 
     assert result is fake_result
     assert len(client.calls) == 1
@@ -218,7 +300,7 @@ def test_llm_drafter_redraft_passes_through_declined_outcome():
     client = FakeInstructorClient(fake_result)
 
     drafter = LLMStrategyDrafter(client=client, model="claude-sonnet-4-6")
-    result = drafter.redraft(
+    result, _usage = drafter.redraft(
         "buy when the moon is full",
         DraftedIR(blocks=[], connections=[]),
         [ValidationError(code="MISSING_EXIT", message="Strategy has no exit rule.")],
@@ -257,7 +339,7 @@ def test_llm_drafter_passes_through_declined_outcome():
     client = FakeInstructorClient(fake_result)
 
     drafter = LLMStrategyDrafter(client=client, model="claude-sonnet-4-6")
-    result = drafter.draft("buy when the moon is full")
+    result, _usage = drafter.draft("buy when the moon is full")
 
     assert result.outcome == "declined"
     assert result.reason == "No block supports that indicator."
