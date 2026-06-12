@@ -13,10 +13,10 @@ import {
 } from "recharts";
 import { formatDateTime, formatPercent, formatPrice } from "@/lib/format";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, TrendingUp, AlertCircle } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
 import { LowTradeCountWarning } from "@/components/LowTradeCountWarning";
+import { SharedBacktestHeader } from "./_components/SharedBacktestHeader";
 
 interface PublicBacktestView {
   asset: string;
@@ -133,30 +133,12 @@ export default function SharedBacktestPage({ params }: Props) {
     <div className="min-h-screen bg-background px-4 py-8">
       <div className="mx-auto max-w-5xl space-y-6">
         {/* Header */}
-        <Card>
-          <CardContent className="p-6">
-            <div className="mb-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-primary" />
-                <h1 className="text-2xl font-bold tracking-tight">
-                  Shared Backtest Results
-                </h1>
-              </div>
-              <div className="flex gap-2">
-                <Badge variant="secondary" className="data-text">{data.asset}</Badge>
-                <Badge variant="secondary" className="data-text">{data.timeframe}</Badge>
-              </div>
-            </div>
-            <p className="data-text text-sm text-muted-foreground">
-              {formatDateTime(data.date_from, "utc").split(" ")[0]} →{" "}
-              {formatDateTime(data.date_to, "utc").split(" ")[0]}
-            </p>
-            <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-900 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-400">
-              Strategy logic is not shared. Only performance metrics and equity
-              curve are visible.
-            </div>
-          </CardContent>
-        </Card>
+        <SharedBacktestHeader
+          asset={data.asset}
+          timeframe={data.timeframe}
+          dateFrom={data.date_from}
+          dateTo={data.date_to}
+        />
 
         {/* Metrics */}
         <Card>

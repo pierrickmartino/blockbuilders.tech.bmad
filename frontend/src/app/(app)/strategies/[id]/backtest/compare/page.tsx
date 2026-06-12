@@ -19,6 +19,7 @@ import { useDisplay } from "@/context/display";
 import { BacktestCompareResponse } from "@/types/backtest";
 import { Strategy } from "@/types/strategy";
 import { StrategyTabs } from "@/components/StrategyTabs";
+import { ComparePageHeader } from "@/components/backtest/ComparePageHeader";
 import { ZoomableChart } from "@/components/ZoomableChart";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
@@ -240,9 +241,7 @@ export default function CompareBacktestsPage({ params }: Props) {
 
         <div className="mt-6 space-y-6">
           <div className="rounded-lg border border-border bg-card p-3 shadow-sm sm:p-4">
-            <h2 className="mb-4 text-lg font-semibold tracking-tight">
-              Compare Backtests
-            </h2>
+            <ComparePageHeader />
 
             {error && (
               <div className="mb-4 flex flex-col gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive sm:flex-row sm:items-center sm:justify-between">

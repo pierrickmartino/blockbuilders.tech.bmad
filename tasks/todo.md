@@ -1,5 +1,28 @@
 # Tasks — in flight
 
+## Issue #642 — Trust page: link it from every result surface (done)
+
+Frontend (ADR-0017: `/how-backtests-work` is a public trust artifact, linked from every result surface)
+- [x] `src/components/HowBacktestsWorkLink.tsx` (new) — single reusable "How backtests work →" link to the canonical `/how-backtests-work` route, used by all three surfaces below.
+- [x] `src/components/TransactionCostAnalysis.tsx` — added the link next to the "Transaction cost analysis" heading (both the no-cost-data and with-cost-data branches), anchoring it near the transaction-cost breakdown on the in-app result page per the issue.
+- [x] `src/components/backtest/ComparePageHeader.tsx` (new) — extracted header for the compare page (`Compare Backtests` title + the link), wired into `app/(app)/strategies/[id]/backtest/compare/page.tsx` in place of the inline `<h2>`.
+- [x] `app/share/backtests/[token]/_components/SharedBacktestHeader.tsx` (new) — extracted header for the public Shared backtest page (title, asset/timeframe badges, date range, "strategy logic not shared" note, and the link), wired into `app/share/backtests/[token]/page.tsx` in place of the inline header `<Card>`.
+
+Tests (tracer-bullet TDD, one behavior at a time)
+- [x] `src/components/__tests__/HowBacktestsWorkLink.test.tsx` (new) — renders a link to `/how-backtests-work`.
+- [x] `src/components/__tests__/TransactionCostAnalysis.test.tsx` (new, 2 cases) — link present with and without cost data.
+- [x] `src/components/backtest/__tests__/ComparePageHeader.test.tsx` (new) — `Compare Backtests` heading + link to `/how-backtests-work`.
+- [x] `app/share/backtests/[token]/_components/__tests__/SharedBacktestHeader.test.tsx` (new) — `Shared Backtest Results` heading + link to `/how-backtests-work`.
+
+Verification
+- [x] `cd frontend && npx vitest run` → 68 files / 646 passed (5 new tests, zero regressions)
+- [x] `cd frontend && npx tsc --noEmit` → clean
+- [x] `cd frontend && npx eslint` on touched/added files → clean (one pre-existing unused-`ArrowRight`-import warning in `TransactionCostAnalysis.tsx`, not introduced by this change)
+
+Risks / gaps
+- No env vars added/changed; no backend changes.
+- The in-app result page (`(app)/strategies/[id]/backtest/page.tsx`), compare page, and Shared backtest page all use React 19 `use(params)` and have no full-page render test in this codebase (suspend issues with the current Vitest setup, confirmed with no prior art). Link presence for those three surfaces is verified at the component level (`TransactionCostAnalysis`, `ComparePageHeader`, `SharedBacktestHeader`) — each component is rendered directly by its respective page with no further conditional gating, so the component test is equivalent to an externally-observable page-level check for this link.
+
 ## Issue #634 — NL-wedge #9 — Draft page "slow down" message on drafter 429 (done)
 
 Frontend (ADR-0016 §3 — 429 is a serve failure, parallel to 503, with an honest retryable message)

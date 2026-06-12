@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { BacktestSummary } from "@/types/backtest";
 import { formatNumber, formatPercent } from "@/lib/format";
+import { HowBacktestsWorkLink } from "@/components/HowBacktestsWorkLink";
 import {
   TrendingDown,
   DollarSign,
@@ -24,9 +25,12 @@ export function TransactionCostAnalysis({ summary }: TransactionCostAnalysisProp
   if (!hasCostData) {
     return (
       <section className="rounded border bg-card p-6">
-        <h2 className="mb-3 text-lg font-semibold tracking-tight text-foreground">
-          Transaction cost analysis
-        </h2>
+        <div className="flex items-start justify-between gap-4">
+          <h2 className="mb-3 text-lg font-semibold tracking-tight text-foreground">
+            Transaction cost analysis
+          </h2>
+          <HowBacktestsWorkLink className="shrink-0" />
+        </div>
         <p className="text-sm text-muted-foreground">
           Cost breakdown not available for this backtest run. Run a new backtest to see detailed
           transaction costs.
@@ -58,12 +62,15 @@ export function TransactionCostAnalysis({ summary }: TransactionCostAnalysisProp
             What the strategy pays to trade · {numTrades} fills
           </p>
         </div>
-        {summary.cost_pct_gross_return != null && (
-          <div className="flex shrink-0 items-center gap-1.5 rounded-full border border-destructive/60 px-2.5 py-1 text-xs font-medium text-destructive">
-            <TrendingDown className="h-3.5 w-3.5" />
-            <span>{formatPercent(summary.cost_pct_gross_return)} cost drag</span>
-          </div>
-        )}
+        <div className="flex shrink-0 items-center gap-3">
+          {summary.cost_pct_gross_return != null && (
+            <div className="flex items-center gap-1.5 rounded-full border border-destructive/60 px-2.5 py-1 text-xs font-medium text-destructive">
+              <TrendingDown className="h-3.5 w-3.5" />
+              <span>{formatPercent(summary.cost_pct_gross_return)} cost drag</span>
+            </div>
+          )}
+          <HowBacktestsWorkLink />
+        </div>
       </div>
 
       <div className="my-4 border-t border-border" />
