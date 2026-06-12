@@ -29,6 +29,7 @@ from app.schemas.strategy_draft_ir import (
     DraftedOutcome,
     DraftResult,
 )
+from app.schemas.token_usage import TokenUsage
 from app.services.drafter_vocabulary import render_prompt_vocabulary
 
 logger = logging.getLogger(__name__)
@@ -58,11 +59,14 @@ class StrategyDrafterError(Exception):
 
 
 class StrategyDrafter(Protocol):
-    """Turns NL text into a drafted-or-declined semantic IR."""
+    """Turns NL text into a drafted-or-declined semantic IR, alongside the
+    `TokenUsage` spent on the call (ADR-0016 §4)."""
 
-    def draft(self, nl_text: str) -> DraftResult: ...
+    def draft(self, nl_text: str) -> tuple[DraftResult, TokenUsage]: ...
 
-    def redraft(self, nl_text: str, prior_ir: DraftedIR, errors: list[ValidationError]) -> DraftResult:
+    def redraft(
+        self, nl_text: str, prior_ir: DraftedIR, errors: list[ValidationError]
+    ) -> tuple[DraftResult, TokenUsage]:
         """Repair pass (ADR-0015): re-generate given the prior draft + failing checks."""
         ...
 
@@ -89,13 +93,18 @@ _STUB_IR = DraftedIR(
 
 
 class StubStrategyDrafter:
-    """Always drafts the same RSI-oversold-bounce IR, regardless of `nl_text`."""
+    """Always drafts the same RSI-oversold-bounce IR, regardless of `nl_text`.
 
-    def draft(self, nl_text: str) -> DraftResult:
-        return DraftedOutcome(ir=_STUB_IR)
+    Spends no tokens — `TokenUsage()` zero value (ADR-0016 §4).
+    """
 
-    def redraft(self, nl_text: str, prior_ir: DraftedIR, errors: list[ValidationError]) -> DraftResult:
-        return DraftedOutcome(ir=_STUB_IR)
+    def draft(self, nl_text: str) -> tuple[DraftResult, TokenUsage]:
+        return DraftedOutcome(ir=_STUB_IR), TokenUsage()
+
+    def redraft(
+        self, nl_text: str, prior_ir: DraftedIR, errors: list[ValidationError]
+    ) -> tuple[DraftResult, TokenUsage]:
+        return DraftedOutcome(ir=_STUB_IR), TokenUsage()
 
 
 # ── LLM drafter (ADR-0011) ──────────────────────────────────────────────────
@@ -153,6 +162,24 @@ Respond with a corrected `drafted` outcome, or a `declined` outcome with a
 """
 
 
+def _token_usage_from_completion(completion: Any) -> TokenUsage:
+    """Extract a provider-neutral `TokenUsage` from a raw provider completion
+    (`create_with_completion`'s second return value), ADR-0016 §4.
+
+    Anthropic's `Usage` carries `input_tokens`/`output_tokens`; OpenAI's
+    (and OpenRouter's, via the OpenAI SDK) `CompletionUsage` carries
+    `prompt_tokens`/`completion_tokens`. Missing usage -> zero value.
+    """
+    usage = getattr(completion, "usage", None)
+    if usage is None:
+        return TokenUsage()
+    if hasattr(usage, "input_tokens"):
+        return TokenUsage(input_tokens=usage.input_tokens or 0, output_tokens=usage.output_tokens or 0)
+    if hasattr(usage, "prompt_tokens"):
+        return TokenUsage(input_tokens=usage.prompt_tokens or 0, output_tokens=usage.completion_tokens or 0)
+    return TokenUsage()
+
+
 class LLMStrategyDrafter:
     """Drafts a semantic IR by calling an LLM via `instructor` (ADR-0011)."""
 
@@ -160,9 +187,9 @@ class LLMStrategyDrafter:
         self._client = client
         self._model = model
 
-    def draft(self, nl_text: str) -> DraftResult:
+    def draft(self, nl_text: str) -> tuple[DraftResult, TokenUsage]:
         try:
-            return self._client.chat.completions.create(
+            result, completion = self._client.chat.completions.create_with_completion(
                 model=self._model,
                 max_tokens=4096,
                 timeout=settings.strategy_drafter_timeout_seconds,
@@ -172,13 +199,16 @@ class LLMStrategyDrafter:
                     {"role": "user", "content": nl_text},
                 ],
             )
+            return result, _token_usage_from_completion(completion)
         except _INFRA_FAILURE_EXCEPTIONS as exc:
             logger.error("Strategy drafter call failed: %s", exc, exc_info=True)
             raise StrategyDrafterError(_INFRA_FAILURE_MESSAGE) from exc
 
-    def redraft(self, nl_text: str, prior_ir: DraftedIR, errors: list[ValidationError]) -> DraftResult:
+    def redraft(
+        self, nl_text: str, prior_ir: DraftedIR, errors: list[ValidationError]
+    ) -> tuple[DraftResult, TokenUsage]:
         try:
-            return self._client.chat.completions.create(
+            result, completion = self._client.chat.completions.create_with_completion(
                 model=self._model,
                 max_tokens=4096,
                 timeout=settings.strategy_drafter_timeout_seconds,
@@ -189,6 +219,7 @@ class LLMStrategyDrafter:
                     {"role": "user", "content": _build_repair_prompt(prior_ir, errors)},
                 ],
             )
+            return result, _token_usage_from_completion(completion)
         except _INFRA_FAILURE_EXCEPTIONS as exc:
             logger.error("Strategy drafter repair call failed: %s", exc, exc_info=True)
             raise StrategyDrafterError(_INFRA_FAILURE_MESSAGE) from exc

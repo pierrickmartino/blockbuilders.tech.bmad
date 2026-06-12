@@ -1,4 +1,5 @@
-"""Tests for the repair-orchestrator helper (ADR-0015, issue #625).
+"""Tests for the repair-orchestrator helper (ADR-0015, issue #625; token-usage
+accumulation ADR-0016 §4, issue #633).
 
 Module-A test matrix: real GraphCompiler + Strategy validator (not mocked),
 small intention-named fake drafters — not `unittest.mock` scripting.
@@ -11,6 +12,7 @@ from app.schemas.strategy_draft_ir import (
     DraftedIR,
     DraftedOutcome,
 )
+from app.schemas.token_usage import TokenUsage
 from app.services.strategy_draft_pipeline import (
     DraftPipelineDeclined,
     DraftPipelineSuccess,
@@ -63,11 +65,17 @@ _INVALID_IR_BAD_POSITION_SIZE = DraftedIR(
 )
 
 
+# Token usage fixtures (ADR-0016 §4): distinct draft vs. repair usage so
+# accumulation can be asserted unambiguously.
+_DRAFT_USAGE = TokenUsage(input_tokens=100, output_tokens=50)
+_REPAIR_USAGE = TokenUsage(input_tokens=80, output_tokens=30)
+
+
 class DraftsCleanFirstTry:
     """Initial draft is already validator-clean; `redraft` must never be called."""
 
     def draft(self, nl_text):
-        return DraftedOutcome(ir=_VALID_IR)
+        return DraftedOutcome(ir=_VALID_IR), _DRAFT_USAGE
 
     def redraft(self, nl_text, prior_ir, errors):
         raise AssertionError("redraft should not be called when the first draft is valid")
@@ -80,11 +88,11 @@ class DraftsInvalidThenValid:
         self.redraft_calls: list[tuple] = []
 
     def draft(self, nl_text):
-        return DraftedOutcome(ir=_INVALID_IR_NO_EXIT)
+        return DraftedOutcome(ir=_INVALID_IR_NO_EXIT), _DRAFT_USAGE
 
     def redraft(self, nl_text, prior_ir, errors):
         self.redraft_calls.append((nl_text, prior_ir, errors))
-        return DraftedOutcome(ir=_VALID_IR)
+        return DraftedOutcome(ir=_VALID_IR), _REPAIR_USAGE
 
 
 class DraftsInvalidTwice:
@@ -93,20 +101,20 @@ class DraftsInvalidTwice:
     surface the *repaired* attempt's error, not the original's."""
 
     def draft(self, nl_text):
-        return DraftedOutcome(ir=_INVALID_IR_NO_EXIT)
+        return DraftedOutcome(ir=_INVALID_IR_NO_EXIT), _DRAFT_USAGE
 
     def redraft(self, nl_text, prior_ir, errors):
-        return DraftedOutcome(ir=_INVALID_IR_BAD_POSITION_SIZE)
+        return DraftedOutcome(ir=_INVALID_IR_BAD_POSITION_SIZE), _REPAIR_USAGE
 
 
 class DraftsThenDeclines:
     """First draft is missing an exit; the repair pass declines outright."""
 
     def draft(self, nl_text):
-        return DraftedOutcome(ir=_INVALID_IR_NO_EXIT)
+        return DraftedOutcome(ir=_INVALID_IR_NO_EXIT), _DRAFT_USAGE
 
     def redraft(self, nl_text, prior_ir, errors):
-        return DeclinedOutcome(reason="Still can't express this with the available blocks.")
+        return DeclinedOutcome(reason="Still can't express this with the available blocks."), _REPAIR_USAGE
 
 
 def test_clean_first_try_returns_success_with_no_repair_call():
@@ -115,6 +123,8 @@ def test_clean_first_try_returns_success_with_no_repair_call():
     assert isinstance(result, DraftPipelineSuccess)
     assert len(result.definition["blocks"]) > 0
     assert result.resolution == "clean"
+    assert result.token_usage == _DRAFT_USAGE
+    assert result.repair_count == 0
 
 
 def test_invalid_then_valid_repair_returns_success():
@@ -129,6 +139,8 @@ def test_invalid_then_valid_repair_returns_success():
     assert prior_ir == _INVALID_IR_NO_EXIT
     assert errors[0].code == "MISSING_EXIT"
     assert result.resolution == "repaired"
+    assert result.token_usage == _DRAFT_USAGE + _REPAIR_USAGE
+    assert result.repair_count == 1
 
 
 def test_invalid_then_still_invalid_declines_with_repaired_error():
@@ -137,6 +149,8 @@ def test_invalid_then_still_invalid_declines_with_repaired_error():
     assert isinstance(result, DraftPipelineDeclined)
     assert "Percentage must be between" in result.reason
     assert result.resolution == "declined"
+    assert result.token_usage == _DRAFT_USAGE + _REPAIR_USAGE
+    assert result.repair_count == 1
 
 
 def test_redraft_declines_returns_declined_with_model_reason():
@@ -145,6 +159,8 @@ def test_redraft_declines_returns_declined_with_model_reason():
     assert isinstance(result, DraftPipelineDeclined)
     assert result.reason == "Still can't express this with the available blocks."
     assert result.resolution == "declined"
+    assert result.token_usage == _DRAFT_USAGE + _REPAIR_USAGE
+    assert result.repair_count == 1
 
 
 def test_max_repairs_zero_declines_without_repair_attempt(monkeypatch):
@@ -157,3 +173,5 @@ def test_max_repairs_zero_declines_without_repair_attempt(monkeypatch):
     assert result.reason == "Add at least one exit rule (Exit Signal, Stop Loss, Take Profit, etc.)."
     assert drafter.redraft_calls == []
     assert result.resolution == "declined"
+    assert result.token_usage == _DRAFT_USAGE
+    assert result.repair_count == 0

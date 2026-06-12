@@ -223,6 +223,20 @@ def draft_strategy_from_nl(
     # for tuning `strategy_drafter_max_repairs`, independent of Draft outcome.
     logger.info("strategy_draft_resolution", extra={"resolution": pipeline_result.resolution})
 
+    # Per-request token cost observability (ADR-0016 §4, issue #633): tokens
+    # not dollars — dollars are computed downstream in the log/BI layer.
+    logger.info(
+        "strategy_draft_token_usage",
+        extra={
+            "input_tokens": pipeline_result.token_usage.input_tokens,
+            "output_tokens": pipeline_result.token_usage.output_tokens,
+            "model": settings.strategy_drafter_model,
+            "provider": settings.strategy_drafter_provider,
+            "resolution": pipeline_result.resolution,
+            "repair_count": pipeline_result.repair_count,
+        },
+    )
+
     if isinstance(pipeline_result, DraftPipelineDeclined):
         return StrategyDraftFromNlResponse(outcome="declined", reason=pipeline_result.reason)
 

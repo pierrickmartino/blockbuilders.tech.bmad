@@ -22,6 +22,7 @@ from app.core.config import settings
 from app.models.strategy import Strategy, StrategyEntryPath
 from app.models.strategy_draft import StrategyDraft
 from app.schemas.strategy_draft_ir import DraftedBlockIR, DraftedConnectionIR, DraftedIR, DraftedOutcome
+from app.schemas.token_usage import TokenUsage
 
 
 def test_draft_from_nl_requires_auth(client, monkeypatch):
@@ -86,23 +87,27 @@ def test_draft_from_nl_success_persists_strategy_and_working_copy(client, auth_h
 # ── slice 2: LLMStrategyDrafter via fake provider (no real LLM calls) ─────
 
 class _FakeCompletions:
-    def __init__(self, result):
+    def __init__(self, result, completion=None):
         self._result = result
+        self._completion = completion
 
     def create(self, **kwargs):
         return self._result
 
+    def create_with_completion(self, **kwargs):
+        return self._result, self._completion
+
 
 class _FakeChat:
-    def __init__(self, result):
-        self.completions = _FakeCompletions(result)
+    def __init__(self, result, completion=None):
+        self.completions = _FakeCompletions(result, completion)
 
 
 class FakeInstructorClient:
-    """Mimics instructor's `client.chat.completions.create(...)` interface."""
+    """Mimics instructor's `client.chat.completions.create_with_completion(...)` interface."""
 
-    def __init__(self, result):
-        self.chat = _FakeChat(result)
+    def __init__(self, result, completion=None):
+        self.chat = _FakeChat(result, completion)
 
 
 def test_draft_from_nl_llm_drafter_persists_strategy_and_working_copy(
@@ -367,20 +372,20 @@ class DraftsInvalidThenValid:
     """First draft fails the validator (no exit); the repair pass fixes it."""
 
     def draft(self, nl_text: str):
-        return DraftedOutcome(ir=_INVALID_NO_EXIT_IR)
+        return DraftedOutcome(ir=_INVALID_NO_EXIT_IR), TokenUsage(input_tokens=100, output_tokens=50)
 
     def redraft(self, nl_text: str, prior_ir, errors):
-        return DraftedOutcome(ir=_VALID_RSI_BOUNCE_IR)
+        return DraftedOutcome(ir=_VALID_RSI_BOUNCE_IR), TokenUsage(input_tokens=80, output_tokens=30)
 
 
 class DraftsInvalidTwice:
     """Both the first draft and the repair pass fail the validator (no exit)."""
 
     def draft(self, nl_text: str):
-        return DraftedOutcome(ir=_INVALID_NO_EXIT_IR)
+        return DraftedOutcome(ir=_INVALID_NO_EXIT_IR), TokenUsage(input_tokens=100, output_tokens=50)
 
     def redraft(self, nl_text: str, prior_ir, errors):
-        return DraftedOutcome(ir=_INVALID_NO_EXIT_IR)
+        return DraftedOutcome(ir=_INVALID_NO_EXIT_IR), TokenUsage(input_tokens=80, output_tokens=30)
 
 
 def test_draft_from_nl_repair_needing_draft_returns_success(client, auth_headers, session, user, monkeypatch):
@@ -627,3 +632,121 @@ def test_draft_from_nl_model_declined_logs_declined_resolution(client, auth_head
     records = _resolution_log_records(caplog)
     assert len(records) == 1
     assert records[0].resolution == "declined"
+
+
+# ── issue #633: per-request token cost observability (ADR-0016 §4) ───────
+#
+# Exactly one structured cost log line per draft-from-nl request, beside the
+# `strategy_draft_resolution` line: input/output tokens, model, provider,
+# resolution, repair_count.
+
+def _token_usage_log_records(caplog):
+    return [r for r in caplog.records if r.message == "strategy_draft_token_usage"]
+
+
+def test_draft_from_nl_stub_drafter_logs_zero_token_usage(client, auth_headers, session, user, monkeypatch, caplog):
+    monkeypatch.setattr(settings, "strategy_drafter_enabled", True)
+
+    with caplog.at_level("INFO", logger="app.api.strategies"):
+        response = client.post(
+            "/strategies/draft-from-nl",
+            json={"nl_text": "buy when RSI is oversold", "asset": "BTC/USDT", "timeframe": "1d"},
+            headers=auth_headers,
+        )
+
+    assert response.status_code == 200
+
+    records = _token_usage_log_records(caplog)
+    assert len(records) == 1
+    record = records[0]
+    assert record.input_tokens == 0
+    assert record.output_tokens == 0
+    assert record.model == settings.strategy_drafter_model
+    assert record.provider == settings.strategy_drafter_provider
+    assert record.resolution == "clean"
+    assert record.repair_count == 0
+
+
+def test_draft_from_nl_llm_drafter_logs_token_usage_from_completion(
+    client, auth_headers, session, user, monkeypatch, caplog
+):
+    from types import SimpleNamespace
+
+    from app.schemas.strategy_draft_ir import DraftedOutcome
+    from app.services.strategy_drafter import LLMStrategyDrafter
+
+    monkeypatch.setattr(settings, "strategy_drafter_enabled", True)
+
+    completion = SimpleNamespace(usage=SimpleNamespace(input_tokens=120, output_tokens=80))
+    fake_drafter = LLMStrategyDrafter(
+        client=FakeInstructorClient(DraftedOutcome(ir=_VALID_RSI_BOUNCE_IR), completion=completion),
+        model="claude-sonnet-4-6",
+    )
+    monkeypatch.setattr("app.api.strategies.get_strategy_drafter", lambda: fake_drafter)
+
+    with caplog.at_level("INFO", logger="app.api.strategies"):
+        response = client.post(
+            "/strategies/draft-from-nl",
+            json={"nl_text": "buy when RSI is oversold", "asset": "BTC/USDT", "timeframe": "1d"},
+            headers=auth_headers,
+        )
+
+    assert response.status_code == 200
+    assert response.json()["outcome"] == "success"
+
+    records = _token_usage_log_records(caplog)
+    assert len(records) == 1
+    record = records[0]
+    assert record.input_tokens == 120
+    assert record.output_tokens == 80
+    assert record.resolution == "clean"
+    assert record.repair_count == 0
+
+
+def test_draft_from_nl_repaired_draft_logs_summed_token_usage(
+    client, auth_headers, session, user, monkeypatch, caplog
+):
+    """draft + repair usage sum into one cost log line (ADR-0016 §4)."""
+    monkeypatch.setattr(settings, "strategy_drafter_enabled", True)
+    monkeypatch.setattr("app.api.strategies.get_strategy_drafter", lambda: DraftsInvalidThenValid())
+
+    with caplog.at_level("INFO", logger="app.api.strategies"):
+        response = client.post(
+            "/strategies/draft-from-nl",
+            json={"nl_text": "buy when RSI drops below 30", "asset": "BTC/USDT", "timeframe": "1d"},
+            headers=auth_headers,
+        )
+
+    assert response.status_code == 200
+    assert response.json()["outcome"] == "success"
+
+    records = _token_usage_log_records(caplog)
+    assert len(records) == 1
+    record = records[0]
+    assert record.input_tokens == 180  # 100 (draft) + 80 (repair)
+    assert record.output_tokens == 80  # 50 (draft) + 30 (repair)
+    assert record.resolution == "repaired"
+    assert record.repair_count == 1
+
+
+def test_draft_from_nl_declined_draft_logs_token_usage(client, auth_headers, session, user, monkeypatch, caplog):
+    monkeypatch.setattr(settings, "strategy_drafter_enabled", True)
+    monkeypatch.setattr("app.api.strategies.get_strategy_drafter", lambda: DraftsInvalidTwice())
+
+    with caplog.at_level("INFO", logger="app.api.strategies"):
+        response = client.post(
+            "/strategies/draft-from-nl",
+            json={"nl_text": "buy when RSI drops below 30", "asset": "BTC/USDT", "timeframe": "1d"},
+            headers=auth_headers,
+        )
+
+    assert response.status_code == 200
+    assert response.json()["outcome"] == "declined"
+
+    records = _token_usage_log_records(caplog)
+    assert len(records) == 1
+    record = records[0]
+    assert record.input_tokens == 180
+    assert record.output_tokens == 80
+    assert record.resolution == "declined"
+    assert record.repair_count == 1
