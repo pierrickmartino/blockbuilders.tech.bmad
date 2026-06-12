@@ -214,6 +214,32 @@ describe("DraftFromNlPage", () => {
     expect(mockTrackEvent).not.toHaveBeenCalledWith("nl_draft_declined", expect.anything(), expect.anything());
   });
 
+  it("shows a distinct 'slow down' message, separate from declined/disabled/error, on a 429", async () => {
+    mockStrategiesClient.draftFromNl.mockRejectedValue(new ApiError(429, "Too many requests"));
+
+    render(<DraftFromNlPage />);
+    fillAndSubmit("buy when RSI drops below 30");
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent(
+      /you're drafting ideas faster than we allow right now — try again shortly/i
+    );
+    expect(alert).not.toHaveClass("text-destructive");
+    expect(alert).not.toHaveClass("text-amber-700");
+    expect(screen.queryByText(/rephrasing your idea/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/not available/i)).not.toBeInTheDocument();
+    expect(mockPush).not.toHaveBeenCalled();
+
+    expect(mockTrackEvent).toHaveBeenCalledWith(
+      "nl_draft_requested",
+      expect.objectContaining({ entry_path: "nl_wedge", authoring_mode: "nl" }),
+      "user-1"
+    );
+    expect(mockTrackEvent).not.toHaveBeenCalledWith("nl_draft_drafted", expect.anything(), expect.anything());
+    expect(mockTrackEvent).not.toHaveBeenCalledWith("nl_draft_declined", expect.anything(), expect.anything());
+    expect(mockTrackEvent).not.toHaveBeenCalledWith("nl_draft_errored", expect.anything(), expect.anything());
+  });
+
   it("shows a disabled message when the drafter feature flag is off", async () => {
     mockStrategiesClient.draftFromNl.mockResolvedValue({
       outcome: "disabled",
