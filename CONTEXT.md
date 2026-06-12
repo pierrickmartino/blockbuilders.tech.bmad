@@ -241,6 +241,20 @@ components with different lifecycles — keep them apart.
   **Working copy** (ADR-0006). _Avoid_: "draft" alone (the UI
   already calls the working copy the "draft" — the drafter
   *produces* one, it is not the thing produced); "generator".
+- **Repair pass** — the single, bounded LLM re-generation triggered
+  when a drafted graph *compiles* but fails the **Strategy validator**
+  (`docs/ACTIONS.md` #8). The model is shown its prior draft and the
+  failing checks and asked to fix them. Distinct from two neighbours it
+  is easily confused with: the **Strategy drafter**'s library-level
+  *schema-retries* (which fix the IR's *shape*, not its *legality*, and
+  are invisible to callers), and a user **reject** (a *valid,
+  backtested* draft the user discards — ADR-0006 — not a malformed
+  one). A repair that still fails the validator ends in a **decline**:
+  the draft is never surfaced broken. _Avoid_: "retry" (ambiguous
+  across all three — name the layer); calling a deterministic
+  param-clamp or default-injection a repair pass (there is none — repair
+  is always model re-generation, to preserve faithfulness to the user's
+  idea).
 - **TradeExit vocabulary** — the enum of exit reasons (`tp`, `sl`,
   `signal`, …). Currently implicit; candidate for a small shared
   module.
