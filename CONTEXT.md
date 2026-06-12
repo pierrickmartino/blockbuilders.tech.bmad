@@ -41,6 +41,18 @@ These come from `PRODUCT.md` and describe what the product *is*.
   (the "Wordle result" pattern) — distinct from Publish, which it
   outlives when vanity-social surfaces are frozen. _Avoid_: publish
   (that is profile visibility), public profile, share link.
+- **Trust page** — the public, standalone "How Backtests Work"
+  methodology page (`/how-backtests-work`) that documents the
+  engine's assumptions (default fees/slippage/spread, next-candle-open
+  execution, OHLCV-only, completed-candles-only / no look-ahead) in
+  plain language. The marketed face of the verification moat
+  (`docs/ACTIONS.md` #10): it lives **outside** the app shell
+  (no auth gate, no sidebar) so a prospect arriving from a **Shared
+  backtest** can read it, and is linked from *every result* (in-app
+  result, compare, Shared backtest). A single canonical public URL.
+  _Avoid_: treating it as an in-app reference page like the
+  metrics-glossary / strategy-guide (those stay inside the app shell,
+  chromed and auth-gated); calling it a generic "docs page".
 - **Archive (a strategy)** — hide a strategy from the active list
   and free a plan slot (`Strategy.is_archived`). Frozen versions
   and backtest history are preserved, not deleted. The only archive
