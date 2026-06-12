@@ -42,6 +42,7 @@ from app.schemas.strategy import (
 from app.services.strategy_deletion import delete_strategy_cascade
 from app.services.strategy_draft_pipeline import DraftPipelineDeclined, draft_and_repair
 from app.services.strategy_drafter import StrategyDrafterError, get_strategy_drafter
+from app.services.strategy_drafter_rate_limit import get_strategy_drafter_rate_limiter
 from app.services.strategy_validation import collect_validation_errors
 
 logger = logging.getLogger(__name__)
@@ -201,10 +202,17 @@ def draft_strategy_from_nl(
     a usable graph, even after the bounded repair pass), `disabled` (feature
     flag off). A bounded-timeout provider error or exhausted instructor
     schema-retries raises a 503 — a retryable infra failure, distinct from
-    `declined` (issue #589).
+    `declined` (issue #589). Exceeding the per-user anti-abuse ceiling
+    (ADR-0016) raises a 429 — also a serve failure, not folded into `outcome`.
     """
     if not settings.strategy_drafter_enabled:
         return StrategyDraftFromNlResponse(outcome="disabled")
+
+    if not get_strategy_drafter_rate_limiter().allow(user.id):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="You're drafting faster than we allow right now — try again shortly.",
+        )
 
     try:
         pipeline_result = draft_and_repair(get_strategy_drafter(), data.nl_text)
