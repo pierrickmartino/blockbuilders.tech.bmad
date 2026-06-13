@@ -2,6 +2,7 @@ import os
 from datetime import datetime, timezone
 from uuid import uuid4
 
+import fakeredis
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.pool import StaticPool
@@ -11,9 +12,14 @@ os.environ.setdefault("DATABASE_URL", "sqlite://")
 os.environ.setdefault("JWT_SECRET_KEY", "test-secret-key-for-testing")
 os.environ.setdefault("REDIS_URL", "redis://localhost:6379/15")
 
+from app.core.config import settings
 from app.core.database import get_session
 from app.core.security import hash_password
 from app.main import app
+from app.services.strategy_drafter_rate_limit import (
+    StrategyDrafterRateLimiter,
+    get_strategy_drafter_rate_limiter,
+)
 from app.models.backtest_run import BacktestRun
 from app.models.notification import Notification
 from app.models.strategy import Strategy
@@ -45,7 +51,22 @@ def client(session):
     def get_session_override():
         return session
 
+    # The drafter rate limiter is a per-user Redis fixed-window counter that
+    # fails open when Redis is unavailable (ADR-0016). CI has no Redis service,
+    # so back it with an in-process fakeredis here — one instance per test, so
+    # the counter persists across requests within a test but resets between
+    # tests. Reads settings per request so monkeypatched limits take effect.
+    fake_redis = fakeredis.FakeRedis(decode_responses=True)
+
+    def get_rate_limiter_override():
+        return StrategyDrafterRateLimiter(
+            fake_redis,
+            max_per_window=settings.strategy_drafter_max_per_window,
+            window_seconds=settings.strategy_drafter_rate_limit_window_seconds,
+        )
+
     app.dependency_overrides[get_session] = get_session_override
+    app.dependency_overrides[get_strategy_drafter_rate_limiter] = get_rate_limiter_override
     with TestClient(app) as c:
         yield c
     app.dependency_overrides.clear()

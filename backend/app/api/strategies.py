@@ -42,7 +42,10 @@ from app.schemas.strategy import (
 from app.services.strategy_deletion import delete_strategy_cascade
 from app.services.strategy_draft_pipeline import DraftPipelineDeclined, draft_and_repair
 from app.services.strategy_drafter import StrategyDrafterError, get_strategy_drafter
-from app.services.strategy_drafter_rate_limit import get_strategy_drafter_rate_limiter
+from app.services.strategy_drafter_rate_limit import (
+    StrategyDrafterRateLimiter,
+    get_strategy_drafter_rate_limiter,
+)
 from app.services.strategy_validation import collect_validation_errors
 
 logger = logging.getLogger(__name__)
@@ -192,6 +195,7 @@ def draft_strategy_from_nl(
     data: StrategyDraftFromNlRequest,
     user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
+    rate_limiter: StrategyDrafterRateLimiter = Depends(get_strategy_drafter_rate_limiter),
 ) -> StrategyDraftFromNlResponse:
     """Draft a new strategy from NL text (NL wedge, ADR-0011/ADR-0006/ADR-0015).
 
@@ -208,7 +212,7 @@ def draft_strategy_from_nl(
     if not settings.strategy_drafter_enabled:
         return StrategyDraftFromNlResponse(outcome="disabled")
 
-    if not get_strategy_drafter_rate_limiter().allow(user.id):
+    if not rate_limiter.allow(user.id):
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail="You're drafting faster than we allow right now — try again shortly.",
