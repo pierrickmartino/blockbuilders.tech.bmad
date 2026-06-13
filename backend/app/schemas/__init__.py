@@ -1,4 +1,5 @@
 from app.schemas.auth import (
+    AnalyticsConsentRequest,
     AuthResponse,
     LoginRequest,
     SignupRequest,
@@ -27,6 +28,7 @@ __all__ = [
     "AuthResponse",
     "UserResponse",
     "UserUpdateRequest",
+    "AnalyticsConsentRequest",
     "ALLOWED_ASSETS",
     "ALLOWED_TIMEFRAMES",
     "StrategyCreateRequest",

@@ -61,6 +61,30 @@ export function getExperimentVariant(key: string): ExperimentVariant | undefined
 }
 
 /**
+ * Invokes `callback` once PostHog's feature flags have loaded, so experiment
+ * readers see the assigned variant instead of the pre-load `undefined`.
+ *
+ * Resolves synchronously (calling `callback` immediately) whenever flags can
+ * never load from PostHog — outside the browser, without accepted consent, or
+ * on SDK error — so callers are never left waiting on a value that will never
+ * arrive. Returns an unsubscribe function.
+ */
+export function onExperimentFlagsReady(callback: () => void): () => void {
+  if (typeof window === "undefined" || getConsent() !== "accepted") {
+    callback();
+    return () => {};
+  }
+
+  try {
+    const unsubscribe = posthog.onFeatureFlags(() => callback());
+    return typeof unsubscribe === "function" ? unsubscribe : () => {};
+  } catch {
+    callback();
+    return () => {};
+  }
+}
+
+/**
  * Pure decision function for the WhatYouLearnedCard A/B experiment (ADR-0010).
  * Encodes the truth table exactly. No React, no PostHog SDK, no side effects.
  */

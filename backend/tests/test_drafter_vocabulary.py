@@ -118,6 +118,32 @@ def test_prompt_vocabulary_includes_descriptions_and_param_shapes():
     assert "period: int 2-100 (default 14)" in prompt  # rsi param shape
 
 
+def test_prompt_vocabulary_lists_block_port_names():
+    """Non-obvious port names must be in the prompt so the LLM wires valid
+    connections instead of guessing (compile-rejected guesses cause retries)."""
+    from app.services.drafter_vocabulary import render_prompt_vocabulary
+
+    prompt = render_prompt_vocabulary()
+
+    # compare's two named inputs and entry_signal's input port.
+    assert "In: left, right." in prompt
+    assert "In: signal." in prompt
+    # macd exposes multiple named outputs that are otherwise unguessable.
+    assert "macd" in prompt and "signal" in prompt and "histogram" in prompt
+
+
+def test_prompt_vocabulary_renders_none_for_portless_blocks():
+    """Risk blocks have no ports — render an explicit "none" rather than blank."""
+    from app.services.drafter_vocabulary import render_prompt_vocabulary
+
+    prompt = render_prompt_vocabulary()
+    risk_line = next(
+        line for line in prompt.splitlines() if line.startswith("- stop_loss ")
+    )
+
+    assert "In: none. Out: none." in risk_line
+
+
 # ── new-block-auto-appears property ──────────────────────────────────────
 
 def test_new_catalogue_block_appears_in_vocabulary_and_prompt(monkeypatch):

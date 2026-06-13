@@ -57,10 +57,19 @@ verification *depth*, never on idea *throughput*.**
   (The Alert system already ships — see decision #1; the lever is
   hardening + gating it, not building it.)
 
-Cost is amortized by existing seams: ADR-0002's single-writer price
-cache shares market-data fetch across users, and ADR-0005's
-content-dedup means similar drafts reuse a version instead of
-re-running.
+Cost is amortized by one existing seam: ADR-0002's single-writer price
+cache shares market-data fetch across users, so repeated runs over the
+same window/asset reuse cached candles instead of re-fetching.
+
+Note ADR-0005's content-dedup does **not** amortize backtest *compute*:
+`freeze_for_backtest` dedupes the `StrategyVersion` row only
+(`backend/app/services/version_freezer.py`), but `create_backtest`
+(`backend/app/api/backtests.py`) still unconditionally creates a new
+`BacktestRun` and enqueues `run_backtest_job` for it — so an identical
+draft re-runs the full computation. If result-level reuse is wanted later
+(skip enqueueing when a completed `BacktestRun` already exists for the
+deduped `strategy_version_id`), it must be built explicitly; the cost case
+here rests on the price cache, not on version dedup.
 
 ## Consequences
 

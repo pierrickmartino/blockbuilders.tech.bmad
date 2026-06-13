@@ -8,7 +8,6 @@ import { ApiError } from "@/lib/api";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
-import { getFeatureFlag, STRATEGY_DRAFTER_ENABLED_FLAG } from "@/lib/feature-flags";
 import { useOnboardingArmEnrollment } from "@/hooks/useOnboardingArmEnrollment";
 
 function OAuthCallbackHandler() {
@@ -16,11 +15,12 @@ function OAuthCallbackHandler() {
   const router = useRouter();
   const { user, completeOAuth } = useAuth();
   const [error, setError] = useState("");
-  const [drafterEnabled] = useState(() => getFeatureFlag(STRATEGY_DRAFTER_ENABLED_FLAG));
 
-  // Onboarding A/B routing fork (ADR-0014): resolves the arm and route once
-  // the user is available, enrolling via an exposure event where applicable.
-  const onboarding = useOnboardingArmEnrollment(user, drafterEnabled);
+  // Onboarding A/B routing fork (ADR-0014): resolves the arm and route once the
+  // user is available *and* PostHog flags have loaded (the hook reads the
+  // kill-switch and variant after flags resolve), enrolling via an exposure
+  // event where applicable.
+  const onboarding = useOnboardingArmEnrollment(user);
 
   useEffect(() => {
     if (onboarding) {

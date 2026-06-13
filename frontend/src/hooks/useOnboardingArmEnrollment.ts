@@ -1,9 +1,18 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   getExperimentVariant,
+  onExperimentFlagsReady,
   ONBOARDING_AB_FLAG,
 } from "@/lib/experiment-variant";
-import { resolveOnboardingArm, type OnboardingArm } from "@/lib/onboarding-arm";
+import {
+  getFeatureFlag,
+  STRATEGY_DRAFTER_ENABLED_FLAG,
+} from "@/lib/feature-flags";
+import {
+  resolveOnboardingArm,
+  type OnboardingArm,
+  type ResolveOnboardingArmOutput,
+} from "@/lib/onboarding-arm";
 import { trackEvent } from "@/lib/analytics";
 
 interface OnboardingUser {
@@ -17,39 +26,75 @@ export interface UseOnboardingArmEnrollmentResult {
 }
 
 /**
+ * Safety net: if PostHog flags stall (consent accepted but the SDK never
+ * resolves them — e.g. a blocked network), resolve the routing fork anyway so
+ * a fresh signup is never stranded on the callback screen without a route.
+ */
+const FLAGS_RESOLUTION_TIMEOUT_MS = 3000;
+
+/**
  * Wires the OAuth-callback routing fork to the onboarding_ab experiment (ADR-0014).
  *
- * Reads the `onboarding_ab` variant exactly once, at the first render where
- * `user` is available — this is the routing-fork enrollment/exposure moment.
- * Calls the pure `resolveOnboardingArm` decider and, only when the decision
- * enrolls, fires the `onboarding_ab_enrolled` exposure event (carrying `arm`)
- * exactly once via the consent-gated `trackEvent`, keyed to `user.id`.
+ * Defers the routing-fork enrollment until PostHog feature flags have loaded,
+ * then reads **both** the `strategy_drafter_enabled` kill-switch and the
+ * `onboarding_ab` variant exactly once. Reading either at first render would
+ * freeze it before flags load and lock fresh OAuth signups into "wizard, no
+ * enrollment" (drafter reads `false`, variant reads `undefined`), undercounting
+ * the A/B test. Calls the pure `resolveOnboardingArm` decider and, only when
+ * the decision enrolls, fires the `onboarding_ab_enrolled` exposure event
+ * (carrying `arm`) exactly once via the consent-gated `trackEvent`, keyed to
+ * `user.id`.
  *
- * Returns `null` until `user` is available.
+ * Returns `null` until `user` is available and the decision has resolved.
  */
 export function useOnboardingArmEnrollment(
-  user: OnboardingUser | null,
-  drafterEnabled: boolean
+  user: OnboardingUser | null
 ): UseOnboardingArmEnrollmentResult | null {
-  const ready = user !== null;
+  const [decision, setDecision] = useState<ResolveOnboardingArmOutput | null>(
+    null
+  );
+  const resolvedRef = useRef(false);
 
-  const decision = useMemo(() => {
-    if (!user) return null;
+  useEffect(() => {
+    if (resolvedRef.current || !user) return;
+
+    // Already-onboarded users bypass the experiment entirely; neither the
+    // kill-switch nor the variant matters, so resolve immediately.
     if (user.has_completed_onboarding) {
-      return resolveOnboardingArm({
-        variant: undefined,
-        hasCompletedOnboarding: true,
-        drafterEnabled,
-      });
+      resolvedRef.current = true;
+      setDecision(
+        resolveOnboardingArm({
+          variant: undefined,
+          hasCompletedOnboarding: true,
+          drafterEnabled: false,
+        })
+      );
+      return;
     }
-    const variant = getExperimentVariant(ONBOARDING_AB_FLAG);
-    return resolveOnboardingArm({
-      variant,
-      hasCompletedOnboarding: false,
-      drafterEnabled,
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready]);
+
+    // New signup: wait for PostHog flags so we read the assigned variant and
+    // the kill-switch from loaded flags rather than their pre-load defaults.
+    // `resolve` is idempotent — whichever of the flags-ready callback or the
+    // timeout fires first wins.
+    const resolve = () => {
+      if (resolvedRef.current) return;
+      resolvedRef.current = true;
+      setDecision(
+        resolveOnboardingArm({
+          variant: getExperimentVariant(ONBOARDING_AB_FLAG),
+          hasCompletedOnboarding: false,
+          drafterEnabled: getFeatureFlag(STRATEGY_DRAFTER_ENABLED_FLAG),
+        })
+      );
+    };
+
+    const unsubscribe = onExperimentFlagsReady(resolve);
+    const timeout = setTimeout(resolve, FLAGS_RESOLUTION_TIMEOUT_MS);
+    return () => {
+      unsubscribe();
+      clearTimeout(timeout);
+    };
+  }, [user]);
 
   useEffect(() => {
     if (!decision?.enroll) return;

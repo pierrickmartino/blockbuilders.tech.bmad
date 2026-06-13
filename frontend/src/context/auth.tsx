@@ -13,7 +13,28 @@ import { ApiError } from "@/lib/api";
 import { AuthApiClient } from "@/lib/api/auth-client";
 import { UsersApiClient } from "@/lib/api/users-client";
 import { User, Usage, ProfileResponse } from "@/types/auth";
-import { trackEvent, identifyUser, resetIdentity } from "@/lib/analytics";
+import {
+  trackEvent,
+  identifyUser,
+  resetIdentity,
+  getConsent,
+} from "@/lib/analytics";
+
+/**
+ * Best-effort sync of a *decided* local analytics-consent choice to the
+ * backend after authentication, so the "decide consent before logging in"
+ * flow reaches the server and the worker can honor it. Never blocks or fails
+ * the auth flow — analytics consent is non-critical to signing in.
+ */
+async function syncConsentToServer(): Promise<void> {
+  const consent = getConsent();
+  if (consent === null) return;
+  try {
+    await UsersApiClient.syncAnalyticsConsent(consent === "accepted");
+  } catch {
+    // Non-critical: a failed consent sync must not break authentication.
+  }
+}
 
 interface AuthContextType {
   user: User | null;
@@ -90,6 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refreshUsage();
     identifyUser(response.user.id);
     trackEvent("login_completed", { method: "email" }, response.user.id);
+    syncConsentToServer();
   };
 
   const signup = async (email: string, password: string) => {
@@ -100,6 +122,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refreshUsage();
     identifyUser(response.user.id);
     trackEvent("signup_completed", { method: "email" }, response.user.id);
+    syncConsentToServer();
   };
 
   const logout = () => {
@@ -138,7 +161,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(response.user);
     refreshUsage();
     identifyUser(response.user.id);
-    trackEvent("login_completed", { method: `oauth_${provider}` }, response.user.id);
+    // First-time OAuth sign-ups emit the canonical `signup_completed` so they
+    // enter the activation funnel (ADR-0008); returning users emit
+    // `login_completed`. This mirrors the email signup/login split.
+    if (response.is_new_user) {
+      trackEvent("signup_completed", { method: `oauth_${provider}` }, response.user.id);
+    } else {
+      trackEvent("login_completed", { method: `oauth_${provider}` }, response.user.id);
+    }
+    syncConsentToServer();
   };
 
   return (

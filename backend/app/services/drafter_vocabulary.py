@@ -13,7 +13,10 @@ so omitting them would make most drafts fail validation:
 - `vocabulary_param_specs(block_type)` — per-type `ParamSpec`s, used to
   render the prompt vocabulary's param shapes.
 - `render_prompt_vocabulary()` — a compact prompt vocabulary (labels +
-  one-line "what it does / when to use" + param shapes) for the same union.
+  one-line "what it does / when to use" + input/output port names + param
+  shapes) for the same union. Port names are listed so the LLM wires
+  `connections` with real ports (`compare.left`, `macd.signal`, …) instead
+  of guessing names the GraphCompiler then rejects.
 
 A new block becomes draftable purely by being added to `CATALOGUE` — no
 change here is required.
@@ -21,7 +24,7 @@ change here is required.
 from __future__ import annotations
 
 from app.backtest.catalogue import CATALOGUE
-from app.backtest.catalogue.types import BlockSpec, ParamSpec
+from app.backtest.catalogue.types import BlockSpec, ParamSpec, PortSpec
 
 # The six inline risk/exit blocks (CONTEXT.md): out of catalogue scope, but
 # part of the drafter's vocabulary. Bounds mirror
@@ -158,6 +161,11 @@ def vocabulary_description(block_type: str) -> str:
     return _DESCRIPTIONS.get(block_type, _fallback_description(spec))
 
 
+def _render_ports(ports: tuple[PortSpec, ...]) -> str:
+    """Comma-joined port names, or "none" when the block has no ports."""
+    return ", ".join(port.name for port in ports) or "none"
+
+
 def _render_param(param: ParamSpec) -> str:
     if param.kind == "enum":
         return f"{param.name}: enum[{','.join(param.options)}] (default {param.default})"
@@ -179,5 +187,9 @@ def render_prompt_vocabulary() -> str:
             current_category = spec.category
             lines.append(f"\n{current_category.title()} blocks:")
         params = ", ".join(_render_param(p) for p in spec.params) or "none"
-        lines.append(f"- {block_type} ({spec.label}): {vocabulary_description(block_type)} Params: {params}.")
+        lines.append(
+            f"- {block_type} ({spec.label}): {vocabulary_description(block_type)} "
+            f"In: {_render_ports(spec.inputs)}. Out: {_render_ports(spec.outputs)}. "
+            f"Params: {params}."
+        )
     return "\n".join(lines).strip()

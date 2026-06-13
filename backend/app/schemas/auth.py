@@ -29,6 +29,21 @@ class UserResponse(BaseModel):
 class AuthResponse(BaseModel):
     token: str
     user: UserResponse
+    # True only when this response created a brand-new account (currently set
+    # by the OAuth callback for first-time sign-ups). Lets the client emit the
+    # canonical `signup_completed` activation-funnel event for new OAuth users
+    # instead of only `login_completed`. Defaults False for login/signup paths.
+    is_new_user: bool = False
+
+
+class AnalyticsConsentRequest(BaseModel):
+    """Client-decided analytics consent, synced after authentication.
+
+    `True` = accepted, `False` = declined. Undecided is never sent — the
+    client only calls the sync endpoint once a choice exists.
+    """
+
+    consent: bool
 
 
 class UserUpdateRequest(BaseModel):

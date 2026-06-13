@@ -36,12 +36,19 @@ def track_backend_event(
     strategy_id: UUID,
     correlation_id: UUID,
     duration_ms: int | None = None,
+    consent_declined: bool = False,
 ) -> None:
     """Fire-and-forget backend event dispatch to PostHog.
 
-    Safe no-op when PostHog is not configured.
+    Safe no-op when PostHog is not configured or when the user has explicitly
+    declined analytics consent (`consent_declined=True`). An undecided choice
+    (consent never synced) is *not* a decline and does not suppress dispatch,
+    preserving prior behavior for users who never made a choice.
     Never raises — dispatch failures are logged and swallowed.
     """
+    if consent_declined:
+        return
+
     client = _get_client()
     if client is None:
         return
