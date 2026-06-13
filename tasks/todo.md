@@ -1,5 +1,21 @@
 # Tasks — in flight
 
+## Codex review follow-ups (docs/ai/codex-review-followups-2026-06-13.md) — 7 valid items (done)
+
+1. [x] **[P1] Onboarding flag frozen before PostHog loads** — `useOnboardingArmEnrollment` now defers resolution until flags load. Added `onExperimentFlagsReady` (`lib/experiment-variant.ts`, wraps `posthog.onFeatureFlags`, resolves immediately when consent not accepted / SSR / error). The hook reads **both** `onboarding_ab` variant *and* the `strategy_drafter_enabled` kill-switch at resolve time (not at first render), with a 3s timeout safety-net so a signup is never left un-routed. Dropped the page's `useState(() => getFeatureFlag(...))` one-shot; `useOnboardingArmEnrollment(user)` now owns both reads.
+2. [x] **[P2] ADR-0014 "Time to activation" anchor clash** — renamed the ADR-0014 §5 metric to "Time to activation **from enrollment**" and spelled out that it's anchored at enrollment, not the canonical `signup_completed`.
+3. [x] **[P2] Drafter prompt omits port names** — `render_prompt_vocabulary` now emits `In: …. Out: ….` port names per block (`compare.left/right`, `macd.macd/signal/histogram`, `entry_signal.signal`), `none` for port-less risk blocks.
+4. [x] **[P2] Activation funnel excludes OAuth signups** — OAuth callback returns `is_new_user`; `auth.tsx completeOAuth` emits `signup_completed` for new OAuth users (`login_completed` for returning), mirroring the email split. Runbook §1 documents it.
+5. [x] **[P2] Coverage proxy consent-gated** — runbook §3 rewritten: coverage line drops the `signup_completed` cohort filter (consent-gated) and uses the unconditional server-side `backtest_job_completed`.
+6. [x] **[P2] No path to sync pre-auth consent to server** — added nullable tri-state `users.analytics_consent` (migration 039), `PUT /users/me/analytics-consent`, `UsersApiClient.syncAnalyticsConsent`, and a best-effort post-auth sync in `auth.tsx` (login/signup/OAuth). Worker (`track_backend_event`) now suppresses server-side events when consent is explicitly declined (NULL/undecided still emits, preserving prior behavior).
+7. [x] **[P2] ADR-0007 overstates dedup amortization** — corrected: version dedup (`freeze_for_backtest`) dedupes the `StrategyVersion` row only; `create_backtest` still creates a new `BacktestRun` + enqueues the job, so compute is not amortized. Cost case now rests on ADR-0002's price cache, with result-level reuse flagged as an explicit future option.
+
+Tests / verification
+- [x] Backend changed-area suites green: `test_analytics.py`, `test_api_auth.py` (incl. new `TestAnalyticsConsentSync`), `test_drafter_vocabulary.py` (new port tests), `test_worker_backtest.py`. Full suite: 1013 passed; 4 pre-existing failures in `test_strategy_draft_from_nl.py` are Redis-dependent (rate-limiter fails open without Redis) — confirmed failing on the clean tree too.
+- [x] `alembic heads` → single head `039`.
+- [x] Frontend: 48 tests across the 4 changed test files pass; `npx tsc --noEmit` clean; `npm run lint` exit 0.
+- No env vars added/changed.
+
 ## Issue #642 — Trust page: link it from every result surface (done)
 
 Frontend (ADR-0017: `/how-backtests-work` is a public trust artifact, linked from every result surface)

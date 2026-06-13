@@ -23,7 +23,14 @@ vi.mock("@/lib/experiment-variant", async () => {
   const actual = await vi.importActual<typeof import("@/lib/experiment-variant")>(
     "@/lib/experiment-variant"
   );
-  return { ...actual, getExperimentVariant: vi.fn() };
+  return {
+    ...actual,
+    getExperimentVariant: vi.fn(),
+    onExperimentFlagsReady: (callback: () => void) => {
+      callback();
+      return () => {};
+    },
+  };
 });
 
 vi.mock("@/lib/feature-flags", async () => {

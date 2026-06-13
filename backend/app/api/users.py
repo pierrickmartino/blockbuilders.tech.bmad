@@ -10,6 +10,7 @@ from app.models.backtest_run import BacktestRun
 from app.models.strategy import Strategy
 from app.models.user import User
 from app.schemas.auth import (
+    AnalyticsConsentRequest,
     MessageResponse,
     ProfileResponse,
     SettingsResponse,
@@ -137,3 +138,23 @@ def complete_onboarding(
         session.add(user)
         session.commit()
     return MessageResponse(message="Onboarding completed")
+
+
+@router.put("/me/analytics-consent", response_model=MessageResponse)
+def sync_analytics_consent(
+    data: AnalyticsConsentRequest,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> MessageResponse:
+    """Persist the client's analytics-consent choice server-side.
+
+    Lets the common "decide consent before logging in" flow reach the
+    backend, so server-side analytics (the worker) can honor the user's
+    actual choice instead of emitting events unconditionally.
+    """
+    if user.analytics_consent != data.consent:
+        user.analytics_consent = data.consent
+        user.updated_at = datetime.now(timezone.utc)
+        session.add(user)
+        session.commit()
+    return MessageResponse(message="Analytics consent updated")

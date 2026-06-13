@@ -87,9 +87,14 @@ unchanged.**
      (ADR-0008), arm vs arm, measured from the routing-fork enrollment.
    - **Secondary — 7-day return-rate:** ≥ 1 `page_view` on a calendar day after
      the enrollment day within 7 days (verbatim ADR-0010).
-   - **Secondary — Time to activation:** PostHog-native time-to-convert from
-     enrollment to first `results_viewed` (ADR-0009). Diagnostic, never the
-     headline — a faster path that activates fewer people is the worse bet.
+   - **Secondary — Time to activation from enrollment:** PostHog-native
+     time-to-convert from **routing-fork enrollment** to first `results_viewed`.
+     Deliberately *not* the canonical **Time to activation** of
+     `CONTEXT.md` / ADR-0009, which is anchored at `signup_completed`; this one
+     is anchored at enrollment (the post-signup routing fork), so it is a
+     distinct metric and is named distinctly to keep the two dashboards from
+     colliding. Diagnostic, never the headline — a faster path that activates
+     fewer people is the worse bet.
 
 6. **Failure handling preserves ITT.** **Infra-only** failures — the user was
    never genuinely exposed (NL box never rendered, app/PostHog outage) — are

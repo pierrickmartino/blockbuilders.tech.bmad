@@ -24,6 +24,13 @@ export const UsersApiClient = {
     await apiFetchVoid("/users/me/complete-onboarding", { method: "POST" });
   },
 
+  async syncAnalyticsConsent(consent: boolean): Promise<void> {
+    await apiFetchVoid("/users/me/analytics-consent", {
+      method: "PUT",
+      body: JSON.stringify({ consent }),
+    });
+  },
+
   async getUsage(): Promise<Usage> {
     return apiFetch<Usage>("/usage/me");
   },

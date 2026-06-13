@@ -47,3 +47,33 @@ def test_run_backtest_job_flushes_analytics_on_return(monkeypatch):
     jobs.run_backtest_job(str(uuid4()))
 
     flush_mock.assert_called_once_with(shutdown=True)
+
+
+def test_track_backend_event_suppressed_when_consent_declined(monkeypatch):
+    client = MagicMock()
+    monkeypatch.setattr(analytics, "_get_client", lambda: client)
+
+    analytics.track_backend_event(
+        "backtest_job_completed",
+        user_id=uuid4(),
+        strategy_id=uuid4(),
+        correlation_id=uuid4(),
+        consent_declined=True,
+    )
+
+    client.capture.assert_not_called()
+
+
+def test_track_backend_event_emits_when_consent_not_declined(monkeypatch):
+    client = MagicMock()
+    monkeypatch.setattr(analytics, "_get_client", lambda: client)
+
+    analytics.track_backend_event(
+        "backtest_job_completed",
+        user_id=uuid4(),
+        strategy_id=uuid4(),
+        correlation_id=uuid4(),
+        consent_declined=False,
+    )
+
+    client.capture.assert_called_once()

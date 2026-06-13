@@ -333,6 +333,7 @@ async def oauth_callback(
         )
     ).first()
 
+    is_new_user = False
     if not user:
         # Check if email already exists
         existing = session.exec(select(User).where(User.email == email)).first()
@@ -352,6 +353,9 @@ async def oauth_callback(
         session.add(user)
         session.commit()
         session.refresh(user)
+        is_new_user = True
 
     token = create_access_token(str(user.id))
-    return AuthResponse(token=token, user=_build_user_response(user))
+    return AuthResponse(
+        token=token, user=_build_user_response(user), is_new_user=is_new_user
+    )

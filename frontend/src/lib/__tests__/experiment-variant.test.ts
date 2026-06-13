@@ -2,11 +2,13 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   decideWhatYouLearnedCard,
   getExperimentVariant,
+  onExperimentFlagsReady,
 } from "@/lib/experiment-variant";
 
 vi.mock("posthog-js", () => ({
   default: {
     getFeatureFlag: vi.fn(),
+    onFeatureFlags: vi.fn(),
   },
 }));
 
@@ -164,5 +166,50 @@ describe("getExperimentVariant", () => {
     vi.stubEnv("NEXT_PUBLIC_DEV_FORCE_WJL_VARIANT", "test");
     mockGetConsent.mockReturnValue(null);
     expect(getExperimentVariant("onboarding_ab")).toBeUndefined();
+  });
+});
+
+describe("onExperimentFlagsReady", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("invokes the callback immediately and never subscribes when consent is not accepted", () => {
+    mockGetConsent.mockReturnValue(null);
+    const callback = vi.fn();
+
+    const unsubscribe = onExperimentFlagsReady(callback);
+
+    expect(callback).toHaveBeenCalledTimes(1);
+    expect(mockPosthog.onFeatureFlags).not.toHaveBeenCalled();
+    expect(typeof unsubscribe).toBe("function");
+  });
+
+  it("subscribes via posthog.onFeatureFlags and fires the callback once flags load when consent is accepted", () => {
+    mockGetConsent.mockReturnValue("accepted");
+    const teardown: () => void = vi.fn();
+    mockPosthog.onFeatureFlags.mockImplementation((cb) => {
+      (cb as () => void)();
+      return teardown;
+    });
+    const callback = vi.fn();
+
+    const unsubscribe = onExperimentFlagsReady(callback);
+
+    expect(callback).toHaveBeenCalledTimes(1);
+    expect(mockPosthog.onFeatureFlags).toHaveBeenCalledTimes(1);
+    unsubscribe();
+    expect(teardown).toHaveBeenCalledTimes(1);
+  });
+
+  it("falls back to invoking the callback when posthog.onFeatureFlags throws", () => {
+    mockGetConsent.mockReturnValue("accepted");
+    mockPosthog.onFeatureFlags.mockImplementation(() => {
+      throw new Error("PostHog unavailable");
+    });
+    const callback = vi.fn();
+
+    expect(() => onExperimentFlagsReady(callback)).not.toThrow();
+    expect(callback).toHaveBeenCalledTimes(1);
   });
 });

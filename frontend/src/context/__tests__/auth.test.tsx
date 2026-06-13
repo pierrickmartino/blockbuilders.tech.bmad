@@ -25,6 +25,7 @@ vi.mock("@/lib/api/users-client", () => ({
     updateProfile: vi.fn(),
     completeOnboarding: vi.fn(),
     getUsage: vi.fn(),
+    syncAnalyticsConsent: vi.fn().mockResolvedValue(undefined),
   },
   usersKeys: { all: () => ["users"], me: () => ["users", "me"] },
 }));
@@ -33,6 +34,7 @@ vi.mock("@/lib/analytics", () => ({
   trackEvent: vi.fn(),
   identifyUser: vi.fn(),
   resetIdentity: vi.fn(),
+  getConsent: vi.fn(() => null),
 }));
 
 const mockAuthClient = vi.mocked(authClientModule.AuthApiClient);
@@ -205,6 +207,100 @@ describe("AuthProvider analytics identity binding", () => {
     });
 
     expect(mockAnalytics.identifyUser).toHaveBeenCalledWith(mockUser.id);
+  });
+
+  it("emits signup_completed (not login_completed) for a first-time OAuth user", async () => {
+    mockAuthClient.completeOAuth.mockResolvedValueOnce({
+      token: "tok",
+      user: mockUser,
+      is_new_user: true,
+    });
+
+    const { result } = renderHook(() => useAuth(), {
+      wrapper: makeWrapper(queryClient),
+    });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await act(async () => {
+      await result.current.completeOAuth("google", "code", "state");
+    });
+
+    expect(mockAnalytics.trackEvent).toHaveBeenCalledWith(
+      "signup_completed",
+      { method: "oauth_google" },
+      mockUser.id
+    );
+    expect(mockAnalytics.trackEvent).not.toHaveBeenCalledWith(
+      "login_completed",
+      expect.anything(),
+      expect.anything()
+    );
+  });
+
+  it("emits login_completed for a returning OAuth user", async () => {
+    mockAuthClient.completeOAuth.mockResolvedValueOnce({
+      token: "tok",
+      user: mockUser,
+      is_new_user: false,
+    });
+
+    const { result } = renderHook(() => useAuth(), {
+      wrapper: makeWrapper(queryClient),
+    });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await act(async () => {
+      await result.current.completeOAuth("github", "code", "state");
+    });
+
+    expect(mockAnalytics.trackEvent).toHaveBeenCalledWith(
+      "login_completed",
+      { method: "oauth_github" },
+      mockUser.id
+    );
+    expect(mockAnalytics.trackEvent).not.toHaveBeenCalledWith(
+      "signup_completed",
+      expect.anything(),
+      expect.anything()
+    );
+  });
+
+  it("syncs a decided local consent choice to the backend after login", async () => {
+    mockAuthClient.login.mockResolvedValueOnce({ token: "tok", user: mockUser });
+    mockAnalytics.getConsent.mockReturnValue("accepted");
+
+    const { result } = renderHook(() => useAuth(), {
+      wrapper: makeWrapper(queryClient),
+    });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await act(async () => {
+      await result.current.login("test@example.com", "pass");
+    });
+
+    await waitFor(() =>
+      expect(mockUsersClient.syncAnalyticsConsent).toHaveBeenCalledWith(true)
+    );
+  });
+
+  it("does not sync consent when the local choice is undecided", async () => {
+    mockAuthClient.login.mockResolvedValueOnce({ token: "tok", user: mockUser });
+    mockAnalytics.getConsent.mockReturnValue(null);
+
+    const { result } = renderHook(() => useAuth(), {
+      wrapper: makeWrapper(queryClient),
+    });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await act(async () => {
+      await result.current.login("test@example.com", "pass");
+    });
+
+    expect(mockUsersClient.syncAnalyticsConsent).not.toHaveBeenCalled();
   });
 
   it("resets the PostHog identity on logout", async () => {

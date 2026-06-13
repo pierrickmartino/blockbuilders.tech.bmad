@@ -99,12 +99,21 @@ def run_backtest_job(
             session.add(run)
             session.commit()
 
+            # Honor the user's server-side analytics consent: suppress backend
+            # events only when the user has explicitly *declined* (an undecided
+            # NULL choice still emits, preserving prior behavior).
+            event_user = session.get(User, run.user_id)
+            consent_declined = (
+                event_user is not None and event_user.analytics_consent is False
+            )
+
             started_at = time.monotonic()
             track_backend_event(
                 "backtest_job_started",
                 user_id=run.user_id,
                 strategy_id=run.strategy_id,
                 correlation_id=run.id,
+                consent_declined=consent_declined,
             )
             logger.info("backtest_started")
 
@@ -343,6 +352,7 @@ def run_backtest_job(
                     strategy_id=run.strategy_id,
                     correlation_id=run.id,
                     duration_ms=duration_ms,
+                    consent_declined=consent_declined,
                 )
 
                 logger.info("backtest_completed")
@@ -362,6 +372,7 @@ def run_backtest_job(
                     strategy_id=run.strategy_id,
                     correlation_id=run.id,
                     duration_ms=duration_ms,
+                    consent_declined=consent_declined,
                 )
 
             except Exception:
@@ -379,6 +390,7 @@ def run_backtest_job(
                     strategy_id=run.strategy_id,
                     correlation_id=run.id,
                     duration_ms=duration_ms,
+                    consent_declined=consent_declined,
                 )
     finally:
         # Clean up bound context to prevent leaking across jobs

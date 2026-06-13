@@ -223,6 +223,55 @@ class TestGetCurrentUser:
         assert response.status_code == 401
 
 
+class TestAnalyticsConsentSync:
+    """Tests for syncing the client's analytics-consent choice server-side."""
+
+    def _login(self, client: TestClient, user: User) -> str:
+        response = client.post(
+            "/auth/login",
+            json={"email": user.email, "password": "CorrectPassword123!"},
+        )
+        return response.json()["token"]
+
+    def test_sync_persists_accepted_consent(
+        self, client: TestClient, session: Session, existing_user: User
+    ):
+        token = self._login(client, existing_user)
+
+        response = client.put(
+            "/users/me/analytics-consent",
+            json={"consent": True},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+
+        assert response.status_code == 200
+        session.refresh(existing_user)
+        assert existing_user.analytics_consent is True
+
+    def test_sync_persists_declined_consent(
+        self, client: TestClient, session: Session, existing_user: User
+    ):
+        token = self._login(client, existing_user)
+
+        response = client.put(
+            "/users/me/analytics-consent",
+            json={"consent": False},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+
+        assert response.status_code == 200
+        session.refresh(existing_user)
+        assert existing_user.analytics_consent is False
+
+    def test_sync_requires_auth(self, client: TestClient):
+        response = client.put(
+            "/users/me/analytics-consent",
+            json={"consent": True},
+        )
+
+        assert response.status_code == 401
+
+
 class TestPasswordReset:
     """Tests for password reset flow."""
 

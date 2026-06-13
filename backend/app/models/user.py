@@ -111,3 +111,8 @@ class User(SQLModel, table=True):
 
     # Onboarding
     has_completed_onboarding: bool = Field(default=False)
+
+    # Analytics consent (tri-state): None = undecided, True = accepted,
+    # False = declined. Synced from the client's local consent choice after
+    # authentication so server-side analytics (the worker) can honor it.
+    analytics_consent: Optional[bool] = Field(default=None)

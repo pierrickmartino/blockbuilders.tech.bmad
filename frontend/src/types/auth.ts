@@ -11,6 +11,10 @@ export interface User {
 export interface AuthResponse {
   token: string;
   user: User;
+  /** True only when this response created a brand-new account (set by the
+   * OAuth callback for first-time sign-ups). Drives the canonical
+   * `signup_completed` activation-funnel event for new OAuth users. */
+  is_new_user?: boolean;
 }
 
 export interface UserUpdateRequest {

@@ -17,6 +17,12 @@ Build it in PostHog as a **funnel insight**:
 | 1 | `signup_completed` | Cohort entry point |
 | 2 | `results_viewed` | Conversion event |
 
+`signup_completed` fires for **every** new account on first authentication —
+email/password sign-ups *and* first-time OAuth sign-ups (the OAuth callback
+returns `is_new_user`, and `frontend/src/context/auth.tsx` emits
+`signup_completed` for new OAuth users, `login_completed` for returning ones).
+OAuth signups therefore enter step 1 of this funnel like any other new user.
+
 - **Aggregation**: unique users, "first time" semantics — each user is
   counted at most once per step, on their first occurrence of the event.
   This is what makes "first per user" native rather than a computed
@@ -70,10 +76,17 @@ trigger in the worker — first completed backtest run
 
 - **In PostHog** (recommended, keeps it next to the canonical funnel):
   a trend insight on unique users, first occurrence of
-  `backtest_job_completed`, same date range and cohort filter
-  (`signup_completed` users) as the canonical funnel — or the equivalent
-  funnel `signup_completed → backtest_job_completed` (first time, unique
-  users) for a side-by-side comparison.
+  `backtest_job_completed`, same date range as the canonical funnel but
+  **with no `signup_completed` cohort filter**. The filter must be omitted on
+  purpose: `signup_completed` is a consent-gated client event, so scoping the
+  coverage line to `signup_completed` users would re-impose the very consent
+  gate this line exists to measure around — shrinking (or erasing) the blind
+  spot instead of revealing it. `backtest_job_completed` is emitted
+  server-side for every completed run regardless of consent
+  (`backend/app/services/analytics.py`, `backend/app/worker/jobs.py`), so it
+  already spans consenting and non-consenting users; keep it that way. Do
+  **not** build this as a `signup_completed → backtest_job_completed` funnel —
+  that funnel inherits the same consent gate at step 1.
 - **In the database** (cross-check / sanity query): point-in-time count of
   `SELECT count(*) FROM users WHERE has_completed_onboarding = true`,
   optionally joined to `created_at` for cohort alignment.
