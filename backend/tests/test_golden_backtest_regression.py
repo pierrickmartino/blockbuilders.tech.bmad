@@ -555,6 +555,230 @@ class TestMaCrossoverGolden:
 
 
 # ---------------------------------------------------------------------------
+# Bollinger Breakout golden fixture
+# ---------------------------------------------------------------------------
+
+BOLLINGER_BREAKOUT_TEMPLATE = next(
+    t for t in TEMPLATES if t["name"] == "Bollinger Breakout"
+)
+
+
+def _bollinger_breakout_candles() -> list[Candle]:
+    """Deterministic candle series shaped for the Bollinger Breakout template.
+
+    Phase 1 (days  1-25): flat at 100 -- warms up Bollinger(20, 2.0) with zero
+      volatility so the bands converge to 100 and neither signal fires.
+    Phase 2 (days 26-30): sharp uptrend (100 -> 130) -- close pushes above the
+      upper band, firing the entry signal (close > upper) -- trade 0 opens.
+    Phase 3 (days 31-37): sharp downtrend (130 -> 88) -- close falls below the
+      middle band, firing the exit signal (close < middle) -- trade 0 closes
+      via "signal".
+    Phase 4 (days 38-47): flat at 88 -- bands narrow again with no open
+      position.
+    Phase 5 (days 48-52): sharp uptrend (88 -> 118) -- close pushes above the
+      upper band a second time, firing a second entry signal -- trade 1 opens.
+    Phase 6 (days 53-57): flat at 118 with no exit signal, so the series ends
+      mid-trade, forcing an end_of_data close on trade 1.
+    """
+    start = datetime(2024, 1, 1, tzinfo=timezone.utc)
+    candles: list[Candle] = []
+    price = 100.0
+
+    def _append(open_: float, close: float) -> None:
+        candles.append(
+            Candle(
+                asset="BTC/USDT",
+                timeframe="1d",
+                timestamp=start + timedelta(days=len(candles)),
+                open=open_,
+                high=max(open_, close) + 0.5,
+                low=min(open_, close) - 0.5,
+                close=close,
+                volume=1000.0,
+            )
+        )
+
+    for _ in range(25):  # Phase 1: flat at 100
+        _append(price, price)
+
+    for _ in range(5):  # Phase 2: ascend 100 -> 130
+        close = price + 6.0
+        _append(price, close)
+        price = close
+
+    for _ in range(7):  # Phase 3: descend 130 -> 88
+        close = price - 6.0
+        _append(price, close)
+        price = close
+
+    for _ in range(10):  # Phase 4: flat at 88
+        _append(price, price)
+
+    for _ in range(5):  # Phase 5: ascend 88 -> 118
+        close = price + 6.0
+        _append(price, close)
+        price = close
+
+    for _ in range(5):  # Phase 6: flat at 118, ends mid-trade
+        _append(price, price)
+
+    return candles
+
+
+def _bollinger_breakout_result() -> BacktestResult:
+    return run_golden_pipeline(
+        BOLLINGER_BREAKOUT_TEMPLATE["definition_json"],
+        _bollinger_breakout_candles(),
+        _RUN_CONFIG,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Golden snapshot
+# ---------------------------------------------------------------------------
+
+
+class TestBollingerBreakoutGolden:
+    """Full-pipeline golden snapshot for the Bollinger Breakout seed template."""
+
+    def test_trade_count_and_exit_reasons(self):
+        result = _bollinger_breakout_result()
+
+        assert result.num_trades == 2
+        assert result.trades[0].exit_reason == "signal"
+        assert result.trades[1].exit_reason == "end_of_data"
+
+    def test_summary_metrics(self):
+        result = _bollinger_breakout_result()
+
+        assert result.final_balance          == 9936.2
+        assert result.total_return_pct       == -0.64
+        assert result.cagr_pct               == -4.09
+        assert result.max_drawdown_pct       == 18.72
+        assert result.win_rate_pct           == 0.0
+        assert result.sharpe_ratio           == 0.07
+        assert result.sortino_ratio          == 0.11
+        assert result.calmar_ratio           == -0.22
+        assert result.max_consecutive_losses == 2
+
+    def test_cost_totals(self):
+        result = _bollinger_breakout_result()
+
+        assert result.gross_return_usd       == -0.01
+        assert result.gross_return_pct       == -0.0
+        assert result.total_fees_usd         == 39.87
+        assert result.total_slippage_usd     == 19.93
+        assert result.total_spread_usd       ==  3.99
+        assert result.total_costs_usd        == 63.79
+        assert result.cost_pct_gross_return  is None
+        assert result.avg_cost_per_trade_usd == 31.89
+
+    def test_equity_curve(self):
+        result = _bollinger_breakout_result()
+
+        assert len(result.equity_curve) == 57
+
+        equities = [pt["equity"] for pt in result.equity_curve]
+        assert equities == [
+            *([10000.0] * 25),  # days  1-25 — flat warmup, no position yet
+            9984.02,    # day 26 — trade 0 opened
+            10549.15,   # day 27 — trade 0 entry_time
+            11114.29,   # day 28
+            11679.42,   # day 29
+            12244.55,   # day 30 — peak of trade 0
+            11679.42,   # day 31
+            11114.29,   # Feb 1
+            10549.15,   # Feb 2
+            *([9968.05] * 18),  # Feb 3 - Feb 20 — trade 0 closed via signal exit, then flat
+            *([9952.12] * 5),   # Feb 21 - Feb 25 — trade 1 opened
+            9936.2,     # Feb 26 — end_of_data forced close
+        ]
+
+    def test_trade0_signal_exit_full_fields(self):
+        result = _bollinger_breakout_result()
+        t = result.trades[0]
+
+        assert t.exit_reason  == "signal"
+        assert t.side         == "long"
+        assert t.entry_time   == datetime(2024, 1, 27, tzinfo=timezone.utc)
+        assert t.exit_time    == datetime(2024, 2, 3, tzinfo=timezone.utc)
+
+        # Unrounded float fields — use approx to survive ULP arithmetic drift
+        assert t.entry_price == pytest.approx(106.16966890529999, rel=1e-9)
+        assert t.exit_price  == pytest.approx(105.8304688947,     rel=1e-9)
+        assert t.pnl         == pytest.approx(-31.94886205235669, rel=1e-9)
+        assert t.pnl_pct     == pytest.approx( -0.3194886205235669, rel=1e-9)
+        assert t.qty         == pytest.approx( 94.18885923925869, rel=1e-9)
+
+        assert t.sl_price_at_entry is None
+        assert t.tp_price_at_entry is None
+
+        # Excursion metrics (rounded by engine)
+        assert t.mae_usd == -63.08
+        assert t.mae_pct ==   -0.6308
+        assert t.mfe_usd == 2291.65
+        assert t.mfe_pct ==   22.9165
+
+        # No risk blocks in this template -> no risk metrics
+        assert t.initial_risk_usd is None
+        assert t.r_multiple       is None
+
+        # Price extremes and timestamps
+        assert t.peak_price   == 130.5
+        assert t.peak_ts      == datetime(2024, 1, 30, tzinfo=timezone.utc)
+        assert t.trough_price == 105.5
+        assert t.trough_ts    == datetime(2024, 1, 27, tzinfo=timezone.utc)
+
+        assert t.duration_seconds == 604800  # 7 days
+
+        # Cost breakdown (rounded by engine)
+        assert t.fee_cost_usd      == 19.97
+        assert t.slippage_cost_usd ==  9.98
+        assert t.spread_cost_usd   ==  2.0
+        assert t.total_cost_usd    == 31.95
+        assert t.notional_usd      == 9984.02
+
+    def test_trade1_end_of_data_full_fields(self):
+        result = _bollinger_breakout_result()
+        t = result.trades[1]
+
+        assert t.exit_reason  == "end_of_data"
+        assert t.side         == "long"
+        assert t.entry_time   == datetime(2024, 2, 22, tzinfo=timezone.utc)
+        assert t.exit_time    == datetime(2024, 2, 26, tzinfo=timezone.utc)
+
+        assert t.entry_price == pytest.approx(118.18887670589999, rel=1e-9)
+        assert t.exit_price  == pytest.approx(117.8112766941,     rel=1e-9)
+        assert t.pnl         == pytest.approx(-31.84678907371307, rel=1e-9)
+        assert t.pnl_pct     == pytest.approx( -0.31948862052357124, rel=1e-9)
+        assert t.qty         == pytest.approx( 84.3400108011183,  rel=1e-9)
+
+        assert t.sl_price_at_entry is None
+        assert t.tp_price_at_entry is None
+
+        assert t.mae_usd == -58.1
+        assert t.mae_pct ==   -0.5829
+        assert t.mfe_usd ==   26.24
+        assert t.mfe_pct ==    0.2632
+
+        assert t.initial_risk_usd is None
+        assert t.r_multiple       is None
+
+        assert t.peak_price   == 118.5
+        assert t.peak_ts      == datetime(2024, 2, 22, tzinfo=timezone.utc)
+        assert t.trough_price == 117.5
+        assert t.trough_ts    == datetime(2024, 2, 22, tzinfo=timezone.utc)
+
+        assert t.duration_seconds == 345600  # 4 days
+
+        assert t.fee_cost_usd      == 19.9
+        assert t.slippage_cost_usd ==  9.95
+        assert t.spread_cost_usd   ==  1.99
+        assert t.total_cost_usd    == 31.85
+        assert t.notional_usd      == 9952.12
+
+
+# ---------------------------------------------------------------------------
 # mutate_tail / assert_prefix_unchanged helpers
 # ---------------------------------------------------------------------------
 
@@ -797,6 +1021,31 @@ class TestMaCrossoverLookAhead:
         mutated_candles = mutate_tail(candles, cut_index)
         mutated_result = run_golden_pipeline(
             MA_CROSSOVER_TEMPLATE["definition_json"], mutated_candles, _RUN_CONFIG
+        )
+
+        assert_prefix_unchanged(golden_result, mutated_result, cut_timestamp)
+
+
+class TestBollingerBreakoutLookAhead:
+    """Proves the no-look-ahead guarantee (ADR-0017) for Bollinger Breakout.
+
+    Replacing every candle from trade 0's exit candle onward with a
+    sharply reversed series must not change trade 0, nor any equity-curve
+    point up to that candle.
+    """
+
+    def test_prefix_unchanged_after_tail_mutation(self):
+        candles = _bollinger_breakout_candles()
+        golden_result = run_golden_pipeline(
+            BOLLINGER_BREAKOUT_TEMPLATE["definition_json"], candles, _RUN_CONFIG
+        )
+
+        cut_timestamp = golden_result.trades[0].exit_time
+        cut_index = next(i for i, c in enumerate(candles) if c.timestamp == cut_timestamp)
+
+        mutated_candles = mutate_tail(candles, cut_index)
+        mutated_result = run_golden_pipeline(
+            BOLLINGER_BREAKOUT_TEMPLATE["definition_json"], mutated_candles, _RUN_CONFIG
         )
 
         assert_prefix_unchanged(golden_result, mutated_result, cut_timestamp)

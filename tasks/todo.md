@@ -1,5 +1,17 @@
 # Tasks — in flight
 
+## Issue #653 — Golden regression: Bollinger Breakout pipeline + look-ahead test (done)
+
+- [x] `backend/tests/test_golden_backtest_regression.py` — added a third golden strategy (Bollinger Breakout, `app/data/strategy_templates.py`), reusing the `run_golden_pipeline`, `mutate_tail`, and `assert_prefix_unchanged` helpers from #651 (no duplicate helper implementations):
+  - `_bollinger_breakout_candles()` — 57-candle deterministic series (flat warmup @100 for Bollinger(20,2.0) to converge, ascend 100→130 to break the upper band, descend 130→88 to cross below the middle band, flat @88 to narrow the bands, ascend 88→118 for a second upper-band breakout, flat @118 to end mid-trade) producing one `signal`-exit trade and one `end_of_data`-forced-close trade.
+  - `TestBollingerBreakoutGolden` — golden snapshot class (trade count/exit reasons, summary metrics, cost totals, equity curve of 57 points, full per-trade fields for both trades), same rounding contract as #651 (exact equality for rounded fields, `pytest.approx(rel=1e-9)` for unrounded per-trade floats). Baseline values captured from the unmodified engine/interpreter/catalogue.
+  - `TestBollingerBreakoutLookAhead` — cuts at trade 0's `exit_time` (Feb 3 / index 33), reverses the tail trend via `mutate_tail`, and proves trade 0 + equity curve up to the cut are bit-for-bit unchanged via `assert_prefix_unchanged`.
+
+Verification
+- [x] `pytest tests/test_golden_backtest_regression.py -v` → 27/27 passed (20 pre-existing + 7 new).
+- [x] Full backend suite: `pytest -q` → 1044 passed.
+- No env vars added/changed; no changes to `app/backtest/*`, `strategy_validation.py`, `strategy_templates.py`, or `jobs.py` (additive test file only).
+
 ## Issue #651 — Golden regression: RSI Oversold Bounce pipeline + look-ahead test (done)
 
 - [x] `backend/tests/test_golden_backtest_regression.py` (new) — full-pipeline golden regression suite per ADR-0018:
