@@ -1,5 +1,20 @@
 # Tasks — in flight
 
+## Issue #651 — Golden regression: RSI Oversold Bounce pipeline + look-ahead test (done)
+
+- [x] `backend/tests/test_golden_backtest_regression.py` (new) — full-pipeline golden regression suite per ADR-0018:
+  - `run_golden_pipeline(definition_json, candles, run_config) -> BacktestResult` — encapsulates `StrategyDefinitionValidate.model_validate` → `validate_strategy` → `interpret_strategy` → `run_backtest` (mirrors `app/worker/jobs.py::run_backtest_job`), raises `StrategyInvalidError` on validation errors.
+  - `_rsi_oversold_bounce_candles()` — 53-candle deterministic series (descend 100→80, ascend 80→110, descend 110→90, descend 90→87) shaped so RSI(14) crosses below 30 (entry) then above 70 (exit), producing one `signal`-exit trade and one `end_of_data`-forced-close trade.
+  - `TestRsiOversoldBounceGolden` — golden snapshot class (trade count/exit reasons, summary metrics, cost totals, equity curve of 53 points, full per-trade fields for both trades), baseline values captured from the unmodified engine.
+  - `mutate_tail(candles, cut_index)` + `assert_prefix_unchanged(golden_result, mutated_result, cut_timestamp)` — look-ahead mutation/comparison helpers, each with dedicated unit tests (`TestMutateTail`, `TestAssertPrefixUnchanged`) covering pass and failure cases.
+  - `TestRsiOversoldBounceLookAhead` — cuts at trade 0's `exit_time` (Jan 28 / index 27), reverses the tail trend, and proves trade 0 + equity curve up to the cut are bit-for-bit unchanged.
+
+Verification
+- [x] `pytest tests/test_golden_backtest_regression.py -v` → 13/13 passed.
+- [x] Full backend suite: `pytest -q` → 1030 passed.
+- [x] Sanity check: monkeypatched `RsiHandler.compute` to shift RSI by +50 → `num_trades` dropped from 2 to 0, confirming the golden test catches a catalogue-level regression.
+- No env vars added/changed; no changes to `app/backtest/*`, `strategy_validation.py`, `strategy_templates.py`, or `jobs.py` (additive test file only, per #649's "no changes" decision).
+
 ## Codex review follow-ups (docs/ai/codex-review-followups-2026-06-13.md) — 7 valid items (done)
 
 1. [x] **[P1] Onboarding flag frozen before PostHog loads** — `useOnboardingArmEnrollment` now defers resolution until flags load. Added `onExperimentFlagsReady` (`lib/experiment-variant.ts`, wraps `posthog.onFeatureFlags`, resolves immediately when consent not accepted / SSR / error). The hook reads **both** `onboarding_ab` variant *and* the `strategy_drafter_enabled` kill-switch at resolve time (not at first render), with a 3s timeout safety-net so a signup is never left un-routed. Dropped the page's `useState(() => getFeatureFlag(...))` one-shot; `useOnboardingArmEnrollment(user)` now owns both reads.
