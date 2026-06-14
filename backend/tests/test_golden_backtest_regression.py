@@ -311,6 +311,250 @@ class TestRsiOversoldBounceGolden:
 
 
 # ---------------------------------------------------------------------------
+# MA Crossover golden fixture
+# ---------------------------------------------------------------------------
+
+MA_CROSSOVER_TEMPLATE = next(
+    t for t in TEMPLATES if t["name"] == "MA Crossover"
+)
+
+
+def _ma_crossover_candles() -> list[Candle]:
+    """Deterministic candle series shaped for the MA Crossover template.
+
+    Phase 1 (days  1-40): gentle downtrend (300 -> 260) warms up SMA(10) and
+      SMA(30) with the fast SMA below the slow SMA.
+    Phase 2 (days 41-55): sharp uptrend (260 -> 320) -- the fast SMA rises
+      faster than the slow SMA and crosses above it, firing the entry signal
+      (crosses_above) -- trade 0 opens.
+    Phase 3 (days 56-70): sharp downtrend (320 -> 260) -- the fast SMA falls
+      back below the slow SMA, firing the exit signal (crosses_below) --
+      trade 0 closes via "signal".
+    Phase 4 (days 71-85): sharp uptrend again (260 -> 320) -- the fast SMA
+      crosses above the slow SMA a second time, firing a second entry signal
+      -- trade 1 opens.
+    Phase 5 (days 86-90): gentle uptrend continues with no exit signal, so
+      the series ends mid-trade, forcing an end_of_data close on trade 1.
+    """
+    start = datetime(2024, 1, 1, tzinfo=timezone.utc)
+    candles: list[Candle] = []
+    price = 300.0
+
+    def _append(open_: float, close: float) -> None:
+        candles.append(
+            Candle(
+                asset="ETH/USDT",
+                timeframe="1d",
+                timestamp=start + timedelta(days=len(candles)),
+                open=open_,
+                high=max(open_, close) + 0.5,
+                low=min(open_, close) - 0.5,
+                close=close,
+                volume=1000.0,
+            )
+        )
+
+    for _ in range(40):  # Phase 1: descend 300 -> 260
+        close = price - 1.0
+        _append(price, close)
+        price = close
+
+    for _ in range(15):  # Phase 2: ascend 260 -> 320
+        close = price + 4.0
+        _append(price, close)
+        price = close
+
+    for _ in range(15):  # Phase 3: descend 320 -> 260
+        close = price - 4.0
+        _append(price, close)
+        price = close
+
+    for _ in range(15):  # Phase 4: ascend 260 -> 320
+        close = price + 4.0
+        _append(price, close)
+        price = close
+
+    for _ in range(5):  # Phase 5: ascend 320 -> 322.5, ends mid-trade
+        close = price + 0.5
+        _append(price, close)
+        price = close
+
+    return candles
+
+
+def _ma_crossover_result() -> BacktestResult:
+    return run_golden_pipeline(
+        MA_CROSSOVER_TEMPLATE["definition_json"],
+        _ma_crossover_candles(),
+        _RUN_CONFIG,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Golden snapshot
+# ---------------------------------------------------------------------------
+
+
+class TestMaCrossoverGolden:
+    """Full-pipeline golden snapshot for the MA Crossover seed template."""
+
+    def test_trade_count_and_exit_reasons(self):
+        result = _ma_crossover_result()
+
+        assert result.num_trades == 2
+        assert result.trades[0].exit_reason == "signal"
+        assert result.trades[1].exit_reason == "end_of_data"
+
+    def test_summary_metrics(self):
+        result = _ma_crossover_result()
+
+        assert result.final_balance          == 9426.44
+        assert result.total_return_pct       == -5.74
+        assert result.cagr_pct               == -21.53
+        assert result.max_drawdown_pct       == 16.52
+        assert result.win_rate_pct           == 50.0
+        assert result.sharpe_ratio           == -1.84
+        assert result.sortino_ratio          == -2.34
+        assert result.calmar_ratio           == -1.3
+        assert result.max_consecutive_losses == 1
+
+    def test_cost_totals(self):
+        result = _ma_crossover_result()
+
+        assert result.gross_return_usd       == -513.2
+        assert result.gross_return_pct       == -5.13
+        assert result.total_fees_usd         == 37.73
+        assert result.total_slippage_usd     == 18.86
+        assert result.total_spread_usd       == 3.77
+        assert result.total_costs_usd        == 60.36
+        assert result.cost_pct_gross_return  is None
+        assert result.avg_cost_per_trade_usd == 30.18
+
+    def test_equity_curve(self):
+        result = _ma_crossover_result()
+
+        assert len(result.equity_curve) == 90
+
+        equities = [pt["equity"] for pt in result.equity_curve]
+        assert equities == [
+            *([10000.0] * 47),  # days  1-47 — no position yet
+            9984.02,    # day 48 — trade 0 opened
+            10120.79,   # day 49
+            10257.55,   # day 50
+            10394.32,   # day 51
+            10531.09,   # day 52
+            10667.86,   # day 53
+            10804.62,   # day 54
+            10941.39,   # day 55 — peak of trade 0
+            10804.62,   # day 56
+            10667.86,   # day 57
+            10531.09,   # day 58
+            10394.32,   # day 59
+            10257.55,   # day 60
+            10120.79,   # day 61
+            9984.02,    # day 62
+            9847.25,    # day 63
+            9710.48,    # day 64
+            9573.72,    # day 65
+            9436.95,    # day 66
+            9300.18,    # day 67
+            9148.76,    # day 68 — trade 0 closed via signal exit
+            *([9148.76] * 14),  # days 69-82 — flat, no open position
+            9134.14,    # day 83 — trade 1 opened
+            9251.24,    # day 84
+            9368.35,    # day 85
+            9382.99,    # day 86
+            9397.62,    # day 87
+            9412.26,    # day 88
+            9426.9,     # day 89
+            9426.44,    # day 90 — end_of_data forced close
+        ]
+
+    def test_trade0_signal_exit_full_fields(self):
+        result = _ma_crossover_result()
+        t = result.trades[0]
+
+        assert t.exit_reason  == "signal"
+        assert t.side         == "long"
+        assert t.entry_time   == datetime(2024, 2, 18, tzinfo=timezone.utc)
+        assert t.exit_time    == datetime(2024, 3, 8, tzinfo=timezone.utc)
+
+        # Unrounded float fields — use approx to survive ULP arithmetic drift
+        assert t.entry_price == pytest.approx(292.4673898145999, rel=1e-9)
+        assert t.exit_price  == pytest.approx(267.5713741866,    rel=1e-9)
+        assert t.pnl         == pytest.approx(-851.2407364042172, rel=1e-9)
+        assert t.pnl_pct     == pytest.approx(  -8.512407364042172, rel=1e-9)
+        assert t.qty         == pytest.approx(  34.19184616219665, rel=1e-9)
+
+        assert t.sl_price_at_entry is None
+        assert t.tp_price_at_entry is None
+
+        # Excursion metrics (rounded by engine)
+        assert t.mae_usd == -853.68
+        assert t.mae_pct ==   -8.5368
+        assert t.mfe_usd ==  958.49
+        assert t.mfe_pct ==    9.5849
+
+        # No risk blocks in this template -> no risk metrics
+        assert t.initial_risk_usd is None
+        assert t.r_multiple       is None
+
+        # Price extremes and timestamps
+        assert t.peak_price   == 320.5
+        assert t.peak_ts      == datetime(2024, 2, 24, tzinfo=timezone.utc)
+        assert t.trough_price == 267.5
+        assert t.trough_ts    == datetime(2024, 3, 8, tzinfo=timezone.utc)
+
+        assert t.duration_seconds == 1641600  # 19 days
+
+        # Cost breakdown (rounded by engine)
+        assert t.fee_cost_usd      == 19.15
+        assert t.slippage_cost_usd ==  9.57
+        assert t.spread_cost_usd   ==  1.91
+        assert t.total_cost_usd    == 30.64
+        assert t.notional_usd      == 9984.02
+
+    def test_trade1_end_of_data_full_fields(self):
+        result = _ma_crossover_result()
+        t = result.trades[1]
+
+        assert t.exit_reason  == "end_of_data"
+        assert t.side         == "long"
+        assert t.entry_time   == datetime(2024, 3, 24, tzinfo=timezone.utc)
+        assert t.exit_time    == datetime(2024, 3, 30, tzinfo=timezone.utc)
+
+        assert t.entry_price == pytest.approx(312.4994028156,      rel=1e-9)
+        assert t.exit_price  == pytest.approx(321.984209608875,    rel=1e-9)
+        assert t.pnl         == pytest.approx(277.6780154827846,   rel=1e-9)
+        assert t.pnl_pct     == pytest.approx(  3.0351439739780344, rel=1e-9)
+        assert t.qty         == pytest.approx( 29.27608558981565,  rel=1e-9)
+
+        assert t.sl_price_at_entry is None
+        assert t.tp_price_at_entry is None
+
+        assert t.mae_usd == -29.26
+        assert t.mae_pct ==  -0.3198
+        assert t.mfe_usd == 307.42
+        assert t.mfe_pct ==   3.3602
+
+        assert t.initial_risk_usd is None
+        assert t.r_multiple       is None
+
+        assert t.peak_price   == 323.0
+        assert t.peak_ts      == datetime(2024, 3, 30, tzinfo=timezone.utc)
+        assert t.trough_price == 311.5
+        assert t.trough_ts    == datetime(2024, 3, 24, tzinfo=timezone.utc)
+
+        assert t.duration_seconds == 518400  # 6 days
+
+        assert t.fee_cost_usd      == 18.58
+        assert t.slippage_cost_usd ==  9.29
+        assert t.spread_cost_usd   ==  1.86
+        assert t.total_cost_usd    == 29.72
+        assert t.notional_usd      == 9134.14
+
+
+# ---------------------------------------------------------------------------
 # mutate_tail / assert_prefix_unchanged helpers
 # ---------------------------------------------------------------------------
 
@@ -528,6 +772,31 @@ class TestRsiOversoldBounceLookAhead:
         mutated_candles = mutate_tail(candles, cut_index)
         mutated_result = run_golden_pipeline(
             RSI_OVERSOLD_BOUNCE_TEMPLATE["definition_json"], mutated_candles, _RUN_CONFIG
+        )
+
+        assert_prefix_unchanged(golden_result, mutated_result, cut_timestamp)
+
+
+class TestMaCrossoverLookAhead:
+    """Proves the no-look-ahead guarantee (ADR-0017) for MA Crossover.
+
+    Replacing every candle from trade 0's exit candle onward with a
+    sharply reversed series must not change trade 0, nor any equity-curve
+    point up to that candle.
+    """
+
+    def test_prefix_unchanged_after_tail_mutation(self):
+        candles = _ma_crossover_candles()
+        golden_result = run_golden_pipeline(
+            MA_CROSSOVER_TEMPLATE["definition_json"], candles, _RUN_CONFIG
+        )
+
+        cut_timestamp = golden_result.trades[0].exit_time
+        cut_index = next(i for i, c in enumerate(candles) if c.timestamp == cut_timestamp)
+
+        mutated_candles = mutate_tail(candles, cut_index)
+        mutated_result = run_golden_pipeline(
+            MA_CROSSOVER_TEMPLATE["definition_json"], mutated_candles, _RUN_CONFIG
         )
 
         assert_prefix_unchanged(golden_result, mutated_result, cut_timestamp)
