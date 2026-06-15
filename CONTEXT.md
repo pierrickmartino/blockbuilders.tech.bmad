@@ -233,6 +233,20 @@ components with different lifecycles — keep them apart.
 
 ## Adjacent terms (not yet load-bearing, on the radar)
 
+- **Felt severity** — the dollar form of the buy-and-hold comparison: the
+  result expressed not as a percentage-point delta but as money this idea
+  *would have cost or made you versus simply holding* (`docs/ACTIONS.md` #12).
+  Defined as `final_balance − initial_balance·(1 + benchmark_return_pct/100)`,
+  framed by four loss-aware regimes (delta sign × the strategy's own P/L), and
+  surfaced on **both** result cards. **Committed (not yet built):** lands in the
+  **What-you-learned card** (colored green/red, the variable the #3 A/B tests)
+  and as an uncolored prose sentence in the **Narrative card** (no
+  `BacktestSummary` shape change). Only emitted when the strategy diverges from
+  the benchmark (`|alpha| > 0.05`), so an absent benchmark — which the engine
+  collapses to `0.0` — never produces a dollar figure. See the ADR-0010
+  amendment for how it folds into the #3 experiment. _Avoid_: equating with the
+  pp-only "alpha" sentence already in `narrative.py`; calling it CAPM alpha
+  (the engine's `alpha` is a plain return delta, not beta-adjusted).
 - **Strategy validator** — semantic checker for a whole strategy
   (connectivity, required signals, duplicate risk blocks).
   Currently backend-only (`services/strategy_validation.py`).
