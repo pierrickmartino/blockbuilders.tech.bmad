@@ -17,6 +17,7 @@ services:
       - .env
     environment:
       - API_BASE_URL=http://api:8000
+      - FRONTEND_URL=${FRONTEND_URL}
     depends_on:
       - api
     restart: unless-stopped
