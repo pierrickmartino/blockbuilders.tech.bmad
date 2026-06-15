@@ -1,97 +1,33 @@
-"use client";
-
-import { use, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from "recharts";
-import { formatDateTime, formatPercent, formatPrice } from "@/lib/format";
+import type { Metadata } from "next";
+import Link from "next/link";
+import { AlertCircle } from "lucide-react";
+import { formatPercent, formatPrice } from "@/lib/format";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, AlertCircle } from "lucide-react";
 import { LowTradeCountWarning } from "@/components/LowTradeCountWarning";
 import { SharedBacktestHeader } from "./_components/SharedBacktestHeader";
-
-interface PublicBacktestView {
-  asset: string;
-  timeframe: string;
-  date_from: string;
-  date_to: string;
-  summary: {
-    initial_balance: number;
-    final_balance: number;
-    total_return_pct: number;
-    cagr_pct: number;
-    max_drawdown_pct: number;
-    num_trades: number;
-    win_rate_pct: number;
-    benchmark_return_pct: number;
-    alpha: number;
-    beta: number;
-  };
-  equity_curve: Array<{ timestamp: string; equity: number }>;
-}
+import { SharedBacktestEquityCurve } from "./_components/SharedBacktestEquityCurve";
+import { getSharedBacktestView } from "@/lib/shared-backtest/get-shared-backtest-view";
+import { buildSharedBacktestMetadata } from "@/lib/shared-backtest/build-shared-backtest-metadata";
 
 interface Props {
   params: Promise<{ token: string }>;
 }
 
-export default function SharedBacktestPage({ params }: Props) {
-  const { token } = use(params);
-  const router = useRouter();
-  const [data, setData] = useState<PublicBacktestView | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+// Next.js dedupes identical fetch(url, options) calls within a single
+// render, so generateMetadata and the page body share one network read.
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { token } = await params;
+  const data = await getSharedBacktestView(token);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const apiBase =
-          process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-        const response = await fetch(`${apiBase}/backtests/share/${token}`);
+  return buildSharedBacktestMetadata(data, token);
+}
 
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(
-            errorData.detail || "Failed to load shared backtest"
-          );
-        }
+export default async function SharedBacktestPage({ params }: Props) {
+  const { token } = await params;
+  const data = await getSharedBacktestView(token);
 
-        const result = await response.json();
-        setData(result);
-        setError(null);
-      } catch (err) {
-        setError(
-          err instanceof Error
-            ? err.message
-            : "Failed to load shared backtest"
-        );
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [token]);
-
-  if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">Loading shared backtest...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error || !data) {
+  if (!data) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background p-4">
         <Card className="max-w-md p-6 text-center">
@@ -104,10 +40,10 @@ export default function SharedBacktestPage({ params }: Props) {
             Unable to Load Backtest
           </h2>
           <p className="mb-4 text-sm text-muted-foreground">
-            {error || "This share link may have expired or been removed."}
+            This share link may have expired or been removed.
           </p>
-          <Button variant="outline" onClick={() => router.push("/")}>
-            Go to Homepage
+          <Button variant="outline" asChild>
+            <Link href="/">Go to Homepage</Link>
           </Button>
         </Card>
       </div>
@@ -172,55 +108,7 @@ export default function SharedBacktestPage({ params }: Props) {
               <h2 className="mb-4 font-semibold tracking-tight">
                 Equity Curve
               </h2>
-              <div className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart
-                    data={data.equity_curve}
-                    margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
-                  >
-                    <XAxis
-                      dataKey="timestamp"
-                      tickFormatter={(v) => new Date(v).toLocaleDateString()}
-                      tick={{ fontSize: 12 }}
-                      tickLine={false}
-                      axisLine={{ stroke: "hsl(var(--border))" }}
-                    />
-                    <YAxis
-                      tickFormatter={(v) => formatPrice(v, "").trim()}
-                      tick={{ fontSize: 12 }}
-                      tickLine={false}
-                      axisLine={{ stroke: "hsl(var(--border))" }}
-                      width={80}
-                    />
-                    <Tooltip
-                      formatter={(value) => [formatPrice(Number(value)), "Equity"]}
-                      labelFormatter={(label) =>
-                        formatDateTime(label as string, "utc")
-                      }
-                      contentStyle={{
-                        backgroundColor: "hsl(var(--card))",
-                        border: "1px solid hsl(var(--border))",
-                        borderRadius: "0.5rem",
-                        fontSize: "0.875rem",
-                        color: "hsl(var(--foreground))",
-                      }}
-                    />
-                    <Legend
-                      wrapperStyle={{ fontSize: "0.875rem" }}
-                      iconType="line"
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="equity"
-                      stroke="hsl(var(--primary))"
-                      strokeWidth={2}
-                      dot={false}
-                      activeDot={{ r: 4, fill: "hsl(var(--primary))" }}
-                      name="Strategy"
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
+              <SharedBacktestEquityCurve equityCurve={data.equity_curve} />
             </CardContent>
           </Card>
         )}
