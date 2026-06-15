@@ -1,5 +1,33 @@
 # Tasks — in flight
 
+## Issue #676 — [#13 slice 4] Cost-honesty disclosure on the Shared backtest (done)
+
+Backend
+- [x] `app/schemas/backtest.py`: added required `fee_rate`, `slippage_rate`, `spread_rate: float` to `PublicBacktestView`, sourced from the existing `BacktestRun` columns — no migration needed.
+- [x] `app/services/backtest_responses.py`: `build_public_view` now sets `fee_rate=run.fee_rate`, `slippage_rate=run.slippage_rate`, `spread_rate=run.spread_rate`.
+
+Frontend
+- [x] `types/backtest.ts`: added `fee_rate`, `slippage_rate`, `spread_rate: number` to `PublicBacktestView`.
+- [x] `app/share/backtests/[token]/_components/SharedBacktestCostDisclosure.tsx` (new): server-renderable Card ("Cost Disclosure") showing fee/slippage/spread/total USD totals (from `summary`) alongside the rates used (`fee_rate`/`slippage_rate`/`spread_rate` as percentages); returns `null` when `summary.total_costs_usd` is missing (older runs without cost data).
+- [x] `app/share/backtests/[token]/page.tsx`: renders `<SharedBacktestCostDisclosure>` between the Performance Metrics card and the Equity Curve.
+
+Tests
+- [x] `tests/services/test_backtest_responses.py` (`TestBuildPublicView.test_exposes_cost_rates_from_run`): asserts `view.fee_rate`/`slippage_rate`/`spread_rate` reflect the run's columns.
+- [x] `tests/api/test_docs_backend_cases.py` (`test_share_link_auth_and_public_access_flow`): asserts `GET /backtests/share/{token}` returns the three rate fields matching the run, and that no `strategy_id`/`strategy` key or the strategy's id/name appear anywhere in the public payload.
+- [x] `app/share/backtests/[token]/_components/__tests__/SharedBacktestCostDisclosure.test.tsx` (new): renders totals + rates when cost data is present; renders nothing when `total_costs_usd` is null.
+- [x] Updated existing `PublicBacktestView` fixtures (`build-shared-backtest-metadata.test.ts`, `get-shared-backtest-view.test.ts`) with the three new required fields.
+
+Verification
+- [x] `pytest` (full backend suite) → 1059 passed.
+- [x] `npx vitest run` (full frontend suite) → 680 passed (78 files).
+- [x] `npx tsc --noEmit` → clean.
+- [x] `npm run lint` → 0 errors (pre-existing warnings only, unrelated).
+
+Risks / gaps
+- No env vars added/changed; no migration (fields already persisted on `BacktestRun`).
+- `PublicBacktestView` now permanently exposes the three cost rates publicly (per ADR-0019 rider 5) — deliberate, closes ADR-0017 §6.
+- OG image (`opengraph-image.tsx`) intentionally unchanged — cost disclosure is page-body-only per the issue scope.
+
 ## Issue #674 — [#13 slice 2] Dynamic per-result OG image for the Shared backtest (done)
 
 - [x] `frontend/src/lib/shared-backtest/build-equity-sparkline-path.ts` (M2) — pure `buildEquitySparklinePath(points, dimensions) → SVG path d-string`: empty curve → `""`, single-point curve → flat midline, downsamples to 60 points (always keeping first/last) before mapping x monotonically and y to `[0, height]` by equity range.

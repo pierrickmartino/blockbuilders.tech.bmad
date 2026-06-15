@@ -34,6 +34,9 @@ function makeView(overrides: Partial<PublicBacktestView["summary"]> = {}): Publi
       ...overrides,
     },
     equity_curve: [{ timestamp: "2025-01-01T00:00:00Z", equity: 10000 }],
+    fee_rate: 0.001,
+    slippage_rate: 0.0005,
+    spread_rate: 0.0002,
   };
 }
 

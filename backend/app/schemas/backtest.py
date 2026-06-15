@@ -288,6 +288,9 @@ class PublicBacktestView(BaseModel):
     summary: BacktestSummary
     equity_curve: list[EquityCurvePoint]
     narrative: Optional[str] = None
+    fee_rate: float
+    slippage_rate: float
+    spread_rate: float
 
 
 class BacktestCompareRequest(BaseModel):
