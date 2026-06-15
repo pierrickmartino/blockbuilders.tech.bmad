@@ -8,6 +8,7 @@ import { LowTradeCountWarning } from "@/components/LowTradeCountWarning";
 import { SharedBacktestHeader } from "./_components/SharedBacktestHeader";
 import { SharedBacktestEquityCurve } from "./_components/SharedBacktestEquityCurve";
 import { SharedBacktestNarrative } from "./_components/SharedBacktestNarrative";
+import { SharedBacktestCostDisclosure } from "./_components/SharedBacktestCostDisclosure";
 import { getSharedBacktestView } from "@/lib/shared-backtest/get-shared-backtest-view";
 import { buildSharedBacktestMetadata } from "@/lib/shared-backtest/build-shared-backtest-metadata";
 
@@ -104,6 +105,14 @@ export default async function SharedBacktestPage({ params }: Props) {
             </div>
           </CardContent>
         </Card>
+
+        {/* Cost Disclosure */}
+        <SharedBacktestCostDisclosure
+          summary={data.summary}
+          feeRate={data.fee_rate}
+          slippageRate={data.slippage_rate}
+          spreadRate={data.spread_rate}
+        />
 
         {/* Equity Curve */}
         {data.equity_curve.length > 0 && (

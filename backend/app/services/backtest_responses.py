@@ -192,4 +192,7 @@ def build_public_view(
         summary=summary,
         equity_curve=equity_curve,
         narrative=generate_narrative(summary),
+        fee_rate=run.fee_rate,
+        slippage_rate=run.slippage_rate,
+        spread_rate=run.spread_rate,
     )

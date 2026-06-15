@@ -211,6 +211,9 @@ export interface PublicBacktestView {
   summary: BacktestSummary;
   equity_curve: EquityCurvePoint[];
   narrative?: string | null;
+  fee_rate: number;
+  slippage_rate: number;
+  spread_rate: number;
 }
 
 export interface BacktestCompareRequest {

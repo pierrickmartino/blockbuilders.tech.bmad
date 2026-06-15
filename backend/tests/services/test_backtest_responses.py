@@ -305,3 +305,10 @@ class TestBuildPublicView:
         run = _completed_run()
         view = build_public_view(run, equity_curve=[])
         assert view.narrative == generate_narrative(view.summary)
+
+    def test_exposes_cost_rates_from_run(self):
+        run = _completed_run(fee_rate=0.0012, slippage_rate=0.0007, spread_rate=0.0003)
+        view = build_public_view(run, equity_curve=[])
+        assert view.fee_rate == 0.0012
+        assert view.slippage_rate == 0.0007
+        assert view.spread_rate == 0.0003

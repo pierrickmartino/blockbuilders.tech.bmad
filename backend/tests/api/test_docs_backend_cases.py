@@ -284,6 +284,17 @@ def test_share_link_auth_and_public_access_flow(client, auth_headers, seeded_obj
     assert public_body["narrative"]
     assert str(run_id) not in public_body["narrative"]
 
+    # Cost-honesty disclosure (#676): rates used are disclosed alongside the metrics.
+    assert public_body["fee_rate"] == seeded_objects["run"].fee_rate
+    assert public_body["slippage_rate"] == seeded_objects["run"].slippage_rate
+    assert public_body["spread_rate"] == seeded_objects["run"].spread_rate
+
+    # Result-only invariant: no strategy id/name/graph leaks into the public payload.
+    assert "strategy_id" not in public_body
+    assert "strategy" not in public_body
+    assert str(seeded_objects["strategy"].id) not in json.dumps(public_body)
+    assert seeded_objects["strategy"].name not in json.dumps(public_body)
+
 
 
 def test_market_tickers_includes_as_of_and_volatility_fields(client, auth_headers, monkeypatch):
