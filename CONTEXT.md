@@ -35,12 +35,19 @@ These come from `PRODUCT.md` and describe what the product *is*.
   backtest *result*, reached by an unguessable token
   (`/share/backtests/{token}`). Three defining properties:
   *token-gated* (not on a profile, not tied to a handle),
-  *result-only* (shows metrics + equity curve, **never** the
-  strategy graph), and *verification-gated* (only a real Backtest
-  can produce one). The surviving organic-distribution artifact
-  (the "Wordle result" pattern) — distinct from Publish, which it
-  outlives when vanity-social surfaces are frozen. _Avoid_: publish
-  (that is profile visibility), public profile, share link.
+  *result-only* (shows metrics, equity curve, narrative, and a
+  cost disclosure — but **never** the strategy graph *or the
+  idea/name* that produced it), and *verification-gated* (only a
+  real Backtest can produce one). The surviving organic-distribution
+  artifact (the "Wordle result" pattern): a *social-card-ready*
+  surface whose link unfurls into a rich preview carrying the
+  honest result itself (asset, return, drawdown, equity sparkline)
+  — the actual number travels, not a brand or a follower count.
+  Distinct from Publish, which it outlives when vanity-social
+  surfaces are frozen. _Avoid_: publish (that is profile
+  visibility), public profile, share link; reading "result-only"
+  as "metrics-only" (it includes narrative + costs) or as licence
+  to expose the strategy graph/idea.
 - **Trust page** — the public, standalone "How Backtests Work"
   methodology page (`/how-backtests-work`) that documents the
   engine's assumptions (default fees/slippage/spread, next-candle-open
