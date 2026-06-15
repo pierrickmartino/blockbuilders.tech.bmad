@@ -3,18 +3,34 @@
 import { GraduationCap, Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { InsightCard } from "@/components/ui/insight-card";
+import { getFeltDollarDelta, type FeltDollarDelta } from "@/lib/felt-delta";
 
 interface WhatYouLearnedCardProps {
   strategyReturnPct: number;
   benchmarkReturnPct: number;
+  initialBalance: number;
   asset: string;
   dateRange: string;
   onDismiss?: () => void;
 }
 
+function renderFeltDollarDelta(feltDelta: FeltDollarDelta): React.ReactNode {
+  const colorClass =
+    feltDelta.direction === "positive" ? "text-success" : "text-destructive";
+  const [before, after] = feltDelta.phrasing.split("{amount}");
+  return (
+    <>
+      {before}
+      <span className={`font-semibold ${colorClass}`}>{feltDelta.amountUsd}</span>
+      {after}
+    </>
+  );
+}
+
 export function WhatYouLearnedCard({
   strategyReturnPct,
   benchmarkReturnPct,
+  initialBalance,
   asset,
   dateRange,
   onDismiss,
@@ -29,6 +45,11 @@ export function WhatYouLearnedCard({
   } else {
     const verb = delta > 0 ? "beat" : "lagged";
     const colorClass = delta > 0 ? "text-success" : "text-destructive";
+    const feltDelta = getFeltDollarDelta(
+      strategyReturnPct,
+      benchmarkReturnPct,
+      initialBalance
+    );
     comparison = (
       <>
         Your strategy {verb} buy-and-hold by{" "}
@@ -36,6 +57,7 @@ export function WhatYouLearnedCard({
           {absDelta} percentage points
         </span>{" "}
         over {dateRange}.
+        {feltDelta && <> This {renderFeltDollarDelta(feltDelta)}.</>}
       </>
     );
   }

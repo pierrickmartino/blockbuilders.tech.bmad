@@ -1338,6 +1338,7 @@ export default function StrategyBacktestPage({ params }: Props) {
                 <WhatYouLearnedCard
                   strategyReturnPct={selectedRun.summary.total_return_pct}
                   benchmarkReturnPct={selectedRun.summary.benchmark_return_pct}
+                  initialBalance={selectedRun.summary.initial_balance}
                   asset={selectedRun.asset}
                   dateRange={selectedRunRange || "the test period"}
                   onDismiss={() => {
