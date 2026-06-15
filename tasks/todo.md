@@ -1,5 +1,21 @@
 # Tasks — in flight
 
+## Issue #674 — [#13 slice 2] Dynamic per-result OG image for the Shared backtest (done)
+
+- [x] `frontend/src/lib/shared-backtest/build-equity-sparkline-path.ts` (M2) — pure `buildEquitySparklinePath(points, dimensions) → SVG path d-string`: empty curve → `""`, single-point curve → flat midline, downsamples to 60 points (always keeping first/last) before mapping x monotonically and y to `[0, height]` by equity range.
+  - `frontend/src/lib/shared-backtest/__tests__/build-equity-sparkline-path.test.ts` — 4 tests (empty, single-point, monotonic mapping, downsample-to-60), TDD red→green per cycle.
+- [x] `frontend/src/app/share/backtests/[token]/_components/SharedBacktestOgCard.tsx` (M5) — pure presentational "Wordle result" card (asset, timeframe, gain/loss-colored return, max drawdown, equity sparkline, brand mark). Colors are hardcoded `hsl(...)` literals mirroring the **dark-theme** tokens in `docs/design-system.json` (Satori/`ImageResponse` can't read CSS vars), success/destructive semantics for gain vs loss.
+- [x] `frontend/src/app/share/backtests/[token]/_components/SharedBacktestOgFallbackCard.tsx` — branded neutral fallback for expired/unknown tokens (no result data, no crash).
+- [x] `frontend/src/app/share/backtests/[token]/opengraph-image.tsx` (M5) — `opengraph-image` route segment using `ImageResponse`; reuses `getSharedBacktestView` (M4, #673) + `buildEquitySparklinePath`, renders `SharedBacktestOgCard` or the fallback card. 1200×630, `image/png`.
+- [x] `frontend/src/app/share/backtests/[token]/_components/SharedBacktestOgCard.stories.tsx` — Storybook visual artifact (Gain, Loss, FlatSingleTrade, ExpiredOrUnknownToken) for async design review.
+
+Verification
+- [x] `npx vitest run src/lib/shared-backtest` → 10/10 passed; full suite `npx vitest run` → 676/676 passed.
+- [x] `npx tsc --noEmit` → clean.
+- [x] `npm run lint` → 0 errors (24 pre-existing warnings, unrelated to this change).
+- [x] `npm run build` → succeeds; `/share/backtests/-/opengraph-image` registered as a dynamic (`ƒ`) route.
+- No env vars added/changed. Strictly result-only — no strategy graph or idea/name on the image.
+
 ## Issue #653 — Golden regression: Bollinger Breakout pipeline + look-ahead test (done)
 
 - [x] `backend/tests/test_golden_backtest_regression.py` — added a third golden strategy (Bollinger Breakout, `app/data/strategy_templates.py`), reusing the `run_golden_pipeline`, `mutate_tail`, and `assert_prefix_unchanged` helpers from #651 (no duplicate helper implementations):
