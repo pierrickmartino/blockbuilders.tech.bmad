@@ -14,6 +14,7 @@ export const BeatBuyAndHold: Story = {
   args: {
     strategyReturnPct: 15.2,
     benchmarkReturnPct: 8.7,
+    initialBalance: 10_000,
     asset: "BTC/USDT",
     dateRange: "Jan 2024 – Jun 2024",
   },
@@ -23,6 +24,7 @@ export const Lagged: Story = {
   args: {
     strategyReturnPct: 4.1,
     benchmarkReturnPct: 12.3,
+    initialBalance: 10_000,
     asset: "ETH/USDT",
     dateRange: "Mar 2024 – Sep 2024",
   },
@@ -32,8 +34,29 @@ export const Neutral: Story = {
   args: {
     strategyReturnPct: 10.0,
     benchmarkReturnPct: 10.02,
+    initialBalance: 10_000,
     asset: "BTC/USDT",
     dateRange: "Jan 2024 – Dec 2024",
+  },
+};
+
+export const DownButSavedYouMoney: Story = {
+  args: {
+    strategyReturnPct: -10.0,
+    benchmarkReturnPct: -30.0,
+    initialBalance: 10_000,
+    asset: "BTC/USDT",
+    dateRange: "Jan 2024 – Jun 2024",
+  },
+};
+
+export const DownAndCostYouMore: Story = {
+  args: {
+    strategyReturnPct: -10.0,
+    benchmarkReturnPct: 5.0,
+    initialBalance: 10_000,
+    asset: "BTC/USDT",
+    dateRange: "Jan 2024 – Jun 2024",
   },
 };
 
@@ -41,6 +64,7 @@ export const WithDismiss: Story = {
   args: {
     strategyReturnPct: 15.2,
     benchmarkReturnPct: 8.7,
+    initialBalance: 10_000,
     asset: "BTC/USDT",
     dateRange: "Jan 2024 – Jun 2024",
     onDismiss: () => {},
