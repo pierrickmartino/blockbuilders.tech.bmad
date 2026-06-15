@@ -118,3 +118,55 @@ measured off existing activation events.
   verdict; retained as a possible future full-thesis experiment.
 - **Primary = pure return-rate.** Rejected as primary: a lone `page_view` is a
   weak product signal versus re-running the test loop; kept as the secondary.
+
+## Amendment (2026-06-15) — #12 felt-severity lands *before* #3, in the tested card
+
+ACTIONS #12 ("sharpen the narrative into *felt* severity") was originally gated
+**downstream** of this experiment: the Decision §6 ship rule greenlights #12/#19
+only on a **positive** #3 result. Grilling #12 against the code reversed that
+ordering for #12 (only). #3 is implemented but **not yet live**, so no enrollment
+is in flight to confound — and the strongest version of the card to test is the
+*already-sharpened* one. We therefore land #12 in **both** result cards now, and
+#3, when launched, tests the sharpened card against the holdout.
+
+What this changes about the experiment:
+
+1. **The manipulated variable is the sharpened What-you-learned card.** Its
+   delta vs buy-and-hold is now expressed in **dollars** (felt severity), not
+   percentage-points only. Enrollment, metrics, and the 50/50 mechanism are
+   unchanged — only the card's *content* is richer.
+2. **The held-constant Narrative-card baseline is also sharpened**, but stays
+   **on in both arms**, so #3 still isolates the *incremental* value of the
+   What-you-learned card on top of the narrative. The baseline is simply a
+   better narrative in both arms; the contrast the experiment measures is intact.
+3. **#12's greenlight clause in §6 is void; #19's still stands.** #12 is no
+   longer evidence-gated on #3. #19 (coaching loop) remains gated on a positive
+   result.
+
+Felt-severity design decisions that interact with this experiment (full content
+spec lives with the #12 work, summarised here because they touch the tested
+surfaces):
+
+- **New content = the buy-and-hold delta in dollars.** `felt_delta_usd =
+  final_balance − initial_balance·(1 + benchmark_return_pct/100)`. The absolute
+  dollar outcome was already in `narrative.py`; only the *vs-holding* delta was
+  pp-only.
+- **Four loss-aware regimes** keyed on delta sign × the strategy's own P/L:
+  up/+ → "made you $X more than holding"; up/− → "cost you $X versus holding";
+  down/+ → "saved you $X — it lost less than holding would have"; down/− → "cost
+  you $X more than holding".
+- **Backend Narrative card stays flat prose** (gains the dollar sentence,
+  uncolored) — **no `BacktestSummary` shape change**. Coloring lives only in the
+  What-you-learned card, which already renders green/red natively (avoids an API
+  change mid-experiment and the `dangerouslySetInnerHTML` XSS path).
+- **Absent-benchmark guard, no schema change.** The engine collapses "no
+  benchmark" to `(0.0, 0.0, 0.0)`, so a missing benchmark is indistinguishable
+  from a genuine 0% one. The dollar clause is emitted **only inside the
+  outperform/underperform branches** (`|alpha| > 0.05`; frontend mirrors with its
+  existing `|delta| < 1` small-band), so an absent benchmark (`alpha == 0`) lands
+  on-par and **never** prints a dollar figure. This prevents the dollar delta
+  from becoming a confident fabrication.
+- **Known out-of-scope gap (not amplified):** with an absent benchmark the
+  existing prose still claims "performed on par with buy-and-hold" — a latent
+  honesty gap belonging to the trust moat (#10 / ADR-0017), not fixed here. #12
+  deliberately does not *add* a dollar figure to that false claim.
