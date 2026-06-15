@@ -4,6 +4,7 @@ from uuid import uuid4
 
 import pytest
 
+from app.backtest.narrative import generate_narrative
 from app.models.backtest_run import BacktestRun
 from app.schemas.backtest import (
     CandleResponse,
@@ -293,3 +294,14 @@ class TestBuildPublicView:
         view = build_public_view(run, equity_curve=[])
         assert view.summary.total_return_pct == 20.0
         assert view.summary.final_balance == pytest.approx(6000.0)
+
+    def test_includes_narrative_for_completed_run(self):
+        run = _completed_run()
+        view = build_public_view(run, equity_curve=[])
+        assert view.narrative
+        assert "10 trades" in view.narrative
+
+    def test_narrative_matches_generate_narrative_output(self):
+        run = _completed_run()
+        view = build_public_view(run, equity_curve=[])
+        assert view.narrative == generate_narrative(view.summary)

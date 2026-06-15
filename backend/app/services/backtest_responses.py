@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
+from app.backtest.narrative import generate_narrative
 from app.models.backtest_run import BacktestRun
 from app.schemas.backtest import (
     BacktestListItem,
@@ -190,4 +191,5 @@ def build_public_view(
         date_to=run.date_to,
         summary=summary,
         equity_curve=equity_curve,
+        narrative=generate_narrative(summary),
     )

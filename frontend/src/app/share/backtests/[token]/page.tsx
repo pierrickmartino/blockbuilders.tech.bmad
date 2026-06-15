@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { LowTradeCountWarning } from "@/components/LowTradeCountWarning";
 import { SharedBacktestHeader } from "./_components/SharedBacktestHeader";
 import { SharedBacktestEquityCurve } from "./_components/SharedBacktestEquityCurve";
+import { SharedBacktestNarrative } from "./_components/SharedBacktestNarrative";
 import { getSharedBacktestView } from "@/lib/shared-backtest/get-shared-backtest-view";
 import { buildSharedBacktestMetadata } from "@/lib/shared-backtest/build-shared-backtest-metadata";
 
@@ -75,6 +76,9 @@ export default async function SharedBacktestPage({ params }: Props) {
           dateFrom={data.date_from}
           dateTo={data.date_to}
         />
+
+        {/* Narrative */}
+        <SharedBacktestNarrative narrative={data.narrative} />
 
         {/* Metrics */}
         <Card>
