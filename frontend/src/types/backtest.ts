@@ -210,6 +210,7 @@ export interface PublicBacktestView {
   date_to: string;
   summary: BacktestSummary;
   equity_curve: EquityCurvePoint[];
+  narrative?: string | null;
 }
 
 export interface BacktestCompareRequest {

@@ -280,6 +280,9 @@ def test_share_link_auth_and_public_access_flow(client, auth_headers, seeded_obj
 
     public = client.get(f"/backtests/share/{created_body['token']}")
     assert public.status_code == 200
+    public_body = public.json()
+    assert public_body["narrative"]
+    assert str(run_id) not in public_body["narrative"]
 
 
 

@@ -942,4 +942,31 @@ Verification
 Risks / gaps
 - No env vars added/changed.
 - In-app interception only covers anchor-based (`<Link>`) navigation via the document-level click listener; a handful of `router.push(...)` calls triggered from non-link buttons elsewhere on the page (e.g. the "Compare" action) are not intercepted. This matches the issue's mandated coverage (in-app modal interception via navigation links + hard-exit) and keeps the slice small; broadening to all programmatic navigation is out of scope here.
+
+## Issue #675 — [#13 slice 3] Narrative on the landed Shared backtest page (done)
+
+Backend
+- [x] `app/schemas/backtest.py`: added `narrative: Optional[str] = None` to `PublicBacktestView`.
+- [x] `app/services/backtest_responses.py`: `build_public_view` now calls the existing pure `generate_narrative(summary)` (same path the in-app result uses) and sets it on the response — no new I/O, no session/route changes needed since `summary` was already computed here.
+
+Frontend
+- [x] `types/backtest.ts`: added optional `narrative?: string | null` to `PublicBacktestView`.
+- [x] `app/share/backtests/[token]/_components/SharedBacktestNarrative.tsx` (new): server-renderable Card with a "Summary" heading + narrative prose; returns `null` when `narrative` is missing/empty (graceful degradation, no error).
+- [x] `app/share/backtests/[token]/page.tsx`: renders `<SharedBacktestNarrative narrative={data.narrative} />` between the header and the Performance Metrics card.
+
+Tests
+- [x] `tests/services/test_backtest_responses.py` (`TestBuildPublicView`): new cases assert `view.narrative` is populated for a completed run and matches `generate_narrative(view.summary)`.
+- [x] `tests/api/test_docs_backend_cases.py` (`test_share_link_auth_and_public_access_flow`): asserts the `/backtests/share/{token}` payload includes a non-empty `narrative` and that it does not contain the run id (no PII/internal-id leakage).
+- [x] `app/share/backtests/[token]/_components/__tests__/SharedBacktestNarrative.test.tsx` (new): renders narrative prose under a "Summary" heading; renders nothing for `null`/`undefined`/`""`.
+
+Verification
+- [x] `pytest` (full backend suite) → 1058 passed
+- [x] `npx vitest run` (full frontend suite) → 678 passed (77 files)
+- [x] `npx tsc --noEmit` → clean
+- [x] `npm run lint` → 0 errors (pre-existing warnings only, unrelated to this change)
+
+Risks / gaps
+- No env vars added/changed.
+- `generate_narrative` never raises (falls back to `FALLBACK_MESSAGE` on error) and `build_public_view` asserts a non-null `summary`, so in practice `narrative` is always populated for a completed run today; the `Optional`/omit-on-empty handling in the schema and `SharedBacktestNarrative` exist for forward compatibility (e.g. future run states) per the issue's "degrades gracefully" criterion.
+- Narrative content is generated purely from `BacktestSummary` (numeric fields only) — no strategy graph, idea text, or name is read or exposed, preserving the result-only invariant. Once #12's felt-severity dollar clause ships, it will appear automatically here with no further changes (per ADR-0019 rider 4).
 - Per ADR-0012 §6/the issue, hard browser exit intentionally does not log `nl_draft_outcome = kept` (unreliable on unload) — the draft simply persists as an ordinary strategy and is treated as kept by omission, consistent with the accepted "tab-closed drafts accumulate as kept" cost.

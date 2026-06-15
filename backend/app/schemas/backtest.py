@@ -287,6 +287,7 @@ class PublicBacktestView(BaseModel):
     date_to: datetime
     summary: BacktestSummary
     equity_curve: list[EquityCurvePoint]
+    narrative: Optional[str] = None
 
 
 class BacktestCompareRequest(BaseModel):
