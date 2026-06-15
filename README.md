@@ -203,7 +203,7 @@ Key configuration (see `backend/app/core/config.py`):
 | `DEFAULT_MAX_BACKTESTS_PER_DAY` | 50 | Max backtests per day |
 | `RESEND_API_KEY` | - | Resend API key for password reset emails |
 | `RESET_TOKEN_EXPIRE_HOURS` | 1 | Password reset token TTL |
-| `FRONTEND_URL` | `http://localhost:3000` | Frontend URL for auth flows |
+| `FRONTEND_URL` | `http://localhost:3000` | Frontend URL for auth flows; also consumed server-side by the frontend (`/llms.txt`) to build absolute links |
 | `GOOGLE_CLIENT_ID` | - | Google OAuth client ID |
 | `GOOGLE_CLIENT_SECRET` | - | Google OAuth client secret |
 | `GITHUB_CLIENT_ID` | - | GitHub OAuth client ID |

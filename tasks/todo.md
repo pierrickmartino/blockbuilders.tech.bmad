@@ -1,5 +1,26 @@
 # Tasks — in flight
 
+## Issue #682 — PRD: llms.txt index for agent-legibility (ACTIONS #14) (done)
+
+- [x] `frontend/src/app/llms.txt/build-llms-txt.ts` (new) — pure `buildLlmsTxt(origin: string): string`, llmstxt.org format: H1 `# Blockbuilders`, blockquote summary, trust-invariant paragraph (signals-only, never takes custody, never trades, OHLCV-only, no look-ahead, next-candle-open), `## Docs` link list (`${origin}/`, `${origin}/how-backtests-work`).
+- [x] `frontend/src/app/llms.txt/route.ts` (new) — thin `GET` route handler at `/llms.txt`, `Content-Type: text/plain; charset=utf-8`, origin from `process.env.FRONTEND_URL` (fallback `http://localhost:3000`); top-of-file comment records the deliberate public-only/no-CTA link set.
+- [x] `docker-compose.yml`: added `FRONTEND_URL=${FRONTEND_URL}` to the `frontend` service environment (dev propagation).
+- [x] `README.md`: noted that `FRONTEND_URL` is now also consumed server-side by the frontend (`/llms.txt`).
+- `docs/ACTIONS.md` item 14 already carried the "✅ Resolved scope" rider from the `/grill-with-docs` session — no further edit needed.
+
+Tests
+- [x] `frontend/src/app/llms.txt/__tests__/build-llms-txt.test.ts` (new, TDD red→green, 4 tests): H1 heading, trust invariants present, both links absolute from `origin` under `## Docs`, auth-gated paths (`/metrics-glossary`, `/strategy-guide`, `/login`) absent.
+
+Verification
+- [x] `npx vitest run src/app/llms.txt src/app/how-backtests-work` → 11 passed.
+- [x] `npx tsc --noEmit` → clean.
+- [x] `npx eslint src/app/llms.txt` → clean.
+- [x] `npm run build` → `/llms.txt` registered as a dynamic (`ƒ`) route, build succeeds.
+
+Risks / gaps
+- **`docker-compose.prod.yml` has no `frontend` service** — the PRD assumed `FRONTEND_URL` would be propagated there too, but prod frontend deployment isn't modeled in that compose file. Per user decision, prod compose was left untouched; tracked as a gap rather than adding a new service out of scope.
+- Known follow-ups (per PRD, not built here): promoting `/metrics-glossary` and `/strategy-guide` to public would enrich the index; `robots.txt`/`sitemap.xml` remain unbuilt.
+
 ## Issue #676 — [#13 slice 4] Cost-honesty disclosure on the Shared backtest (done)
 
 Backend
