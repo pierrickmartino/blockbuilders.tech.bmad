@@ -33,6 +33,7 @@ class Strategy(SQLModel, table=True):
             nullable=True,
         ),
     )
+    source_template_id: Optional[UUID] = Field(default=None, foreign_key="strategy_templates.id")
     is_archived: bool = Field(default=False)
     is_published: bool = Field(default=False)
     auto_update_enabled: bool = Field(default=False)

@@ -174,3 +174,25 @@ def test_clone_unknown_template_returns_404(client, auth_headers):
         f"/strategy-templates/{uuid4()}/clone", headers=auth_headers
     )
     assert res.status_code == 404
+
+
+def test_clone_sets_source_template_id(client, auth_headers, template):
+    """Cloning a template must record the source template's id on the new strategy."""
+    clone_res = client.post(
+        f"/strategy-templates/{template.id}/clone", headers=auth_headers
+    )
+    assert clone_res.status_code == 201
+    body = clone_res.json()
+    assert body["source_template_id"] == str(template.id)
+
+
+def test_non_clone_strategy_has_null_source_template_id(client, auth_headers):
+    """Strategies created via non-clone paths must leave source_template_id null."""
+    create_res = client.post(
+        "/strategies/",
+        json={"name": "My Wizard Strategy", "asset": "BTC/USDT", "timeframe": "1d", "entry_path": "wizard"},
+        headers=auth_headers,
+    )
+    assert create_res.status_code == 201
+    body = create_res.json()
+    assert body["source_template_id"] is None

@@ -115,6 +115,7 @@ def clone_template(
         asset=template.asset,
         timeframe=template.timeframe,
         entry_path=StrategyEntryPath.TEMPLATE_CLONE,
+        source_template_id=template.id,
     )
     session.add(new_strategy)
     session.commit()
@@ -131,6 +132,7 @@ def clone_template(
         asset=new_strategy.asset,
         timeframe=new_strategy.timeframe,
         entry_path=new_strategy.entry_path,
+        source_template_id=new_strategy.source_template_id,
         is_archived=new_strategy.is_archived,
         auto_update_enabled=new_strategy.auto_update_enabled,
         auto_update_lookback_days=new_strategy.auto_update_lookback_days,
