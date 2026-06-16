@@ -1,5 +1,23 @@
 # Tasks — in flight
 
+## Issue #693 — [#15 slice 8] Author remaining literacy templates + golden-pin all + full registry (done)
+
+Backend only. Expands the seed templates from 3 to 12, the curriculum registry to 3 modules / 12 lessons, and golden-pins every template through the full validate → interpret → run_backtest pipeline.
+
+- [x] `backend/app/data/strategy_templates.py` — 9 new templates (sort_order 4–12): EMA Trend Following, MACD Histogram Cross, Stochastic Oversold Bounce, ADX Directional Filter, Price Variation Momentum, Stochastic + RSI Double Oversold, Bollinger + RSI Reversal, EMA + RSI Confirmation, MACD + ADX Dual Filter. All have full metadata (teaches_description, logic_summary, use_cases, parameter_ranges). All seeded idempotently via the existing TEMPLATES list.
+- [x] `backend/app/data/curriculum_registry.py` — expanded to 3 modules / 12 lessons: Module 1 "Foundations" (3 lessons), Module 2 "Intermediate Signals" (6 lessons), Module 3 "Advanced Combinations" (3 lessons). Full descriptions for every lesson.
+- [x] `backend/tests/test_curriculum_registry.py` — 17 tests: structural checks for 3-module / 12-lesson arc, coverage of all new templates, validation of lesson ordering and uniqueness.
+- [x] `backend/tests/test_golden_backtest_regression.py` — 9 × golden class (6 assertions each) + 9 × look-ahead-bias class; all 107 golden/registry tests pass.
+- [x] `backend/scripts/capture_golden_values.py` — one-off helper for re-capturing golden values when candle designs change.
+
+Tests
+- [x] 107 golden + curriculum tests pass; 240 total core tests pass.
+
+Risks / gaps
+- Lesson prose in `curriculum_registry.py` uses plain-language descriptions only (no hardcoded result numbers from backtest runs).
+- The `GET /curriculum` endpoint already returns all 12 lessons via the registry; no endpoint change needed.
+- Frontend lesson pages will show all 12 lessons as soon as this branch merges (the API already exposes them).
+
 ## Issue #692 — [#15 slice 6] Public lesson/module pages (SSR + OG) + strategy-guide extraction (done)
 
 Frontend only — backend curriculum registry (#689) was the prerequisite.
