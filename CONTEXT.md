@@ -314,7 +314,10 @@ components with different lifecycles — keep them apart.
   version is a *deliberate* act (creating from a newer result page
   re-pins old→new, replacing — never accumulating per-version zombies),
   and a pin left behind by edits is surfaced as a **stale alert** but
-  never auto-moved.
+  never auto-moved. Evaluation is **alert-driven** (`triggered_by='alert'`,
+  decoupled from `auto_update_enabled`), keyed to a `last_fired_candle_ts`
+  watermark; archive deactivates, delete cascades. Full design in
+  **ADR-0021**.
   The bare **price alert** does *not* inherit engine trust (no
   strategy, spot-evaluated) — it is the "blind alert" the brainstorm
   guardrail warns against. **Resolved (#16):** it is walled off as a
