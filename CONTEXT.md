@@ -342,9 +342,14 @@ components with different lifecycles — keep them apart.
   learning arc (intuition → risk & drawdown → playbook), each holding
   several template-anchored **Lessons**. The track's pedagogical spine
   and a natural public/SEO landing unit (one page per module);
-  template `difficulty` maps onto module boundaries. _Avoid_:
-  "chapter" / "stage" / "section" (reserve "Module"); flattening
-  modules into a single lesson list.
+  template `difficulty` maps onto module boundaries. Surfaced as a
+  **hybrid** (the **Trust page** / ADR-0017 pattern): the module/lesson
+  *teaching* is a public, indexable content shell readable logged-out
+  (which makes it the public home for the otherwise auth-gated
+  glossary / strategy-guide content — the `docs/ACTIONS.md` #14
+  follow-up), while the clone→backtest action and per-user progress
+  require auth. _Avoid_: "chapter" / "stage" / "section" (reserve
+  "Module"); flattening modules into a single lesson list.
 - **Lesson** — _(on the radar, not built)_ one unit of a **Literacy
   track**, anchored on a single seed **template**: the user clones it,
   runs its backtest, and surrounding glossary / strategy-guide content
