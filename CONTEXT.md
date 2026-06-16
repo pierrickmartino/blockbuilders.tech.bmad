@@ -309,7 +309,12 @@ components with different lifecycles — keep them apart.
   believed). It should also fire on **closed candles of the backtested
   timeframe**, so it inherits the engine's trust at both the logic and
   data levels. Editing the working copy must not change what a live
-  Alert watches (passive edits never move the pin).
+  Alert watches (passive edits never move the pin). Cardinality is
+  **one active performance alert per strategy**: re-binding to a newer
+  version is a *deliberate* act (creating from a newer result page
+  re-pins old→new, replacing — never accumulating per-version zombies),
+  and a pin left behind by edits is surfaced as a **stale alert** but
+  never auto-moved.
   The bare **price alert** does *not* inherit engine trust (no
   strategy, spot-evaluated) — it is the "blind alert" the brainstorm
   guardrail warns against. **Resolved (#16):** it is walled off as a
