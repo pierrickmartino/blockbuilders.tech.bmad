@@ -1,5 +1,31 @@
 # Tasks — in flight
 
+## Issue #692 — [#15 slice 6] Public lesson/module pages (SSR + OG) + strategy-guide extraction (done)
+
+Frontend only — backend curriculum registry (#689) was the prerequisite.
+
+- [x] `frontend/src/lib/strategy-guide-content.ts` — exports `STRATEGY_GUIDE_SECTIONS` (5 sections); previously hardcoded JSX is now typed, structured data.
+- [x] `frontend/src/app/(app)/strategy-guide/page.tsx` — refactored to render from shared content module; behavior unchanged.
+- [x] `frontend/src/types/curriculum.ts` — TypeScript types: `LessonResponse`, `ModuleResponse`, `CurriculumResponse`.
+- [x] `frontend/src/lib/curriculum/get-curriculum-view.ts` — server-side loader: `fetch API_BASE_URL/curriculum`, returns null on failure (same pattern as `getSharedBacktestView`).
+- [x] `frontend/src/app/lessons/page.tsx` + `LessonsCurriculumView` — SSR curriculum index, static OG metadata, no auth gate, home link header.
+- [x] `frontend/src/app/lessons/[module]/page.tsx` + `ModuleView` — SSR module overview, `generateMetadata` per module, back-to-lessons link.
+- [x] `frontend/src/app/lessons/[module]/[lesson]/page.tsx` + `LessonView` — SSR lesson page, `generateMetadata` per lesson, "Sign in to test" CTA → `/login`.
+- [x] In-app `/metrics-glossary` and `/strategy-guide` remain auth-gated (no changes to those routes).
+
+Tests
+- [x] `frontend/src/lib/__tests__/strategy-guide-content.test.ts` — 3 tests: section ids, titles/intros, items shape.
+- [x] `frontend/src/lib/curriculum/__tests__/get-curriculum-view.test.ts` — 4 tests: URL, success, HTTP failure, network failure.
+- [x] `frontend/src/app/lessons/__tests__/LessonsCurriculumView.test.tsx` — 5 tests: no auth gate, heading, module title, lesson links, difficulty badges.
+- [x] `frontend/src/app/lessons/[module]/__tests__/ModuleView.test.tsx` — 5 tests: no auth gate, module heading, lesson links, difficulty badges, back link.
+- [x] `frontend/src/app/lessons/[module]/[lesson]/__tests__/LessonView.test.tsx` — 6 tests: no auth gate, lesson heading, description, CTA → /login, difficulty badge, module back link.
+- [x] Full suite: 84 files, 707 tests, 0 failures. `tsc --noEmit` clean.
+
+Risks / gaps
+- Public pages fetch from backend `GET /curriculum` at render time (SSR with 1h revalidation). If the backend is unreachable, the index page shows a soft "temporarily unavailable" message; module/lesson pages 404 via `notFound()`.
+- OG images are text-only (no dynamic `opengraph-image.tsx`). A follow-up could add image cards per ADR-0019 pattern.
+- `llms.txt` (#14) follow-up: `/lessons` + per-lesson URLs should be added to the index once this ships to prod.
+
 ## Issue #689 — [#15 slice 2] Curriculum registry + first module over existing templates (done)
 
 - [x] `backend/app/data/curriculum_registry.py` — static `CURRICULUM` constant: Module 1 "Foundations" with 3 lessons, one per seed template; validated at import time.
