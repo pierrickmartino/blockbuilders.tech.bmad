@@ -336,3 +336,11 @@ components with different lifecycles — keep them apart.
   **Literacy track** unit. Marks *what you've done*, not *what you've
   been taught*. _Avoid_: "lesson" (now reserved for a Literacy track
   unit).
+- **Lesson** — _(on the radar, not built)_ one unit of a **Literacy
+  track**, anchored on a single seed **template**: the user clones it,
+  runs its backtest, and surrounding glossary / strategy-guide content
+  frames the concept that template was built to teach (the template's
+  `teaches_description`). The hands-on backtest *is* the teaching, not
+  a footnote. _Avoid_: equating with a **Milestone** (an activity
+  badge, not a taught unit); a Lesson with no tested idea (the test is
+  the pedagogy).
