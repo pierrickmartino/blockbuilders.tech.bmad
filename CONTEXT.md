@@ -318,3 +318,54 @@ components with different lifecycles — keep them apart.
   backtest or a fired Alert. The *message*, distinct from the
   **Alert** *rule* that produced it. _Avoid_: alert (that is the
   rule), signal.
+- **Literacy track** — _(on the radar, `docs/ACTIONS.md` #15, not
+  built)_ an ordered, content-bearing **curriculum** that ramps a
+  user from intuition toward competence *by testing real ideas*,
+  sequencing existing assets (metrics glossary, strategy guide,
+  contextual tooltips, seed templates, the Narrative /
+  What-you-learned cards) into staged units. Organized as a small
+  set of ordered **Modules**, each holding several template-anchored
+  **Lessons**. Navigation is **open**: ordering supplies a recommended
+  next step plus a progress bar, never a gate — every lesson is a
+  directly-linkable, indexable page (a hard unlock would break both the
+  SEO surface and template-keyed completion, which can land
+  out-of-order). A *taught sequence* — categorically distinct from the
+  **Milestone** surface below (passive activity badges). Full design
+  in **ADR-0020**. _Avoid_: conflating with the `/progress` milestones;
+  "course" / "tutorial" (reserve "Literacy track").
+- **Milestone** — the existing auto-derived, non-persisted boolean
+  signposts on `/progress` (`first_strategy`, `saved_version`,
+  `first_backtest`, `reviewed_results`) plus their threshold
+  **achievement** badges, computed from strategy/backtest counts.
+  Renamed from the code's current "lesson" to free that word for a
+  **Literacy track** unit. Marks *what you've done*, not *what you've
+  been taught*. _Avoid_: "lesson" (now reserved for a Literacy track
+  unit).
+- **Module** — _(on the radar, not built)_ the mid-level grouping of
+  a **Literacy track**: a small set of ordered modules named for the
+  learning arc (intuition → risk & drawdown → playbook), each holding
+  several template-anchored **Lessons**. The track's pedagogical spine
+  and a natural public/SEO landing unit (one page per module);
+  template `difficulty` maps onto module boundaries. Surfaced as a
+  **hybrid** (the **Trust page** / ADR-0017 pattern): the module/lesson
+  *teaching* is a public, indexable content shell readable logged-out
+  (which makes it the public home for the otherwise auth-gated
+  glossary / strategy-guide content — the `docs/ACTIONS.md` #14
+  follow-up), while the clone→backtest action and per-user progress
+  require auth. _Avoid_: "chapter" / "stage" / "section" (reserve
+  "Module"); flattening modules into a single lesson list.
+- **Lesson** — _(on the radar, not built)_ one unit of a **Literacy
+  track**, anchored on a single seed **template**: the user clones it,
+  runs its backtest, and surrounding glossary / strategy-guide content
+  frames the concept that template was built to teach (the template's
+  `teaches_description`). The hands-on backtest *is* the teaching, not
+  a footnote. A Lesson is **complete** when the user first *views the
+  verdict* of a backtest on its template (the `results_viewed` act,
+  attributed **template-keyed** via a strategy's source template — any
+  door counts, not only a track-initiated clone). Completion is
+  **durable and monotonic**: recorded once and surviving later archive
+  / delete of the practice strategy, exactly like **Activation**
+  (never derived from current rows). _Avoid_: equating with a
+  **Milestone** (an activity badge, not a taught unit); a Lesson with
+  no tested idea (the test is the pedagogy); deriving completion on
+  read (it must survive deletion).
