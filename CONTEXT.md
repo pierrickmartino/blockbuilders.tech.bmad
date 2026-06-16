@@ -299,13 +299,17 @@ components with different lifecycles — keep them apart.
   subtypes: a **performance alert** (bound to a strategy, evaluated
   on its scheduled auto re-backtest) and a **price alert** (a bare
   asset+threshold tripwire on spot price, with optional webhook).
-  **Target rules the shipped code does not yet meet:** a performance
-  alert should be *verification-gated* (creatable only for a
-  backtested strategy) and *bound to the frozen Strategy version*
-  that was backtested — not the mutable working copy — and should
-  fire on **closed candles of the backtested timeframe**, so it
-  inherits the engine's trust at both the logic and data levels.
-  Editing the working copy must not change what a live Alert watches.
+  **Target rules the shipped code does not yet meet (#16 hardening):**
+  a performance alert is *result-anchored* — created from the **backtest
+  result page** ("ping me when *this* triggers") and *pinned to the
+  exact frozen Strategy version whose verdict the user is viewing*, not
+  the mutable working copy. This makes it *verification-gated* for free
+  (a result page implies a completed backtest) and makes the trust
+  inheritance literal (it watches the precise version that was
+  believed). It should also fire on **closed candles of the backtested
+  timeframe**, so it inherits the engine's trust at both the logic and
+  data levels. Editing the working copy must not change what a live
+  Alert watches (passive edits never move the pin).
   The bare **price alert** does *not* inherit engine trust (no
   strategy, spot-evaluated) — it is the "blind alert" the brainstorm
   guardrail warns against. **Resolved (#16):** it is walled off as a
