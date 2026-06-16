@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 validate_strategy_drafter_config(settings)
 
 from app.api.alerts import router as alerts_router
+from app.api.curriculum import router as curriculum_router
 from app.api.auth import router as auth_router
 from app.api.backtests import router as backtests_router
 from app.api.backtest_batches import router as backtest_batches_router
@@ -86,6 +87,7 @@ async def correlation_id_middleware(request: Request, call_next) -> Response:
 
 
 app.include_router(health_router)
+app.include_router(curriculum_router)
 app.include_router(auth_router)
 app.include_router(billing_router)
 app.include_router(users_router)
