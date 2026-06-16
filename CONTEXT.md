@@ -318,3 +318,21 @@ components with different lifecycles — keep them apart.
   backtest or a fired Alert. The *message*, distinct from the
   **Alert** *rule* that produced it. _Avoid_: alert (that is the
   rule), signal.
+- **Literacy track** — _(on the radar, `docs/ACTIONS.md` #15, not
+  built)_ an ordered, content-bearing **curriculum** that ramps a
+  user from intuition toward competence *by testing real ideas*,
+  sequencing existing assets (metrics glossary, strategy guide,
+  contextual tooltips, seed templates, the Narrative /
+  What-you-learned cards) into staged units. A *taught sequence* —
+  categorically distinct from the **Milestone** surface below
+  (passive activity badges). _Avoid_: conflating with the
+  `/progress` milestones; "course" / "tutorial" (reserve "Literacy
+  track").
+- **Milestone** — the existing auto-derived, non-persisted boolean
+  signposts on `/progress` (`first_strategy`, `saved_version`,
+  `first_backtest`, `reviewed_results`) plus their threshold
+  **achievement** badges, computed from strategy/backtest counts.
+  Renamed from the code's current "lesson" to free that word for a
+  **Literacy track** unit. Marks *what you've done*, not *what you've
+  been taught*. _Avoid_: "lesson" (now reserved for a Literacy track
+  unit).
