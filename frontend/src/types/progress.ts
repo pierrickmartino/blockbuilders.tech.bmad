@@ -1,13 +1,13 @@
-export interface LessonItem {
+export interface MilestoneItem {
   key: string;
   label: string;
   done: boolean;
 }
 
-export interface LessonsResponse {
+export interface MilestonesResponse {
   total: number;
   completed: number;
-  items: LessonItem[];
+  items: MilestoneItem[];
 }
 
 export interface AchievementItem {
@@ -25,7 +25,7 @@ export interface ProgressResponse {
   strategies_count: number;
   strategy_versions_count: number;
   completed_backtests_count: number;
-  lessons: LessonsResponse;
+  milestones: MilestonesResponse;
   achievements: AchievementsResponse;
   next_steps: string[];
 }

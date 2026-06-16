@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ProgressApiClient, progressKeys } from "@/lib/api/progress-client";
 import * as api from "@/lib/api/internal/fetch";
-import type { ProgressResponse } from "@/types/progress";
+import type { MilestoneItem, ProgressResponse } from "@/types/progress";
 
 vi.mock("@/lib/api/internal/fetch", () => ({
   apiFetch: vi.fn(),
@@ -10,20 +10,21 @@ vi.mock("@/lib/api/internal/fetch", () => ({
 
 const mockApiFetch = vi.mocked(api.apiFetch);
 
+const mockMilestones: MilestoneItem[] = [
+  { key: "first_strategy", label: "Created first strategy", done: true },
+  { key: "saved_version", label: "Saved a strategy version", done: true },
+  { key: "first_backtest", label: "Ran first backtest", done: false },
+  { key: "reviewed_results", label: "Reviewed results", done: false },
+];
+
 const mockProgress: ProgressResponse = {
   strategies_count: 3,
   strategy_versions_count: 7,
   completed_backtests_count: 12,
-  lessons: {
-    total: 5,
+  milestones: {
+    total: 4,
     completed: 2,
-    items: [
-      { key: "first-strategy", label: "Create a strategy", done: true },
-      { key: "first-backtest", label: "Run a backtest", done: true },
-      { key: "publish", label: "Publish a strategy", done: false },
-      { key: "follow", label: "Follow a trader", done: false },
-      { key: "template", label: "Use a template", done: false },
-    ],
+    items: mockMilestones,
   },
   achievements: {
     total: 4,

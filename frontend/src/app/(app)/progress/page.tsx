@@ -163,9 +163,11 @@ export default function ProgressPage() {
     return null;
   }
 
-  const lessonsPct =
-    progress.lessons.total > 0
-      ? Math.round((progress.lessons.completed / progress.lessons.total) * 100)
+  const milestonesPct =
+    progress.milestones.total > 0
+      ? Math.round(
+          (progress.milestones.completed / progress.milestones.total) * 100,
+        )
       : 0;
   const primaryStep = progress.next_steps[0];
   const remainingSteps = progress.next_steps.slice(1);
@@ -212,49 +214,49 @@ export default function ProgressPage() {
           />
         </div>
 
-        {/* Right Column: Lessons & Achievements */}
+        {/* Right Column: Milestones & Achievements */}
         <div className="flex flex-col gap-4">
-          {/* Lessons Card */}
+          {/* Milestones Card */}
           <Card>
             <CardHeader className="space-y-2">
               <CardTitle className="flex items-center gap-2">
                 <Zap className="h-4 w-4" />
-                Lessons Learned
+                Milestones
                 <Badge variant="secondary" className="ml-auto">
-                  {progress.lessons.completed}/{progress.lessons.total}
+                  {progress.milestones.completed}/{progress.milestones.total}
                 </Badge>
               </CardTitle>
               <div
                 className="h-1.5 w-full overflow-hidden rounded-full bg-muted"
                 role="progressbar"
-                aria-valuenow={lessonsPct}
+                aria-valuenow={milestonesPct}
                 aria-valuemin={0}
                 aria-valuemax={100}
-                aria-label="Lessons completed"
+                aria-label="Milestones completed"
               >
                 <div
                   className="h-full rounded-full bg-primary transition-all"
-                  style={{ width: `${lessonsPct}%` }}
+                  style={{ width: `${milestonesPct}%` }}
                 />
               </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {progress.lessons.items.map((lesson) => (
-                  <div key={lesson.key} className="flex items-center gap-3">
-                    {lesson.done ? (
+                {progress.milestones.items.map((milestone) => (
+                  <div key={milestone.key} className="flex items-center gap-3">
+                    {milestone.done ? (
                       <CheckCircle2 className="h-5 w-5 text-[hsl(var(--success))]" />
                     ) : (
                       <Circle className="h-5 w-5 text-muted-foreground" />
                     )}
                     <span
                       className={
-                        lesson.done
+                        milestone.done
                           ? "text-sm font-medium"
                           : "text-sm text-muted-foreground"
                       }
                     >
-                      {lesson.label}
+                      {milestone.label}
                     </span>
                   </div>
                 ))}

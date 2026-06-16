@@ -10,8 +10,8 @@ from app.models.user import User
 from app.schemas.progress import (
     AchievementItem,
     AchievementsResponse,
-    LessonItem,
-    LessonsResponse,
+    MilestoneItem,
+    MilestonesResponse,
     ProgressResponse,
 )
 
@@ -48,30 +48,30 @@ def get_progress(
         )
     ).one()
 
-    # Compute lessons (4 boolean milestones)
-    lessons = [
-        LessonItem(
+    # Compute milestones (4 boolean checkpoints)
+    milestones = [
+        MilestoneItem(
             key="first_strategy",
             label="Created first strategy",
             done=strategies_count >= 1,
         ),
-        LessonItem(
+        MilestoneItem(
             key="saved_version",
             label="Saved a strategy version",
             done=strategy_versions_count >= 1,
         ),
-        LessonItem(
+        MilestoneItem(
             key="first_backtest",
             label="Ran first backtest",
             done=completed_backtests_count >= 1,
         ),
-        LessonItem(
+        MilestoneItem(
             key="reviewed_results",
             label="Reviewed results",
             done=completed_backtests_count >= 1,
         ),
     ]
-    completed_lessons = sum(1 for lesson in lessons if lesson.done)
+    completed_milestones = sum(1 for m in milestones if m.done)
 
     def get_nth_created_at(model, where_clauses, threshold):
         if threshold < 1:
@@ -191,10 +191,10 @@ def get_progress(
         strategies_count=strategies_count,
         strategy_versions_count=strategy_versions_count,
         completed_backtests_count=completed_backtests_count,
-        lessons=LessonsResponse(
-            total=len(lessons),
-            completed=completed_lessons,
-            items=lessons,
+        milestones=MilestonesResponse(
+            total=len(milestones),
+            completed=completed_milestones,
+            items=milestones,
         ),
         achievements=AchievementsResponse(
             total=len(achievements_list),
