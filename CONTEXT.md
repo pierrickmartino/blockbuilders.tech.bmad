@@ -355,6 +355,13 @@ components with different lifecycles — keep them apart.
   runs its backtest, and surrounding glossary / strategy-guide content
   frames the concept that template was built to teach (the template's
   `teaches_description`). The hands-on backtest *is* the teaching, not
-  a footnote. _Avoid_: equating with a **Milestone** (an activity
-  badge, not a taught unit); a Lesson with no tested idea (the test is
-  the pedagogy).
+  a footnote. A Lesson is **complete** when the user first *views the
+  verdict* of a backtest on its template (the `results_viewed` act,
+  attributed **template-keyed** via a strategy's source template — any
+  door counts, not only a track-initiated clone). Completion is
+  **durable and monotonic**: recorded once and surviving later archive
+  / delete of the practice strategy, exactly like **Activation**
+  (never derived from current rows). _Avoid_: equating with a
+  **Milestone** (an activity badge, not a taught unit); a Lesson with
+  no tested idea (the test is the pedagogy); deriving completion on
+  read (it must survive deletion).
