@@ -214,6 +214,7 @@ class StrategyResponse(BaseModel):
     asset: str
     timeframe: str
     entry_path: Optional[StrategyEntryPath] = None
+    source_template_id: Optional[UUID] = None
     is_archived: bool
     auto_update_enabled: bool
     auto_update_lookback_days: int
