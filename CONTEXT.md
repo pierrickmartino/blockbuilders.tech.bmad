@@ -330,9 +330,9 @@ components with different lifecycles — keep them apart.
   directly-linkable, indexable page (a hard unlock would break both the
   SEO surface and template-keyed completion, which can land
   out-of-order). A *taught sequence* — categorically distinct from the
-  **Milestone** surface below (passive activity badges). _Avoid_:
-  conflating with the `/progress` milestones; "course" / "tutorial"
-  (reserve "Literacy track").
+  **Milestone** surface below (passive activity badges). Full design
+  in **ADR-0020**. _Avoid_: conflating with the `/progress` milestones;
+  "course" / "tutorial" (reserve "Literacy track").
 - **Milestone** — the existing auto-derived, non-persisted boolean
   signposts on `/progress` (`first_strategy`, `saved_version`,
   `first_backtest`, `reviewed_results`) plus their threshold
