@@ -323,11 +323,12 @@ components with different lifecycles — keep them apart.
   user from intuition toward competence *by testing real ideas*,
   sequencing existing assets (metrics glossary, strategy guide,
   contextual tooltips, seed templates, the Narrative /
-  What-you-learned cards) into staged units. A *taught sequence* —
-  categorically distinct from the **Milestone** surface below
-  (passive activity badges). _Avoid_: conflating with the
-  `/progress` milestones; "course" / "tutorial" (reserve "Literacy
-  track").
+  What-you-learned cards) into staged units. Organized as a small
+  set of ordered **Modules**, each holding several template-anchored
+  **Lessons**. A *taught sequence* — categorically distinct from the
+  **Milestone** surface below (passive activity badges). _Avoid_:
+  conflating with the `/progress` milestones; "course" / "tutorial"
+  (reserve "Literacy track").
 - **Milestone** — the existing auto-derived, non-persisted boolean
   signposts on `/progress` (`first_strategy`, `saved_version`,
   `first_backtest`, `reviewed_results`) plus their threshold
@@ -336,6 +337,14 @@ components with different lifecycles — keep them apart.
   **Literacy track** unit. Marks *what you've done*, not *what you've
   been taught*. _Avoid_: "lesson" (now reserved for a Literacy track
   unit).
+- **Module** — _(on the radar, not built)_ the mid-level grouping of
+  a **Literacy track**: a small set of ordered modules named for the
+  learning arc (intuition → risk & drawdown → playbook), each holding
+  several template-anchored **Lessons**. The track's pedagogical spine
+  and a natural public/SEO landing unit (one page per module);
+  template `difficulty` maps onto module boundaries. _Avoid_:
+  "chapter" / "stage" / "section" (reserve "Module"); flattening
+  modules into a single lesson list.
 - **Lesson** — _(on the radar, not built)_ one unit of a **Literacy
   track**, anchored on a single seed **template**: the user clones it,
   runs its backtest, and surrounding glossary / strategy-guide content
