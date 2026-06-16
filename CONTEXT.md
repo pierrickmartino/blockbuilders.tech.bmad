@@ -325,7 +325,11 @@ components with different lifecycles — keep them apart.
   contextual tooltips, seed templates, the Narrative /
   What-you-learned cards) into staged units. Organized as a small
   set of ordered **Modules**, each holding several template-anchored
-  **Lessons**. A *taught sequence* — categorically distinct from the
+  **Lessons**. Navigation is **open**: ordering supplies a recommended
+  next step plus a progress bar, never a gate — every lesson is a
+  directly-linkable, indexable page (a hard unlock would break both the
+  SEO surface and template-keyed completion, which can land
+  out-of-order). A *taught sequence* — categorically distinct from the
   **Milestone** surface below (passive activity badges). _Avoid_:
   conflating with the `/progress` milestones; "course" / "tutorial"
   (reserve "Literacy track").
