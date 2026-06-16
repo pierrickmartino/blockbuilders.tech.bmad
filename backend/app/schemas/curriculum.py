@@ -1,3 +1,5 @@
+from typing import Optional
+
 from pydantic import BaseModel
 
 
@@ -6,6 +8,7 @@ class LessonResponse(BaseModel):
     title: str
     description: str
     template_name: str
+    template_id: Optional[str] = None
     difficulty: str
     order: int
 
