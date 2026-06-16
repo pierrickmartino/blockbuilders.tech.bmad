@@ -29,6 +29,7 @@ import { useBacktestResults } from "@/hooks/useBacktestResults";
 import { useBatchBacktestResults } from "@/hooks/useBatchBacktestResults";
 import { useRestoreSnapshot } from "@/hooks/useRestoreSnapshot";
 import { useResultViewedTracking } from "@/hooks/useResultViewedTracking";
+import { useLessonCompletion } from "@/hooks/useLessonCompletion";
 import { useDraftReviewState } from "@/hooks/useDraftReviewState";
 import { useDeferredDelete } from "@/hooks/useDeferredDelete";
 import { useExitGuard } from "@/hooks/useExitGuard";
@@ -762,6 +763,14 @@ export default function StrategyBacktestPage({ params }: Props) {
     strategyId: id,
     entryPath: strategy?.entry_path ?? null,
     userId: user?.id,
+  });
+
+  // Literacy track completion (slice #695): fires POST /lesson-completion/record
+  // once per run when the verdict is viewed. Non-critical — swallows errors.
+  useLessonCompletion({
+    strategyId: id,
+    runId: selectedRunId,
+    status: strategy ? selectedRun?.status ?? null : null,
   });
 
   // NL-wedge review surface (ADR-0012, Module B): Accept keeps the strategy

@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { Blocks, ChevronLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import type { LessonResponse, ModuleResponse } from "@/types/curriculum";
+import { TestThisIdeaButton } from "./TestThisIdeaButton";
 
 interface Props {
   lesson: LessonResponse;
@@ -58,9 +58,7 @@ export function LessonView({ lesson, module: mod }: Props) {
                 template, run a backtest, and see the results live.
               </p>
             </div>
-            <Button asChild className="shrink-0">
-              <Link href="/login">Sign in to test</Link>
-            </Button>
+            <TestThisIdeaButton templateId={lesson.template_id} />
           </CardContent>
         </Card>
 

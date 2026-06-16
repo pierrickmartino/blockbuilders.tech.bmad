@@ -1,8 +1,19 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { LessonView } from "@/app/lessons/[module]/[lesson]/_components/LessonView";
 import type { LessonResponse, ModuleResponse } from "@/types/curriculum";
+
+vi.mock(
+  "@/app/lessons/[module]/[lesson]/_components/TestThisIdeaButton",
+  () => ({
+    TestThisIdeaButton: ({ templateId }: { templateId: string | null }) => (
+      <div data-testid="test-this-idea-button" data-template-id={templateId ?? ""}>
+        TestThisIdeaButton
+      </div>
+    ),
+  })
+);
 
 const mockLesson: LessonResponse = {
   id: "lesson-1-rsi",
@@ -10,6 +21,7 @@ const mockLesson: LessonResponse = {
   description:
     "Understand momentum indicators and how oversold/overbought zones signal reversals.",
   template_name: "RSI Oversold Bounce",
+  template_id: "tmpl-rsi-uuid",
   difficulty: "beginner",
   order: 1,
 };
@@ -50,13 +62,6 @@ describe("LessonView — public lesson page (#692)", () => {
     ).toBeInTheDocument();
   });
 
-  it("shows a 'sign in to test' CTA that links to /login", () => {
-    render(<LessonView lesson={mockLesson} module={mockModule} />);
-
-    const cta = screen.getByRole("link", { name: /sign in to test/i });
-    expect(cta).toHaveAttribute("href", "/login");
-  });
-
   it("renders the difficulty badge", () => {
     render(<LessonView lesson={mockLesson} module={mockModule} />);
 
@@ -71,5 +76,21 @@ describe("LessonView — public lesson page (#692)", () => {
       "href",
       "/lessons/module-1-foundations"
     );
+  });
+
+  it("renders TestThisIdeaButton with the lesson template_id", () => {
+    render(<LessonView lesson={mockLesson} module={mockModule} />);
+
+    const button = screen.getByTestId("test-this-idea-button");
+    expect(button).toBeInTheDocument();
+    expect(button).toHaveAttribute("data-template-id", "tmpl-rsi-uuid");
+  });
+
+  it("passes null template_id to TestThisIdeaButton when template_id is null", () => {
+    const lessonWithoutTemplate: LessonResponse = { ...mockLesson, template_id: null };
+    render(<LessonView lesson={lessonWithoutTemplate} module={mockModule} />);
+
+    const button = screen.getByTestId("test-this-idea-button");
+    expect(button).toHaveAttribute("data-template-id", "");
   });
 });

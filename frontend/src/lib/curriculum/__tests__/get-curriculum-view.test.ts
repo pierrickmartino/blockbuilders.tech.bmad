@@ -15,6 +15,7 @@ const mockCurriculum: CurriculumResponse = {
           title: "RSI Oversold Bounce",
           description: "Understand momentum indicators.",
           template_name: "RSI Oversold Bounce",
+          template_id: null,
           difficulty: "beginner",
           order: 1,
         },
