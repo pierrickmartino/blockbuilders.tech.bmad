@@ -308,8 +308,11 @@ components with different lifecycles — keep them apart.
   Editing the working copy must not change what a live Alert watches.
   The bare **price alert** does *not* inherit engine trust (no
   strategy, spot-evaluated) — it is the "blind alert" the brainstorm
-  guardrail warns against; treat it as a separate un-verified product
-  or gate it. _Avoid_: signal (reserved for the internal port/block
+  guardrail warns against. **Resolved (#16):** it is walled off as a
+  separate un-verified product, *not* folded into the trust story and
+  *not* gated on a backtest (gating a spot tripwire on a backtest is
+  incoherent — there is no strategy to verify). #16 hardens only the
+  **performance alert**. _Avoid_: signal (reserved for the internal port/block
   concept), trigger (use "Alert" for the rule, "fires" for the
   event), notification (that is the delivered message, not the rule),
   webhook (one delivery channel, not the concept).
