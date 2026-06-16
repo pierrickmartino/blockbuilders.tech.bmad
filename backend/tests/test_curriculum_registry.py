@@ -1,5 +1,7 @@
 """Tests for curriculum registry well-formedness validation."""
 
+from app.data.curriculum_registry import CURRICULUM
+from app.data.strategy_templates import TEMPLATES
 from app.services.curriculum_validation import validate_registry
 
 KNOWN_TEMPLATES = {"RSI Oversold Bounce", "MA Crossover", "Bollinger Breakout"}
@@ -172,3 +174,93 @@ def test_duplicate_module_order_fails():
         assert False, "Expected ValueError"
     except ValueError as exc:
         assert "order" in str(exc).lower()
+
+
+# ---------------------------------------------------------------------------
+# Full-curriculum structural tests (RED until 3-module arc is implemented)
+# ---------------------------------------------------------------------------
+
+_ALL_TEMPLATE_NAMES = {t["name"] for t in TEMPLATES}
+
+
+def test_curriculum_has_three_modules():
+    assert len(CURRICULUM["modules"]) == 3
+
+
+def test_curriculum_has_twelve_lessons():
+    total = sum(len(m["lessons"]) for m in CURRICULUM["modules"])
+    assert total == 12
+
+
+def test_module_1_id_and_order():
+    m = CURRICULUM["modules"][0]
+    assert m["id"] == "module-1-foundations"
+    assert m["order"] == 1
+
+
+def test_module_2_id_and_order():
+    m = CURRICULUM["modules"][1]
+    assert m["id"] == "module-2-risk-drawdown"
+    assert m["order"] == 2
+
+
+def test_module_3_id_and_order():
+    m = CURRICULUM["modules"][2]
+    assert m["id"] == "module-3-playbook"
+    assert m["order"] == 3
+
+
+def test_module_1_has_four_lessons():
+    m = next(m for m in CURRICULUM["modules"] if m["id"] == "module-1-foundations")
+    assert len(m["lessons"]) == 4
+
+
+def test_module_2_has_four_lessons():
+    m = next(m for m in CURRICULUM["modules"] if m["id"] == "module-2-risk-drawdown")
+    assert len(m["lessons"]) == 4
+
+
+def test_module_3_has_four_lessons():
+    m = next(m for m in CURRICULUM["modules"] if m["id"] == "module-3-playbook")
+    assert len(m["lessons"]) == 4
+
+
+def test_all_lesson_template_names_exist_in_TEMPLATES():
+    for module in CURRICULUM["modules"]:
+        for lesson in module["lessons"]:
+            assert lesson["template_name"] in _ALL_TEMPLATE_NAMES, (
+                f"Lesson {lesson['id']!r} references unknown template {lesson['template_name']!r}"
+            )
+
+
+def test_lesson_orders_are_unique_within_each_module():
+    for module in CURRICULUM["modules"]:
+        orders = [l["order"] for l in module["lessons"]]
+        assert len(orders) == len(set(orders)), f"Duplicate lesson orders in {module['id']!r}"
+
+
+def test_module_lesson_ids_are_globally_unique():
+    seen = set()
+    for module in CURRICULUM["modules"]:
+        for lesson in module["lessons"]:
+            assert lesson["id"] not in seen, f"Duplicate lesson id {lesson['id']!r}"
+            seen.add(lesson["id"])
+
+
+def test_all_literacy_templates_exist_in_TEMPLATES():
+    expected = {
+        "RSI Oversold Bounce",
+        "MA Crossover",
+        "Bollinger Breakout",
+        "EMA Trend Following",
+        "MACD Histogram Cross",
+        "Stochastic Oversold Bounce",
+        "ADX Directional Filter",
+        "Price Variation Momentum",
+        "Stochastic + RSI Double Oversold",
+        "Bollinger + RSI Reversal",
+        "EMA + RSI Confirmation",
+        "MACD + ADX Dual Filter",
+    }
+    for name in expected:
+        assert name in _ALL_TEMPLATE_NAMES, f"Template {name!r} missing from TEMPLATES"
