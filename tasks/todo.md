@@ -1,5 +1,23 @@
 # Tasks — in flight
 
+## Issue #689 — [#15 slice 2] Curriculum registry + first module over existing templates (done)
+
+- [x] `backend/app/data/curriculum_registry.py` — static `CURRICULUM` constant: Module 1 "Foundations" with 3 lessons, one per seed template; validated at import time.
+- [x] `backend/app/services/curriculum_validation.py` — `validate_registry(registry, known_template_names)`: checks missing-template, duplicate lesson order, duplicate module order, duplicate template assignment.
+- [x] `backend/app/schemas/curriculum.py` — Pydantic response types: `LessonResponse`, `ModuleResponse`, `CurriculumResponse`.
+- [x] `backend/app/api/curriculum.py` — `GET /curriculum` router; public, no auth required; returns static registry.
+- [x] `backend/app/main.py` — wired `curriculum_router`.
+
+Tests
+- [x] `backend/tests/test_curriculum_registry.py` — 5 validation unit tests (valid passes, missing-template, duplicate lesson order, duplicate template, duplicate module order).
+- [x] `backend/tests/api/test_curriculum_endpoint.py` — 3 endpoint tests (200, shape, template names match seeds).
+- [x] Full suite: 1069 passed, 0 failures.
+
+Risks / gaps
+- No Alembic migration needed — registry is fully static (no new DB table).
+- Lesson completion tracking (`LessonCompletion` table) is a separate slice per ADR-0020.
+- Frontend literacy pages (public server-rendered module/lesson pages) are out of scope for this slice.
+
 ## Issue #682 — PRD: llms.txt index for agent-legibility (ACTIONS #14) (done)
 
 - [x] `frontend/src/app/llms.txt/build-llms-txt.ts` (new) — pure `buildLlmsTxt(origin: string): string`, llmstxt.org format: H1 `# Blockbuilders`, blockquote summary, trust-invariant paragraph (signals-only, never takes custody, never trades, OHLCV-only, no look-ahead, next-candle-open), `## Docs` link list (`${origin}/`, `${origin}/how-backtests-work`).
