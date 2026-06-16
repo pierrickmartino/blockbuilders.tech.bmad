@@ -1,16 +1,16 @@
 from pydantic import BaseModel
 
 
-class LessonItem(BaseModel):
+class MilestoneItem(BaseModel):
     key: str
     label: str
     done: bool
 
 
-class LessonsResponse(BaseModel):
+class MilestonesResponse(BaseModel):
     total: int
     completed: int
-    items: list[LessonItem]
+    items: list[MilestoneItem]
 
 
 class AchievementItem(BaseModel):
@@ -28,6 +28,6 @@ class ProgressResponse(BaseModel):
     strategies_count: int
     strategy_versions_count: int
     completed_backtests_count: int
-    lessons: LessonsResponse
+    milestones: MilestonesResponse
     achievements: AchievementsResponse
     next_steps: list[str]
