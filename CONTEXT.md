@@ -292,7 +292,7 @@ components with different lifecycles — keep them apart.
   `signal`, …). Currently implicit; candidate for a small shared
   module.
 - **Alert** — a user-configured rule that fires a **Notification**
-  (and optionally a webhook export to an execution platform) when a
+  (and optionally an **Execution handoff** webhook) when a
   condition is met. The shipped "signals-only / no custody" surface
   (`alert_rules` table, `AlertsApiClient`): Blockbuilders never
   trades, an Alert only pings the user / hands off elsewhere. Two
@@ -333,6 +333,22 @@ components with different lifecycles — keep them apart.
   backtest or a fired Alert. The *message*, distinct from the
   **Alert** *rule* that produced it. _Avoid_: alert (that is the
   rule), signal.
+- **Execution handoff** — the optional outbound webhook channel on a
+  **performance alert** (`docs/ACTIONS.md` #17): when the pinned
+  **Strategy version** fires on a closed candle, Blockbuilders POSTs a
+  *signal-framed* JSON event (asset, timeframe, `event` =
+  entry/exit/drawdown, the closed-candle timestamp, strategy name, a
+  result link) to a user-supplied URL — **never an order** (no
+  side/size/leverage/price target), so "the hand-off, never the trade"
+  stays literally true. A third delivery channel beside in-app and
+  email, riding the #16/ADR-0021 firing decision; one POST per discrete
+  event (not coalesced like the human-facing Notification),
+  fire-and-forget. Generic (any inbound-webhook sink: 3Commas, Cornix,
+  relays) — **not** TradingView (a webhook *source*, not a sink) and
+  **not** a downloadable artifact. Full design in **ADR-0022**.
+  _Avoid_: "export" (the stale #17 title — implies a downloadable
+  Pine/CSV artifact this is not); order, trade signal; folding it into
+  the un-verified bare price-alert webhook.
 - **Literacy track** — _(on the radar, `docs/ACTIONS.md` #15, not
   built)_ an ordered, content-bearing **curriculum** that ramps a
   user from intuition toward competence *by testing real ideas*,
