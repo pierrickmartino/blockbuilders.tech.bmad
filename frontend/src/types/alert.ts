@@ -34,7 +34,7 @@ export interface AlertRule {
 
 export interface CreatePerformanceAlertRequest {
   alert_type: "performance";
-  strategy_id: string;
+  backtest_run_id: string;
   threshold_pct: number | null;
   alert_on_entry: boolean;
   alert_on_exit: boolean;

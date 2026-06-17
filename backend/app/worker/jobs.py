@@ -31,7 +31,11 @@ from app.backtest.errors import BacktestError, StrategyInvalidError
 from app.schemas.strategy import StrategyDefinitionValidate
 from app.services.alert_evaluator import evaluate_alerts_for_run
 from app.services.candle_boundary import last_closed_1d_candle_ts
-from app.services.performance_alert_decision import decide_entry_alert
+from app.services.performance_alert_decision import (
+    decide_entry_alert,
+    decide_exit_alert,
+    decide_drawdown_alert,
+)
 from app.services.spot_price_cache import SpotPriceCache
 from app.services.analytics import track_backend_event, flush_backend_events
 from app.services.strategy_validation import validate_strategy
@@ -340,9 +344,9 @@ def run_backtest_job(
                     # Evaluate old-style performance alerts (no version pin)
                     evaluate_alerts_for_run(run, session)
 
-                # If this was an alert-dispatched run, evaluate the pinned-version decision
+                # If this was an alert-dispatched run, evaluate all pinned-version conditions
                 if run.triggered_by == "alert":
-                    _evaluate_pinned_alert_entry(run, session)
+                    _evaluate_pinned_alert(run, session)
 
                 # Mark user as onboarded on first completed backtest
                 onboarding_user = session.get(User, run.user_id)
@@ -411,12 +415,13 @@ def run_backtest_job(
         flush_backend_events(shutdown=True)
 
 
-def _evaluate_pinned_alert_entry(run: BacktestRun, session: Session) -> None:
+def _evaluate_pinned_alert(run: BacktestRun, session: Session) -> None:
     """Post-completion hook for triggered_by='alert' runs.
 
-    Fetches trades from S3, runs the pure decision function against the alert's
-    watermark, creates a Notification if an entry fired, and advances the
-    watermark regardless of whether a fire occurred.
+    Evaluates entry, exit, and drawdown crossing conditions against the alert's
+    pinned version. Reads the watermark once before any condition updates it so
+    entry and exit are always checked against the same baseline candle boundary.
+    Creates one combined in-app notification if any condition fired.
     """
     from app.backtest.storage import download_json as _download_json
 
@@ -430,28 +435,62 @@ def _evaluate_pinned_alert_entry(run: BacktestRun, session: Session) -> None:
     if not rule or rule.strategy_version_id is None:
         return
 
+    # Snapshot watermark and drawdown state before any mutation
     watermark = _as_utc_datetime(rule.last_fired_candle_ts)
+    last_drawdown_pct = rule.last_drawdown_pct
 
     trades: list[dict] = []
-    if run.trades_key:
+    if run.trades_key and (rule.alert_on_entry or rule.alert_on_exit):
         try:
             trades = _download_json(run.trades_key) or []
         except Exception as exc:
             logger.warning("alert_trades_fetch_failed", extra={"error": str(exc)})
 
-    decision = decide_entry_alert(trades, watermark, run.date_to)
+    equity_curve: list[dict] = []
+    if run.equity_curve_key and rule.threshold_pct is not None:
+        try:
+            equity_curve = _download_json(run.equity_curve_key) or []
+        except Exception as exc:
+            logger.warning("alert_equity_fetch_failed", extra={"error": str(exc)})
 
-    if decision.fired_events:
+    reasons: list[str] = []
+
+    if rule.alert_on_entry:
+        entry_result = decide_entry_alert(trades, watermark, run.date_to)
+        if entry_result.fired_events:
+            reasons.append(
+                f"entered a position on {entry_result.fired_events[0].entry_time.date()}"
+            )
+
+    if rule.alert_on_exit:
+        exit_result = decide_exit_alert(trades, watermark, run.date_to)
+        if exit_result.fired_events:
+            ev = exit_result.fired_events[0]
+            reason_label = _format_exit_reason(ev.exit_reason)
+            reasons.append(f"exited a position on {ev.exit_time.date()} ({reason_label})")
+
+    new_drawdown_pct = last_drawdown_pct
+    if rule.threshold_pct is not None:
+        dd_result = decide_drawdown_alert(equity_curve, rule.threshold_pct, last_drawdown_pct)
+        new_drawdown_pct = dd_result.current_drawdown_pct
+        if dd_result.fired:
+            reasons.append(
+                f"drawdown {dd_result.current_drawdown_pct:.1f}% crossed threshold"
+                f" {rule.threshold_pct}%"
+            )
+
+    if reasons:
         strategy = session.exec(
             select(Strategy).where(Strategy.id == run.strategy_id)
         ).first()
         strategy_name = strategy.name if strategy else str(run.strategy_id)
+        reasons_text = "; ".join(reasons)
 
         notification = Notification(
             user_id=run.user_id,
             type="performance_alert",
             title="Performance alert triggered",
-            body=f'"{strategy_name}" entered a position on {decision.fired_events[0].entry_time.date()}.',
+            body=f'"{strategy_name}" {reasons_text}.',
             link_url=f"/strategies/{run.strategy_id}/backtest?run={run.id}",
         )
         session.add(notification)
@@ -470,26 +509,48 @@ def _evaluate_pinned_alert_entry(run: BacktestRun, session: Session) -> None:
                         "to": [user.email],
                         "subject": f"Performance alert triggered — {strategy_name}",
                         "html": (
-                            f"<p>Your strategy <strong>{strategy_name}</strong> entered "
-                            f"a position on {decision.fired_events[0].entry_time.date()}.</p>"
+                            f"<p>Your strategy <strong>{strategy_name}</strong>:</p>"
+                            f"<ul>{''.join(f'<li>{r}</li>' for r in reasons)}</ul>"
                             f'<p><a href="{strategy_url}">View backtest results</a></p>'
                         ),
                     })
             except Exception as exc:
                 logger.error("alert_email_failed", extra={"error": str(exc)})
 
-    # Always advance watermark so the same candle never re-fires
-    rule.last_fired_candle_ts = decision.new_watermark
+    # Always advance watermark and update drawdown state
+    new_watermark = _utc_now_for_watermark(run.date_to)
+    rule.last_fired_candle_ts = new_watermark
+    rule.last_drawdown_pct = new_drawdown_pct
     rule.updated_at = datetime.now(timezone.utc)
     session.add(rule)
     logger.info(
         "pinned_alert_evaluated",
         extra={
             "rule_id": str(rule.id),
-            "fired": bool(decision.fired_events),
-            "new_watermark": str(decision.new_watermark.date()),
+            "fired_count": len(reasons),
+            "new_watermark": str(new_watermark.date()),
         },
     )
+
+
+def _format_exit_reason(reason: Any) -> str:
+    reason_map = {
+        "signal": "signal",
+        "tp": "take profit",
+        "sl": "stop loss",
+        "trailing_stop": "trailing stop",
+        "time_exit": "time exit",
+        "max_dd": "max drawdown",
+    }
+    if not isinstance(reason, str):
+        return "unknown"
+    return reason_map.get(reason, reason.replace("_", " "))
+
+
+def _utc_now_for_watermark(run_date_to: datetime) -> datetime:
+    if run_date_to.tzinfo is None:
+        return run_date_to.replace(tzinfo=timezone.utc)
+    return run_date_to.astimezone(timezone.utc)
 
 
 def evaluate_performance_alerts_daily() -> None:
@@ -512,15 +573,21 @@ def evaluate_performance_alerts_daily() -> None:
     cutoff_ts = last_closed_1d_candle_ts()
 
     with Session(engine) as session:
+        from sqlalchemy import or_
+
         alerts = session.exec(
             select(AlertRule)
             .join(Strategy, AlertRule.strategy_id == Strategy.id)
             .where(
                 AlertRule.is_active == True,  # noqa: E712
                 AlertRule.alert_type == AlertType.PERFORMANCE,
-                AlertRule.alert_on_entry == True,  # noqa: E712
                 AlertRule.strategy_version_id.isnot(None),
                 Strategy.timeframe == "1d",
+                or_(
+                    AlertRule.alert_on_entry == True,  # noqa: E712
+                    AlertRule.alert_on_exit == True,  # noqa: E712
+                    AlertRule.threshold_pct.isnot(None),
+                ),
             )
         ).all()
 

@@ -68,7 +68,7 @@ describe("AlertsApiClient", () => {
     it("calls POST /alerts/ with the request body", async () => {
       const req: CreateAlertRequest = {
         alert_type: "performance",
-        strategy_id: "strat-1",
+        backtest_run_id: "run-1",
         threshold_pct: 5,
         alert_on_entry: true,
         alert_on_exit: false,
