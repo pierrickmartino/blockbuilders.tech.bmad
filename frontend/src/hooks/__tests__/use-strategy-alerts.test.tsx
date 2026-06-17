@@ -89,6 +89,8 @@ describe("useStrategyAlerts", () => {
       alert_on_entry: true,
       alert_on_exit: false,
       notify_email: true,
+      notify_webhook: false,
+      webhook_url: undefined,
       is_active: true,
     });
   });

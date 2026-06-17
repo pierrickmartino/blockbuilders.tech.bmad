@@ -44,6 +44,9 @@ class AlertRuleCreate(BaseModel):
             # Price fields not allowed
             if self.asset or self.direction or self.threshold_price:
                 raise ValueError("price fields not allowed for performance alerts")
+            # Webhook URL required if notify_webhook enabled
+            if self.notify_webhook and not self.webhook_url:
+                raise ValueError("webhook_url required when notify_webhook is true")
 
         elif self.alert_type == AlertType.PRICE:
             # Price alerts require asset, direction, and threshold_price

@@ -221,6 +221,10 @@ def create_alert(
             response.status_code = status.HTTP_200_OK
             return _map_to_response(existing, _compute_is_stale(existing, session))
 
+        # Validate webhook URL to prevent SSRF
+        if data.notify_webhook and data.webhook_url:
+            validate_webhook_url(data.webhook_url)
+
         # Create performance alert rule pinned to the exact strategy version
         rule = AlertRule(
             user_id=user.id,
@@ -231,6 +235,8 @@ def create_alert(
             alert_on_entry=data.alert_on_entry,
             alert_on_exit=data.alert_on_exit,
             notify_email=data.notify_email,
+            notify_webhook=data.notify_webhook,
+            webhook_url=data.webhook_url,
             is_active=data.is_active,
         )
 
@@ -278,6 +284,11 @@ def update_alert(
             rule.alert_on_entry = data.alert_on_entry
         if data.alert_on_exit is not None:
             rule.alert_on_exit = data.alert_on_exit
+        if data.notify_webhook is not None:
+            rule.notify_webhook = data.notify_webhook
+        if data.webhook_url is not None:
+            validate_webhook_url(data.webhook_url)
+            rule.webhook_url = data.webhook_url
 
     elif rule.alert_type == AlertType.PRICE:
         if data.threshold_price is not None:

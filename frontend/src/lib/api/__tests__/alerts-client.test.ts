@@ -73,6 +73,7 @@ describe("AlertsApiClient", () => {
         alert_on_entry: true,
         alert_on_exit: false,
         notify_email: false,
+        notify_webhook: false,
         is_active: true,
       };
       mockApiFetch.mockResolvedValueOnce(mockAlert);
