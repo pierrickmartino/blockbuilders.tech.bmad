@@ -5,7 +5,7 @@ from typing import Optional
 from urllib.parse import urlparse
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlmodel import Session, select
 
 from app.api.deps import get_current_user
@@ -13,6 +13,7 @@ from app.core.database import get_session
 from app.models.alert_rule import AlertRule, AlertType
 from app.models.backtest_run import BacktestRun
 from app.models.strategy import Strategy
+from app.models.strategy_version import StrategyVersion
 from app.models.user import User
 from app.schemas.alert import (
     AlertRuleCreate,
@@ -107,7 +108,19 @@ def get_user_alert_rule(
     return rule
 
 
-def _map_to_response(rule: AlertRule) -> AlertRuleResponse:
+def _compute_is_stale(alert: AlertRule, session: Session) -> bool:
+    """Return True if the alert's pinned version is not the latest for its strategy."""
+    if alert.alert_type != AlertType.PERFORMANCE or alert.strategy_version_id is None:
+        return False
+    latest = session.exec(
+        select(StrategyVersion)
+        .where(StrategyVersion.strategy_id == alert.strategy_id)
+        .order_by(StrategyVersion.version_number.desc())
+    ).first()
+    return latest is not None and latest.id != alert.strategy_version_id
+
+
+def _map_to_response(rule: AlertRule, is_stale: bool = False) -> AlertRuleResponse:
     """Map AlertRule model to response schema."""
     return AlertRuleResponse(
         id=rule.id,
@@ -131,6 +144,7 @@ def _map_to_response(rule: AlertRule) -> AlertRuleResponse:
         notify_in_app=rule.notify_in_app,
         notify_email=rule.notify_email,
         is_active=rule.is_active,
+        is_stale=is_stale,
         last_triggered_at=rule.last_triggered_at,
         created_at=rule.created_at,
         updated_at=rule.updated_at,
@@ -148,12 +162,13 @@ def list_alerts(
     if alert_type:
         query = query.where(AlertRule.alert_type == alert_type)
     rules = session.exec(query).all()
-    return [_map_to_response(rule) for rule in rules]
+    return [_map_to_response(rule, _compute_is_stale(rule, session)) for rule in rules]
 
 
 @router.post("/", response_model=AlertRuleResponse, status_code=status.HTTP_201_CREATED)
 def create_alert(
     data: AlertRuleCreate,
+    response: Response,
     user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
 ) -> AlertRuleResponse:
@@ -186,7 +201,9 @@ def create_alert(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Strategy not found"
             )
 
-        # Check for duplicate active rule (one active performance alert per strategy)
+        # Re-pin if an active performance alert already exists for this strategy.
+        # Deliberate re-pin (from a new backtest result) replaces the existing pin
+        # rather than accumulating per-version duplicates.
         existing = session.exec(
             select(AlertRule).where(
                 AlertRule.strategy_id == run.strategy_id,
@@ -195,10 +212,14 @@ def create_alert(
             )
         ).first()
         if existing:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="Active performance alert already exists for this strategy",
-            )
+            existing.strategy_version_id = run.strategy_version_id
+            existing.last_fired_candle_ts = None  # Reset watermark for the new pin
+            existing.updated_at = datetime.now(timezone.utc)
+            session.add(existing)
+            session.commit()
+            session.refresh(existing)
+            response.status_code = status.HTTP_200_OK
+            return _map_to_response(existing, _compute_is_stale(existing, session))
 
         # Create performance alert rule pinned to the exact strategy version
         rule = AlertRule(
@@ -236,7 +257,7 @@ def create_alert(
     session.commit()
     session.refresh(rule)
 
-    return _map_to_response(rule)
+    return _map_to_response(rule, _compute_is_stale(rule, session))
 
 
 @router.patch("/{alert_id}", response_model=AlertRuleResponse)
@@ -282,7 +303,7 @@ def update_alert(
     session.commit()
     session.refresh(rule)
 
-    return _map_to_response(rule)
+    return _map_to_response(rule, _compute_is_stale(rule, session))
 
 
 @router.delete("/{alert_id}", status_code=status.HTTP_204_NO_CONTENT)

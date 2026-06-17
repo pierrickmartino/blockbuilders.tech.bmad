@@ -107,6 +107,7 @@ class AlertRuleResponse(BaseModel):
     notify_in_app: bool
     notify_email: bool
     is_active: bool
+    is_stale: bool
     last_triggered_at: Optional[datetime]
     created_at: datetime
     updated_at: datetime
