@@ -119,3 +119,79 @@ describe("PerformanceAlertPanel — webhook", () => {
     expect(screen.getByText(/webhook/i)).toBeInTheDocument();
   });
 });
+
+describe("PerformanceAlertPanel — version-scoped binding", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockList.mockResolvedValue([]);
+  });
+
+  it("ignores a deactivated alert and shows the create form", async () => {
+    mockList.mockResolvedValue([
+      makeAlertRule({ is_active: false, strategy_version_id: "v1" }),
+    ]);
+
+    render(
+      <PerformanceAlertPanel
+        backtestRunId="run-1"
+        strategyId="strategy-1"
+        backtestRunVersionId="v1"
+      />,
+      { wrapper: createWrapper() }
+    );
+
+    // Create form (not the read-only "Edit alert" view) is shown.
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /save alert/i })).toBeInTheDocument()
+    );
+    expect(screen.queryByText(/edit alert/i)).not.toBeInTheDocument();
+  });
+
+  it("re-pins via create when the active alert is pinned to another version", async () => {
+    mockList.mockResolvedValue([
+      makeAlertRule({ is_active: true, strategy_version_id: "v1" }),
+    ]);
+    const created = makeAlertRule({ strategy_version_id: "v2" });
+    mockCreate.mockResolvedValue(created);
+
+    render(
+      <PerformanceAlertPanel
+        backtestRunId="run-2"
+        strategyId="strategy-1"
+        backtestRunVersionId="v2"
+      />,
+      { wrapper: createWrapper() }
+    );
+
+    // Different version → create form, not edit view.
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /save alert/i })).toBeInTheDocument()
+    );
+
+    fireEvent.click(screen.getByLabelText(/strategy enters/i));
+    fireEvent.click(screen.getByRole("button", { name: /save alert/i }));
+
+    await waitFor(() => expect(mockCreate).toHaveBeenCalledTimes(1));
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ backtest_run_id: "run-2" })
+    );
+  });
+
+  it("edits via PATCH the active alert pinned to the viewed version", async () => {
+    mockList.mockResolvedValue([
+      makeAlertRule({ is_active: true, strategy_version_id: "v2" }),
+    ]);
+
+    render(
+      <PerformanceAlertPanel
+        backtestRunId="run-2"
+        strategyId="strategy-1"
+        backtestRunVersionId="v2"
+      />,
+      { wrapper: createWrapper() }
+    );
+
+    // Same version → read-only summary with an Edit button.
+    await waitFor(() => expect(screen.getByText(/edit alert/i)).toBeInTheDocument());
+  });
+});

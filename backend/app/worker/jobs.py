@@ -324,15 +324,19 @@ def run_backtest_job(
                 run.updated_at = datetime.now(timezone.utc)
                 session.add(run)
 
-                # Create notification for backtest completion
-                notification = Notification(
-                    user_id=run.user_id,
-                    type="backtest_completed",
-                    title="Backtest completed",
-                    body=f"{run.asset}/{run.timeframe} backtest finished.",
-                    link_url=f"/strategies/{run.strategy_id}/backtest?run={run.id}",
-                )
-                session.add(notification)
+                # Create notification for backtest completion. Skip it for
+                # alert-dispatched runs: those run silently in the background and
+                # only the performance-alert hook should notify (and only when a
+                # condition actually fires), otherwise every poll becomes spam.
+                if run.triggered_by != "alert":
+                    notification = Notification(
+                        user_id=run.user_id,
+                        type="backtest_completed",
+                        title="Backtest completed",
+                        body=f"{run.asset}/{run.timeframe} backtest finished.",
+                        link_url=f"/strategies/{run.strategy_id}/backtest?run={run.id}",
+                    )
+                    session.add(notification)
 
                 # If this was an auto-run, update the strategy's last_auto_run_at
                 if run.triggered_by == "auto":
@@ -417,6 +421,39 @@ def run_backtest_job(
         flush_backend_events(shutdown=True)
 
 
+# Bound the synchronous webhook fan-out so a stalling endpoint cannot keep the
+# worker busy past its job_timeout. Delivery is best-effort and only runs after
+# the watermark has been committed, so dropping events never causes a re-fire.
+MAX_ALERT_WEBHOOK_EVENTS = 20
+ALERT_WEBHOOK_TIME_BUDGET_SECONDS = 60.0
+
+
+def _post_webhooks_bounded(url: str, payloads: list[dict]) -> None:
+    """Post webhook payloads serially under a count + wall-clock budget.
+
+    post_webhook is fire-and-forget (swallows failures); here we additionally
+    cap the number of posts and stop once the time budget is exhausted so a
+    catch-up burst against a slow endpoint cannot run away with the worker.
+    """
+    capped = payloads[:MAX_ALERT_WEBHOOK_EVENTS]
+    dropped = len(payloads) - len(capped)
+    deadline = time.monotonic() + ALERT_WEBHOOK_TIME_BUDGET_SECONDS
+
+    delivered = 0
+    for payload in capped:
+        if time.monotonic() >= deadline:
+            dropped += len(capped) - delivered
+            break
+        post_webhook(url, payload)
+        delivered += 1
+
+    if dropped > 0:
+        logger.warning(
+            "alert_webhook_fanout_truncated",
+            extra={"delivered": delivered, "dropped": dropped},
+        )
+
+
 def _evaluate_pinned_alert(run: BacktestRun, session: Session) -> None:
     """Post-completion hook for triggered_by='alert' runs.
 
@@ -424,6 +461,10 @@ def _evaluate_pinned_alert(run: BacktestRun, session: Session) -> None:
     pinned version. Reads the watermark once before any condition updates it so
     entry and exit are always checked against the same baseline candle boundary.
     Creates one combined in-app notification if any condition fired.
+
+    The watermark is advanced and committed *before* any slow network delivery
+    (email/webhooks) so a stalled endpoint that exhausts the job timeout can
+    never leave the alert un-watermarked and cause a re-fire on the next run.
     """
     from app.backtest.storage import download_json as _download_json
 
@@ -435,6 +476,22 @@ def _evaluate_pinned_alert(run: BacktestRun, session: Session) -> None:
         )
     ).first()
     if not rule or rule.strategy_version_id is None:
+        return
+
+    # Only evaluate runs that target the rule's currently pinned version. An
+    # old alert-triggered run that completes after the user re-pinned (or
+    # disabled/recreated) the alert must not fire against the new rule or
+    # advance its watermark — that would cause a false notification or skip the
+    # newly pinned version's first evaluation.
+    if run.strategy_version_id != rule.strategy_version_id:
+        logger.info(
+            "pinned_alert_version_mismatch",
+            extra={
+                "rule_id": str(rule.id),
+                "run_version_id": str(run.strategy_version_id),
+                "rule_version_id": str(rule.strategy_version_id),
+            },
+        )
         return
 
     # Snapshot watermark and drawdown state before any mutation
@@ -489,6 +546,12 @@ def _evaluate_pinned_alert(run: BacktestRun, session: Session) -> None:
                 f" {rule.threshold_pct}%"
             )
 
+    # Delivery payloads are assembled here but only sent after the watermark
+    # commit below, so slow network I/O can never block the watermark update.
+    email_payload: dict | None = None
+    webhook_url: str | None = None
+    webhook_payloads: list[dict] = []
+
     if reasons:
         strategy = session.exec(
             select(Strategy).where(Strategy.id == run.strategy_id)
@@ -506,28 +569,25 @@ def _evaluate_pinned_alert(run: BacktestRun, session: Session) -> None:
         session.add(notification)
 
         if rule.notify_email and settings.resend_api_key:
-            try:
-                user = session.get(User, run.user_id)
-                if user and user.email:
-                    strategy_url = (
-                        f"{settings.frontend_url}/strategies/{run.strategy_id}"
-                        f"/backtest?run={run.id}"
-                    )
-                    resend.api_key = settings.resend_api_key
-                    resend.Emails.send({
-                        "from": "Blockbuilders <noreply@blockbuilders.tech>",
-                        "to": [user.email],
-                        "subject": f"Performance alert triggered — {strategy_name}",
-                        "html": (
-                            f"<p>Your strategy <strong>{strategy_name}</strong>:</p>"
-                            f"<ul>{''.join(f'<li>{r}</li>' for r in reasons)}</ul>"
-                            f'<p><a href="{strategy_url}">View backtest results</a></p>'
-                        ),
-                    })
-            except Exception as exc:
-                logger.error("alert_email_failed", extra={"error": str(exc)})
+            user = session.get(User, run.user_id)
+            if user and user.email:
+                strategy_url = (
+                    f"{settings.frontend_url}/strategies/{run.strategy_id}"
+                    f"/backtest?run={run.id}"
+                )
+                email_payload = {
+                    "from": "Blockbuilders <noreply@blockbuilders.tech>",
+                    "to": [user.email],
+                    "subject": f"Performance alert triggered — {strategy_name}",
+                    "html": (
+                        f"<p>Your strategy <strong>{strategy_name}</strong>:</p>"
+                        f"<ul>{''.join(f'<li>{r}</li>' for r in reasons)}</ul>"
+                        f'<p><a href="{strategy_url}">View backtest results</a></p>'
+                    ),
+                }
 
         if rule.notify_webhook and rule.webhook_url:
+            webhook_url = rule.webhook_url
             result_url = (
                 f"{settings.frontend_url}/strategies/{run.strategy_id}/backtest?run={run.id}"
             )
@@ -557,15 +617,17 @@ def _evaluate_pinned_alert(run: BacktestRun, session: Session) -> None:
                     build_drawdown_payload(candle_ts=run_date_to_utc, drawdown_pct=drawdown_pct, **_common),
                 ))
             webhook_events.sort(key=lambda t: t[0])
-            for _, payload in webhook_events:
-                post_webhook(rule.webhook_url, payload)
+            webhook_payloads = [payload for _, payload in webhook_events]
 
-    # Always advance watermark and update drawdown state
+    # Always advance watermark and update drawdown state, then commit it (and the
+    # notification) BEFORE any slow delivery so a stalled endpoint that exhausts
+    # the job timeout cannot leave the alert un-watermarked and re-fire next run.
     new_watermark = _utc_now_for_watermark(run.date_to)
     rule.last_fired_candle_ts = new_watermark
     rule.last_drawdown_pct = new_drawdown_pct
     rule.updated_at = datetime.now(timezone.utc)
     session.add(rule)
+    session.commit()
     logger.info(
         "pinned_alert_evaluated",
         extra={
@@ -574,6 +636,17 @@ def _evaluate_pinned_alert(run: BacktestRun, session: Session) -> None:
             "new_watermark": str(new_watermark.date()),
         },
     )
+
+    # Best-effort delivery now that the watermark is durable.
+    if email_payload is not None:
+        try:
+            resend.api_key = settings.resend_api_key
+            resend.Emails.send(email_payload)
+        except Exception as exc:
+            logger.error("alert_email_failed", extra={"error": str(exc)})
+
+    if webhook_url and webhook_payloads:
+        _post_webhooks_bounded(webhook_url, webhook_payloads)
 
 
 def _format_exit_reason(reason: Any) -> str:

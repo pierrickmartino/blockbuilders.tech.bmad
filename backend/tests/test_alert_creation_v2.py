@@ -8,7 +8,7 @@ Covers:
 """
 import os
 from datetime import datetime, timezone
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from fastapi.testclient import TestClient
@@ -135,6 +135,113 @@ def test_create_performance_alert_pins_version(session, client):
     body = resp.json()
     assert body["strategy_version_id"] == str(version.id)
     assert body["strategy_id"] == str(strategy.id)
+
+
+# ── Watermark is seeded from the source run so pre-creation trades never fire ─
+
+def test_create_performance_alert_seeds_watermark_from_run(session, client):
+    user = _create_user(session)
+    strategy, version, run = _seed_strategy_with_run(session, user.id)
+    token = _jwt(client, user.email)
+
+    resp = client.post(
+        "/alerts/",
+        json={
+            "alert_type": "performance",
+            "backtest_run_id": str(run.id),
+            "alert_on_entry": True,
+        },
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert resp.status_code == 201, resp.text
+    rule = session.exec(
+        select(AlertRule).where(AlertRule.strategy_id == strategy.id)
+    ).first()
+    assert rule.last_fired_candle_ts is not None
+    assert rule.last_fired_candle_ts.replace(tzinfo=None) == run.date_to.replace(tzinfo=None)
+
+
+def test_repin_performance_alert_seeds_watermark_from_new_run(session, client):
+    user = _create_user(session)
+    strategy, version, run = _seed_strategy_with_run(session, user.id)
+    token = _jwt(client, user.email)
+
+    # First create seeds an active alert.
+    client.post(
+        "/alerts/",
+        json={
+            "alert_type": "performance",
+            "backtest_run_id": str(run.id),
+            "alert_on_entry": True,
+        },
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    # A newer completed run on the same strategy re-pins the alert.
+    newer_run = BacktestRun(
+        id=uuid4(),
+        user_id=user.id,
+        strategy_id=strategy.id,
+        strategy_version_id=version.id,
+        status="completed",
+        asset="BTC/USDT",
+        timeframe="1d",
+        date_from=datetime(2025, 1, 1, tzinfo=timezone.utc),
+        date_to=datetime(2025, 7, 1, tzinfo=timezone.utc),
+        triggered_by="manual",
+    )
+    session.add(newer_run)
+    session.commit()
+
+    resp = client.post(
+        "/alerts/",
+        json={
+            "alert_type": "performance",
+            "backtest_run_id": str(newer_run.id),
+            "alert_on_entry": True,
+        },
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert resp.status_code == 200, resp.text  # re-pin returns 200
+
+    rule = session.exec(
+        select(AlertRule).where(AlertRule.strategy_id == strategy.id)
+    ).first()
+    assert rule.last_fired_candle_ts.replace(tzinfo=None) == newer_run.date_to.replace(tzinfo=None)
+
+
+# ── Update path enforces the webhook URL invariant ───────────────────────────
+
+def test_update_alert_rejects_enabling_webhook_without_url(session, client):
+    user = _create_user(session)
+    strategy, version, run = _seed_strategy_with_run(session, user.id)
+    token = _jwt(client, user.email)
+
+    create = client.post(
+        "/alerts/",
+        json={
+            "alert_type": "performance",
+            "backtest_run_id": str(run.id),
+            "alert_on_entry": True,
+        },
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    alert_id = create.json()["id"]
+
+    resp = client.patch(
+        f"/alerts/{alert_id}",
+        json={"notify_webhook": True},  # no webhook_url
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert resp.status_code == 422, resp.text
+
+    # A rejected PATCH must not persist an enabled-without-url state. The real
+    # per-request session is discarded on error; mirror that by dropping the
+    # uncommitted in-memory mutation before reading the persisted row.
+    session.rollback()
+    rule = session.get(AlertRule, UUID(alert_id))
+    assert not (rule.notify_webhook and not rule.webhook_url)
 
 
 # ── RED→GREEN 2: rejected when run is pending (not completed) ────────────────

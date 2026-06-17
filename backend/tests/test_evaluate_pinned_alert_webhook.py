@@ -343,3 +343,88 @@ def test_watermark_advances_on_exit_webhook_delivery_failure(engine, test_user, 
         refreshed = session.get(AlertRule, alert_id)
     assert refreshed.last_fired_candle_ts is not None
     assert len(posted_calls) == 1
+
+
+# ── Version pinning: stale runs must not fire or advance the rule ─────────────
+
+def test_alert_run_for_stale_version_is_skipped(engine, test_user, monkeypatch):
+    """A completed run that targets a version other than the rule's pinned
+    version must not fire and must not advance the rule's watermark."""
+    monkeypatch.setattr(jobs, "engine", engine)
+
+    with Session(engine) as session:
+        run_id, alert_id = _seed(session, test_user.id, notify_webhook=True)
+        # Re-pin the rule to a different (newer) version after the run was queued.
+        run = session.get(BacktestRun, run_id)
+        new_version = StrategyVersion(
+            id=uuid4(), strategy_id=run.strategy_id, version_number=2
+        )
+        session.add(new_version)
+        rule = session.get(AlertRule, alert_id)
+        rule.strategy_version_id = new_version.id
+        rule.last_fired_candle_ts = None
+        session.add(rule)
+        session.commit()
+
+    posted_calls = []
+
+    with patch.object(jobs, "post_webhook", side_effect=lambda u, p: posted_calls.append((u, p))), \
+         patch("app.backtest.storage.download_json", return_value=[_ENTRY_TRADE]), \
+         patch("app.worker.jobs.settings") as mock_settings:
+        mock_settings.resend_api_key = None
+        mock_settings.frontend_url = "https://blockbuilders.tech"
+        with Session(engine) as session:
+            run = session.get(BacktestRun, run_id)
+            jobs._evaluate_pinned_alert(run, session)
+            session.commit()
+
+    assert len(posted_calls) == 0
+    with Session(engine) as session:
+        refreshed = session.get(AlertRule, alert_id)
+    assert refreshed.last_fired_candle_ts is None  # untouched
+
+
+# ── Watermark is durable before slow delivery (no outer commit needed) ────────
+
+def test_watermark_committed_by_hook_before_delivery(engine, test_user, monkeypatch):
+    """The hook commits the watermark itself, so even if the surrounding job is
+    killed during delivery (no outer commit), the alert will not re-fire."""
+    monkeypatch.setattr(jobs, "engine", engine)
+
+    with Session(engine) as session:
+        run_id, alert_id = _seed(session, test_user.id, notify_webhook=True)
+
+    with patch.object(jobs, "post_webhook", side_effect=lambda u, p: None), \
+         patch("app.backtest.storage.download_json", return_value=[_ENTRY_TRADE]), \
+         patch("app.worker.jobs.settings") as mock_settings:
+        mock_settings.resend_api_key = None
+        mock_settings.frontend_url = "https://blockbuilders.tech"
+        with Session(engine) as session:
+            run = session.get(BacktestRun, run_id)
+            jobs._evaluate_pinned_alert(run, session)
+            # Deliberately do NOT call session.commit() — simulate the job dying.
+
+    with Session(engine) as session:
+        refreshed = session.get(AlertRule, alert_id)
+    assert refreshed.last_fired_candle_ts is not None
+
+
+# ── Bounded webhook fan-out ───────────────────────────────────────────────────
+
+def test_post_webhooks_bounded_caps_event_count():
+    posted = []
+    payloads = [{"n": i} for i in range(jobs.MAX_ALERT_WEBHOOK_EVENTS + 10)]
+    with patch.object(jobs, "post_webhook", side_effect=lambda u, p: posted.append(p)):
+        jobs._post_webhooks_bounded("https://example.com/hook", payloads)
+    assert len(posted) == jobs.MAX_ALERT_WEBHOOK_EVENTS
+
+
+def test_post_webhooks_bounded_stops_when_time_budget_exhausted(monkeypatch):
+    posted = []
+    # Each post advances the monotonic clock past the budget on the 3rd call.
+    ticks = iter([0.0, 0.0, 1.0, jobs.ALERT_WEBHOOK_TIME_BUDGET_SECONDS + 1.0,
+                  jobs.ALERT_WEBHOOK_TIME_BUDGET_SECONDS + 2.0])
+    monkeypatch.setattr(jobs.time, "monotonic", lambda: next(ticks))
+    with patch.object(jobs, "post_webhook", side_effect=lambda u, p: posted.append(p)):
+        jobs._post_webhooks_bounded("https://example.com/hook", [{"n": i} for i in range(5)])
+    assert 0 < len(posted) < 5

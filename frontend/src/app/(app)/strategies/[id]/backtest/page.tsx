@@ -1671,6 +1671,7 @@ export default function StrategyBacktestPage({ params }: Props) {
                 <PerformanceAlertPanel
                   backtestRunId={selectedRunId}
                   strategyId={id}
+                  backtestRunVersionId={selectedRun?.strategy_version_id}
                 />
               </div>
             )}

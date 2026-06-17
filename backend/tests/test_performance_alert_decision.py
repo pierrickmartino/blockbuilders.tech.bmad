@@ -188,6 +188,43 @@ def test_naive_exit_timestamp_is_normalised():
     assert result.fired_events[0].exit_time.tzinfo is not None
 
 
+# ── Partial take-profit scale-outs do not fire an exit ──────────────────────
+
+def test_partial_tp_scaleout_does_not_fire_only_full_close_does():
+    # Same entry: a partial tp scale-out at day 3, then the full close (signal)
+    # at day 5. Only the position-closing trade should fire an exit.
+    trades = [
+        {"entry_time": _ts(1), "entry_price": 100.0, "exit_time": _ts(3), "exit_reason": "tp"},
+        {"entry_time": _ts(1), "entry_price": 100.0, "exit_time": _ts(5), "exit_reason": "signal"},
+    ]
+    result = decide_exit_alert(trades, None, _dt(5))
+    assert len(result.fired_events) == 1
+    assert result.fired_events[0].exit_reason == "signal"
+    assert result.fired_events[0].exit_time.date() == _dt(5).date()
+
+
+def test_final_tp_close_still_fires_when_it_is_the_latest_exit():
+    # A multi-level ladder whose final level closes 100% at day 5 (still "tp")
+    # must fire — it is the trade that actually closed the position.
+    trades = [
+        {"entry_time": _ts(1), "entry_price": 100.0, "exit_time": _ts(3), "exit_reason": "tp"},
+        {"entry_time": _ts(1), "entry_price": 100.0, "exit_time": _ts(5), "exit_reason": "tp"},
+    ]
+    result = decide_exit_alert(trades, None, _dt(5))
+    assert len(result.fired_events) == 1
+    assert result.fired_events[0].exit_time.date() == _dt(5).date()
+
+
+def test_partials_across_distinct_positions_each_fire():
+    # Two distinct positions (different entries), each a single full close.
+    trades = [
+        {"entry_time": _ts(1), "entry_price": 100.0, "exit_time": _ts(2), "exit_reason": "signal"},
+        {"entry_time": _ts(3), "entry_price": 110.0, "exit_time": _ts(4), "exit_reason": "sl"},
+    ]
+    result = decide_exit_alert(trades, None, _dt(5))
+    assert len(result.fired_events) == 2
+
+
 # ════════════════════════════════════════════════════════════════════════════
 # decide_drawdown_alert
 # ════════════════════════════════════════════════════════════════════════════
