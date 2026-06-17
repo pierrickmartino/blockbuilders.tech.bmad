@@ -11,6 +11,12 @@ import type { AlertRule } from "@/types/alert";
 interface Props {
   backtestRunId: string;
   strategyId: string;
+  /**
+   * Strategy version the viewed backtest result is pinned to. Used to bind the
+   * panel to the alert pinned to *this* result, rather than any alert that
+   * happens to share the strategy. Omitted only when the version is unknown.
+   */
+  backtestRunVersionId?: string;
 }
 
 interface FormState {
@@ -58,7 +64,11 @@ const EXAMPLE_PAYLOAD = JSON.stringify(
   2
 );
 
-export function PerformanceAlertPanel({ backtestRunId, strategyId }: Props) {
+export function PerformanceAlertPanel({
+  backtestRunId,
+  strategyId,
+  backtestRunVersionId,
+}: Props) {
   const queryClient = useQueryClient();
 
   const { data: allAlerts } = useQuery({
@@ -66,9 +76,19 @@ export function PerformanceAlertPanel({ backtestRunId, strategyId }: Props) {
     queryFn: () => AlertsApiClient.list(),
   });
 
+  // Bind only to the *active* alert pinned to the viewed run's version. This
+  // ignores migrated/deactivated rows (so the user can recreate after a
+  // migration) and alerts pinned to a different version (so saving from a newer
+  // result re-pins via backtest_run_id instead of PATCHing the stale row).
   const existingRule =
     allAlerts?.find(
-      (a) => a.alert_type === "performance" && a.strategy_id === strategyId,
+      (a) =>
+        a.alert_type === "performance" &&
+        a.strategy_id === strategyId &&
+        a.is_active &&
+        (backtestRunVersionId === undefined ||
+          a.strategy_version_id === undefined ||
+          a.strategy_version_id === backtestRunVersionId),
     ) ?? null;
 
   const [isEditing, setIsEditing] = useState(false);

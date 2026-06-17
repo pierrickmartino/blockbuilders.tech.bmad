@@ -94,6 +94,27 @@ class ExitDecisionResult:
     new_watermark: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
 
+def _latest_exit_by_entry(trades: list[dict]) -> dict[tuple, datetime]:
+    """Map each position's entry identity to its latest exit timestamp.
+
+    A multi-level take-profit ladder records a partial ``tp`` trade for every
+    scale-out while the position stays open; all partials plus the eventual
+    full close share the same entry_time/entry_price. The trade with the latest
+    exit is the one that actually closed the position.
+    """
+    latest: dict[tuple, datetime] = {}
+    for trade in trades:
+        exit_time = _parse_ts(trade.get("exit_time"))
+        if exit_time is None:
+            continue
+        key = (trade.get("entry_time"), trade.get("entry_price"))
+        exit_utc = _utc(exit_time)
+        current = latest.get(key)
+        if current is None or exit_utc > current:
+            latest[key] = exit_utc
+    return latest
+
+
 def decide_exit_alert(
     trades: list[dict],
     watermark: datetime | None,
@@ -102,12 +123,16 @@ def decide_exit_alert(
 ) -> ExitDecisionResult:
     """Detect long→flat exit transitions on candles strictly newer than watermark.
 
-    Excludes end_of_data exits (backtest simply ended, not a real signal).
+    Excludes end_of_data exits (backtest simply ended, not a real signal) and
+    partial take-profit scale-outs (the position is still open — only the trade
+    that actually closes the position represents a real exit).
     Watermark always advances to run_date_to so the same candle never re-fires.
     """
     watermark_utc = _utc(watermark) if watermark is not None else None
     run_date_to_utc = _utc(run_date_to)
     fired: list[ExitFireEvent] = []
+
+    latest_exit_by_entry = _latest_exit_by_entry(trades)
 
     for trade in trades:
         exit_reason = trade.get("exit_reason")
@@ -118,6 +143,12 @@ def decide_exit_alert(
         if exit_time is None:
             continue
         exit_utc = _utc(exit_time)
+
+        # Skip partial scale-outs: a strictly later exit for the same entry
+        # means this trade did not close the position (still long).
+        key = (trade.get("entry_time"), trade.get("entry_price"))
+        if exit_utc < latest_exit_by_entry.get(key, exit_utc):
+            continue
 
         if watermark_utc is not None:
             if _period_open(exit_utc, timeframe) <= _period_open(watermark_utc, timeframe):

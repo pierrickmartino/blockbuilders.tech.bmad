@@ -211,9 +211,26 @@ def create_alert(
                 AlertRule.is_active == True,  # noqa: E712
             )
         ).first()
+        # Validate webhook URL to prevent SSRF
+        if data.notify_webhook and data.webhook_url:
+            validate_webhook_url(data.webhook_url)
+
         if existing:
             existing.strategy_version_id = run.strategy_version_id
-            existing.last_fired_candle_ts = None  # Reset watermark for the new pin
+            # Seed the watermark from the source run so the alert only fires on
+            # trades on candles newer than the result the user pinned from —
+            # never on historical entries/exits inside the backtest lookback.
+            existing.last_fired_candle_ts = run.date_to
+            # Apply the submitted configuration so re-pinning from a newer result
+            # persists the user's chosen conditions instead of silently keeping
+            # the previous pin's settings.
+            existing.threshold_pct = data.threshold_pct
+            existing.alert_on_entry = data.alert_on_entry
+            existing.alert_on_exit = data.alert_on_exit
+            existing.notify_email = data.notify_email
+            existing.notify_webhook = data.notify_webhook
+            existing.webhook_url = data.webhook_url
+            existing.is_active = data.is_active
             existing.updated_at = datetime.now(timezone.utc)
             session.add(existing)
             session.commit()
@@ -221,11 +238,10 @@ def create_alert(
             response.status_code = status.HTTP_200_OK
             return _map_to_response(existing, _compute_is_stale(existing, session))
 
-        # Validate webhook URL to prevent SSRF
-        if data.notify_webhook and data.webhook_url:
-            validate_webhook_url(data.webhook_url)
-
-        # Create performance alert rule pinned to the exact strategy version
+        # Create performance alert rule pinned to the exact strategy version.
+        # Seed the watermark from the source run's date_to so the first
+        # evaluation only considers trades on candles newer than the pinned
+        # result — never historical entries/exits inside the backtest lookback.
         rule = AlertRule(
             user_id=user.id,
             alert_type=AlertType.PERFORMANCE,
@@ -234,6 +250,7 @@ def create_alert(
             threshold_pct=data.threshold_pct,
             alert_on_entry=data.alert_on_entry,
             alert_on_exit=data.alert_on_exit,
+            last_fired_candle_ts=run.date_to,
             notify_email=data.notify_email,
             notify_webhook=data.notify_webhook,
             webhook_url=data.webhook_url,
@@ -307,6 +324,14 @@ def update_alert(
         rule.notify_email = data.notify_email
     if data.is_active is not None:
         rule.is_active = data.is_active
+
+    # Enforce the same cross-field invariant as creation: a webhook cannot be
+    # enabled without a URL, otherwise the firing path silently never delivers.
+    if rule.notify_webhook and not rule.webhook_url:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="webhook_url required when notify_webhook is true",
+        )
 
     rule.updated_at = datetime.now(timezone.utc)
 

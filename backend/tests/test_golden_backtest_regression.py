@@ -94,6 +94,15 @@ _RUN_CONFIG = {
     "timeframe": "1d",
 }
 
+# The Bollinger Breakout seed template ships with a 4h cadence, and cloned
+# strategies inherit it (strategy_templates.py -> "timeframe": "4h"). The golden
+# fixture below therefore stamps 4h candles and runs through this 4h config so
+# the snapshot guards the same annualization/duration path real users get.
+_RUN_CONFIG_4H = {
+    **_RUN_CONFIG,
+    "timeframe": "4h",
+}
+
 
 def _rsi_oversold_bounce_candles() -> list[Candle]:
     """Deterministic candle series shaped for the RSI Oversold Bounce template.
@@ -566,18 +575,21 @@ BOLLINGER_BREAKOUT_TEMPLATE = next(
 def _bollinger_breakout_candles() -> list[Candle]:
     """Deterministic candle series shaped for the Bollinger Breakout template.
 
-    Phase 1 (days  1-25): flat at 100 -- warms up Bollinger(20, 2.0) with zero
-      volatility so the bands converge to 100 and neither signal fires.
-    Phase 2 (days 26-30): sharp uptrend (100 -> 130) -- close pushes above the
-      upper band, firing the entry signal (close > upper) -- trade 0 opens.
-    Phase 3 (days 31-37): sharp downtrend (130 -> 88) -- close falls below the
-      middle band, firing the exit signal (close < middle) -- trade 0 closes
-      via "signal".
-    Phase 4 (days 38-47): flat at 88 -- bands narrow again with no open
+    Candles are stamped on the template's native 4h cadence (one candle every
+    4 hours), so periods below count 4h candles rather than days.
+
+    Phase 1 (candles  1-25): flat at 100 -- warms up Bollinger(20, 2.0) with
+      zero volatility so the bands converge to 100 and neither signal fires.
+    Phase 2 (candles 26-30): sharp uptrend (100 -> 130) -- close pushes above
+      the upper band, firing the entry signal (close > upper) -- trade 0 opens.
+    Phase 3 (candles 31-37): sharp downtrend (130 -> 88) -- close falls below
+      the middle band, firing the exit signal (close < middle) -- trade 0
+      closes via "signal".
+    Phase 4 (candles 38-47): flat at 88 -- bands narrow again with no open
       position.
-    Phase 5 (days 48-52): sharp uptrend (88 -> 118) -- close pushes above the
+    Phase 5 (candles 48-52): sharp uptrend (88 -> 118) -- close pushes above the
       upper band a second time, firing a second entry signal -- trade 1 opens.
-    Phase 6 (days 53-57): flat at 118 with no exit signal, so the series ends
+    Phase 6 (candles 53-57): flat at 118 with no exit signal, so the series ends
       mid-trade, forcing an end_of_data close on trade 1.
     """
     start = datetime(2024, 1, 1, tzinfo=timezone.utc)
@@ -588,8 +600,8 @@ def _bollinger_breakout_candles() -> list[Candle]:
         candles.append(
             Candle(
                 asset="BTC/USDT",
-                timeframe="1d",
-                timestamp=start + timedelta(days=len(candles)),
+                timeframe="4h",
+                timestamp=start + timedelta(hours=4 * len(candles)),
                 open=open_,
                 high=max(open_, close) + 0.5,
                 low=min(open_, close) - 0.5,
@@ -629,7 +641,7 @@ def _bollinger_breakout_result() -> BacktestResult:
     return run_golden_pipeline(
         BOLLINGER_BREAKOUT_TEMPLATE["definition_json"],
         _bollinger_breakout_candles(),
-        _RUN_CONFIG,
+        _RUN_CONFIG_4H,
     )
 
 
@@ -653,12 +665,12 @@ class TestBollingerBreakoutGolden:
 
         assert result.final_balance          == 9936.2
         assert result.total_return_pct       == -0.64
-        assert result.cagr_pct               == -4.09
+        assert result.cagr_pct               == -22.87
         assert result.max_drawdown_pct       == 18.72
         assert result.win_rate_pct           == 0.0
-        assert result.sharpe_ratio           == 0.07
-        assert result.sortino_ratio          == 0.11
-        assert result.calmar_ratio           == -0.22
+        assert result.sharpe_ratio           == 0.18
+        assert result.sortino_ratio          == 0.26
+        assert result.calmar_ratio           == -1.22
         assert result.max_consecutive_losses == 2
 
     def test_cost_totals(self):
@@ -680,18 +692,18 @@ class TestBollingerBreakoutGolden:
 
         equities = [pt["equity"] for pt in result.equity_curve]
         assert equities == [
-            *([10000.0] * 25),  # days  1-25 — flat warmup, no position yet
-            9984.02,    # day 26 — trade 0 opened
-            10549.15,   # day 27 — trade 0 entry_time
-            11114.29,   # day 28
-            11679.42,   # day 29
-            12244.55,   # day 30 — peak of trade 0
-            11679.42,   # day 31
-            11114.29,   # Feb 1
-            10549.15,   # Feb 2
-            *([9968.05] * 18),  # Feb 3 - Feb 20 — trade 0 closed via signal exit, then flat
-            *([9952.12] * 5),   # Feb 21 - Feb 25 — trade 1 opened
-            9936.2,     # Feb 26 — end_of_data forced close
+            *([10000.0] * 25),  # candles  1-25 — flat warmup, no position yet
+            9984.02,    # candle 26 — trade 0 opened
+            10549.15,   # candle 27 — trade 0 entry_time
+            11114.29,   # candle 28
+            11679.42,   # candle 29
+            12244.55,   # candle 30 — peak of trade 0
+            11679.42,   # candle 31
+            11114.29,   # candle 32
+            10549.15,   # candle 33
+            *([9968.05] * 18),  # candles 34-51 — trade 0 closed via signal exit, then flat
+            *([9952.12] * 5),   # candles 52-56 — trade 1 opened
+            9936.2,     # candle 57 — end_of_data forced close
         ]
 
     def test_trade0_signal_exit_full_fields(self):
@@ -700,8 +712,8 @@ class TestBollingerBreakoutGolden:
 
         assert t.exit_reason  == "signal"
         assert t.side         == "long"
-        assert t.entry_time   == datetime(2024, 1, 27, tzinfo=timezone.utc)
-        assert t.exit_time    == datetime(2024, 2, 3, tzinfo=timezone.utc)
+        assert t.entry_time   == datetime(2024, 1, 5, 8, tzinfo=timezone.utc)
+        assert t.exit_time    == datetime(2024, 1, 6, 12, tzinfo=timezone.utc)
 
         # Unrounded float fields — use approx to survive ULP arithmetic drift
         assert t.entry_price == pytest.approx(106.16966890529999, rel=1e-9)
@@ -725,11 +737,11 @@ class TestBollingerBreakoutGolden:
 
         # Price extremes and timestamps
         assert t.peak_price   == 130.5
-        assert t.peak_ts      == datetime(2024, 1, 30, tzinfo=timezone.utc)
+        assert t.peak_ts      == datetime(2024, 1, 5, 20, tzinfo=timezone.utc)
         assert t.trough_price == 105.5
-        assert t.trough_ts    == datetime(2024, 1, 27, tzinfo=timezone.utc)
+        assert t.trough_ts    == datetime(2024, 1, 5, 8, tzinfo=timezone.utc)
 
-        assert t.duration_seconds == 604800  # 7 days
+        assert t.duration_seconds == 100800  # 7 × 4h candles = 28h
 
         # Cost breakdown (rounded by engine)
         assert t.fee_cost_usd      == 19.97
@@ -744,8 +756,8 @@ class TestBollingerBreakoutGolden:
 
         assert t.exit_reason  == "end_of_data"
         assert t.side         == "long"
-        assert t.entry_time   == datetime(2024, 2, 22, tzinfo=timezone.utc)
-        assert t.exit_time    == datetime(2024, 2, 26, tzinfo=timezone.utc)
+        assert t.entry_time   == datetime(2024, 1, 9, 16, tzinfo=timezone.utc)
+        assert t.exit_time    == datetime(2024, 1, 10, 8, tzinfo=timezone.utc)
 
         assert t.entry_price == pytest.approx(118.18887670589999, rel=1e-9)
         assert t.exit_price  == pytest.approx(117.8112766941,     rel=1e-9)
@@ -765,11 +777,11 @@ class TestBollingerBreakoutGolden:
         assert t.r_multiple       is None
 
         assert t.peak_price   == 118.5
-        assert t.peak_ts      == datetime(2024, 2, 22, tzinfo=timezone.utc)
+        assert t.peak_ts      == datetime(2024, 1, 9, 16, tzinfo=timezone.utc)
         assert t.trough_price == 117.5
-        assert t.trough_ts    == datetime(2024, 2, 22, tzinfo=timezone.utc)
+        assert t.trough_ts    == datetime(2024, 1, 9, 16, tzinfo=timezone.utc)
 
-        assert t.duration_seconds == 345600  # 4 days
+        assert t.duration_seconds == 57600  # 4 × 4h candles = 16h
 
         assert t.fee_cost_usd      == 19.9
         assert t.slippage_cost_usd ==  9.95
@@ -1037,7 +1049,7 @@ class TestBollingerBreakoutLookAhead:
     def test_prefix_unchanged_after_tail_mutation(self):
         candles = _bollinger_breakout_candles()
         golden_result = run_golden_pipeline(
-            BOLLINGER_BREAKOUT_TEMPLATE["definition_json"], candles, _RUN_CONFIG
+            BOLLINGER_BREAKOUT_TEMPLATE["definition_json"], candles, _RUN_CONFIG_4H
         )
 
         cut_timestamp = golden_result.trades[0].exit_time
@@ -1045,7 +1057,7 @@ class TestBollingerBreakoutLookAhead:
 
         mutated_candles = mutate_tail(candles, cut_index)
         mutated_result = run_golden_pipeline(
-            BOLLINGER_BREAKOUT_TEMPLATE["definition_json"], mutated_candles, _RUN_CONFIG
+            BOLLINGER_BREAKOUT_TEMPLATE["definition_json"], mutated_candles, _RUN_CONFIG_4H
         )
 
         assert_prefix_unchanged(golden_result, mutated_result, cut_timestamp)

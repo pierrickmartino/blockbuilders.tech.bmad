@@ -1,5 +1,28 @@
 # Tasks — in flight
 
+## Codex review PR #655→latest — fix 8 still-valid findings (done)
+
+Source: `docs/ai/codex-review-pr655-to-latest.md`. All 8 VALID Codex findings addressed.
+
+- [x] #664 P2 — Golden Bollinger fixture now runs on the template's native **4h** cadence (`_RUN_CONFIG_4H`, 4h-stamped candles); re-captured the time-derived snapshot values (cagr/sharpe/sortino/calmar, entry/exit/peak/trough ts, durations). `test_golden_backtest_regression.py`.
+- [x] #713 P2 — `create_alert` seeds `last_fired_candle_ts` from the source run's `date_to` on both create and re-pin, so a new/re-pinned alert can't fire on pre-creation trades. `app/api/alerts.py`.
+- [x] #713 P2 — `_evaluate_pinned_alert` now skips runs whose `strategy_version_id` ≠ the rule's pinned version (no fire, no watermark advance). `app/worker/jobs.py`.
+- [x] #713 P2 — `run_backtest_job` suppresses the generic "Backtest completed" notification for `triggered_by == "alert"` runs. `app/worker/jobs.py`.
+- [x] #714 P1 — `PerformanceAlertPanel` binds only to the **active** alert pinned to the **viewed run's version** (new `backtestRunVersionId` prop); migrated/deactivated rows and other-version pins fall back to create/re-pin via `backtest_run_id`. Backend re-pin now also applies the submitted conditions. `PerformanceAlertPanel.tsx`, `alerts.py`, `types/alert.ts`, backtest page.
+- [x] #714 P2 — `decide_exit_alert` ignores partial take-profit scale-outs (a strictly later exit for the same entry means the position stayed open). `services/performance_alert_decision.py`.
+- [x] #722 P2 — `update_alert` rejects (422) enabling `notify_webhook` without a `webhook_url`, matching creation. `app/api/alerts.py`.
+- [x] #723 P2 — `_evaluate_pinned_alert` commits the watermark **before** any slow email/webhook delivery, and the webhook fan-out is bounded (`MAX_ALERT_WEBHOOK_EVENTS` + wall-clock budget) via `_post_webhooks_bounded`. `app/worker/jobs.py`.
+
+Tests
+- [x] Full backend suite → **1293 passed**.
+- [x] Frontend alert suites → 90 passed; `npx tsc --noEmit` clean.
+- [x] New tests: partial-tp exclusion, version-mismatch skip, watermark-committed-before-delivery, bounded fan-out, watermark seeding on create/re-pin, update webhook-url invariant, panel version-scoped binding (ignore deactivated / re-pin other version / edit same version).
+
+Risks / gaps
+- No env vars added/changed; no schema/migration changes (all fields already existed on `AlertRule`).
+- Re-pinning from a newer result via POST now overwrites the prior pin's conditions with the submitted form values (intentional — makes the panel's create-form-on-re-pin coherent).
+- Partial-tp detection groups trades by `(entry_time, entry_price)`; relies on a position's partials sharing the same entry identity as its final close (true for the engine's `apply_partial`/`close`).
+
 ## Issue #693 — [#15 slice 8] Author remaining literacy templates + golden-pin all + full registry (done)
 
 Backend only. Expands the seed templates from 3 to 12, the curriculum registry to 3 modules / 12 lessons, and golden-pins every template through the full validate → interpret → run_backtest pipeline.

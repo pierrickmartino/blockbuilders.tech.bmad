@@ -8,6 +8,7 @@ export interface AlertRule {
 
   // Performance alert fields
   strategy_id?: string;
+  strategy_version_id?: string;
   metric?: string;
   threshold_pct: number | null;
   alert_on_entry: boolean;
