@@ -37,7 +37,7 @@ from app.services.performance_alert_decision import (
     decide_exit_alert,
     decide_drawdown_alert,
 )
-from app.services.webhook_payload import build_entry_payload
+from app.services.webhook_payload import build_drawdown_payload, build_entry_payload, build_exit_payload
 from app.services.spot_price_cache import SpotPriceCache
 from app.services.analytics import track_backend_event, flush_backend_events
 from app.services.strategy_validation import validate_strategy
@@ -457,6 +457,9 @@ def _evaluate_pinned_alert(run: BacktestRun, session: Session) -> None:
 
     reasons: list[str] = []
     fired_entry_events: list[Any] = []
+    fired_exit_events: list[Any] = []
+    drawdown_fired = False
+    drawdown_pct = 0.0
 
     if rule.alert_on_entry:
         entry_result = decide_entry_alert(trades, watermark, run.date_to, run.timeframe)
@@ -469,6 +472,7 @@ def _evaluate_pinned_alert(run: BacktestRun, session: Session) -> None:
     if rule.alert_on_exit:
         exit_result = decide_exit_alert(trades, watermark, run.date_to, run.timeframe)
         if exit_result.fired_events:
+            fired_exit_events = exit_result.fired_events
             ev = exit_result.fired_events[0]
             reason_label = _format_exit_reason(ev.exit_reason)
             reasons.append(f"exited a position on {ev.exit_time.date()} ({reason_label})")
@@ -477,7 +481,9 @@ def _evaluate_pinned_alert(run: BacktestRun, session: Session) -> None:
     if rule.threshold_pct is not None:
         dd_result = decide_drawdown_alert(equity_curve, rule.threshold_pct, last_drawdown_pct)
         new_drawdown_pct = dd_result.current_drawdown_pct
+        drawdown_pct = dd_result.current_drawdown_pct
         if dd_result.fired:
+            drawdown_fired = True
             reasons.append(
                 f"drawdown {dd_result.current_drawdown_pct:.1f}% crossed threshold"
                 f" {rule.threshold_pct}%"
@@ -521,19 +527,37 @@ def _evaluate_pinned_alert(run: BacktestRun, session: Session) -> None:
             except Exception as exc:
                 logger.error("alert_email_failed", extra={"error": str(exc)})
 
-        if rule.notify_webhook and rule.webhook_url and fired_entry_events:
+        if rule.notify_webhook and rule.webhook_url:
             result_url = (
                 f"{settings.frontend_url}/strategies/{run.strategy_id}/backtest?run={run.id}"
             )
+            _common = dict(
+                strategy_name=strategy_name,
+                strategy_version_id=str(rule.strategy_version_id),
+                asset=run.asset or "",
+                timeframe=run.timeframe or "",
+                result_url=result_url,
+            )
+            # Collect (candle_ts, payload) for all fired events, sort chronologically
+            webhook_events: list[tuple[datetime, dict]] = []
             for ev in fired_entry_events:
-                payload = build_entry_payload(
-                    strategy_name=strategy_name,
-                    strategy_version_id=str(rule.strategy_version_id),
-                    asset=run.asset or "",
-                    timeframe=run.timeframe or "",
-                    candle_ts=ev.entry_time,
-                    result_url=result_url,
-                )
+                webhook_events.append((
+                    ev.entry_time,
+                    build_entry_payload(candle_ts=ev.entry_time, **_common),
+                ))
+            for ev in fired_exit_events:
+                webhook_events.append((
+                    ev.exit_time,
+                    build_exit_payload(candle_ts=ev.exit_time, exit_reason=ev.exit_reason, **_common),
+                ))
+            if drawdown_fired:
+                run_date_to_utc = _as_utc_datetime(run.date_to) or datetime.now(timezone.utc)
+                webhook_events.append((
+                    run_date_to_utc,
+                    build_drawdown_payload(candle_ts=run_date_to_utc, drawdown_pct=drawdown_pct, **_common),
+                ))
+            webhook_events.sort(key=lambda t: t[0])
+            for _, payload in webhook_events:
                 post_webhook(rule.webhook_url, payload)
 
     # Always advance watermark and update drawdown state
