@@ -11,6 +11,7 @@ from app.api.deps import get_current_user
 from app.core.config import settings
 from app.core.database import get_session
 from app.core.plans import get_plan_limits
+from app.models.alert_rule import AlertRule, AlertType
 from app.models.backtest_run import BacktestRun
 from app.models.strategy import Strategy, StrategyEntryPath
 from app.models.strategy_tag import StrategyTag
@@ -454,6 +455,12 @@ def update_strategy(
         strategy.timeframe = data.timeframe
     if data.is_archived is not None:
         strategy.is_archived = data.is_archived
+        if data.is_archived is True:
+            # Deactivate performance alerts on archive; never auto-reactivate on un-archive
+            session.query(AlertRule).filter(
+                AlertRule.strategy_id == strategy_id,
+                AlertRule.alert_type == AlertType.PERFORMANCE,
+            ).update({"is_active": False}, synchronize_session=False)
     if data.auto_update_enabled is not None:
         strategy.auto_update_enabled = data.auto_update_enabled
     if data.auto_update_lookback_days is not None:
@@ -740,6 +747,10 @@ def bulk_archive_strategies(
             strategy.is_archived = True
             strategy.updated_at = datetime.now(timezone.utc)
             session.add(strategy)
+            session.query(AlertRule).filter(
+                AlertRule.strategy_id == strategy_id,
+                AlertRule.alert_type == AlertType.PERFORMANCE,
+            ).update({"is_active": False}, synchronize_session=False)
             session.commit()
             success_count += 1
         except HTTPException:
