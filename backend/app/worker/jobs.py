@@ -30,7 +30,7 @@ from app.backtest.storage import upload_json, generate_results_key
 from app.backtest.errors import BacktestError, StrategyInvalidError
 from app.schemas.strategy import StrategyDefinitionValidate
 from app.services.alert_evaluator import evaluate_alerts_for_run
-from app.services.candle_boundary import last_closed_1d_candle_ts
+from app.services.candle_boundary import last_closed_1d_candle_ts, last_closed_candle_ts
 from app.services.performance_alert_decision import (
     decide_entry_alert,
     decide_exit_alert,
@@ -456,14 +456,14 @@ def _evaluate_pinned_alert(run: BacktestRun, session: Session) -> None:
     reasons: list[str] = []
 
     if rule.alert_on_entry:
-        entry_result = decide_entry_alert(trades, watermark, run.date_to)
+        entry_result = decide_entry_alert(trades, watermark, run.date_to, run.timeframe)
         if entry_result.fired_events:
             reasons.append(
                 f"entered a position on {entry_result.fired_events[0].entry_time.date()}"
             )
 
     if rule.alert_on_exit:
-        exit_result = decide_exit_alert(trades, watermark, run.date_to)
+        exit_result = decide_exit_alert(trades, watermark, run.date_to, run.timeframe)
         if exit_result.fired_events:
             ev = exit_result.fired_events[0]
             reason_label = _format_exit_reason(ev.exit_reason)
@@ -662,6 +662,123 @@ def evaluate_performance_alerts_daily() -> None:
 
     logger.info(
         "evaluate_performance_alerts_daily completed",
+        extra={"enqueued": enqueued, "skipped": skipped},
+    )
+
+
+def evaluate_performance_alerts_sub_daily(now: datetime | None = None) -> None:
+    """Hourly dispatcher: enqueue pinned-version re-backtests for 1h and 4h alerts.
+
+    Runs every hour (at :05 past each hour). Uses last_closed_candle_ts(timeframe)
+    to determine the cutoff so 4h alerts are naturally skipped in 3 out of 4 runs
+    (their watermark already covers the latest closed 4h candle). A single run
+    whose date_to spans a multi-candle catch-up gap coalesces all triggers into one
+    notification via the watermark-based decide_* functions.
+    """
+    if not settings.scheduler_enabled:
+        logger.info("Scheduler disabled, skipping evaluate_performance_alerts_sub_daily")
+        return
+
+    logger.info("Starting evaluate_performance_alerts_sub_daily")
+
+    if now is None:
+        now = datetime.now(timezone.utc)
+
+    redis_conn = Redis.from_url(settings.redis_url)
+    queue = Queue("default", connection=redis_conn)
+
+    with Session(engine) as session:
+        from sqlalchemy import or_
+
+        alerts = session.exec(
+            select(AlertRule)
+            .join(Strategy, AlertRule.strategy_id == Strategy.id)
+            .where(
+                AlertRule.is_active == True,  # noqa: E712
+                AlertRule.alert_type == AlertType.PERFORMANCE,
+                AlertRule.strategy_version_id.isnot(None),
+                Strategy.timeframe.in_(["1h", "4h"]),
+                or_(
+                    AlertRule.alert_on_entry == True,  # noqa: E712
+                    AlertRule.alert_on_exit == True,  # noqa: E712
+                    AlertRule.threshold_pct.isnot(None),
+                ),
+            )
+        ).all()
+
+        enqueued = 0
+        skipped = 0
+
+        for alert in alerts:
+            strategy = session.get(Strategy, alert.strategy_id)
+            if not strategy:
+                continue
+
+            cutoff_ts = last_closed_candle_ts(strategy.timeframe, now)
+
+            watermark = _as_utc_datetime(alert.last_fired_candle_ts)
+            if watermark is not None and watermark >= cutoff_ts:
+                skipped += 1
+                continue
+
+            existing = session.exec(
+                select(BacktestRun).where(
+                    BacktestRun.strategy_id == alert.strategy_id,
+                    BacktestRun.triggered_by == "alert",
+                    BacktestRun.status.in_(["pending", "running"]),
+                )
+            ).first()
+            if existing:
+                skipped += 1
+                continue
+
+            user = session.get(User, alert.user_id)
+            if not user:
+                continue
+
+            date_from = cutoff_ts - timedelta(days=strategy.auto_update_lookback_days)
+
+            run = BacktestRun(
+                user_id=alert.user_id,
+                strategy_id=alert.strategy_id,
+                strategy_version_id=alert.strategy_version_id,
+                status="pending",
+                asset=strategy.asset,
+                timeframe=strategy.timeframe,
+                date_from=date_from,
+                date_to=cutoff_ts,
+                initial_balance=settings.default_initial_balance,
+                fee_rate=user.default_fee_percent or settings.default_fee_rate,
+                slippage_rate=user.default_slippage_percent or settings.default_slippage_rate,
+                triggered_by="alert",
+            )
+            session.add(run)
+            session.commit()
+            session.refresh(run)
+
+            try:
+                queue.enqueue(
+                    "app.worker.jobs.run_backtest_job",
+                    str(run.id),
+                    job_timeout=300,
+                )
+                enqueued += 1
+                logger.info(
+                    "alert_backtest_enqueued",
+                    extra={"alert_id": str(alert.id), "run_id": str(run.id)},
+                )
+            except Exception as exc:
+                logger.error(
+                    "alert_enqueue_failed",
+                    extra={"alert_id": str(alert.id), "error": str(exc)},
+                )
+                run.status = "failed"
+                run.error_message = "Failed to queue alert-triggered backtest"
+                session.add(run)
+                session.commit()
+
+    logger.info(
+        "evaluate_performance_alerts_sub_daily completed",
         extra={"enqueued": enqueued, "skipped": skipped},
     )
 

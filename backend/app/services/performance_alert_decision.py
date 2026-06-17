@@ -25,6 +25,17 @@ def _utc(dt: datetime) -> datetime:
     return dt.astimezone(timezone.utc)
 
 
+def _period_open(dt: datetime, timeframe: str) -> datetime:
+    """Return the open-timestamp of the candle period containing *dt*."""
+    if timeframe == "1d":
+        return dt.replace(hour=0, minute=0, second=0, microsecond=0)
+    if timeframe == "4h":
+        period_hour = (dt.hour // 4) * 4
+        return dt.replace(hour=period_hour, minute=0, second=0, microsecond=0)
+    # "1h"
+    return dt.replace(minute=0, second=0, microsecond=0)
+
+
 # ── Entry ────────────────────────────────────────────────────────────────────
 
 @dataclass
@@ -42,12 +53,13 @@ def decide_entry_alert(
     trades: list[dict],
     watermark: datetime | None,
     run_date_to: datetime,
+    timeframe: str = "1d",
 ) -> DecisionResult:
     """Detect flat→long entry transitions on candles strictly newer than watermark.
 
     Watermark always advances to run_date_to so the same candle never re-fires.
     The forming (not-yet-closed) candle must be excluded by the caller: pass
-    only runs whose date_to ≤ last_closed_1d_candle_ts().
+    only runs whose date_to ≤ last_closed_candle_ts(timeframe).
     """
     watermark_utc = _utc(watermark) if watermark is not None else None
     run_date_to_utc = _utc(run_date_to)
@@ -59,8 +71,9 @@ def decide_entry_alert(
             continue
         entry_utc = _utc(entry_time)
 
-        if watermark_utc is not None and entry_utc.date() <= watermark_utc.date():
-            continue  # At or before watermark — already evaluated
+        if watermark_utc is not None:
+            if _period_open(entry_utc, timeframe) <= _period_open(watermark_utc, timeframe):
+                continue  # Same period as watermark or earlier — already evaluated
 
         fired.append(EntryFireEvent(entry_time=entry_utc))
 
@@ -85,6 +98,7 @@ def decide_exit_alert(
     trades: list[dict],
     watermark: datetime | None,
     run_date_to: datetime,
+    timeframe: str = "1d",
 ) -> ExitDecisionResult:
     """Detect long→flat exit transitions on candles strictly newer than watermark.
 
@@ -105,8 +119,9 @@ def decide_exit_alert(
             continue
         exit_utc = _utc(exit_time)
 
-        if watermark_utc is not None and exit_utc.date() <= watermark_utc.date():
-            continue
+        if watermark_utc is not None:
+            if _period_open(exit_utc, timeframe) <= _period_open(watermark_utc, timeframe):
+                continue
 
         fired.append(ExitFireEvent(exit_time=exit_utc, exit_reason=exit_reason))
 

@@ -74,7 +74,7 @@ ALLOWED_ASSETS = [
     "SAND/USDT",
     "MANA/USDT",
 ]
-ALLOWED_TIMEFRAMES = ["1d", "4h"]
+ALLOWED_TIMEFRAMES = ["1d", "4h", "1h"]
 
 
 class StrategyCreateRequest(BaseModel):
