@@ -41,6 +41,7 @@ class AlertRule(SQLModel, table=True):
     alert_on_exit: bool = Field(default=False)
     last_triggered_run_id: Optional[UUID] = Field(default=None, foreign_key="backtest_runs.id")
     last_fired_candle_ts: Optional[datetime] = None
+    last_drawdown_pct: Optional[float] = None
 
     # Price alert fields
     asset: Optional[str] = None

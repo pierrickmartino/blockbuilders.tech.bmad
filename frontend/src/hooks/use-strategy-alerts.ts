@@ -5,6 +5,7 @@ import type { AlertRule } from "@/types/alert";
 
 interface UseStrategyAlertsOptions {
   strategyId: string;
+  backtestRunId?: string;
 }
 
 interface AlertFormState {
@@ -37,7 +38,7 @@ const buildAlertFormState = (rule: AlertRule | null): AlertFormState => ({
   notifyEmail: rule?.notify_email ?? false,
 });
 
-export function useStrategyAlerts({ strategyId }: UseStrategyAlertsOptions) {
+export function useStrategyAlerts({ strategyId, backtestRunId }: UseStrategyAlertsOptions) {
   const queryClient = useQueryClient();
 
   const [alertForm, setAlertForm] = useState(() => buildAlertFormState(null));
@@ -71,9 +72,12 @@ export function useStrategyAlerts({ strategyId }: UseStrategyAlertsOptions) {
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (!alertRule) {
+        if (!backtestRunId) {
+          throw new Error("Open a completed backtest result to create an alert.");
+        }
         return AlertsApiClient.create({
           alert_type: "performance",
-          strategy_id: strategyId,
+          backtest_run_id: backtestRunId,
           threshold_pct: alertThreshold ?? null,
           alert_on_entry: alertOnEntry,
           alert_on_exit: alertOnExit,

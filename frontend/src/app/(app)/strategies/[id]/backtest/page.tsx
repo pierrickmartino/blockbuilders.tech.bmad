@@ -55,6 +55,7 @@ import { ShareBacktestModal } from "@/components/ShareBacktestModal";
 import { DraftReviewControls } from "@/components/backtest/DraftReviewControls";
 import { DraftExitGuardModal } from "@/components/DraftExitGuardModal";
 import { TransactionCostAnalysis } from "@/components/TransactionCostAnalysis";
+import { PerformanceAlertPanel } from "@/components/backtest/PerformanceAlertPanel";
 import { trackBacktestView } from "@/lib/recent-views";
 import { trackBacktestStarted } from "@/lib/backtest-tracking";
 import { getSummaryCardSeen, markSummaryCardSeen } from "@/lib/summary-card-storage";
@@ -1656,6 +1657,21 @@ export default function StrategyBacktestPage({ params }: Props) {
 
                 {/* Transaction Cost Analysis */}
                 <TransactionCostAnalysis summary={selectedRun.summary} />
+              </div>
+            )}
+
+            {/* Performance alert — create or manage alerts pinned to this run */}
+            {selectedRunId && (
+              <div className="rounded border border-border bg-card p-4">
+                <h3 className="mb-1 text-[15px] font-semibold">Performance alert</h3>
+                <p className="mb-3 text-xs text-muted-foreground">
+                  Get notified daily when this strategy version triggers a signal or hits a
+                  drawdown level.
+                </p>
+                <PerformanceAlertPanel
+                  backtestRunId={selectedRunId}
+                  strategyId={id}
+                />
               </div>
             )}
           </>
