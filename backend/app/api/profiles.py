@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select, func
 
 from app.api.deps import get_current_user, get_session
+from app.core.config import settings
 from app.models.user import User
 from app.models.strategy import Strategy
 from app.models.backtest_run import BacktestRun
@@ -23,6 +24,9 @@ def get_public_profile(
     session: Session = Depends(get_session),
 ) -> PublicProfileResponse:
     """Get public profile by handle."""
+    if not settings.social_features_enabled:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
     # Find user by handle
     user = session.exec(
         select(User).where(User.handle == handle)
@@ -96,6 +100,9 @@ def get_profile_settings(
     user: User = Depends(get_current_user),
 ) -> ProfileSettingsResponse:
     """Get current user's profile settings."""
+    if not settings.social_features_enabled:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
     return ProfileSettingsResponse(
         is_public=user.is_public,
         handle=user.handle,
@@ -115,6 +122,9 @@ def update_profile_settings(
     session: Session = Depends(get_session),
 ) -> ProfileSettingsResponse:
     """Update current user's profile settings."""
+    if not settings.social_features_enabled:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
     # Check handle uniqueness if changed
     if data.handle is not None and data.handle != "" and data.handle != user.handle:
         existing = session.exec(

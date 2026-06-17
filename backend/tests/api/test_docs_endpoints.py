@@ -3,6 +3,8 @@ from datetime import datetime, timedelta, timezone
 import pytest
 from sqlmodel import select
 
+from app.core.config import settings
+
 from app.models.shared_backtest_link import SharedBacktestLink
 
 
@@ -172,6 +174,7 @@ def test_other_domain_endpoints(client, auth_headers, seeded_objects, monkeypatc
     assert client.get("/market/sentiment", headers=auth_headers, params={"asset": "BTC/USDT"}).status_code == 200
     assert client.get("/market/tickers", headers=auth_headers).status_code == 200
 
+    monkeypatch.setattr(settings, "social_features_enabled", True)
     assert client.get("/profiles/me/settings", headers=auth_headers).status_code == 200
     assert client.put("/profiles/me/settings", headers=auth_headers, json={"display_name": "tester"}).status_code == 200
 
