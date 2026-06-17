@@ -11,6 +11,7 @@ from sqlmodel import Session, select
 from app.api.deps import get_current_user
 from app.core.database import get_session
 from app.models.alert_rule import AlertRule, AlertType
+from app.models.backtest_run import BacktestRun
 from app.models.strategy import Strategy
 from app.models.user import User
 from app.schemas.alert import (
@@ -113,11 +114,13 @@ def _map_to_response(rule: AlertRule) -> AlertRuleResponse:
         user_id=rule.user_id,
         alert_type=rule.alert_type,
         strategy_id=rule.strategy_id,
+        strategy_version_id=rule.strategy_version_id,
         metric=rule.metric,
         threshold_pct=rule.threshold_pct,
         alert_on_entry=rule.alert_on_entry,
         alert_on_exit=rule.alert_on_exit,
         last_triggered_run_id=rule.last_triggered_run_id,
+        last_fired_candle_ts=rule.last_fired_candle_ts,
         asset=rule.asset,
         direction=rule.direction,
         threshold_price=rule.threshold_price,
@@ -157,34 +160,52 @@ def create_alert(
     """Create a new alert rule (performance or price)."""
 
     if data.alert_type == AlertType.PERFORMANCE:
-        # Validate strategy ownership
+        # Validate that the referenced backtest run exists, is completed, and
+        # belongs to a strategy owned by this user
+        run = session.exec(
+            select(BacktestRun).where(BacktestRun.id == data.backtest_run_id)
+        ).first()
+        if not run:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Backtest run not found"
+            )
+        if run.status != "completed":
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Backtest run must be completed to create a performance alert",
+            )
+
         strategy = session.exec(
             select(Strategy).where(
-                Strategy.id == data.strategy_id,
-                Strategy.user_id == user.id
+                Strategy.id == run.strategy_id,
+                Strategy.user_id == user.id,
             )
         ).first()
         if not strategy:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Strategy not found")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Strategy not found"
+            )
 
-        # Check for duplicate rule (one performance alert per strategy)
+        # Check for duplicate active rule (one active performance alert per strategy)
         existing = session.exec(
             select(AlertRule).where(
-                AlertRule.strategy_id == data.strategy_id,
-                AlertRule.alert_type == AlertType.PERFORMANCE
+                AlertRule.strategy_id == run.strategy_id,
+                AlertRule.alert_type == AlertType.PERFORMANCE,
+                AlertRule.is_active == True,  # noqa: E712
             )
         ).first()
         if existing:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail="Performance alert already exists for this strategy"
+                detail="Active performance alert already exists for this strategy",
             )
 
-        # Create performance alert rule
+        # Create performance alert rule pinned to the exact strategy version
         rule = AlertRule(
             user_id=user.id,
             alert_type=AlertType.PERFORMANCE,
-            strategy_id=data.strategy_id,
+            strategy_id=run.strategy_id,
+            strategy_version_id=run.strategy_version_id,
             threshold_pct=data.threshold_pct,
             alert_on_entry=data.alert_on_entry,
             alert_on_exit=data.alert_on_exit,

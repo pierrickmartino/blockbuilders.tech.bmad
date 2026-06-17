@@ -34,11 +34,13 @@ class AlertRule(SQLModel, table=True):
 
     # Performance alert fields
     strategy_id: Optional[UUID] = Field(default=None, foreign_key="strategies.id")
+    strategy_version_id: Optional[UUID] = Field(default=None, foreign_key="strategy_versions.id")
     metric: str = Field(default="max_drawdown_pct")
     threshold_pct: Optional[float] = None
     alert_on_entry: bool = Field(default=False)
     alert_on_exit: bool = Field(default=False)
     last_triggered_run_id: Optional[UUID] = Field(default=None, foreign_key="backtest_runs.id")
+    last_fired_candle_ts: Optional[datetime] = None
 
     # Price alert fields
     asset: Optional[str] = None

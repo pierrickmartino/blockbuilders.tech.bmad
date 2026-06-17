@@ -37,6 +37,7 @@ def run_scheduler():
     known_ids = {
         "auto_update_daily",
         "data_quality_daily",
+        "performance_alerts_daily",
         "price_alerts_monitor",
         SPOT_REFRESH_JOB_ID,
     }
@@ -63,6 +64,15 @@ def run_scheduler():
         id="data_quality_daily",
     )
     logger.info("Registered data_quality_daily cron job at 03:00 UTC")
+
+    # Schedule performance alert dispatcher daily at 04:00 UTC (after candles are settled)
+    scheduler.cron(
+        "0 4 * * *",
+        func="app.worker.jobs.evaluate_performance_alerts_daily",
+        queue_name="default",
+        id="performance_alerts_daily",
+    )
+    logger.info("Registered performance_alerts_daily cron job at 04:00 UTC")
 
     # Schedule price alerts monitoring at 120s to match the spot-price refresh cadence
     scheduler.schedule(

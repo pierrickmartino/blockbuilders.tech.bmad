@@ -30,9 +30,12 @@ from app.backtest.storage import upload_json, generate_results_key
 from app.backtest.errors import BacktestError, StrategyInvalidError
 from app.schemas.strategy import StrategyDefinitionValidate
 from app.services.alert_evaluator import evaluate_alerts_for_run
+from app.services.candle_boundary import last_closed_1d_candle_ts
+from app.services.performance_alert_decision import decide_entry_alert
 from app.services.spot_price_cache import SpotPriceCache
 from app.services.analytics import track_backend_event, flush_backend_events
 from app.services.strategy_validation import validate_strategy
+from app.models.alert_rule import AlertType
 
 logger = logging.getLogger(__name__)
 
@@ -334,8 +337,12 @@ def run_backtest_job(
                         strategy.last_auto_run_at = datetime.now(timezone.utc)
                         session.add(strategy)
 
-                    # Evaluate performance alerts
+                    # Evaluate old-style performance alerts (no version pin)
                     evaluate_alerts_for_run(run, session)
+
+                # If this was an alert-dispatched run, evaluate the pinned-version decision
+                if run.triggered_by == "alert":
+                    _evaluate_pinned_alert_entry(run, session)
 
                 # Mark user as onboarded on first completed backtest
                 onboarding_user = session.get(User, run.user_id)
@@ -402,6 +409,194 @@ def run_backtest_job(
         # RQ workhorse processes are short-lived; drain the async PostHog queue
         # before this job process exits to avoid dropping terminal lifecycle events.
         flush_backend_events(shutdown=True)
+
+
+def _evaluate_pinned_alert_entry(run: BacktestRun, session: Session) -> None:
+    """Post-completion hook for triggered_by='alert' runs.
+
+    Fetches trades from S3, runs the pure decision function against the alert's
+    watermark, creates a Notification if an entry fired, and advances the
+    watermark regardless of whether a fire occurred.
+    """
+    from app.backtest.storage import download_json as _download_json
+
+    rule = session.exec(
+        select(AlertRule).where(
+            AlertRule.strategy_id == run.strategy_id,
+            AlertRule.alert_type == AlertType.PERFORMANCE,
+            AlertRule.is_active == True,  # noqa: E712
+        )
+    ).first()
+    if not rule or rule.strategy_version_id is None:
+        return
+
+    watermark = _as_utc_datetime(rule.last_fired_candle_ts)
+
+    trades: list[dict] = []
+    if run.trades_key:
+        try:
+            trades = _download_json(run.trades_key) or []
+        except Exception as exc:
+            logger.warning("alert_trades_fetch_failed", extra={"error": str(exc)})
+
+    decision = decide_entry_alert(trades, watermark, run.date_to)
+
+    if decision.fired_events:
+        strategy = session.exec(
+            select(Strategy).where(Strategy.id == run.strategy_id)
+        ).first()
+        strategy_name = strategy.name if strategy else str(run.strategy_id)
+
+        notification = Notification(
+            user_id=run.user_id,
+            type="performance_alert",
+            title="Performance alert triggered",
+            body=f'"{strategy_name}" entered a position on {decision.fired_events[0].entry_time.date()}.',
+            link_url=f"/strategies/{run.strategy_id}/backtest?run={run.id}",
+        )
+        session.add(notification)
+
+        if rule.notify_email and settings.resend_api_key:
+            try:
+                user = session.get(User, run.user_id)
+                if user and user.email:
+                    strategy_url = (
+                        f"{settings.frontend_url}/strategies/{run.strategy_id}"
+                        f"/backtest?run={run.id}"
+                    )
+                    resend.api_key = settings.resend_api_key
+                    resend.Emails.send({
+                        "from": "Blockbuilders <noreply@blockbuilders.tech>",
+                        "to": [user.email],
+                        "subject": f"Performance alert triggered — {strategy_name}",
+                        "html": (
+                            f"<p>Your strategy <strong>{strategy_name}</strong> entered "
+                            f"a position on {decision.fired_events[0].entry_time.date()}.</p>"
+                            f'<p><a href="{strategy_url}">View backtest results</a></p>'
+                        ),
+                    })
+            except Exception as exc:
+                logger.error("alert_email_failed", extra={"error": str(exc)})
+
+    # Always advance watermark so the same candle never re-fires
+    rule.last_fired_candle_ts = decision.new_watermark
+    rule.updated_at = datetime.now(timezone.utc)
+    session.add(rule)
+    logger.info(
+        "pinned_alert_evaluated",
+        extra={
+            "rule_id": str(rule.id),
+            "fired": bool(decision.fired_events),
+            "new_watermark": str(decision.new_watermark.date()),
+        },
+    )
+
+
+def evaluate_performance_alerts_daily() -> None:
+    """Daily dispatcher: enqueue pinned-version re-backtests for active performance alerts.
+
+    Selects active performance alerts on 1d strategies with a pinned
+    strategy_version_id whose latest daily candle has not yet been evaluated
+    (i.e. last_fired_candle_ts < last_closed_1d_candle_ts()), then enqueues
+    a run tagged triggered_by='alert' using the pinned version. Independent of
+    auto_update_enabled.
+    """
+    if not settings.scheduler_enabled:
+        logger.info("Scheduler disabled, skipping evaluate_performance_alerts_daily")
+        return
+
+    logger.info("Starting evaluate_performance_alerts_daily")
+
+    redis_conn = Redis.from_url(settings.redis_url)
+    queue = Queue("default", connection=redis_conn)
+    cutoff_ts = last_closed_1d_candle_ts()
+
+    with Session(engine) as session:
+        alerts = session.exec(
+            select(AlertRule)
+            .join(Strategy, AlertRule.strategy_id == Strategy.id)
+            .where(
+                AlertRule.is_active == True,  # noqa: E712
+                AlertRule.alert_type == AlertType.PERFORMANCE,
+                AlertRule.alert_on_entry == True,  # noqa: E712
+                AlertRule.strategy_version_id.isnot(None),
+                Strategy.timeframe == "1d",
+            )
+        ).all()
+
+        enqueued = 0
+        skipped = 0
+
+        for alert in alerts:
+            # Skip if this alert has already been evaluated for the latest closed candle
+            watermark = _as_utc_datetime(alert.last_fired_candle_ts)
+            if watermark is not None and watermark >= cutoff_ts:
+                skipped += 1
+                continue
+
+            # Skip if there is already a pending/running alert-triggered run
+            existing = session.exec(
+                select(BacktestRun).where(
+                    BacktestRun.strategy_id == alert.strategy_id,
+                    BacktestRun.triggered_by == "alert",
+                    BacktestRun.status.in_(["pending", "running"]),
+                )
+            ).first()
+            if existing:
+                skipped += 1
+                continue
+
+            user = session.get(User, alert.user_id)
+            strategy = session.get(Strategy, alert.strategy_id)
+            if not user or not strategy:
+                continue
+
+            now = datetime.now(timezone.utc)
+            date_from = cutoff_ts - timedelta(days=strategy.auto_update_lookback_days)
+
+            run = BacktestRun(
+                user_id=alert.user_id,
+                strategy_id=alert.strategy_id,
+                strategy_version_id=alert.strategy_version_id,
+                status="pending",
+                asset=strategy.asset,
+                timeframe=strategy.timeframe,
+                date_from=date_from,
+                date_to=cutoff_ts,
+                initial_balance=settings.default_initial_balance,
+                fee_rate=user.default_fee_percent or settings.default_fee_rate,
+                slippage_rate=user.default_slippage_percent or settings.default_slippage_rate,
+                triggered_by="alert",
+            )
+            session.add(run)
+            session.commit()
+            session.refresh(run)
+
+            try:
+                queue.enqueue(
+                    "app.worker.jobs.run_backtest_job",
+                    str(run.id),
+                    job_timeout=300,
+                )
+                enqueued += 1
+                logger.info(
+                    "alert_backtest_enqueued",
+                    extra={"alert_id": str(alert.id), "run_id": str(run.id)},
+                )
+            except Exception as exc:
+                logger.error(
+                    "alert_enqueue_failed",
+                    extra={"alert_id": str(alert.id), "error": str(exc)},
+                )
+                run.status = "failed"
+                run.error_message = "Failed to queue alert-triggered backtest"
+                session.add(run)
+                session.commit()
+
+    logger.info(
+        "evaluate_performance_alerts_daily completed",
+        extra={"enqueued": enqueued, "skipped": skipped},
+    )
 
 
 def auto_update_strategies_daily() -> None:

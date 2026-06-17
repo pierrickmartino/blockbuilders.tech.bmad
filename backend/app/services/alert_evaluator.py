@@ -80,6 +80,11 @@ def evaluate_alerts_for_run(run: BacktestRun, session: Session) -> None:
     if not rule:
         return  # No alert rule configured
 
+    # New-style alerts (version-pinned) are evaluated by the alert dispatcher,
+    # not by the auto-run evaluator.
+    if rule.strategy_version_id is not None:
+        return
+
     # Check if we already processed this run
     if rule.last_triggered_run_id == run.id:
         logger.debug(f"Alert rule {rule.id} already processed for run {run.id}")
