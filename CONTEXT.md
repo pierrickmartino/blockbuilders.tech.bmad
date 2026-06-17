@@ -29,7 +29,10 @@ These come from `PRODUCT.md` and describe what the product *is*.
   deliberate publish step.
 - **Publish (a strategy)** — make a strategy visible on the user's
   public profile (`Strategy.is_published`). A social/showcase
-  action, unrelated to versioning or backtests. _Avoid_: using
+  action, unrelated to versioning or backtests. **Frozen** (`docs/ACTIONS.md`
+  #18 / ADR-0023): the public profile it feeds is gated off behind
+  `social_features_enabled`, and `is_published` never had a setter in the
+  first place — so Publish is dormant, not live. _Avoid_: using
   "publish" for freezing a version or for autosave.
 - **Shared backtest** — a public, link-only view of a single
   backtest *result*, reached by an unguessable token
@@ -370,8 +373,13 @@ components with different lifecycles — keep them apart.
   **achievement** badges, computed from strategy/backtest counts.
   Renamed from the code's current "lesson" to free that word for a
   **Literacy track** unit. Marks *what you've done*, not *what you've
-  been taught*. _Avoid_: "lesson" (now reserved for a Literacy track
-  unit).
+  been taught*. **Distinct from — and untouched by — the frozen profile
+  badges** (`services/badges.py`'s `first_public_strategy` / `ten_followers`
+  / `hundred_backtests`, surfaced only on the public profile and gated off
+  by ADR-0023): Milestones are activation/onboarding scaffolding and
+  survive the #18 freeze. _Avoid_: "lesson" (now reserved for a Literacy
+  track unit); conflating the kept `/progress` Milestones with the frozen
+  vanity profile badges.
 - **Module** — _(on the radar, not built)_ the mid-level grouping of
   a **Literacy track**: a small set of ordered modules named for the
   learning arc (intuition → risk & drawdown → playbook), each holding
