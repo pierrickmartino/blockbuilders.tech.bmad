@@ -15,6 +15,8 @@ interface AlertFormState {
   alertOnEntry: boolean;
   alertOnExit: boolean;
   notifyEmail: boolean;
+  notifyWebhook: boolean;
+  webhookUrl: string;
 }
 
 const getAlertFormKey = (rule: AlertRule | null) =>
@@ -26,6 +28,8 @@ const getAlertFormKey = (rule: AlertRule | null) =>
         rule.alert_on_entry,
         rule.alert_on_exit,
         rule.notify_email,
+        rule.notify_webhook,
+        rule.webhook_url ?? "",
       ].join(":")
     : "none";
 
@@ -36,6 +40,8 @@ const buildAlertFormState = (rule: AlertRule | null): AlertFormState => ({
   alertOnEntry: rule?.alert_on_entry ?? false,
   alertOnExit: rule?.alert_on_exit ?? false,
   notifyEmail: rule?.notify_email ?? false,
+  notifyWebhook: rule?.notify_webhook ?? false,
+  webhookUrl: rule?.webhook_url ?? "",
 });
 
 export function useStrategyAlerts({ strategyId, backtestRunId }: UseStrategyAlertsOptions) {
@@ -67,6 +73,8 @@ export function useStrategyAlerts({ strategyId, backtestRunId }: UseStrategyAler
     alertOnEntry,
     alertOnExit,
     notifyEmail,
+    notifyWebhook,
+    webhookUrl,
   } = alertForm;
 
   const saveMutation = useMutation({
@@ -82,6 +90,8 @@ export function useStrategyAlerts({ strategyId, backtestRunId }: UseStrategyAler
           alert_on_entry: alertOnEntry,
           alert_on_exit: alertOnExit,
           notify_email: notifyEmail,
+          notify_webhook: notifyWebhook,
+          webhook_url: notifyWebhook ? webhookUrl : undefined,
           is_active: alertEnabled,
         });
       }
@@ -90,6 +100,8 @@ export function useStrategyAlerts({ strategyId, backtestRunId }: UseStrategyAler
         alert_on_entry: alertOnEntry,
         alert_on_exit: alertOnExit,
         notify_email: notifyEmail,
+        notify_webhook: notifyWebhook,
+        webhook_url: notifyWebhook ? webhookUrl : undefined,
         is_active: alertEnabled,
       });
     },
@@ -146,6 +158,14 @@ export function useStrategyAlerts({ strategyId, backtestRunId }: UseStrategyAler
     setAlertForm((current) => ({ ...current, notifyEmail: next }));
   }, []);
 
+  const setNotifyWebhook = useCallback((next: boolean) => {
+    setAlertForm((current) => ({ ...current, notifyWebhook: next }));
+  }, []);
+
+  const setWebhookUrl = useCallback((next: string) => {
+    setAlertForm((current) => ({ ...current, webhookUrl: next }));
+  }, []);
+
   const startEditing = useCallback(() => {
     resetForm(alertRule);
     setIsEditingAlert(true);
@@ -163,6 +183,8 @@ export function useStrategyAlerts({ strategyId, backtestRunId }: UseStrategyAler
     alertOnEntry,
     alertOnExit,
     notifyEmail,
+    notifyWebhook,
+    webhookUrl,
     alertError,
     isSavingAlert: saveMutation.isPending,
     isEditingAlert,
@@ -171,6 +193,8 @@ export function useStrategyAlerts({ strategyId, backtestRunId }: UseStrategyAler
     setAlertOnEntry,
     setAlertOnExit,
     setNotifyEmail,
+    setNotifyWebhook,
+    setWebhookUrl,
     save,
     startEditing,
     cancelEditing,

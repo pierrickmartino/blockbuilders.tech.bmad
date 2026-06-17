@@ -18,6 +18,8 @@ interface FormState {
   alertOnExit: boolean;
   thresholdPct: number | null;
   notifyEmail: boolean;
+  notifyWebhook: boolean;
+  webhookUrl: string;
 }
 
 const DEFAULT_FORM: FormState = {
@@ -25,6 +27,8 @@ const DEFAULT_FORM: FormState = {
   alertOnExit: false,
   thresholdPct: null,
   notifyEmail: false,
+  notifyWebhook: false,
+  webhookUrl: "",
 };
 
 function ruleToForm(rule: AlertRule): FormState {
@@ -33,8 +37,26 @@ function ruleToForm(rule: AlertRule): FormState {
     alertOnExit: rule.alert_on_exit,
     thresholdPct: rule.threshold_pct,
     notifyEmail: rule.notify_email,
+    notifyWebhook: rule.notify_webhook,
+    webhookUrl: rule.webhook_url ?? "",
   };
 }
+
+const EXAMPLE_PAYLOAD = JSON.stringify(
+  {
+    type: "performance_alert",
+    event: "entry",
+    strategy_name: "Your Strategy",
+    strategy_version_id: "uuid",
+    asset: "BTC",
+    timeframe: "1h",
+    candle_ts: "2025-03-10T12:00:00+00:00",
+    result_url: "https://blockbuilders.tech/backtests/…",
+    fired_at: "2025-03-10T12:05:00+00:00",
+  },
+  null,
+  2
+);
 
 export function PerformanceAlertPanel({ backtestRunId, strategyId }: Props) {
   const queryClient = useQueryClient();
@@ -70,6 +92,8 @@ export function PerformanceAlertPanel({ backtestRunId, strategyId }: Props) {
           alert_on_entry: form.alertOnEntry,
           alert_on_exit: form.alertOnExit,
           notify_email: form.notifyEmail,
+          notify_webhook: form.notifyWebhook,
+          webhook_url: form.notifyWebhook ? form.webhookUrl : undefined,
           is_active: true,
         });
       }
@@ -78,6 +102,8 @@ export function PerformanceAlertPanel({ backtestRunId, strategyId }: Props) {
         alert_on_entry: form.alertOnEntry,
         alert_on_exit: form.alertOnExit,
         notify_email: form.notifyEmail,
+        notify_webhook: form.notifyWebhook,
+        webhook_url: form.notifyWebhook ? form.webhookUrl : undefined,
         is_active: existingRule.is_active,
       });
     },
@@ -109,6 +135,10 @@ export function PerformanceAlertPanel({ backtestRunId, strategyId }: Props) {
       setError("Enable at least one alert condition");
       return;
     }
+    if (form.notifyWebhook && !form.webhookUrl) {
+      setError("Webhook URL is required when webhook notifications are enabled");
+      return;
+    }
     setError(null);
     saveMutation.mutate();
   }
@@ -136,6 +166,10 @@ export function PerformanceAlertPanel({ backtestRunId, strategyId }: Props) {
             <div className="text-sm">
               <strong>Email:</strong>{" "}
               {existingRule.notify_email ? "Yes" : "No"}
+            </div>
+            <div className="text-sm">
+              <strong>Webhook:</strong>{" "}
+              {existingRule.notify_webhook ? existingRule.webhook_url ?? "Yes" : "No"}
             </div>
           </>
         )}
@@ -219,6 +253,48 @@ export function PerformanceAlertPanel({ backtestRunId, strategyId }: Props) {
             setForm((f) => ({ ...f, notifyEmail: v === true }))
           }
         />
+      </div>
+
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <label htmlFor="pa-webhook" className="text-sm">
+            Send to webhook
+          </label>
+          <Checkbox
+            id="pa-webhook"
+            checked={form.notifyWebhook}
+            onCheckedChange={(v) =>
+              setForm((f) => ({ ...f, notifyWebhook: v === true }))
+            }
+          />
+        </div>
+
+        {form.notifyWebhook && (
+          <div className="space-y-2 rounded-md border p-3">
+            <Input
+              id="pa-webhook-url"
+              type="url"
+              value={form.webhookUrl}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, webhookUrl: e.target.value }))
+              }
+              placeholder="https://…"
+              className="h-8 font-mono text-xs"
+            />
+            <p className="text-xs text-muted-foreground">
+              HTTPS only. Blockbuilders posts a <em>signal</em>; it never places
+              a trade or moves funds — what your bot does with it is up to you.
+            </p>
+            <details className="text-xs">
+              <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
+                What we send
+              </summary>
+              <pre className="mt-1 overflow-auto rounded bg-muted p-2 text-xs">
+                {EXAMPLE_PAYLOAD}
+              </pre>
+            </details>
+          </div>
+        )}
       </div>
 
       {error && <p className="text-xs text-destructive">{error}</p>}

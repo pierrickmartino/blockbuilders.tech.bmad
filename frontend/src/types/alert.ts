@@ -39,6 +39,8 @@ export interface CreatePerformanceAlertRequest {
   alert_on_entry: boolean;
   alert_on_exit: boolean;
   notify_email: boolean;
+  notify_webhook: boolean;
+  webhook_url?: string;
   is_active: boolean;
 }
 

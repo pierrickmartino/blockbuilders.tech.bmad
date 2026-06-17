@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 from uuid import UUID
 
+import httpx
 import resend
 import structlog
 from redis import Redis
@@ -36,6 +37,7 @@ from app.services.performance_alert_decision import (
     decide_exit_alert,
     decide_drawdown_alert,
 )
+from app.services.webhook_payload import build_entry_payload
 from app.services.spot_price_cache import SpotPriceCache
 from app.services.analytics import track_backend_event, flush_backend_events
 from app.services.strategy_validation import validate_strategy
@@ -454,10 +456,12 @@ def _evaluate_pinned_alert(run: BacktestRun, session: Session) -> None:
             logger.warning("alert_equity_fetch_failed", extra={"error": str(exc)})
 
     reasons: list[str] = []
+    fired_entry_events: list[Any] = []
 
     if rule.alert_on_entry:
         entry_result = decide_entry_alert(trades, watermark, run.date_to, run.timeframe)
         if entry_result.fired_events:
+            fired_entry_events = entry_result.fired_events
             reasons.append(
                 f"entered a position on {entry_result.fired_events[0].entry_time.date()}"
             )
@@ -516,6 +520,21 @@ def _evaluate_pinned_alert(run: BacktestRun, session: Session) -> None:
                     })
             except Exception as exc:
                 logger.error("alert_email_failed", extra={"error": str(exc)})
+
+        if rule.notify_webhook and rule.webhook_url and fired_entry_events:
+            result_url = (
+                f"{settings.frontend_url}/strategies/{run.strategy_id}/backtest?run={run.id}"
+            )
+            for ev in fired_entry_events:
+                payload = build_entry_payload(
+                    strategy_name=strategy_name,
+                    strategy_version_id=str(rule.strategy_version_id),
+                    asset=run.asset or "",
+                    timeframe=run.timeframe or "",
+                    candle_ts=ev.entry_time,
+                    result_url=result_url,
+                )
+                post_webhook(rule.webhook_url, payload)
 
     # Always advance watermark and update drawdown state
     new_watermark = _utc_now_for_watermark(run.date_to)
@@ -1185,31 +1204,32 @@ def _send_price_alert_email(alert: AlertRule, current_price: Any, session: Sessi
         logger.error(f"Failed to send price alert email: {e}")
 
 
-def _send_price_alert_webhook(alert: AlertRule, current_price: Any) -> None:
-    """Send webhook POST for triggered price alert."""
+def post_webhook(url: str, payload: dict) -> None:
+    """POST a JSON payload to a webhook URL. Fire-and-forget: swallows all failures."""
     try:
-        import httpx
-
-        payload = {
-            "type": "price_alert",
-            "asset": alert.asset,
-            "direction": alert.direction.value,
-            "threshold_price": float(alert.threshold_price),
-            "current_price": float(current_price),
-            "triggered_at": datetime.now(timezone.utc).isoformat(),
-        }
-
-        with httpx.Client(timeout=10.0) as client:
+        with httpx.Client(timeout=10.0, follow_redirects=False) as client:
             response = client.post(
-                alert.webhook_url,
+                url,
                 json=payload,
                 headers={"Content-Type": "application/json"},
             )
             response.raise_for_status()
-            logger.info(f"Webhook sent to {alert.webhook_url} for alert {alert.id}")
-
+            logger.info(f"Webhook delivered to {url}")
     except Exception as e:
-        logger.error(f"Failed to send webhook for alert {alert.id}: {e}")
+        logger.error(f"Webhook delivery failed to {url}: {e}")
+
+
+def _send_price_alert_webhook(alert: AlertRule, current_price: Any) -> None:
+    """Send webhook POST for triggered price alert."""
+    payload = {
+        "type": "price_alert",
+        "asset": alert.asset,
+        "direction": alert.direction.value,
+        "threshold_price": float(alert.threshold_price),
+        "current_price": float(current_price),
+        "triggered_at": datetime.now(timezone.utc).isoformat(),
+    }
+    post_webhook(alert.webhook_url, payload)
 
 
 def _has_active_price_alerts() -> bool:
