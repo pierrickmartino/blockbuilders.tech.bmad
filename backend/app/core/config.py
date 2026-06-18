@@ -36,6 +36,9 @@ class Settings(BaseSettings):
     scheduler_hour_utc: int = 2  # 02:00 UTC default
     scheduler_enabled: bool = True
 
+    # Social features (profiles, badges — ADR-0023) — frozen off by default
+    social_features_enabled: bool = False
+
     # Strategy drafter (NL wedge, ADR-0011) — flag-gated, off by default
     strategy_drafter_enabled: bool = False
     strategy_drafter_provider: str = "anthropic"

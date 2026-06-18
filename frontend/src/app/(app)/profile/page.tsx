@@ -13,15 +13,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ProfileSettingsSection } from "./profile-settings-section";
-import { Globe, Sparkles, User } from "lucide-react";
+import { Sparkles, User } from "lucide-react";
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState<ProfileResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [publicDisplayName, setPublicDisplayName] = useState<string | null>(null);
-
   const fetchProfile = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -82,8 +79,7 @@ export default function ProfilePage() {
     );
   }
 
-  const avatarInitial =
-    (publicDisplayName ?? profile?.email ?? "")[0]?.toUpperCase() ?? "";
+  const avatarInitial = (profile?.email ?? "")[0]?.toUpperCase() ?? "";
 
   return (
     <div className="container mx-auto max-w-4xl p-4 md:p-6">
@@ -149,22 +145,6 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
 
-        {/* Public Profile */}
-        <Card id="public-profile">
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <Globe className="h-4 w-4 text-muted-foreground" />
-              <CardTitle className="text-base">Public Profile</CardTitle>
-            </div>
-            <CardDescription>
-              Make your profile visible to others and showcase your published
-              strategies.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ProfileSettingsSection onSettingsLoad={setPublicDisplayName} />
-          </CardContent>
-        </Card>
       </div>
     </div>
   );
