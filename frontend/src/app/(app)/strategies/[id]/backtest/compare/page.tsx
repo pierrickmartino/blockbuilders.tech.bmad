@@ -20,6 +20,7 @@ import { BacktestCompareResponse } from "@/types/backtest";
 import { Strategy } from "@/types/strategy";
 import { StrategyTabs } from "@/components/StrategyTabs";
 import { ComparePageHeader } from "@/components/backtest/ComparePageHeader";
+import { CoachingPanel } from "@/components/backtest/CoachingPanel";
 import { ZoomableChart } from "@/components/ZoomableChart";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
@@ -349,6 +350,18 @@ export default function CompareBacktestsPage({ params }: Props) {
                     Lines break where a run has no data for that time period.
                   </p>
                 </section>
+
+                {/* Tweak coaching — only shown for exactly 2-run comparisons */}
+                {compareData.runs.length === 2 && (
+                  <section className="mb-6">
+                    <CoachingPanel
+                      runIdA={compareData.runs[0].run_id}
+                      runIdB={compareData.runs[1].run_id}
+                      assetA={compareData.runs[0].asset}
+                      timeframeA={compareData.runs[0].timeframe}
+                    />
+                  </section>
+                )}
 
                 {/* Metrics Comparison Table */}
                 <section>

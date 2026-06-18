@@ -253,3 +253,25 @@ export interface BatchStatusResponse {
   batch_id: string;
   runs: BacktestStatusResponse[];
 }
+
+// --- Tweak coaching types ---
+
+export interface TradeCoachingItem {
+  entry_time: string;
+  insight_type: string;
+  exit_reason_a: string;
+  pnl_a: number;
+  pnl_pct_a: number;
+  exit_reason_b: string;
+  pnl_b: number;
+  pnl_pct_b: number;
+}
+
+export interface CoachResponse {
+  eligible: boolean;
+  reason: string;
+  tier?: string | null;
+  headline?: string | null;
+  net_delta_pct?: number | null;
+  insights: TradeCoachingItem[];
+}
