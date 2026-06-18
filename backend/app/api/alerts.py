@@ -189,6 +189,11 @@ def create_alert(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail="Backtest run must be completed to create a performance alert",
             )
+        if run.triggered_by == "comparison":
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Comparison runs cannot be used to pin a performance alert.",
+            )
 
         strategy = session.exec(
             select(Strategy).where(

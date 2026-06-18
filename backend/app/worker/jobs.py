@@ -324,11 +324,10 @@ def run_backtest_job(
                 run.updated_at = datetime.now(timezone.utc)
                 session.add(run)
 
-                # Create notification for backtest completion. Skip it for
-                # alert-dispatched runs: those run silently in the background and
-                # only the performance-alert hook should notify (and only when a
-                # condition actually fires), otherwise every poll becomes spam.
-                if run.triggered_by != "alert":
+                # Create notification for backtest completion. Skip for
+                # alert-dispatched and comparison runs: those run silently in
+                # the background and should not appear in the user's feed.
+                if run.triggered_by not in ("alert", "comparison"):
                     notification = Notification(
                         user_id=run.user_id,
                         type="backtest_completed",

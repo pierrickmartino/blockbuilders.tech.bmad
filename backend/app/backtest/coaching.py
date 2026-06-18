@@ -216,6 +216,17 @@ def build_coaching(
 # Comparability resolver
 # ---------------------------------------------------------------------------
 
+MIN_OVERLAP_CANDLES = 10
+
+_TIMEFRAME_SECONDS: dict[str, int] = {
+    "1m": 60,
+    "5m": 300,
+    "15m": 900,
+    "1h": 3600,
+    "4h": 14400,
+    "1d": 86400,
+}
+
 
 @dataclass(frozen=True)
 class RunInfo:
@@ -236,13 +247,20 @@ class RunInfo:
 class ComparabilityResult:
     eligible: bool
     reason: str
+    needs_rerun: bool = False
+    intersection_from: Optional[datetime] = None
+    intersection_to: Optional[datetime] = None
 
 
 def resolve_comparability(run_a: RunInfo, run_b: RunInfo) -> ComparabilityResult:
     """Decide whether two runs form a coaching-eligible pair.
 
     Eligible iff: same strategy_id, asset, timeframe, and costs;
-    differing strategy_version_id; identical date window.
+    differing strategy_version_id; windows overlap by at least MIN_OVERLAP_CANDLES.
+
+    When windows differ but overlap sufficiently, returns needs_rerun=True
+    with intersection_from/intersection_to set to the overlapping window.
+    When windows are identical, returns needs_rerun=False.
     """
     if run_a.strategy_id != run_b.strategy_id:
         return ComparabilityResult(eligible=False, reason="different_strategy")
@@ -263,7 +281,27 @@ def resolve_comparability(run_a: RunInfo, run_b: RunInfo) -> ComparabilityResult
     ):
         return ComparabilityResult(eligible=False, reason="different_costs")
 
-    if run_a.date_from != run_b.date_from or run_a.date_to != run_b.date_to:
-        return ComparabilityResult(eligible=False, reason="different_window")
+    intersection_from = max(run_a.date_from, run_b.date_from)
+    intersection_to = min(run_a.date_to, run_b.date_to)
 
-    return ComparabilityResult(eligible=True, reason="aligned_eligible")
+    if intersection_from >= intersection_to:
+        return ComparabilityResult(eligible=False, reason="no_overlap")
+
+    tf_seconds = _TIMEFRAME_SECONDS.get(run_a.timeframe, 3600)
+    overlap_seconds = (intersection_to - intersection_from).total_seconds()
+    if overlap_seconds / tf_seconds < MIN_OVERLAP_CANDLES:
+        return ComparabilityResult(eligible=False, reason="insufficient_overlap")
+
+    windows_aligned = (
+        run_a.date_from == run_b.date_from and run_a.date_to == run_b.date_to
+    )
+    if windows_aligned:
+        return ComparabilityResult(eligible=True, reason="aligned_eligible", needs_rerun=False)
+
+    return ComparabilityResult(
+        eligible=True,
+        reason="aligned_eligible",
+        needs_rerun=True,
+        intersection_from=intersection_from,
+        intersection_to=intersection_to,
+    )

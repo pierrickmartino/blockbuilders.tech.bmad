@@ -67,6 +67,9 @@ def evaluate_alerts_for_run(run: BacktestRun, session: Session) -> None:
     - An active alert rule exists for the strategy
     - Conditions haven't already been checked for this run
     """
+    if run.triggered_by != "auto":
+        return
+
     # Query active alert rule for this strategy
     rule = session.exec(
         select(AlertRule)

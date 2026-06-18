@@ -25,6 +25,12 @@ class TradeCoachingItem(BaseModel):
 class CoachResponse(BaseModel):
     eligible: bool
     reason: str
+    # status: "ready" (synchronous coaching), "pending" (comparison runs enqueued),
+    # or absent for ineligible responses.
+    status: Optional[str] = None
+    # comparison_run_ids: set when status="pending" — two run IDs the frontend
+    # should poll via the existing backtest-status poller before re-calling /coach.
+    comparison_run_ids: Optional[list[UUID]] = None
     tier: Optional[str] = None
     headline: Optional[str] = None
     net_delta_pct: Optional[float] = None
