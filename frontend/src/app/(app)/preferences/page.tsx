@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
-import Link from "next/link";
+import { useState, useEffect, useCallback } from "react";
 import { useDisplay } from "@/context/display";
 import { getConsent, setConsent } from "@/lib/analytics";
 import { ApiError } from "@/lib/api";
@@ -20,7 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
-import { Settings, Palette, Mail, Shield } from "lucide-react";
+import { Settings, Palette, Shield } from "lucide-react";
 
 export default function PreferencesPage() {
   const { timezone, setTimezone, theme, setTheme, nodeDisplayMode, setNodeDisplayMode } =
@@ -43,12 +42,6 @@ export default function PreferencesPage() {
   // Analytics consent (localStorage only)
   const [analyticsConsent, setAnalyticsConsent] = useState<"accepted" | "declined" | null>(null);
 
-  // Email digest
-  const [digestEnabled, setDigestEnabled] = useState(true);
-
-  const digestRequestSeqRef = useRef(0);
-  const committedDigestEnabledRef = useRef(true);
-
   useEffect(() => {
     setAnalyticsConsent(getConsent());
   }, []);
@@ -70,8 +63,6 @@ export default function PreferencesPage() {
       if (data.settings.theme_preference) {
         setTheme(data.settings.theme_preference);
       }
-      setDigestEnabled(data.settings.digest_email_enabled);
-      committedDigestEnabledRef.current = data.settings.digest_email_enabled;
     } catch {
       setError("Couldn't load preferences. Please try again.");
     } finally {
@@ -151,26 +142,6 @@ export default function PreferencesPage() {
 
   function handleNodeDisplayModeChange(mode: "compact" | "expanded") {
     setNodeDisplayMode(mode);
-  }
-
-  async function handleDigestGlobalToggle(enabled: boolean) {
-    const requestSeq = ++digestRequestSeqRef.current;
-    setDigestEnabled(enabled);
-
-    try {
-      const updated = await UsersApiClient.updateProfile({ digest_email_enabled: enabled });
-      if (requestSeq !== digestRequestSeqRef.current) return;
-      const persisted = updated.settings.digest_email_enabled;
-      committedDigestEnabledRef.current = persisted;
-      setDigestEnabled(persisted);
-      toast.success(persisted ? "Digest emails enabled" : "Digest emails paused");
-    } catch (err) {
-      if (requestSeq !== digestRequestSeqRef.current) return;
-      setDigestEnabled(committedDigestEnabledRef.current);
-      toast.error(
-        err instanceof ApiError ? err.message : "Failed to update digest preference"
-      );
-    }
   }
 
   if (isLoading) {
@@ -376,49 +347,6 @@ export default function PreferencesPage() {
                 helper="Compact: one-line block summary on the canvas. Expanded: full input and output fields visible at a glance."
               />
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Email Digest */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <Mail className="h-4 w-4 text-muted-foreground" />
-              <CardTitle className="text-base">Email Digest</CardTitle>
-            </div>
-            <CardDescription>
-              Control weekly strategy performance digest emails.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex flex-col gap-3 rounded-lg border bg-muted/20 p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-              <div className="min-w-0">
-                <div id="digest-global-label" className="text-sm font-medium">
-                  Weekly Strategy Digest
-                </div>
-                <p id="digest-global-desc" className="mt-1 text-xs text-muted-foreground">
-                  Receive a weekly summary of your strategy performance by email.
-                </p>
-              </div>
-              <Switch
-                id="digest-global"
-                checked={digestEnabled}
-                onCheckedChange={handleDigestGlobalToggle}
-                aria-labelledby="digest-global-label"
-                aria-describedby="digest-global-desc"
-              />
-            </div>
-            <p className="text-xs text-muted-foreground">
-              To include or exclude individual strategies from the digest, open
-              the strategy and adjust its settings on the{" "}
-              <Link
-                href="/strategies"
-                className="font-medium text-primary underline"
-              >
-                Strategies
-              </Link>{" "}
-              page.
-            </p>
           </CardContent>
         </Card>
 
