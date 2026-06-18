@@ -73,6 +73,18 @@ These come from `PRODUCT.md` and describe what the product *is*.
   Carries one of: `series`, `signal`, `scalar`.
 - **Backtest** — execution of a strategy against historical OHLCV
   candles, producing trades, an equity curve, and metrics.
+- **Comparison run** — a **Backtest** re-executed solely to
+  manufacture a *coachable pair* for **Tweak coaching**: an engine
+  re-run of a **Strategy version** over the *intersection window* of
+  two selected runs (same asset/timeframe/costs), tagged
+  `triggered_by='comparison'` (`docs/ACTIONS.md` #19). Minted **only**
+  when the two selected runs' windows differ; an already-aligned pair
+  is coached directly with no re-run. Walled off like an `auto`
+  re-backtest is a byproduct: excluded from the mainline run history,
+  from **Activation** (never fires `results_viewed`), and from
+  alert-pinning (ADR-0021). _Avoid_: treating it as a user-initiated
+  backtest; letting it inflate the activation north-star; coalescing
+  it into the `manual`/`auto` `triggered_by` values.
 - **Interpreter** — the backend component that walks the strategy
   graph and produces signals for the engine. See
   `backend/app/backtest/interpreter.py`.
@@ -119,6 +131,20 @@ exactly when discussing refactors.
   -> new_params` on a BlockHandler that upgrades persisted block
   instances when a param is added, removed, or renamed.
   Use sparingly; prefer stability.
+- **Strategy diff** — the deterministic *semantic* comparison of two
+  **Strategy versions**' definition graphs (`docs/ACTIONS.md` #19):
+  per-block param changes, block add/remove, and connection changes,
+  with each changed block classified **risk-block** (the six
+  inline-config risk blocks — `stop_loss`, `take_profit`,
+  `trailing_stop`, `position_size`, `time_exit`, `max_drawdown`) vs
+  **structural** (catalogue `indicator`/`logic`/`signal` blocks).
+  The seam that gates **Tweak coaching**'s two tiers: an
+  all-risk-block-param diff leaves the entry/exit **signals
+  byte-identical** (causal tier); any structural change moves entries
+  (descriptive tier). Blocks matched by id. _Avoid_: a visual/canvas
+  diff (this is semantic, for attribution, not a rendered overlay);
+  importing the NL-wedge "there is no diff" framing (ADR-0012 had no
+  baseline — here two versions exist).
 
 ## Market data concepts
 
@@ -240,6 +266,27 @@ components with different lifecycles — keep them apart.
   manipulated variable. See `frontend/src/components/NarrativeCard.tsx` and
   `backend/app/backtest/narrative.py`. _Avoid_: equating with the
   What-you-learned card; treating it as first-run-gated.
+- **Tweak coaching** — the deterministic, *comparative* explanation of
+  **why** a re-tested **Strategy version**'s backtest differs from an
+  earlier version's, surfaced via an **"Explain this delta"** action on
+  the existing compare surface (`docs/ACTIONS.md` #19, Group G). The
+  retention loop's payoff: it turns a tweak-and-re-test into a learning
+  step. **Diagnostic, never advisory** — it states what changed in the
+  graph and what that change did to the trades and the result, never
+  what the user *should* do next (honours the "never a tip" guardrail,
+  #20). Two tiers gated on the **Strategy diff**: *causal* per-trade
+  attribution only when every change is a risk-block param edit (signals
+  unchanged, trades matched by `entry_time` into matched / A-only /
+  B-only buckets, each exit difference attributed via its
+  `exit_reason`); otherwise *descriptive* — the change-list plus the
+  engine-computed net delta, with **no** causal claim. The net delta is
+  always engine-truth; the bucket narrative must reconcile to it, never
+  replace it. Distinct from the single-run **Narrative card** (verdict
+  prose) and the **What-you-learned card** (first-run buy&hold delta),
+  and from the per-trade **exit explanations** (`explanation.py`, which
+  say *what* exited, not *why your edit changed it*). _Avoid_: "coaching"
+  as advice/tips; conflating with the Narrative card; asserting a cause
+  when any structural block changed.
 
 ## Adjacent terms (not yet load-bearing, on the radar)
 
