@@ -1,7 +1,7 @@
 """Add 'comparison' as a valid triggered_by value for backtest_runs.
 
-Revision ID: 043
-Revises: 042
+Revision ID: 044
+Revises: 043
 Create Date: 2026-06-18
 
 Comparison runs are engine re-runs of each strategy version over the
@@ -18,8 +18,8 @@ from typing import Sequence, Union
 import sqlalchemy as sa
 from alembic import op
 
-revision: str = "043"
-down_revision: Union[str, None] = "042"
+revision: str = "044"
+down_revision: Union[str, None] = "043"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
