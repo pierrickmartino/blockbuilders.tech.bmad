@@ -1,7 +1,7 @@
 """Add lesson_completions table
 
-Revision ID: 040
-Revises: 039
+Revision ID: 041
+Revises: 040
 Create Date: 2026-06-16
 
 Write-once, monotonic record stamped the first time a user views the verdict
@@ -15,8 +15,8 @@ from typing import Sequence, Union
 import sqlalchemy as sa
 from alembic import op
 
-revision: str = "040"
-down_revision: Union[str, None] = "039"
+revision: str = "041"
+down_revision: Union[str, None] = "040"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

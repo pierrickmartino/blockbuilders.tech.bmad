@@ -1,7 +1,7 @@
 """Add strategy_version_id and last_fired_candle_ts to alert_rules.
 
-Revision ID: 041
-Revises: 040
+Revision ID: 042
+Revises: 041
 Create Date: 2026-06-17
 
 Pins performance alerts to the frozen strategy version whose backtest result
@@ -21,8 +21,8 @@ from uuid import uuid4
 import sqlalchemy as sa
 from alembic import op
 
-revision: str = "041"
-down_revision: Union[str, None] = "040"
+revision: str = "042"
+down_revision: Union[str, None] = "041"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

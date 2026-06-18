@@ -1,7 +1,7 @@
 """Add source_template_id column to strategies
 
-Revision ID: 039
-Revises: 038
+Revision ID: 040
+Revises: 039
 Create Date: 2026-06-16
 
 Adds a nullable `source_template_id` FK column to `strategies` pointing at
@@ -14,8 +14,8 @@ from typing import Sequence, Union
 import sqlalchemy as sa
 from alembic import op
 
-revision: str = "039"
-down_revision: Union[str, None] = "038"
+revision: str = "040"
+down_revision: Union[str, None] = "039"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
