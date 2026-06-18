@@ -337,11 +337,90 @@ class TestComparabilityResolver:
         assert result.eligible is False
         assert "version" in result.reason
 
-    def test_different_window_ineligible(self):
-        run_a = make_run_info(strategy_version_id=VERSION_A, date_to=datetime(2024, 6, 1))
-        run_b = make_run_info(strategy_version_id=VERSION_B, date_to=datetime(2024, 9, 1))
+    def test_differing_window_eligible_with_needs_rerun(self):
+        """Shifted windows with sufficient overlap: eligible=True, needs_rerun=True, intersection set."""
+        run_a = make_run_info(
+            strategy_version_id=VERSION_A,
+            date_from=datetime(2024, 1, 1),
+            date_to=datetime(2024, 6, 1),
+        )
+        run_b = make_run_info(
+            strategy_version_id=VERSION_B,
+            date_from=datetime(2024, 3, 1),
+            date_to=datetime(2024, 9, 1),
+        )
+
+        result = resolve_comparability(run_a, run_b)
+
+        assert result.eligible is True
+        assert result.needs_rerun is True
+        assert result.intersection_from == datetime(2024, 3, 1)
+        assert result.intersection_to == datetime(2024, 6, 1)
+
+    def test_containment_case_intersection_is_inner_window(self):
+        """Outer window contains inner window: intersection equals the inner window."""
+        run_a = make_run_info(
+            strategy_version_id=VERSION_A,
+            date_from=datetime(2024, 1, 1),
+            date_to=datetime(2024, 12, 31),
+        )
+        run_b = make_run_info(
+            strategy_version_id=VERSION_B,
+            date_from=datetime(2024, 3, 1),
+            date_to=datetime(2024, 9, 1),
+        )
+
+        result = resolve_comparability(run_a, run_b)
+
+        assert result.eligible is True
+        assert result.needs_rerun is True
+        assert result.intersection_from == datetime(2024, 3, 1)
+        assert result.intersection_to == datetime(2024, 9, 1)
+
+    def test_aligned_windows_has_no_rerun(self):
+        """Identical windows: needs_rerun=False — no re-run needed."""
+        run_a = make_run_info(strategy_version_id=VERSION_A)
+        run_b = make_run_info(strategy_version_id=VERSION_B)
+
+        result = resolve_comparability(run_a, run_b)
+
+        assert result.eligible is True
+        assert result.needs_rerun is False
+
+    def test_no_overlap_window_is_ineligible(self):
+        """Completely non-overlapping windows: ineligible."""
+        run_a = make_run_info(
+            strategy_version_id=VERSION_A,
+            date_from=datetime(2024, 1, 1),
+            date_to=datetime(2024, 3, 1),
+        )
+        run_b = make_run_info(
+            strategy_version_id=VERSION_B,
+            date_from=datetime(2024, 9, 1),
+            date_to=datetime(2024, 12, 1),
+        )
 
         result = resolve_comparability(run_a, run_b)
 
         assert result.eligible is False
-        assert "window" in result.reason
+        assert "overlap" in result.reason
+
+    def test_insufficient_overlap_candles_is_ineligible(self):
+        """Overlap exists but is below MIN_OVERLAP_CANDLES for the timeframe."""
+        run_a = make_run_info(
+            strategy_version_id=VERSION_A,
+            timeframe="1d",
+            date_from=datetime(2024, 1, 1),
+            date_to=datetime(2024, 1, 5),
+        )
+        run_b = make_run_info(
+            strategy_version_id=VERSION_B,
+            timeframe="1d",
+            date_from=datetime(2024, 1, 4),
+            date_to=datetime(2024, 6, 1),
+        )
+
+        result = resolve_comparability(run_a, run_b)
+
+        assert result.eligible is False
+        assert "overlap" in result.reason

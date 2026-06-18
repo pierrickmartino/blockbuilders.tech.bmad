@@ -391,7 +391,10 @@ def list_backtests(
     session: Session = Depends(get_session),
 ) -> BacktestListPage:
     """List backtest runs for the current user with total count."""
-    base_filter = [BacktestRun.user_id == user.id]
+    base_filter = [
+        BacktestRun.user_id == user.id,
+        BacktestRun.triggered_by != "comparison",
+    ]
     if strategy_id:
         base_filter.append(BacktestRun.strategy_id == strategy_id)
 
