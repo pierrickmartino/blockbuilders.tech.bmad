@@ -757,6 +757,77 @@ class TestComparabilityResolver:
 
 
 # ---------------------------------------------------------------------------
+# Suppression matrix — exact reason strings for every suppression path
+# ---------------------------------------------------------------------------
+
+
+class TestSuppressionMatrix:
+    """Verify exact reason strings for each coaching suppression case.
+
+    These tests pin the contract between the resolver and the UI message map.
+    """
+
+    def test_same_version_reason_is_same_version(self):
+        """Identical version IDs → same_version (no diff to explain)."""
+        run_a = make_run_info(strategy_version_id=VERSION_A)
+        run_b = make_run_info(strategy_version_id=VERSION_A)
+
+        result = resolve_comparability(run_a, run_b)
+
+        assert result.eligible is False
+        assert result.reason == "same_version"
+
+    def test_empty_overlap_reason_is_no_overlap(self):
+        """Completely disjoint windows → no_overlap."""
+        run_a = make_run_info(
+            strategy_version_id=VERSION_A,
+            date_from=datetime(2024, 1, 1),
+            date_to=datetime(2024, 3, 1),
+        )
+        run_b = make_run_info(
+            strategy_version_id=VERSION_B,
+            date_from=datetime(2024, 9, 1),
+            date_to=datetime(2024, 12, 1),
+        )
+
+        result = resolve_comparability(run_a, run_b)
+
+        assert result.eligible is False
+        assert result.reason == "no_overlap"
+
+    def test_sub_floor_overlap_reason_is_insufficient_overlap(self):
+        """Overlap exists but below MIN_OVERLAP_CANDLES → insufficient_overlap."""
+        run_a = make_run_info(
+            strategy_version_id=VERSION_A,
+            timeframe="1d",
+            date_from=datetime(2024, 1, 1),
+            date_to=datetime(2024, 1, 5),
+        )
+        run_b = make_run_info(
+            strategy_version_id=VERSION_B,
+            timeframe="1d",
+            date_from=datetime(2024, 1, 4),
+            date_to=datetime(2024, 6, 1),
+        )
+
+        result = resolve_comparability(run_a, run_b)
+
+        assert result.eligible is False
+        assert result.reason == "insufficient_overlap"
+
+    def test_cross_strategy_reason_is_different_strategy(self):
+        """Different strategy_id → different_strategy."""
+        other_strategy = UUID("00000000-0000-0000-0000-000000000002")
+        run_a = make_run_info(strategy_version_id=VERSION_A)
+        run_b = make_run_info(strategy_id=other_strategy, strategy_version_id=VERSION_B)
+
+        result = resolve_comparability(run_a, run_b)
+
+        assert result.eligible is False
+        assert result.reason == "different_strategy"
+
+
+# ---------------------------------------------------------------------------
 # Strategy diff — structural tier (Tier 2)
 # ---------------------------------------------------------------------------
 
