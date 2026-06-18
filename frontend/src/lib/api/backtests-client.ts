@@ -6,6 +6,7 @@ import type {
   BatchBacktestCreateResponse,
   BatchStatusResponse,
   BacktestCompareResponse,
+  CoachResponse,
   DataQualityMetrics,
   DataCompletenessResponse,
   ShareLinkCreateRequest,
@@ -126,6 +127,13 @@ export const BacktestsApiClient = {
     return apiFetch<BacktestCompareResponse>("/backtests/compare", {
       method: "POST",
       body: JSON.stringify({ run_ids: runIds }),
+    });
+  },
+
+  async coach(runIdA: string, runIdB: string): Promise<CoachResponse> {
+    return apiFetch<CoachResponse>("/backtests/coach", {
+      method: "POST",
+      body: JSON.stringify({ run_id_a: runIdA, run_id_b: runIdB }),
     });
   },
 
