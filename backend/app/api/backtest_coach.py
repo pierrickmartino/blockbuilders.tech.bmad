@@ -250,6 +250,8 @@ def coach_backtests(
         tier=coaching.tier,
         headline=coaching.headline,
         net_delta_pct=coaching.net_delta_pct,
+        a_only_count=coaching.a_only_count,
+        b_only_count=coaching.b_only_count,
         insights=[
             TradeCoachingItem(
                 entry_time=i.entry_time,

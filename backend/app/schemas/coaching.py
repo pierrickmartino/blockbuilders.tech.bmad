@@ -35,3 +35,5 @@ class CoachResponse(BaseModel):
     headline: Optional[str] = None
     net_delta_pct: Optional[float] = None
     insights: list[TradeCoachingItem] = []
+    a_only_count: int = 0
+    b_only_count: int = 0

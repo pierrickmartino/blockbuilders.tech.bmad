@@ -80,6 +80,39 @@ class TestStrategyDiff:
         assert result.tier == "causal"
         assert result.param_changes[0].classification == "risk-block"
 
+    def test_take_profit_change_produces_causal_tier(self):
+        va = make_strategy(take_profit_levels=[0.10])
+        vb = make_strategy(take_profit_levels=[0.05])
+
+        result = diff_strategy_versions(va, vb)
+
+        assert result.tier == "causal"
+
+    def test_trailing_stop_change_produces_causal_tier(self):
+        va = make_strategy(trailing_stop_pct=5.0)
+        vb = make_strategy(trailing_stop_pct=3.0)
+
+        result = diff_strategy_versions(va, vb)
+
+        assert result.tier == "causal"
+
+    def test_time_exit_change_produces_causal_tier(self):
+        va = make_strategy(time_exit_bars=20)
+        vb = make_strategy(time_exit_bars=10)
+
+        result = diff_strategy_versions(va, vb)
+
+        assert result.tier == "causal"
+
+    def test_multiple_exit_timing_changes_still_causal(self):
+        va = make_strategy(stop_loss_pct=5.0, take_profit_levels=[0.10])
+        vb = make_strategy(stop_loss_pct=3.0, take_profit_levels=[0.05])
+
+        result = diff_strategy_versions(va, vb)
+
+        assert result.tier == "causal"
+        assert len(result.param_changes) == 2
+
 
 # ---------------------------------------------------------------------------
 # Trade matcher
@@ -181,6 +214,20 @@ class TestTradeMatcher:
         assert result.matched[0].trade_a.pnl == 200.0
         assert result.matched[0].trade_b.pnl == -50.0
 
+    def test_a_only_b_only_after_exit_timing_desync(self):
+        """B exits T1 later, tying up capital so T2 entry only happens in A."""
+        trade1_a = make_trade(T1, T1_EXIT)         # A exits T1 quickly
+        trade2_a = make_trade(T2, T2_EXIT)         # A enters T2 with freed capital
+        trade1_b = make_trade(T1, T2_EXIT)         # B holds T1 until T2 — no capital for T2
+
+        result = match_trades([trade1_a, trade2_a], [trade1_b])
+
+        assert len(result.matched) == 1
+        assert result.matched[0].entry_time == T1
+        assert len(result.a_only) == 1
+        assert result.a_only[0].entry_time == T2
+        assert len(result.b_only) == 0
+
 
 # ---------------------------------------------------------------------------
 # Coaching builder
@@ -259,6 +306,105 @@ class TestCoachingBuilder:
         insight = result.insights[0]
         assert insight.exit_reason_a == "tp"
         assert insight.exit_reason_b == "sl"
+
+    def test_take_profit_tightened_insight_type(self):
+        """Tighter TP in B causes B trade to bank sooner; A trade ran to signal."""
+        trade_a = make_trade(T1, T2_EXIT, pnl=500.0, exit_reason="signal")
+        trade_b = make_trade(T1, T1_EXIT, pnl=100.0, exit_reason="tp")
+        matched = MatchedTrade(entry_time=T1, trade_a=trade_a, trade_b=trade_b)
+        diff = StrategyDiff(
+            param_changes=(ParamChange(param="take_profit", old_value=[0.10], new_value=[0.05], classification="risk-block"),),
+            tier="causal",
+        )
+
+        result = build_coaching(diff, make_match_result([matched]), 50.0, 10.0)
+
+        assert result.insights[0].insight_type == "take_profit_tightened"
+
+    def test_take_profit_loosened_insight_type(self):
+        """Looser TP in B means A banked at TP; B ran further to signal."""
+        trade_a = make_trade(T1, T1_EXIT, pnl=100.0, exit_reason="tp")
+        trade_b = make_trade(T1, T2_EXIT, pnl=500.0, exit_reason="signal")
+        matched = MatchedTrade(entry_time=T1, trade_a=trade_a, trade_b=trade_b)
+        diff = StrategyDiff(
+            param_changes=(ParamChange(param="take_profit", old_value=[0.05], new_value=[0.10], classification="risk-block"),),
+            tier="causal",
+        )
+
+        result = build_coaching(diff, make_match_result([matched]), 10.0, 50.0)
+
+        assert result.insights[0].insight_type == "take_profit_loosened"
+
+    def test_trailing_stop_tightened_insight_type(self):
+        """Trailing stop added in B fires; A ran to signal."""
+        trade_a = make_trade(T1, T2_EXIT, pnl=200.0, exit_reason="signal")
+        trade_b = make_trade(T1, T1_EXIT, pnl=80.0, exit_reason="trailing_stop")
+        matched = MatchedTrade(entry_time=T1, trade_a=trade_a, trade_b=trade_b)
+        diff = StrategyDiff(
+            param_changes=(ParamChange(param="trailing_stop", old_value=None, new_value=3.0, classification="risk-block"),),
+            tier="causal",
+        )
+
+        result = build_coaching(diff, make_match_result([matched]), 20.0, 8.0)
+
+        assert result.insights[0].insight_type == "trailing_stop_tightened"
+
+    def test_time_exit_shortened_insight_type(self):
+        """Fewer bars in B triggers time exit; A ran to signal."""
+        trade_a = make_trade(T1, T3_EXIT, pnl=300.0, exit_reason="signal")
+        trade_b = make_trade(T1, T1_EXIT, pnl=50.0, exit_reason="time_exit")
+        matched = MatchedTrade(entry_time=T1, trade_a=trade_a, trade_b=trade_b)
+        diff = StrategyDiff(
+            param_changes=(ParamChange(param="time_exit", old_value=None, new_value=5, classification="risk-block"),),
+            tier="causal",
+        )
+
+        result = build_coaching(diff, make_match_result([matched]), 30.0, 5.0)
+
+        assert result.insights[0].insight_type == "time_exit_shortened"
+
+    def test_multi_knob_routes_via_exit_reason_to_correct_knob(self):
+        """Both sl and tp changed — route to take_profit because B's exit_reason is tp."""
+        trade_a = make_trade(T1, T2_EXIT, pnl=500.0, exit_reason="signal")
+        trade_b = make_trade(T1, T1_EXIT, pnl=80.0, exit_reason="tp")
+        matched = MatchedTrade(entry_time=T1, trade_a=trade_a, trade_b=trade_b)
+        diff = StrategyDiff(
+            param_changes=(
+                ParamChange(param="stop_loss", old_value=5.0, new_value=3.0, classification="risk-block"),
+                ParamChange(param="take_profit", old_value=[0.10], new_value=[0.05], classification="risk-block"),
+            ),
+            tier="causal",
+        )
+
+        result = build_coaching(diff, make_match_result([matched]), 50.0, 8.0)
+
+        assert result.insights[0].insight_type == "take_profit_tightened"
+
+    def test_a_only_count_in_coaching_result(self):
+        """A-only trades from the matcher appear as a_only_count in the result."""
+        trade_a_only = make_trade(T2, T2_EXIT, pnl=100.0)
+
+        result = build_coaching(
+            make_causal_sl_diff(),
+            make_match_result(a_only=[trade_a_only]),
+            10.0,
+            5.0,
+        )
+
+        assert result.a_only_count == 1
+
+    def test_b_only_count_in_coaching_result(self):
+        """B-only trades from the matcher appear as b_only_count in the result."""
+        trade_b_only = make_trade(T2, T2_EXIT, pnl=100.0)
+
+        result = build_coaching(
+            make_causal_sl_diff(),
+            make_match_result(b_only=[trade_b_only]),
+            10.0,
+            5.0,
+        )
+
+        assert result.b_only_count == 1
 
 
 # ---------------------------------------------------------------------------
