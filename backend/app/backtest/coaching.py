@@ -142,31 +142,81 @@ class CoachingResult:
     headline: str
     net_delta_pct: float
     insights: tuple[TradeCoachingInsight, ...]
+    a_only_count: int = 0
+    b_only_count: int = 0
 
 
-def _sl_insight_type(diff: StrategyDiff, trade_a: Trade, trade_b: Trade) -> str:
-    """Derive insight type from the stop_loss diff and actual trade outcomes."""
-    sl_changes = [c for c in diff.param_changes if c.param == "stop_loss"]
-    if not sl_changes:
+_EXIT_REASON_KNOB: dict[str, str] = {
+    "sl": "stop_loss",
+    "tp": "take_profit",
+    "trailing_stop": "trailing_stop",
+    "ts": "trailing_stop",
+    "time_exit": "time_exit",
+}
+
+_EARLY_EXIT_TYPES = frozenset(
+    {"stop_tightened", "take_profit_tightened", "trailing_stop_tightened", "time_exit_shortened"}
+)
+
+
+def _exit_timing_insight_type(diff: StrategyDiff, trade_a: Trade, trade_b: Trade) -> str:
+    """Route the matched-pair exit difference to the responsible risk knob.
+
+    Uses exit_reason as the primary router when multiple knobs changed simultaneously.
+    B's exit reason takes priority — it reveals which knob triggered in B.
+    """
+    changed_knobs: dict[str, ParamChange] = {c.param: c for c in diff.param_changes}
+    exit_a = trade_a.exit_reason
+    exit_b = trade_b.exit_reason
+
+    responsible_knob: Optional[str] = None
+
+    knob_b = _EXIT_REASON_KNOB.get(exit_b)
+    if knob_b and knob_b in changed_knobs and exit_a != exit_b:
+        responsible_knob = knob_b
+
+    if responsible_knob is None:
+        knob_a = _EXIT_REASON_KNOB.get(exit_a)
+        if knob_a and knob_a in changed_knobs and exit_a != exit_b:
+            responsible_knob = knob_a
+
+    if responsible_knob is None:
         return "neutral"
 
-    change = sl_changes[0]
-    old_sl = change.old_value
-    new_sl = change.new_value
+    change = changed_knobs[responsible_knob]
 
-    sl_tightened = (
-        (old_sl is None and new_sl is not None)
-        or (old_sl is not None and new_sl is not None and new_sl < old_sl)
-    )
-    sl_loosened = (
-        (new_sl is None and old_sl is not None)
-        or (old_sl is not None and new_sl is not None and new_sl > old_sl)
-    )
+    if responsible_knob == "stop_loss":
+        old_sl = change.old_value
+        new_sl = change.new_value
+        sl_tightened = (old_sl is None and new_sl is not None) or (
+            old_sl is not None and new_sl is not None and new_sl < old_sl
+        )
+        sl_loosened = (new_sl is None and old_sl is not None) or (
+            old_sl is not None and new_sl is not None and new_sl > old_sl
+        )
+        if sl_tightened and exit_b == "sl" and exit_a != "sl":
+            return "stop_tightened"
+        if sl_loosened and exit_a == "sl" and exit_b != "sl":
+            return "stop_loosened"
 
-    if sl_tightened and trade_b.exit_reason == "sl" and trade_a.exit_reason != "sl":
-        return "stop_tightened"
-    if sl_loosened and trade_a.exit_reason == "sl" and trade_b.exit_reason != "sl":
-        return "stop_loosened"
+    if responsible_knob == "take_profit":
+        if exit_b == "tp" and exit_a != "tp":
+            return "take_profit_tightened"
+        if exit_a == "tp" and exit_b != "tp":
+            return "take_profit_loosened"
+
+    if responsible_knob == "trailing_stop":
+        if exit_b in ("trailing_stop", "ts") and exit_a not in ("trailing_stop", "ts"):
+            return "trailing_stop_tightened"
+        if exit_a in ("trailing_stop", "ts") and exit_b not in ("trailing_stop", "ts"):
+            return "trailing_stop_loosened"
+
+    if responsible_knob == "time_exit":
+        if exit_b == "time_exit" and exit_a != "time_exit":
+            return "time_exit_shortened"
+        if exit_a == "time_exit" and exit_b != "time_exit":
+            return "time_exit_extended"
+
     return "neutral"
 
 
@@ -181,6 +231,7 @@ def build_coaching(
     Observed-not-speculated invariant: only actual trade outcomes are reported;
     no counterfactual phrasing is generated.
     Net delta is the engine-computed difference (ret_pct_b − ret_pct_a).
+    A-only / B-only counts capture the capital-availability side-effect.
     """
     net_delta_pct = ret_pct_b - ret_pct_a
 
@@ -189,7 +240,7 @@ def build_coaching(
         insights.append(
             TradeCoachingInsight(
                 entry_time=m.entry_time,
-                insight_type=_sl_insight_type(diff, m.trade_a, m.trade_b),
+                insight_type=_exit_timing_insight_type(diff, m.trade_a, m.trade_b),
                 exit_reason_a=m.trade_a.exit_reason,
                 pnl_a=m.trade_a.pnl,
                 pnl_pct_a=m.trade_a.pnl_pct,
@@ -199,16 +250,26 @@ def build_coaching(
             )
         )
 
-    early_count = sum(1 for i in insights if i.insight_type == "stop_tightened")
+    early_count = sum(1 for i in insights if i.insight_type in _EARLY_EXIT_TYPES)
+    a_only_count = len(match.a_only)
+    b_only_count = len(match.b_only)
+
     delta_sign = "+" if net_delta_pct >= 0 else "−"
     delta_abs = abs(net_delta_pct)
-    headline = f"{early_count} trade(s) exited early, {delta_sign}{delta_abs:.1f}pp net"
+    parts = [f"{early_count} trade(s) exited early, {delta_sign}{delta_abs:.1f}pp net"]
+    if a_only_count:
+        parts.append(f"{a_only_count} A-only (capital-availability side-effect)")
+    if b_only_count:
+        parts.append(f"{b_only_count} B-only (capital-availability side-effect)")
+    headline = "; ".join(parts)
 
     return CoachingResult(
         tier="causal",
         headline=headline,
         net_delta_pct=net_delta_pct,
         insights=tuple(insights),
+        a_only_count=a_only_count,
+        b_only_count=b_only_count,
     )
 
 
