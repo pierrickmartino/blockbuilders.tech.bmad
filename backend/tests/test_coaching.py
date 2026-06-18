@@ -754,3 +754,239 @@ class TestComparabilityResolver:
 
         assert result.eligible is False
         assert "overlap" in result.reason
+
+
+# ---------------------------------------------------------------------------
+# Strategy diff — structural tier (Tier 2)
+# ---------------------------------------------------------------------------
+
+
+def make_strategy_with_blocks(blocks, connections=None, **risk_overrides) -> ValidatedStrategy:
+    """Factory for ValidatedStrategy with custom blocks and connections."""
+    base_risk = dict(
+        position_size_pct=100.0,
+        stop_loss_pct=None,
+        take_profit_levels=None,
+        max_drawdown_pct=None,
+        time_exit_bars=None,
+        trailing_stop_pct=None,
+    )
+    base_risk.update(risk_overrides)
+    if connections is None:
+        connections = ({"from": "b1", "to": "entry"},)
+    return ValidatedStrategy(
+        blocks=tuple(blocks),
+        connections=tuple(connections),
+        risk_params=RiskParams(**base_risk),
+    )
+
+
+class TestStrategyDiffStructural:
+    def test_block_added_produces_descriptive_tier(self):
+        va = make_strategy_with_blocks([{"id": "b1", "type": "rsi_oversold"}])
+        vb = make_strategy_with_blocks([{"id": "b1", "type": "rsi_oversold"}, {"id": "b2", "type": "macd_cross"}])
+
+        result = diff_strategy_versions(va, vb)
+
+        assert result.tier == "descriptive"
+
+    def test_block_removed_produces_descriptive_tier(self):
+        va = make_strategy_with_blocks([{"id": "b1", "type": "rsi_oversold"}, {"id": "b2", "type": "macd_cross"}])
+        vb = make_strategy_with_blocks([{"id": "b1", "type": "rsi_oversold"}])
+
+        result = diff_strategy_versions(va, vb)
+
+        assert result.tier == "descriptive"
+
+    def test_block_params_changed_produces_descriptive_tier(self):
+        va = make_strategy_with_blocks([{"id": "b1", "type": "rsi_oversold", "params": {"period": 14}}])
+        vb = make_strategy_with_blocks([{"id": "b1", "type": "rsi_oversold", "params": {"period": 21}}])
+
+        result = diff_strategy_versions(va, vb)
+
+        assert result.tier == "descriptive"
+
+    def test_connection_added_produces_descriptive_tier(self):
+        va = make_strategy_with_blocks(
+            [{"id": "b1", "type": "rsi_oversold"}, {"id": "b2", "type": "volume_filter"}],
+            connections=[{"from": "b1", "to": "entry"}],
+        )
+        vb = make_strategy_with_blocks(
+            [{"id": "b1", "type": "rsi_oversold"}, {"id": "b2", "type": "volume_filter"}],
+            connections=[{"from": "b1", "to": "entry"}, {"from": "b2", "to": "filter"}],
+        )
+
+        result = diff_strategy_versions(va, vb)
+
+        assert result.tier == "descriptive"
+
+    def test_connection_removed_produces_descriptive_tier(self):
+        va = make_strategy_with_blocks(
+            [{"id": "b1", "type": "rsi_oversold"}, {"id": "b2", "type": "volume_filter"}],
+            connections=[{"from": "b1", "to": "entry"}, {"from": "b2", "to": "filter"}],
+        )
+        vb = make_strategy_with_blocks(
+            [{"id": "b1", "type": "rsi_oversold"}, {"id": "b2", "type": "volume_filter"}],
+            connections=[{"from": "b1", "to": "entry"}],
+        )
+
+        result = diff_strategy_versions(va, vb)
+
+        assert result.tier == "descriptive"
+
+    def test_structural_change_overrides_risk_param_change(self):
+        """Structural + risk-param edit together → descriptive, not causal."""
+        va = make_strategy_with_blocks([{"id": "b1", "type": "rsi_oversold"}], stop_loss_pct=5.0)
+        vb = make_strategy_with_blocks(
+            [{"id": "b1", "type": "rsi_oversold"}, {"id": "b2", "type": "macd_cross"}],
+            stop_loss_pct=3.0,
+        )
+
+        result = diff_strategy_versions(va, vb)
+
+        assert result.tier == "descriptive"
+
+    def test_block_added_captured_in_structural_changes(self):
+        va = make_strategy_with_blocks([{"id": "b1", "type": "rsi_oversold"}])
+        vb = make_strategy_with_blocks([{"id": "b1", "type": "rsi_oversold"}, {"id": "b2", "type": "macd_cross"}])
+
+        result = diff_strategy_versions(va, vb)
+
+        change_types = [sc.change_type for sc in result.structural_changes]
+        assert "block_added" in change_types
+
+    def test_block_removed_captured_in_structural_changes(self):
+        va = make_strategy_with_blocks([{"id": "b1", "type": "rsi_oversold"}, {"id": "b2", "type": "macd_cross"}])
+        vb = make_strategy_with_blocks([{"id": "b1", "type": "rsi_oversold"}])
+
+        result = diff_strategy_versions(va, vb)
+
+        change_types = [sc.change_type for sc in result.structural_changes]
+        assert "block_removed" in change_types
+
+    def test_delete_and_readd_reads_as_remove_plus_add(self):
+        """A block removed and a new block added reads as remove+add → descriptive."""
+        va = make_strategy_with_blocks([{"id": "b1", "type": "rsi_oversold"}])
+        vb = make_strategy_with_blocks([{"id": "b2", "type": "macd_cross"}])
+
+        result = diff_strategy_versions(va, vb)
+
+        assert result.tier == "descriptive"
+        change_types = {sc.change_type for sc in result.structural_changes}
+        assert "block_removed" in change_types
+        assert "block_added" in change_types
+
+    def test_risk_param_only_change_has_empty_structural_changes(self):
+        va = make_strategy_with_blocks([{"id": "b1", "type": "rsi_oversold"}], stop_loss_pct=5.0)
+        vb = make_strategy_with_blocks([{"id": "b1", "type": "rsi_oversold"}], stop_loss_pct=3.0)
+
+        result = diff_strategy_versions(va, vb)
+
+        assert result.tier == "causal"
+        assert len(result.structural_changes) == 0
+
+
+# ---------------------------------------------------------------------------
+# Coaching builder — descriptive tier (Tier 2)
+# ---------------------------------------------------------------------------
+
+
+def make_descriptive_diff() -> StrategyDiff:
+    """A descriptive-tier diff with a single structural block change."""
+    from app.backtest.coaching import StructuralChange
+
+    return StrategyDiff(
+        param_changes=(),
+        structural_changes=(StructuralChange(change_type="block_added", block_id="b2", block_type="macd_cross"),),
+        tier="descriptive",
+    )
+
+
+class TestDescriptiveCoaching:
+    def test_descriptive_diff_yields_descriptive_tier_in_result(self):
+        result = build_coaching(make_descriptive_diff(), make_match_result(), 10.0, 5.0)
+
+        assert result.tier == "descriptive"
+
+    def test_descriptive_produces_no_per_trade_insights(self):
+        """Descriptive tier never emits per-trade pairing — no exit_reason routing."""
+        trade_a = make_trade(T1, T1_EXIT, pnl=100.0, exit_reason="signal")
+        trade_b = make_trade(T1, T1_EXIT, pnl=50.0, exit_reason="sl")
+        matched = MatchedTrade(entry_time=T1, trade_a=trade_a, trade_b=trade_b)
+
+        result = build_coaching(make_descriptive_diff(), make_match_result([matched]), 10.0, 5.0)
+
+        assert result.insights == ()
+
+    def test_descriptive_headline_contains_no_attribution_disclaimer(self):
+        """Headline must carry an explicit no-attribution disclaimer."""
+        result = build_coaching(make_descriptive_diff(), make_match_result(), 10.0, 5.0)
+
+        headline_lower = result.headline.lower()
+        assert "can't isolate" in headline_lower or "attribution" in headline_lower or "can't" in headline_lower
+
+    def test_descriptive_headline_contains_set_level_facts(self):
+        """Headline must state trade counts for both runs (set-level facts)."""
+        trade_a = make_trade(T1, T1_EXIT)
+        trade_b = make_trade(T1, T1_EXIT)
+        extra_a = make_trade(T2, T2_EXIT)
+        matched = MatchedTrade(entry_time=T1, trade_a=trade_a, trade_b=trade_b)
+
+        result = build_coaching(make_descriptive_diff(), make_match_result([matched], a_only=[extra_a]), 12.0, 8.0)
+
+        # n_a=2 (1 matched + 1 a_only), n_b=1 (1 matched)
+        assert "2" in result.headline and "1" in result.headline
+
+    def test_descriptive_net_delta_reconciles(self):
+        """Reconciliation invariant holds for descriptive tier."""
+        ret_a, ret_b = 15.0, 9.0
+        result = build_coaching(make_descriptive_diff(), make_match_result(), ret_a, ret_b)
+
+        assert result.net_delta_pct == pytest.approx(ret_b - ret_a)
+
+    def test_descriptive_no_would_have_phrasing(self):
+        """Observed-not-speculated: no counterfactual phrasing in descriptive output."""
+        result = build_coaching(make_descriptive_diff(), make_match_result(), 10.0, 5.0)
+
+        assert "would have" not in result.headline.lower()
+
+    def test_zero_trades_in_b_headline_surfaces_clearly(self):
+        """Stricter entry that stops firing: B has 0 trades, A has N → surfaced in headline."""
+        trades_a = [make_trade(T1, T1_EXIT), make_trade(T2, T2_EXIT), make_trade(T3, T3_EXIT)]
+
+        result = build_coaching(
+            make_descriptive_diff(),
+            make_match_result(a_only=trades_a),
+            9.0,
+            0.0,
+        )
+
+        headline_lower = result.headline.lower()
+        assert "0" in headline_lower and "3" in headline_lower
+
+    def test_zero_trades_headline_is_not_a_causal_claim(self):
+        """Zero-trade headline must not imply causation (no 'would have')."""
+        trades_a = [make_trade(T1, T1_EXIT)]
+
+        result = build_coaching(
+            make_descriptive_diff(),
+            make_match_result(a_only=trades_a),
+            5.0,
+            0.0,
+        )
+
+        assert "would have" not in result.headline.lower()
+
+    def test_descriptive_with_change_list_from_structural_changes(self):
+        """Headline includes the change list derived from structural_changes."""
+        from app.backtest.coaching import StructuralChange
+
+        diff = StrategyDiff(
+            param_changes=(),
+            structural_changes=(StructuralChange(change_type="block_removed", block_id="b1", block_type="rsi_oversold"),),
+            tier="descriptive",
+        )
+
+        result = build_coaching(diff, make_match_result(), 10.0, 5.0)
+
+        assert "rsi_oversold" in result.headline or "removed" in result.headline

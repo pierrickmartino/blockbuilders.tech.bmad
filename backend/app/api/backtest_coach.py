@@ -230,7 +230,7 @@ def coach_backtests(
     vb = _load_validated_strategy(run_b.strategy_version_id, session, "B")
 
     diff = diff_strategy_versions(va, vb)
-    if diff.tier != "causal":
+    if diff.tier not in ("causal", "descriptive"):
         return CoachResponse(eligible=False, reason=f"tier_{diff.tier}")
 
     trades_a = _load_trades(run_a)

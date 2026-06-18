@@ -39,9 +39,17 @@ class ParamChange:
 
 
 @dataclass(frozen=True)
+class StructuralChange:
+    change_type: str  # "block_added" | "block_removed" | "block_changed" | "connection_added" | "connection_removed"
+    block_id: Optional[str] = None
+    block_type: Optional[str] = None
+
+
+@dataclass(frozen=True)
 class StrategyDiff:
     param_changes: tuple[ParamChange, ...]
     tier: str  # "causal" | "descriptive" | "no-diff"
+    structural_changes: tuple[StructuralChange, ...] = ()
 
 
 def diff_strategy_versions(va: ValidatedStrategy, vb: ValidatedStrategy) -> StrategyDiff:
@@ -49,17 +57,17 @@ def diff_strategy_versions(va: ValidatedStrategy, vb: ValidatedStrategy) -> Stra
 
     Tier is "causal" when every detected change is a risk-block param edit.
     Tier is "no-diff" when nothing changed.
-    Tier is "descriptive" when structural block changes are present.
+    Tier is "descriptive" when any structural block change is present (block
+    add/remove/change or connection change), even when risk-block params also changed.
     """
-    changes: list[ParamChange] = []
-
+    risk_changes: list[ParamChange] = []
     ra = va.risk_params
     rb = vb.risk_params
     for field, label in _RISK_BLOCK_PARAMS.items():
         old_val = getattr(ra, field)
         new_val = getattr(rb, field)
         if old_val != new_val:
-            changes.append(
+            risk_changes.append(
                 ParamChange(
                     param=label,
                     old_value=old_val,
@@ -68,10 +76,34 @@ def diff_strategy_versions(va: ValidatedStrategy, vb: ValidatedStrategy) -> Stra
                 )
             )
 
-    if not changes:
+    structural: list[StructuralChange] = []
+    blocks_a = {b["id"]: b for b in va.blocks}
+    blocks_b = {b["id"]: b for b in vb.blocks}
+
+    for bid, block in blocks_a.items():
+        if bid not in blocks_b:
+            structural.append(StructuralChange(change_type="block_removed", block_id=bid, block_type=block.get("type")))
+        elif block != blocks_b[bid]:
+            structural.append(StructuralChange(change_type="block_changed", block_id=bid, block_type=block.get("type")))
+
+    for bid, block in blocks_b.items():
+        if bid not in blocks_a:
+            structural.append(StructuralChange(change_type="block_added", block_id=bid, block_type=block.get("type")))
+
+    conns_a = {(c["from"], c["to"]) for c in va.connections}
+    conns_b = {(c["from"], c["to"]) for c in vb.connections}
+    for _ in conns_a - conns_b:
+        structural.append(StructuralChange(change_type="connection_removed"))
+    for _ in conns_b - conns_a:
+        structural.append(StructuralChange(change_type="connection_added"))
+
+    if not risk_changes and not structural:
         return StrategyDiff(param_changes=(), tier="no-diff")
 
-    return StrategyDiff(param_changes=tuple(changes), tier="causal")
+    if structural:
+        return StrategyDiff(param_changes=tuple(risk_changes), tier="descriptive", structural_changes=tuple(structural))
+
+    return StrategyDiff(param_changes=tuple(risk_changes), tier="causal")
 
 
 # ---------------------------------------------------------------------------
@@ -138,7 +170,7 @@ class TradeCoachingInsight:
 
 @dataclass(frozen=True)
 class CoachingResult:
-    tier: str  # "causal"
+    tier: str  # "causal" | "descriptive"
     headline: str
     net_delta_pct: float
     insights: tuple[TradeCoachingInsight, ...]
@@ -268,20 +300,80 @@ def _position_size_and_max_drawdown_headline(diff: StrategyDiff, match: TradeMat
     return f"P&L scaled ~{scale:.1f}x (position_size); kill-switch {direction} (max_drawdown); {delta}"
 
 
+def _build_descriptive_coaching(
+    diff: StrategyDiff,
+    match: TradeMatchResult,
+    net_delta_pct: float,
+) -> CoachingResult:
+    """Build descriptive (Tier 2) coaching for structural edits.
+
+    Emits: change-list + net delta + set-level facts + no-attribution disclaimer.
+    Never pairs trades, never routes via exit_reason, never makes a causal claim.
+    """
+    n_a = len(match.matched) + len(match.a_only)
+    n_b = len(match.matched) + len(match.b_only)
+
+    if n_b == 0 and n_a > 0:
+        headline = f"your stricter entry stopped triggering: 0 trades vs. {n_a}"
+        return CoachingResult(
+            tier="descriptive",
+            headline=headline,
+            net_delta_pct=net_delta_pct,
+            insights=(),
+            a_only_count=n_a,
+            b_only_count=0,
+        )
+
+    changes: list[str] = []
+    for sc in diff.structural_changes:
+        if sc.change_type == "block_added":
+            changes.append(f"{sc.block_type or 'block'} added")
+        elif sc.change_type == "block_removed":
+            changes.append(f"{sc.block_type or 'block'} removed")
+        elif sc.change_type == "block_changed":
+            changes.append(f"{sc.block_type or 'block'} changed")
+        elif sc.change_type == "connection_added":
+            changes.append("connection added")
+        elif sc.change_type == "connection_removed":
+            changes.append("connection removed")
+    for pc in diff.param_changes:
+        changes.append(f"{pc.param} changed")
+
+    change_list = "; ".join(changes)
+    set_facts = f"{n_b} trades vs. {n_a}"
+    delta = _delta_str(net_delta_pct)
+    if len(changes) > 1:
+        disclaimer = "two things changed, so we can't isolate which drove the result"
+    else:
+        disclaimer = "entries moved, so per-trade attribution isn't provable"
+
+    headline = f"{change_list}; {set_facts}; {delta}; {disclaimer}"
+    return CoachingResult(
+        tier="descriptive",
+        headline=headline,
+        net_delta_pct=net_delta_pct,
+        insights=(),
+        a_only_count=len(match.a_only),
+        b_only_count=len(match.b_only),
+    )
+
+
 def build_coaching(
     diff: StrategyDiff,
     match: TradeMatchResult,
     ret_pct_a: float,
     ret_pct_b: float,
 ) -> CoachingResult:
-    """Build causal coaching from a pre-matched trade set.
+    """Build coaching from a pre-matched trade set.
 
-    Observed-not-speculated invariant: only actual trade outcomes are reported;
-    no counterfactual phrasing is generated.
-    Net delta is the engine-computed difference (ret_pct_b − ret_pct_a).
-    A-only / B-only counts capture the capital-availability side-effect.
+    Routes to the descriptive path when diff.tier is "descriptive" (structural edits).
+    For causal tier: observed-not-speculated invariant, exit_reason routing, reconciliation.
+    Net delta is always the engine-computed difference (ret_pct_b − ret_pct_a).
     """
     net_delta_pct = ret_pct_b - ret_pct_a
+
+    if diff.tier == "descriptive":
+        return _build_descriptive_coaching(diff, match, net_delta_pct)
 
     insights: list[TradeCoachingInsight] = []
     for m in match.matched:
