@@ -170,3 +170,41 @@ surfaces):
   existing prose still claims "performed on par with buy-and-hold" — a latent
   honesty gap belonging to the trust moat (#10 / ADR-0017), not fixed here. #12
   deliberately does not *add* a dollar figure to that false claim.
+
+## Amendment (2026-06-18) — #19's gate re-scoped from *build* to *prominence*
+
+The §6 ship rule gated #19 (the coaching loop) on a **positive** #3 result,
+and the 2026-06-15 amendment, while un-gating #12, explicitly kept "#19
+(coaching loop) remains gated on a positive result." Grilling #19 against the
+code (see [ADR-0024](./0024-tweak-coaching-is-deterministic-comparative-attribution.md))
+reframed what #19 *is* and reverses the **build** half of that gate, while
+keeping a **prominence** gate.
+
+Why the original gate over-reached for #19:
+
+1. **Different mechanism, independent thesis.** #19 turned out to be **Tweak
+   coaching** — a *deterministic, comparative, diff-attributed* explanation of
+   why a re-tested **Strategy version** differs from an earlier one — not more
+   severity narrative. Its justification is the Eureka/literacy thesis (it
+   feeds #15), which a null #3 (the *incremental* value of the severity card on
+   top of the always-on narrative) does **not** falsify. The §6 ship rule's own
+   "null result is bounded in meaning" consequence already says a null kills
+   only the What-you-learned card's increment, not the broader thesis.
+2. **It cannot confound #3.** Unlike #12 (which lands *inside* the tested
+   What-you-learned card), Tweak coaching lives on the **compare surface** and
+   is **not a variable in the #3 experiment**. Building it while #3 is in flight
+   changes nothing the experiment measures.
+3. **It is self-contained and engine-trusted.** Deterministic, server-side, and
+   behind the existing flag infrastructure — buildable without touching the
+   verdict path or the experiment.
+
+What this changes:
+
+- **Build gate → removed.** #19 may be designed and built now (it is —
+  ADR-0024).
+- **Prominence gate → retained, relaxed to non-negative.** Making "Explain this
+  delta" a loud, default affordance waits until #3 reads **non-negative**. A
+  *negative* #3 (the severity card actively *hurts* retention) is the one signal
+  that should give us pause about adding more post-result content; a null is not.
+- This mirrors the move the 2026-06-15 amendment made for #12 (un-gate via
+  amendment with explicit reasoning), applied to #19's build step only.
