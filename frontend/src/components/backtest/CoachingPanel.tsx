@@ -12,6 +12,15 @@ import dynamic from "next/dynamic";
 
 const TradeDrawer = dynamic(() => import("@/components/TradeDrawer"), { ssr: false });
 
+const SUPPRESSION_MESSAGES: Record<string, string> = {
+  same_version: "Same strategy on both runs — nothing to explain.",
+  "tier_no-diff": "Same strategy on both runs — nothing to explain.",
+  no_overlap: "These runs barely overlap — not enough common history to compare.",
+  insufficient_overlap: "These runs barely overlap — not enough common history to compare.",
+  different_strategy: "These runs use different strategies — coaching requires shared lineage.",
+  failed_comparison: "We couldn't generate the comparison — please try again later.",
+};
+
 interface CoachingPanelProps {
   runIdA: string;
   runIdB: string;
@@ -155,7 +164,7 @@ export function CoachingPanel({ runIdA, runIdB, assetA, timeframeA }: CoachingPa
       setCoaching(result);
       setTradesA(tA);
       setTradesB(tB);
-      if (result.eligible) setIsExpanded(true);
+      if (result.eligible && result.status === "ready") setIsExpanded(true);
     } catch {
       setError("Failed to load coaching. Please try again.");
     } finally {
@@ -205,7 +214,13 @@ export function CoachingPanel({ runIdA, runIdB, assetA, timeframeA }: CoachingPa
 
       {coaching && !coaching.eligible && (
         <p className="border-t border-border px-4 py-3 text-sm text-muted-foreground">
-          These runs are not eligible for coaching ({coaching.reason.replace(/_/g, " ")}).
+          {SUPPRESSION_MESSAGES[coaching.reason] ?? `Not eligible for coaching (${coaching.reason.replace(/_/g, " ")}).`}
+        </p>
+      )}
+
+      {coaching?.eligible && coaching.status === "pending" && (
+        <p className="border-t border-border px-4 py-3 text-sm text-muted-foreground">
+          Preparing comparison runs — check back shortly.
         </p>
       )}
 

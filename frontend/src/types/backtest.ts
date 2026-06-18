@@ -270,8 +270,12 @@ export interface TradeCoachingItem {
 export interface CoachResponse {
   eligible: boolean;
   reason: string;
+  status?: string | null;
+  comparison_run_ids?: string[] | null;
   tier?: string | null;
   headline?: string | null;
   net_delta_pct?: number | null;
   insights: TradeCoachingItem[];
+  a_only_count?: number;
+  b_only_count?: number;
 }

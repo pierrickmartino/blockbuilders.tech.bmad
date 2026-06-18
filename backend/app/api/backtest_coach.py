@@ -215,10 +215,7 @@ def coach_backtests(
             )
         except Exception:
             logger.exception("Failed to enqueue comparison runs")
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Failed to enqueue comparison runs. Please try again.",
-            )
+            return CoachResponse(eligible=False, reason="failed_comparison")
         return CoachResponse(
             eligible=True,
             reason=compat.reason,
