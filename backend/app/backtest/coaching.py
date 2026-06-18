@@ -220,6 +220,54 @@ def _exit_timing_insight_type(diff: StrategyDiff, trade_a: Trade, trade_b: Trade
     return "neutral"
 
 
+def _delta_str(net_delta_pct: float) -> str:
+    sign = "+" if net_delta_pct >= 0 else "−"
+    return f"{sign}{abs(net_delta_pct):.1f}pp net"
+
+
+def _position_size_headline(diff: StrategyDiff, net_delta_pct: float) -> str:
+    change = next(c for c in diff.param_changes if c.param == "position_size")
+    old_val = change.old_value or 1.0
+    scale = change.new_value / old_val
+    return f"same trades, same timing, P&L scaled ~{scale:.1f}x; {_delta_str(net_delta_pct)}"
+
+
+def _max_drawdown_direction(change: ParamChange) -> str:
+    if change.new_value is None:
+        return "loosened"
+    if change.old_value is None:
+        return "tightened"
+    return "tightened" if change.new_value < change.old_value else "loosened"
+
+
+def _max_drawdown_headline(diff: StrategyDiff, match: TradeMatchResult, net_delta_pct: float) -> str:
+    change = next(c for c in diff.param_changes if c.param == "max_drawdown")
+    direction = _max_drawdown_direction(change)
+    delta = _delta_str(net_delta_pct)
+
+    if direction == "tightened" and match.a_only:
+        halt_date = min(t.entry_time for t in match.a_only).date()
+        n = len(match.a_only)
+        return f"kill-switch tightened: {n} entr{'y' if n == 1 else 'ies'} skipped from {halt_date}; {delta}"
+
+    if direction == "loosened" and match.b_only:
+        first_date = min(t.entry_time for t in match.b_only).date()
+        n = len(match.b_only)
+        return f"kill-switch loosened: {n} entr{'y' if n == 1 else 'ies'} allowed from {first_date}; {delta}"
+
+    return f"kill-switch {direction}; {delta}"
+
+
+def _position_size_and_max_drawdown_headline(diff: StrategyDiff, match: TradeMatchResult, net_delta_pct: float) -> str:
+    ps_change = next(c for c in diff.param_changes if c.param == "position_size")
+    md_change = next(c for c in diff.param_changes if c.param == "max_drawdown")
+    old_val = ps_change.old_value or 1.0
+    scale = ps_change.new_value / old_val
+    direction = _max_drawdown_direction(md_change)
+    delta = _delta_str(net_delta_pct)
+    return f"P&L scaled ~{scale:.1f}x (position_size); kill-switch {direction} (max_drawdown); {delta}"
+
+
 def build_coaching(
     diff: StrategyDiff,
     match: TradeMatchResult,
@@ -254,14 +302,22 @@ def build_coaching(
     a_only_count = len(match.a_only)
     b_only_count = len(match.b_only)
 
-    delta_sign = "+" if net_delta_pct >= 0 else "−"
-    delta_abs = abs(net_delta_pct)
-    parts = [f"{early_count} trade(s) exited early, {delta_sign}{delta_abs:.1f}pp net"]
-    if a_only_count:
-        parts.append(f"{a_only_count} A-only (capital-availability side-effect)")
-    if b_only_count:
-        parts.append(f"{b_only_count} B-only (capital-availability side-effect)")
-    headline = "; ".join(parts)
+    changed_params = {c.param for c in diff.param_changes}
+    if changed_params == {"position_size"}:
+        headline = _position_size_headline(diff, net_delta_pct)
+    elif changed_params == {"max_drawdown"}:
+        headline = _max_drawdown_headline(diff, match, net_delta_pct)
+    elif changed_params == {"position_size", "max_drawdown"}:
+        headline = _position_size_and_max_drawdown_headline(diff, match, net_delta_pct)
+    else:
+        delta_sign = "+" if net_delta_pct >= 0 else "−"
+        delta_abs = abs(net_delta_pct)
+        parts = [f"{early_count} trade(s) exited early, {delta_sign}{delta_abs:.1f}pp net"]
+        if a_only_count:
+            parts.append(f"{a_only_count} A-only (capital-availability side-effect)")
+        if b_only_count:
+            parts.append(f"{b_only_count} B-only (capital-availability side-effect)")
+        headline = "; ".join(parts)
 
     return CoachingResult(
         tier="causal",

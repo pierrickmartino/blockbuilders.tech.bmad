@@ -408,6 +408,190 @@ class TestCoachingBuilder:
 
 
 # ---------------------------------------------------------------------------
+# position_size coaching
+# ---------------------------------------------------------------------------
+
+
+def make_causal_position_size_diff(old_pct: float = 100.0, new_pct: float = 50.0) -> StrategyDiff:
+    return StrategyDiff(
+        param_changes=(
+            ParamChange(param="position_size", old_value=old_pct, new_value=new_pct, classification="risk-block"),
+        ),
+        tier="causal",
+    )
+
+
+class TestPositionSizeCoaching:
+    def test_position_size_only_diff_headline_is_mechanical_scaling(self):
+        """Halving position size: same trades, same timing, P&L scaled ~0.5x."""
+        trade_a = make_trade(T1, T1_EXIT, pnl=200.0, exit_reason="signal")
+        trade_b = make_trade(T1, T1_EXIT, pnl=100.0, exit_reason="signal")
+        matched = MatchedTrade(entry_time=T1, trade_a=trade_a, trade_b=trade_b)
+
+        result = build_coaching(make_causal_position_size_diff(100.0, 50.0), make_match_result([matched]), 20.0, 10.0)
+
+        assert "same trades" in result.headline.lower()
+        assert "same timing" in result.headline.lower()
+
+    def test_position_size_headline_includes_scale_factor(self):
+        """Doubling position size: scale factor ~2.0x appears in headline."""
+        trade_a = make_trade(T1, T1_EXIT, pnl=100.0, exit_reason="signal")
+        trade_b = make_trade(T1, T1_EXIT, pnl=200.0, exit_reason="signal")
+        matched = MatchedTrade(entry_time=T1, trade_a=trade_a, trade_b=trade_b)
+
+        result = build_coaching(make_causal_position_size_diff(50.0, 100.0), make_match_result([matched]), 10.0, 20.0)
+
+        assert "2.0x" in result.headline
+
+    def test_position_size_only_all_insights_are_neutral(self):
+        """Position size doesn't change exit timing; all matched insights are neutral."""
+        trade_a = make_trade(T1, T1_EXIT, pnl=200.0, exit_reason="signal")
+        trade_b = make_trade(T1, T1_EXIT, pnl=100.0, exit_reason="signal")
+        matched = MatchedTrade(entry_time=T1, trade_a=trade_a, trade_b=trade_b)
+
+        result = build_coaching(make_causal_position_size_diff(100.0, 50.0), make_match_result([matched]), 20.0, 10.0)
+
+        assert all(i.insight_type == "neutral" for i in result.insights)
+
+    def test_position_size_net_delta_reconciles(self):
+        """Reconciliation invariant holds for position_size diff."""
+        trade_a = make_trade(T1, T1_EXIT, pnl=100.0)
+        trade_b = make_trade(T1, T1_EXIT, pnl=50.0)
+        matched = MatchedTrade(entry_time=T1, trade_a=trade_a, trade_b=trade_b)
+
+        ret_a, ret_b = 10.0, 5.0
+        result = build_coaching(make_causal_position_size_diff(), make_match_result([matched]), ret_a, ret_b)
+
+        assert result.net_delta_pct == pytest.approx(ret_b - ret_a)
+
+
+# ---------------------------------------------------------------------------
+# max_drawdown coaching
+# ---------------------------------------------------------------------------
+
+
+def make_causal_max_drawdown_diff(old_pct: float = 20.0, new_pct: float = 10.0) -> StrategyDiff:
+    return StrategyDiff(
+        param_changes=(
+            ParamChange(param="max_drawdown", old_value=old_pct, new_value=new_pct, classification="risk-block"),
+        ),
+        tier="causal",
+    )
+
+
+class TestMaxDrawdownCoaching:
+    def test_max_drawdown_tightened_headline_mentions_skipped_entries(self):
+        """Tighter cap kills B's trading; A-only trades are entries B skipped."""
+        trade_a_only = make_trade(T2, T2_EXIT, pnl=100.0)
+
+        result = build_coaching(
+            make_causal_max_drawdown_diff(old_pct=20.0, new_pct=10.0),
+            make_match_result(a_only=[trade_a_only]),
+            10.0,
+            5.0,
+        )
+
+        assert "skip" in result.headline.lower() or "halt" in result.headline.lower()
+
+    def test_max_drawdown_tightened_headline_includes_halt_date(self):
+        """The headline includes the first date where B's kill-switch fired (T2 = 2024-01-02)."""
+        trade_a_only = make_trade(T2, T2_EXIT, pnl=100.0)
+
+        result = build_coaching(
+            make_causal_max_drawdown_diff(old_pct=20.0, new_pct=10.0),
+            make_match_result(a_only=[trade_a_only]),
+            10.0,
+            5.0,
+        )
+
+        assert "2024-01-02" in result.headline
+
+    def test_max_drawdown_loosened_headline_mentions_allowed_entries(self):
+        """Looser cap unlocks B's entries; B-only trades are entries now allowed."""
+        trade_b_only = make_trade(T2, T2_EXIT, pnl=100.0)
+
+        result = build_coaching(
+            make_causal_max_drawdown_diff(old_pct=10.0, new_pct=20.0),
+            make_match_result(b_only=[trade_b_only]),
+            5.0,
+            10.0,
+        )
+
+        assert "allow" in result.headline.lower() or "unlock" in result.headline.lower()
+
+    def test_max_drawdown_loosened_headline_includes_first_allowed_date(self):
+        """The headline includes the first entry date now allowed (T2 = 2024-01-02)."""
+        trade_b_only = make_trade(T2, T2_EXIT, pnl=100.0)
+
+        result = build_coaching(
+            make_causal_max_drawdown_diff(old_pct=10.0, new_pct=20.0),
+            make_match_result(b_only=[trade_b_only]),
+            5.0,
+            10.0,
+        )
+
+        assert "2024-01-02" in result.headline
+
+    def test_max_drawdown_net_delta_reconciles(self):
+        """Reconciliation invariant holds for max_drawdown diff."""
+        trade_a_only = make_trade(T2, T2_EXIT, pnl=100.0)
+
+        ret_a, ret_b = 10.0, 5.0
+        result = build_coaching(
+            make_causal_max_drawdown_diff(20.0, 10.0),
+            make_match_result(a_only=[trade_a_only]),
+            ret_a,
+            ret_b,
+        )
+
+        assert result.net_delta_pct == pytest.approx(ret_b - ret_a)
+
+
+# ---------------------------------------------------------------------------
+# position_size × max_drawdown interaction
+# ---------------------------------------------------------------------------
+
+
+class TestPositionSizeMaxDrawdownInteraction:
+    def test_interaction_headline_mentions_both_knobs(self):
+        """Both position_size and max_drawdown changed — both must appear in headline."""
+        trade_a = make_trade(T1, T1_EXIT, pnl=200.0, exit_reason="signal")
+        trade_b = make_trade(T1, T1_EXIT, pnl=100.0, exit_reason="signal")
+        trade_a_only = make_trade(T2, T2_EXIT, pnl=50.0)
+        matched = MatchedTrade(entry_time=T1, trade_a=trade_a, trade_b=trade_b)
+        diff = StrategyDiff(
+            param_changes=(
+                ParamChange(param="position_size", old_value=100.0, new_value=50.0, classification="risk-block"),
+                ParamChange(param="max_drawdown", old_value=20.0, new_value=10.0, classification="risk-block"),
+            ),
+            tier="causal",
+        )
+
+        result = build_coaching(diff, make_match_result([matched], a_only=[trade_a_only]), 20.0, 5.0)
+
+        headline_lower = result.headline.lower()
+        assert "scal" in headline_lower or "position" in headline_lower
+        assert "drawdown" in headline_lower or "kill" in headline_lower
+
+    def test_interaction_headline_has_no_contradictory_claim(self):
+        """No 'would have' in headline for position_size × max_drawdown diff."""
+        trade_a = make_trade(T1, T1_EXIT, pnl=200.0, exit_reason="signal")
+        trade_b = make_trade(T1, T1_EXIT, pnl=100.0, exit_reason="signal")
+        matched = MatchedTrade(entry_time=T1, trade_a=trade_a, trade_b=trade_b)
+        diff = StrategyDiff(
+            param_changes=(
+                ParamChange(param="position_size", old_value=100.0, new_value=50.0, classification="risk-block"),
+                ParamChange(param="max_drawdown", old_value=20.0, new_value=10.0, classification="risk-block"),
+            ),
+            tier="causal",
+        )
+
+        result = build_coaching(diff, make_match_result([matched]), 20.0, 5.0)
+
+        assert "would have" not in result.headline.lower()
+
+
+# ---------------------------------------------------------------------------
 # Comparability resolver
 # ---------------------------------------------------------------------------
 
