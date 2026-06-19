@@ -4,7 +4,9 @@ import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useStrategyAlerts } from "@/hooks/use-strategy-alerts";
 import { AlertsApiClient } from "@/lib/api/alerts-client";
+import { BacktestsApiClient } from "@/lib/api/backtests-client";
 import type { AlertRule } from "@/types/alert";
+import type { BacktestListItem, BacktestListPage } from "@/types/backtest";
 
 vi.mock("@/lib/api/alerts-client", () => ({
   AlertsApiClient: {
@@ -20,8 +22,37 @@ vi.mock("@/lib/api/alerts-client", () => ({
   },
 }));
 
+vi.mock("@/lib/api/backtests-client", () => ({
+  BacktestsApiClient: {
+    list: vi.fn(),
+  },
+  backtestsKeys: {
+    list: (filters: Record<string, unknown>) => ["backtests", "list", filters],
+  },
+}));
+
 const mockList = vi.mocked(AlertsApiClient.list);
 const mockUpdate = vi.mocked(AlertsApiClient.update);
+const mockCreate = vi.mocked(AlertsApiClient.create);
+const mockBacktestsList = vi.mocked(BacktestsApiClient.list);
+
+const makeBacktestItem = (overrides: Partial<BacktestListItem> = {}): BacktestListItem => ({
+  run_id: "run-1",
+  strategy_id: "strategy-1",
+  status: "completed",
+  asset: "BTC",
+  timeframe: "1d",
+  date_from: "2026-01-01",
+  date_to: "2026-05-01",
+  triggered_by: "manual",
+  created_at: "2026-05-29T08:00:00Z",
+  ...overrides,
+});
+
+const makeBacktestPage = (items: BacktestListItem[]): BacktestListPage => ({
+  items,
+  total: items.length,
+});
 
 const makeAlertRule = (overrides: Partial<AlertRule> = {}): AlertRule => ({
   id: "alert-1",
@@ -55,6 +86,7 @@ function createWrapper() {
 describe("useStrategyAlerts", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockBacktestsList.mockResolvedValue(makeBacktestPage([]));
   });
 
   it("seeds the edit form from the loaded alert rule before saving an existing alert", async () => {
@@ -93,5 +125,71 @@ describe("useStrategyAlerts", () => {
       webhook_url: undefined,
       is_active: true,
     });
+  });
+
+  it("creates an alert anchored to the latest completed backtest run when none exists", async () => {
+    mockList.mockResolvedValue([]);
+    mockBacktestsList.mockResolvedValue(
+      makeBacktestPage([
+        makeBacktestItem({ run_id: "newest-run", status: "running" }),
+        makeBacktestItem({ run_id: "latest-completed", status: "completed" }),
+      ])
+    );
+    mockCreate.mockResolvedValue(makeAlertRule({ id: "created-alert" }));
+
+    const { result } = renderHook(
+      () => useStrategyAlerts({ strategyId: "strategy-1" }),
+      { wrapper: createWrapper() }
+    );
+
+    await waitFor(() => expect(result.current.canCreateAlert).toBe(true));
+
+    act(() => {
+      result.current.startEditing();
+      result.current.setAlertEnabled(true);
+      result.current.setAlertThreshold(5);
+    });
+    act(() => {
+      result.current.save();
+    });
+
+    await waitFor(() => expect(mockCreate).toHaveBeenCalledTimes(1));
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        alert_type: "performance",
+        backtest_run_id: "latest-completed",
+      })
+    );
+  });
+
+  it("cannot create an alert and surfaces an error when no completed run exists", async () => {
+    mockList.mockResolvedValue([]);
+    mockBacktestsList.mockResolvedValue(
+      makeBacktestPage([makeBacktestItem({ run_id: "pending-run", status: "running" })])
+    );
+
+    const { result } = renderHook(
+      () => useStrategyAlerts({ strategyId: "strategy-1" }),
+      { wrapper: createWrapper() }
+    );
+
+    await waitFor(() => expect(mockBacktestsList).toHaveBeenCalled());
+    expect(result.current.canCreateAlert).toBe(false);
+
+    act(() => {
+      result.current.startEditing();
+      result.current.setAlertEnabled(true);
+      result.current.setAlertThreshold(5);
+    });
+    act(() => {
+      result.current.save();
+    });
+
+    await waitFor(() =>
+      expect(result.current.alertError).toBe(
+        "Run a backtest for this strategy to create a performance alert."
+      )
+    );
+    expect(mockCreate).not.toHaveBeenCalled();
   });
 });

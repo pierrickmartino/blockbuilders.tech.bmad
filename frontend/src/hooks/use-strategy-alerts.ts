@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AlertsApiClient, alertsKeys } from "@/lib/api/alerts-client";
+import { BacktestsApiClient, backtestsKeys } from "@/lib/api/backtests-client";
 import type { AlertRule } from "@/types/alert";
 
 interface UseStrategyAlertsOptions {
@@ -63,6 +64,24 @@ export function useStrategyAlerts({ strategyId, backtestRunId }: UseStrategyAler
   const alertRule = allAlerts?.find((a) => a.strategy_id === strategyId) ?? null;
   const alertRuleFormKey = getAlertFormKey(alertRule);
 
+  // Creating a performance alert requires a completed backtest run to anchor
+  // it to (the strategy-settings surface has no run in hand). When no explicit
+  // backtestRunId is supplied, resolve the strategy's latest completed run so
+  // the create path is not a dead end. Skipped once an alert already exists
+  // (only the update path is reachable) or when a run was passed in directly.
+  const { data: latestRunPage } = useQuery({
+    queryKey: backtestsKeys.list({ strategy_id: strategyId, limit: 20 }),
+    queryFn: () => BacktestsApiClient.list({ strategy_id: strategyId, limit: 20 }),
+    enabled: !backtestRunId && !alertRule,
+  });
+
+  // Backtest list is returned newest-first; take the first completed run.
+  const latestCompletedRunId =
+    latestRunPage?.items.find((item) => item.status === "completed")?.run_id ?? null;
+
+  const effectiveBacktestRunId = backtestRunId ?? latestCompletedRunId ?? null;
+  const canCreateAlert = Boolean(alertRule) || Boolean(effectiveBacktestRunId);
+
   if (!isEditingAlert && alertForm.sourceKey !== alertRuleFormKey) {
     setAlertForm(buildAlertFormState(alertRule));
   }
@@ -80,12 +99,12 @@ export function useStrategyAlerts({ strategyId, backtestRunId }: UseStrategyAler
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (!alertRule) {
-        if (!backtestRunId) {
-          throw new Error("Open a completed backtest result to create an alert.");
+        if (!effectiveBacktestRunId) {
+          throw new Error("Run a backtest for this strategy to create a performance alert.");
         }
         return AlertsApiClient.create({
           alert_type: "performance",
-          backtest_run_id: backtestRunId,
+          backtest_run_id: effectiveBacktestRunId,
           threshold_pct: alertThreshold ?? null,
           alert_on_entry: alertOnEntry,
           alert_on_exit: alertOnExit,
@@ -178,6 +197,7 @@ export function useStrategyAlerts({ strategyId, backtestRunId }: UseStrategyAler
 
   return {
     alertRule,
+    canCreateAlert,
     alertEnabled,
     alertThreshold,
     alertOnEntry,

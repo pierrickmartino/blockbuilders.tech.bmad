@@ -33,6 +33,7 @@ interface StrategySettingsSheetProps {
   isSavingTags: boolean;
 
   alertRule: AlertRule | null;
+  canCreateAlert: boolean;
   alertEnabled: boolean;
   alertThreshold: number | null;
   alertOnEntry: boolean;
@@ -67,6 +68,7 @@ export function StrategySettingsSheet({
   tagInput,
   isSavingTags,
   alertRule,
+  canCreateAlert,
   alertEnabled,
   alertThreshold,
   alertOnEntry,
@@ -329,6 +331,13 @@ export function StrategySettingsSheet({
                   </>
                 )}
 
+                {!alertRule && !canCreateAlert && (
+                  <p className="text-xs text-muted-foreground">
+                    Run a backtest for this strategy to create a performance
+                    alert.
+                  </p>
+                )}
+
                 {alertError && (
                   <p className="text-xs text-destructive">{alertError}</p>
                 )}
@@ -338,7 +347,7 @@ export function StrategySettingsSheet({
                     size="sm"
                     className="h-9 sm:h-8"
                     onClick={onAlertSave}
-                    disabled={isSavingAlert}
+                    disabled={isSavingAlert || (!alertRule && !canCreateAlert)}
                   >
                     {isSavingAlert ? "Saving..." : "Save Alerts"}
                   </Button>
