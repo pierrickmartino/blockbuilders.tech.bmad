@@ -611,6 +611,7 @@ function StrategyEditorPageInner({ params }: Props) {
         tagInput={tagInput}
         isSavingTags={isSavingTags}
         alertRule={alerts.alertRule}
+        canCreateAlert={alerts.canCreateAlert}
         alertEnabled={alerts.alertEnabled}
         alertThreshold={alerts.alertThreshold}
         alertOnEntry={alerts.alertOnEntry}
