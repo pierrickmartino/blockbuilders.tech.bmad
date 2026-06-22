@@ -14,11 +14,10 @@ def assemble_track_view(completed_lesson_ids: set[str], curriculum: dict) -> Tra
     resume_lesson_id: str | None = None
 
     for module_data in sorted(curriculum["modules"], key=lambda m: m["order"]):
-        sorted_lesson_data = sorted(module_data["lessons"], key=lambda l: l["order"])
         module_completed = 0
         track_lessons: list[TrackLesson] = []
 
-        for lesson_data in sorted_lesson_data:
+        for lesson_data in sorted(module_data["lessons"], key=lambda l: l["order"]):
             is_complete = lesson_data["id"] in completed_lesson_ids
             if is_complete:
                 module_completed += 1
@@ -34,7 +33,7 @@ def assemble_track_view(completed_lesson_ids: set[str], curriculum: dict) -> Tra
                 )
             )
 
-        lesson_count = len(sorted_lesson_data)
+        lesson_count = len(module_data["lessons"])
         total_lessons += lesson_count
         completed_lessons += module_completed
 

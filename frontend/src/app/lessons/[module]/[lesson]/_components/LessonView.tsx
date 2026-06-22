@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { Blocks, ChevronLeft } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import type { LessonResponse, ModuleResponse } from "@/types/curriculum";
+import { LessonsHeader } from "../../../_components/LessonsHeader";
 import { TestThisIdeaButton } from "./TestThisIdeaButton";
 
 interface Props {
@@ -13,18 +14,7 @@ interface Props {
 export function LessonView({ lesson, module: mod }: Props) {
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b border-border/60 bg-background">
-        <div className="container mx-auto flex max-w-6xl items-center px-4 py-4 md:px-6">
-          <Link href="/" className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <Blocks aria-hidden="true" className="h-5 w-5" />
-            </div>
-            <span className="text-base font-bold tracking-tight">
-              Blockbuilders
-            </span>
-          </Link>
-        </div>
-      </header>
+      <LessonsHeader />
 
       <main className="container mx-auto max-w-3xl p-4 md:p-6">
         <div className="mb-6">
