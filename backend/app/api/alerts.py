@@ -108,6 +108,13 @@ def get_user_alert_rule(
     return rule
 
 
+def _is_version_stale(alert: AlertRule, latest_version_id: Optional[UUID]) -> bool:
+    """Return True if the alert's pinned version is not *latest_version_id*."""
+    if alert.alert_type != AlertType.PERFORMANCE or alert.strategy_version_id is None:
+        return False
+    return latest_version_id is not None and latest_version_id != alert.strategy_version_id
+
+
 def _compute_is_stale(alert: AlertRule, session: Session) -> bool:
     """Return True if the alert's pinned version is not the latest for its strategy."""
     if alert.alert_type != AlertType.PERFORMANCE or alert.strategy_version_id is None:
@@ -117,7 +124,33 @@ def _compute_is_stale(alert: AlertRule, session: Session) -> bool:
         .where(StrategyVersion.strategy_id == alert.strategy_id)
         .order_by(StrategyVersion.version_number.desc())
     ).first()
-    return latest is not None and latest.id != alert.strategy_version_id
+    return _is_version_stale(alert, latest.id if latest else None)
+
+
+def _latest_version_id_by_strategy(
+    strategy_ids: set[UUID], session: Session
+) -> dict[UUID, UUID]:
+    """Map each strategy id to the id of its highest-numbered version.
+
+    One query for the whole set, so staleness can be computed for a list of
+    alerts without a per-alert StrategyVersion lookup.
+    """
+    if not strategy_ids:
+        return {}
+    rows = session.exec(
+        select(
+            StrategyVersion.strategy_id,
+            StrategyVersion.id,
+            StrategyVersion.version_number,
+        ).where(StrategyVersion.strategy_id.in_(strategy_ids))
+    ).all()
+    latest_id: dict[UUID, UUID] = {}
+    latest_num: dict[UUID, int] = {}
+    for strategy_id, version_id, version_number in rows:
+        if strategy_id not in latest_num or version_number > latest_num[strategy_id]:
+            latest_num[strategy_id] = version_number
+            latest_id[strategy_id] = version_id
+    return latest_id
 
 
 def _map_to_response(rule: AlertRule, is_stale: bool = False) -> AlertRuleResponse:
@@ -162,7 +195,21 @@ def list_alerts(
     if alert_type:
         query = query.where(AlertRule.alert_type == alert_type)
     rules = session.exec(query).all()
-    return [_map_to_response(rule, _compute_is_stale(rule, session)) for rule in rules]
+
+    # Batch the staleness check: one query for the latest version of every pinned
+    # performance alert's strategy, instead of a StrategyVersion lookup per rule.
+    pinned_strategy_ids = {
+        rule.strategy_id
+        for rule in rules
+        if rule.alert_type == AlertType.PERFORMANCE and rule.strategy_version_id is not None
+    }
+    latest_version_by_strategy = _latest_version_id_by_strategy(pinned_strategy_ids, session)
+    return [
+        _map_to_response(
+            rule, _is_version_stale(rule, latest_version_by_strategy.get(rule.strategy_id))
+        )
+        for rule in rules
+    ]
 
 
 @router.post("/", response_model=AlertRuleResponse, status_code=status.HTTP_201_CREATED)
