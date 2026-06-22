@@ -131,7 +131,7 @@ def match_trades(trades_a: Sequence[Trade], trades_b: Sequence[Trade]) -> TradeM
     Returns matched pairs, trades only in A, and trades only in B.
     """
     index_b: dict[datetime, Trade] = {t.entry_time: t for t in trades_b}
-    index_a: dict[datetime, Trade] = {t.entry_time: t for t in trades_a}
+    entry_times_a: set[datetime] = {t.entry_time for t in trades_a}
 
     matched: list[MatchedTrade] = []
     a_only: list[Trade] = []
@@ -142,7 +142,7 @@ def match_trades(trades_a: Sequence[Trade], trades_b: Sequence[Trade]) -> TradeM
         else:
             a_only.append(t)
 
-    b_only = [t for t in trades_b if t.entry_time not in index_a]
+    b_only = [t for t in trades_b if t.entry_time not in entry_times_a]
 
     return TradeMatchResult(
         matched=tuple(matched),
@@ -257,10 +257,15 @@ def _delta_str(net_delta_pct: float) -> str:
     return f"{sign}{abs(net_delta_pct):.1f}pp net"
 
 
+def _ps_scale(change: ParamChange) -> float:
+    """P&L scale factor for a position_size change, guarding a zero baseline."""
+    old_val = change.old_value or 1.0
+    return change.new_value / old_val
+
+
 def _position_size_headline(diff: StrategyDiff, net_delta_pct: float) -> str:
     change = next(c for c in diff.param_changes if c.param == "position_size")
-    old_val = change.old_value or 1.0
-    scale = change.new_value / old_val
+    scale = _ps_scale(change)
     return f"same trades, same timing, P&L scaled ~{scale:.1f}x; {_delta_str(net_delta_pct)}"
 
 
@@ -293,8 +298,7 @@ def _max_drawdown_headline(diff: StrategyDiff, match: TradeMatchResult, net_delt
 def _position_size_and_max_drawdown_headline(diff: StrategyDiff, match: TradeMatchResult, net_delta_pct: float) -> str:
     ps_change = next(c for c in diff.param_changes if c.param == "position_size")
     md_change = next(c for c in diff.param_changes if c.param == "max_drawdown")
-    old_val = ps_change.old_value or 1.0
-    scale = ps_change.new_value / old_val
+    scale = _ps_scale(ps_change)
     direction = _max_drawdown_direction(md_change)
     delta = _delta_str(net_delta_pct)
     return f"P&L scaled ~{scale:.1f}x (position_size); kill-switch {direction} (max_drawdown); {delta}"
@@ -402,9 +406,7 @@ def build_coaching(
     elif changed_params == {"position_size", "max_drawdown"}:
         headline = _position_size_and_max_drawdown_headline(diff, match, net_delta_pct)
     else:
-        delta_sign = "+" if net_delta_pct >= 0 else "−"
-        delta_abs = abs(net_delta_pct)
-        parts = [f"{early_count} trade(s) exited early, {delta_sign}{delta_abs:.1f}pp net"]
+        parts = [f"{early_count} trade(s) exited early, {_delta_str(net_delta_pct)}"]
         if a_only_count:
             parts.append(f"{a_only_count} A-only (capital-availability side-effect)")
         if b_only_count:

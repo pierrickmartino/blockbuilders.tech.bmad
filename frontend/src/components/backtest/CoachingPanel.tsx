@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { ChevronDown, ChevronRight, Lightbulb, Loader2 } from "lucide-react";
 import { BacktestsApiClient } from "@/lib/api/backtests-client";
 import type { CoachResponse, TradeCoachingItem, TradeDetail } from "@/types/backtest";
@@ -11,6 +11,16 @@ import { cn } from "@/lib/utils";
 import dynamic from "next/dynamic";
 
 const TradeDrawer = dynamic(() => import("@/components/TradeDrawer"), { ssr: false });
+
+/** Map each trade's entry-time (epoch ms) to its first index, for O(1) lookup. */
+function buildTradeIndexMap(trades: TradeDetail[]): Map<number, number> {
+  const map = new Map<number, number>();
+  trades.forEach((t, idx) => {
+    const key = new Date(t.entry_time).getTime();
+    if (!map.has(key)) map.set(key, idx);
+  });
+  return map;
+}
 
 const SUPPRESSION_MESSAGES: Record<string, string> = {
   same_version: "Same strategy on both runs — nothing to explain.",
@@ -172,12 +182,13 @@ export function CoachingPanel({ runIdA, runIdB, assetA, timeframeA }: CoachingPa
     }
   };
 
-  const findTradeIndex = (trades: TradeDetail[], entryTime: string): number | null => {
-    const idx = trades.findIndex(
-      (t) => new Date(t.entry_time).getTime() === new Date(entryTime).getTime()
-    );
-    return idx >= 0 ? idx : null;
-  };
+  const tradeIndexMapA = useMemo(() => buildTradeIndexMap(tradesA), [tradesA]);
+  const tradeIndexMapB = useMemo(() => buildTradeIndexMap(tradesB), [tradesB]);
+
+  const findTradeIndex = (
+    indexMap: Map<number, number>,
+    entryTime: string
+  ): number | null => indexMap.get(new Date(entryTime).getTime()) ?? null;
 
   const showPanel = coaching?.eligible && isExpanded;
 
@@ -248,8 +259,8 @@ export function CoachingPanel({ runIdA, runIdB, assetA, timeframeA }: CoachingPa
                       runIdB={runIdB}
                       assetA={assetA}
                       timeframeA={timeframeA}
-                      tradeIndexA={findTradeIndex(tradesA, item.entry_time)}
-                      tradeIndexB={findTradeIndex(tradesB, item.entry_time)}
+                      tradeIndexA={findTradeIndex(tradeIndexMapA, item.entry_time)}
+                      tradeIndexB={findTradeIndex(tradeIndexMapB, item.entry_time)}
                       timezone={timezone}
                     />
                   ))}
