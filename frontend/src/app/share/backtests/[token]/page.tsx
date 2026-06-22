@@ -9,6 +9,7 @@ import { SharedBacktestHeader } from "./_components/SharedBacktestHeader";
 import { SharedBacktestEquityCurve } from "./_components/SharedBacktestEquityCurve";
 import { SharedBacktestNarrative } from "./_components/SharedBacktestNarrative";
 import { SharedBacktestCostDisclosure } from "./_components/SharedBacktestCostDisclosure";
+import { SharedBacktestStatTile } from "./_components/SharedBacktestStatTile";
 import { getSharedBacktestView } from "@/lib/shared-backtest/get-shared-backtest-view";
 import { buildSharedBacktestMetadata } from "@/lib/shared-backtest/build-shared-backtest-metadata";
 
@@ -90,17 +91,11 @@ export default async function SharedBacktestPage({ params }: Props) {
             <LowTradeCountWarning numTrades={data.summary.num_trades} />
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
               {metrics.map((metric) => (
-                <div
+                <SharedBacktestStatTile
                   key={metric.label}
-                  className="rounded-lg border bg-secondary/50 p-3 dark:bg-secondary/30"
-                >
-                  <div className="mb-1 text-xs uppercase text-muted-foreground">
-                    {metric.label}
-                  </div>
-                  <div className="text-lg font-semibold tabular-nums tracking-tight">
-                    {metric.value}
-                  </div>
-                </div>
+                  label={metric.label}
+                  value={metric.value}
+                />
               ))}
             </div>
           </CardContent>
