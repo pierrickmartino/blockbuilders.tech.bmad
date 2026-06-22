@@ -3,7 +3,7 @@ from uuid import UUID
 
 from sqlmodel import Session, select
 
-from app.data.curriculum_registry import CURRICULUM
+from app.data.curriculum_registry import LESSON_ID_BY_TEMPLATE_NAME
 from app.models.lesson_completion import LessonCompletion
 from app.models.strategy import Strategy
 from app.models.strategy_template import StrategyTemplate
@@ -11,11 +11,7 @@ from app.models.strategy_template import StrategyTemplate
 
 def resolve_lesson_id_for_template(template_name: str) -> str | None:
     """Return the lesson_id whose template_name matches, or None."""
-    for module in CURRICULUM["modules"]:
-        for lesson in module["lessons"]:
-            if lesson["template_name"] == template_name:
-                return lesson["id"]
-    return None
+    return LESSON_ID_BY_TEMPLATE_NAME.get(template_name)
 
 
 def _record_completion(user_id: UUID, lesson_id: str, session: Session) -> LessonCompletion:

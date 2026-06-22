@@ -137,3 +137,12 @@ _KNOWN_TEMPLATE_NAMES: set[str] = {t["name"] for t in TEMPLATES}
 from app.services.curriculum_validation import validate_registry  # noqa: E402
 
 validate_registry(CURRICULUM, _KNOWN_TEMPLATE_NAMES)
+
+# Precomputed index built once at module load: template_name → lesson_id.
+# Lets callers resolve a lesson from a template name with an O(1) lookup
+# instead of re-walking the curriculum on every request.
+LESSON_ID_BY_TEMPLATE_NAME: dict[str, str] = {
+    lesson["template_name"]: lesson["id"]
+    for module in CURRICULUM["modules"]
+    for lesson in module["lessons"]
+}

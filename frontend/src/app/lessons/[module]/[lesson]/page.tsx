@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getCurriculumView } from "@/lib/curriculum/get-curriculum-view";
+import { resolveLesson } from "@/lib/curriculum/resolve";
 import { LessonView } from "./_components/LessonView";
 
 interface Props {
@@ -9,14 +10,13 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { module: moduleId, lesson: lessonId } = await params;
-  const curriculum = await getCurriculumView();
-  const mod = curriculum?.modules.find((m) => m.id === moduleId);
-  const lesson = mod?.lessons.find((l) => l.id === lessonId);
+  const resolved = resolveLesson(await getCurriculumView(), moduleId, lessonId);
 
-  if (!mod || !lesson) {
+  if (!resolved) {
     return { title: "Lesson not found — Blockbuilders" };
   }
 
+  const { module: mod, lesson } = resolved;
   return {
     title: `${lesson.title} — ${mod.title} — Blockbuilders`,
     description: lesson.description,
@@ -35,13 +35,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function LessonPage({ params }: Props) {
   const { module: moduleId, lesson: lessonId } = await params;
-  const curriculum = await getCurriculumView();
-  const mod = curriculum?.modules.find((m) => m.id === moduleId);
-  const lesson = mod?.lessons.find((l) => l.id === lessonId);
+  const resolved = resolveLesson(await getCurriculumView(), moduleId, lessonId);
 
-  if (!mod || !lesson) {
+  if (!resolved) {
     notFound();
   }
 
-  return <LessonView lesson={lesson} module={mod} />;
+  return <LessonView lesson={resolved.lesson} module={resolved.module} />;
 }

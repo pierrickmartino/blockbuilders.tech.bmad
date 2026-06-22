@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getCurriculumView } from "@/lib/curriculum/get-curriculum-view";
+import { resolveModule } from "@/lib/curriculum/resolve";
 import { ModuleView } from "./_components/ModuleView";
 
 interface Props {
@@ -9,8 +10,7 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { module: moduleId } = await params;
-  const curriculum = await getCurriculumView();
-  const mod = curriculum?.modules.find((m) => m.id === moduleId);
+  const mod = resolveModule(await getCurriculumView(), moduleId);
 
   if (!mod) {
     return { title: "Module not found — Blockbuilders" };
@@ -34,8 +34,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function ModulePage({ params }: Props) {
   const { module: moduleId } = await params;
-  const curriculum = await getCurriculumView();
-  const mod = curriculum?.modules.find((m) => m.id === moduleId);
+  const mod = resolveModule(await getCurriculumView(), moduleId);
 
   if (!mod) {
     notFound();
