@@ -8,6 +8,22 @@ from datetime import datetime, timezone
 from typing import Any
 
 
+def format_exit_reason(reason: Any) -> str:
+    """Convert an internal exit reason code to a user-friendly label.
+
+    Only codes whose label differs from the default are listed; everything
+    else falls back to the underscore-to-space rendering.
+    """
+    labels = {
+        "tp": "take profit",
+        "sl": "stop loss",
+        "max_dd": "max drawdown",
+    }
+    if not isinstance(reason, str):
+        return "unknown"
+    return labels.get(reason, reason.replace("_", " "))
+
+
 def _parse_ts(ts: Any) -> datetime | None:
     if ts is None:
         return None

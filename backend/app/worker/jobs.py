@@ -31,11 +31,12 @@ from app.backtest.storage import upload_json, generate_results_key
 from app.backtest.errors import BacktestError, StrategyInvalidError
 from app.schemas.strategy import StrategyDefinitionValidate
 from app.services.alert_evaluator import evaluate_alerts_for_run
-from app.services.candle_boundary import last_closed_1d_candle_ts, last_closed_candle_ts
+from app.services.candle_boundary import last_closed_candle_ts
 from app.services.performance_alert_decision import (
     decide_entry_alert,
     decide_exit_alert,
     decide_drawdown_alert,
+    format_exit_reason,
 )
 from app.services.webhook_payload import build_drawdown_payload, build_entry_payload, build_exit_payload
 from app.services.spot_price_cache import SpotPriceCache
@@ -515,7 +516,6 @@ def _evaluate_pinned_alert(run: BacktestRun, session: Session) -> None:
     fired_entry_events: list[Any] = []
     fired_exit_events: list[Any] = []
     drawdown_fired = False
-    drawdown_pct = 0.0
 
     if rule.alert_on_entry:
         entry_result = decide_entry_alert(trades, watermark, run.date_to, run.timeframe)
@@ -530,14 +530,13 @@ def _evaluate_pinned_alert(run: BacktestRun, session: Session) -> None:
         if exit_result.fired_events:
             fired_exit_events = exit_result.fired_events
             ev = exit_result.fired_events[0]
-            reason_label = _format_exit_reason(ev.exit_reason)
+            reason_label = format_exit_reason(ev.exit_reason)
             reasons.append(f"exited a position on {ev.exit_time.date()} ({reason_label})")
 
     new_drawdown_pct = last_drawdown_pct
     if rule.threshold_pct is not None:
         dd_result = decide_drawdown_alert(equity_curve, rule.threshold_pct, last_drawdown_pct)
         new_drawdown_pct = dd_result.current_drawdown_pct
-        drawdown_pct = dd_result.current_drawdown_pct
         if dd_result.fired:
             drawdown_fired = True
             reasons.append(
@@ -613,7 +612,7 @@ def _evaluate_pinned_alert(run: BacktestRun, session: Session) -> None:
                 run_date_to_utc = _as_utc_datetime(run.date_to) or datetime.now(timezone.utc)
                 webhook_events.append((
                     run_date_to_utc,
-                    build_drawdown_payload(candle_ts=run_date_to_utc, drawdown_pct=drawdown_pct, **_common),
+                    build_drawdown_payload(candle_ts=run_date_to_utc, drawdown_pct=new_drawdown_pct, **_common),
                 ))
             webhook_events.sort(key=lambda t: t[0])
             webhook_payloads = [payload for _, payload in webhook_events]
@@ -621,7 +620,7 @@ def _evaluate_pinned_alert(run: BacktestRun, session: Session) -> None:
     # Always advance watermark and update drawdown state, then commit it (and the
     # notification) BEFORE any slow delivery so a stalled endpoint that exhausts
     # the job timeout cannot leave the alert un-watermarked and re-fire next run.
-    new_watermark = _utc_now_for_watermark(run.date_to)
+    new_watermark = _as_utc_datetime(run.date_to)
     rule.last_fired_candle_ts = new_watermark
     rule.last_drawdown_pct = new_drawdown_pct
     rule.updated_at = datetime.now(timezone.utc)
@@ -648,56 +647,43 @@ def _evaluate_pinned_alert(run: BacktestRun, session: Session) -> None:
         _post_webhooks_bounded(webhook_url, webhook_payloads)
 
 
-def _format_exit_reason(reason: Any) -> str:
-    reason_map = {
-        "signal": "signal",
-        "tp": "take profit",
-        "sl": "stop loss",
-        "trailing_stop": "trailing stop",
-        "time_exit": "time exit",
-        "max_dd": "max drawdown",
-    }
-    if not isinstance(reason, str):
-        return "unknown"
-    return reason_map.get(reason, reason.replace("_", " "))
+def _dispatch_performance_alerts(
+    timeframes: list[str], label: str, now: datetime | None = None
+) -> None:
+    """Enqueue pinned-version re-backtests for due performance alerts.
 
+    Selects active performance alerts with a pinned strategy_version_id whose
+    strategy uses one of *timeframes*, then for each one whose latest closed
+    candle has not yet been evaluated (last_fired_candle_ts < cutoff) and that
+    has no in-flight alert run, enqueues a run tagged triggered_by='alert' using
+    the pinned version. Independent of auto_update_enabled.
 
-def _utc_now_for_watermark(run_date_to: datetime) -> datetime:
-    if run_date_to.tzinfo is None:
-        return run_date_to.replace(tzinfo=timezone.utc)
-    return run_date_to.astimezone(timezone.utc)
-
-
-def evaluate_performance_alerts_daily() -> None:
-    """Daily dispatcher: enqueue pinned-version re-backtests for active performance alerts.
-
-    Selects active performance alerts on 1d strategies with a pinned
-    strategy_version_id whose latest daily candle has not yet been evaluated
-    (i.e. last_fired_candle_ts < last_closed_1d_candle_ts()), then enqueues
-    a run tagged triggered_by='alert' using the pinned version. Independent of
-    auto_update_enabled.
+    The cutoff is computed per strategy via last_closed_candle_ts(timeframe), so a
+    single helper serves both the daily (1d) and sub-daily (1h/4h) cadences.
     """
     if not settings.scheduler_enabled:
-        logger.info("Scheduler disabled, skipping evaluate_performance_alerts_daily")
+        logger.info("Scheduler disabled, skipping %s", label)
         return
 
-    logger.info("Starting evaluate_performance_alerts_daily")
+    logger.info("Starting %s", label)
+
+    if now is None:
+        now = datetime.now(timezone.utc)
 
     redis_conn = Redis.from_url(settings.redis_url)
     queue = Queue("default", connection=redis_conn)
-    cutoff_ts = last_closed_1d_candle_ts()
 
     with Session(engine) as session:
         from sqlalchemy import or_
 
-        alerts = session.exec(
-            select(AlertRule)
+        rows = session.exec(
+            select(AlertRule, Strategy)
             .join(Strategy, AlertRule.strategy_id == Strategy.id)
             .where(
                 AlertRule.is_active == True,  # noqa: E712
                 AlertRule.alert_type == AlertType.PERFORMANCE,
                 AlertRule.strategy_version_id.isnot(None),
-                Strategy.timeframe == "1d",
+                Strategy.timeframe.in_(timeframes),
                 or_(
                     AlertRule.alert_on_entry == True,  # noqa: E712
                     AlertRule.alert_on_exit == True,  # noqa: E712
@@ -706,10 +692,20 @@ def evaluate_performance_alerts_daily() -> None:
             )
         ).all()
 
+        # Batch-load the owning users once instead of one session.get per alert.
+        users = {
+            user.id: user
+            for user in session.exec(
+                select(User).where(User.id.in_({alert.user_id for alert, _ in rows}))
+            ).all()
+        }
+
         enqueued = 0
         skipped = 0
 
-        for alert in alerts:
+        for alert, strategy in rows:
+            cutoff_ts = last_closed_candle_ts(strategy.timeframe, now)
+
             # Skip if this alert has already been evaluated for the latest closed candle
             watermark = _as_utc_datetime(alert.last_fired_candle_ts)
             if watermark is not None and watermark >= cutoff_ts:
@@ -728,126 +724,7 @@ def evaluate_performance_alerts_daily() -> None:
                 skipped += 1
                 continue
 
-            user = session.get(User, alert.user_id)
-            strategy = session.get(Strategy, alert.strategy_id)
-            if not user or not strategy:
-                continue
-
-            now = datetime.now(timezone.utc)
-            date_from = cutoff_ts - timedelta(days=strategy.auto_update_lookback_days)
-
-            run = BacktestRun(
-                user_id=alert.user_id,
-                strategy_id=alert.strategy_id,
-                strategy_version_id=alert.strategy_version_id,
-                status="pending",
-                asset=strategy.asset,
-                timeframe=strategy.timeframe,
-                date_from=date_from,
-                date_to=cutoff_ts,
-                initial_balance=settings.default_initial_balance,
-                fee_rate=user.default_fee_percent or settings.default_fee_rate,
-                slippage_rate=user.default_slippage_percent or settings.default_slippage_rate,
-                triggered_by="alert",
-            )
-            session.add(run)
-            session.commit()
-            session.refresh(run)
-
-            try:
-                queue.enqueue(
-                    "app.worker.jobs.run_backtest_job",
-                    str(run.id),
-                    job_timeout=300,
-                )
-                enqueued += 1
-                logger.info(
-                    "alert_backtest_enqueued",
-                    extra={"alert_id": str(alert.id), "run_id": str(run.id)},
-                )
-            except Exception as exc:
-                logger.error(
-                    "alert_enqueue_failed",
-                    extra={"alert_id": str(alert.id), "error": str(exc)},
-                )
-                run.status = "failed"
-                run.error_message = "Failed to queue alert-triggered backtest"
-                session.add(run)
-                session.commit()
-
-    logger.info(
-        "evaluate_performance_alerts_daily completed",
-        extra={"enqueued": enqueued, "skipped": skipped},
-    )
-
-
-def evaluate_performance_alerts_sub_daily(now: datetime | None = None) -> None:
-    """Hourly dispatcher: enqueue pinned-version re-backtests for 1h and 4h alerts.
-
-    Runs every hour (at :05 past each hour). Uses last_closed_candle_ts(timeframe)
-    to determine the cutoff so 4h alerts are naturally skipped in 3 out of 4 runs
-    (their watermark already covers the latest closed 4h candle). A single run
-    whose date_to spans a multi-candle catch-up gap coalesces all triggers into one
-    notification via the watermark-based decide_* functions.
-    """
-    if not settings.scheduler_enabled:
-        logger.info("Scheduler disabled, skipping evaluate_performance_alerts_sub_daily")
-        return
-
-    logger.info("Starting evaluate_performance_alerts_sub_daily")
-
-    if now is None:
-        now = datetime.now(timezone.utc)
-
-    redis_conn = Redis.from_url(settings.redis_url)
-    queue = Queue("default", connection=redis_conn)
-
-    with Session(engine) as session:
-        from sqlalchemy import or_
-
-        alerts = session.exec(
-            select(AlertRule)
-            .join(Strategy, AlertRule.strategy_id == Strategy.id)
-            .where(
-                AlertRule.is_active == True,  # noqa: E712
-                AlertRule.alert_type == AlertType.PERFORMANCE,
-                AlertRule.strategy_version_id.isnot(None),
-                Strategy.timeframe.in_(["1h", "4h"]),
-                or_(
-                    AlertRule.alert_on_entry == True,  # noqa: E712
-                    AlertRule.alert_on_exit == True,  # noqa: E712
-                    AlertRule.threshold_pct.isnot(None),
-                ),
-            )
-        ).all()
-
-        enqueued = 0
-        skipped = 0
-
-        for alert in alerts:
-            strategy = session.get(Strategy, alert.strategy_id)
-            if not strategy:
-                continue
-
-            cutoff_ts = last_closed_candle_ts(strategy.timeframe, now)
-
-            watermark = _as_utc_datetime(alert.last_fired_candle_ts)
-            if watermark is not None and watermark >= cutoff_ts:
-                skipped += 1
-                continue
-
-            existing = session.exec(
-                select(BacktestRun).where(
-                    BacktestRun.strategy_id == alert.strategy_id,
-                    BacktestRun.triggered_by == "alert",
-                    BacktestRun.status.in_(["pending", "running"]),
-                )
-            ).first()
-            if existing:
-                skipped += 1
-                continue
-
-            user = session.get(User, alert.user_id)
+            user = users.get(alert.user_id)
             if not user:
                 continue
 
@@ -893,9 +770,25 @@ def evaluate_performance_alerts_sub_daily(now: datetime | None = None) -> None:
                 session.commit()
 
     logger.info(
-        "evaluate_performance_alerts_sub_daily completed",
+        "%s completed" % label,
         extra={"enqueued": enqueued, "skipped": skipped},
     )
+
+
+def evaluate_performance_alerts_daily() -> None:
+    """Daily dispatcher (04:00 UTC): pinned-version re-backtests for 1d alerts."""
+    _dispatch_performance_alerts(["1d"], "evaluate_performance_alerts_daily")
+
+
+def evaluate_performance_alerts_sub_daily(now: datetime | None = None) -> None:
+    """Hourly dispatcher (:05): pinned-version re-backtests for 1h and 4h alerts.
+
+    Uses last_closed_candle_ts(timeframe) per strategy so 4h alerts are naturally
+    skipped in 3 of 4 runs (their watermark already covers the latest closed 4h
+    candle). A run whose date_to spans a multi-candle catch-up gap coalesces all
+    triggers into one notification via the watermark-based decide_* functions.
+    """
+    _dispatch_performance_alerts(["1h", "4h"], "evaluate_performance_alerts_sub_daily", now)
 
 
 def auto_update_strategies_daily() -> None:
