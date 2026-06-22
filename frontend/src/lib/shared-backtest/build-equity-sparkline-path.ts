@@ -40,9 +40,12 @@ export function buildEquitySparklinePath(
   }
 
   const sampled = downsample(points, TARGET_POINT_COUNT);
-  const equities = sampled.map((point) => point.equity);
-  const minEquity = Math.min(...equities);
-  const maxEquity = Math.max(...equities);
+  let minEquity = sampled[0].equity;
+  let maxEquity = sampled[0].equity;
+  for (const { equity } of sampled) {
+    if (equity < minEquity) minEquity = equity;
+    if (equity > maxEquity) maxEquity = equity;
+  }
   const equityRange = maxEquity - minEquity || 1;
   const stepX = width / (sampled.length - 1);
 

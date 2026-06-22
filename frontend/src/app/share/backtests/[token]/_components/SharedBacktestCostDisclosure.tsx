@@ -2,6 +2,7 @@ import { Receipt } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatNumber, formatPercent } from "@/lib/format";
 import type { BacktestSummary } from "@/types/backtest";
+import { SharedBacktestStatTile } from "./SharedBacktestStatTile";
 
 interface SharedBacktestCostDisclosureProps {
   summary: BacktestSummary;
@@ -44,34 +45,22 @@ export function SharedBacktestCostDisclosure({
         </p>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {items.map((item) => (
-            <div
+            <SharedBacktestStatTile
               key={item.label}
-              className="rounded-lg border bg-secondary/50 p-3 dark:bg-secondary/30"
-            >
-              <div className="mb-1 text-xs uppercase text-muted-foreground">
-                {item.label}
-              </div>
-              <div className="text-lg font-semibold tabular-nums tracking-tight">
-                {formatNumber(item.usd, 2)} USDT
-              </div>
-              <div className="text-xs text-muted-foreground">
-                at {formatPercent(item.rate * 100)} rate
-              </div>
-            </div>
+              label={item.label}
+              value={`${formatNumber(item.usd, 2)} USDT`}
+              caption={`at ${formatPercent(item.rate * 100)} rate`}
+            />
           ))}
-          <div className="rounded-lg border bg-secondary/50 p-3 dark:bg-secondary/30">
-            <div className="mb-1 text-xs uppercase text-muted-foreground">
-              Total Costs
-            </div>
-            <div className="text-lg font-semibold tabular-nums tracking-tight">
-              {formatNumber(summary.total_costs_usd, 2)} USDT
-            </div>
-            {summary.cost_pct_gross_return != null && (
-              <div className="text-xs text-muted-foreground">
-                {formatPercent(summary.cost_pct_gross_return)} of gross return
-              </div>
-            )}
-          </div>
+          <SharedBacktestStatTile
+            label="Total Costs"
+            value={`${formatNumber(summary.total_costs_usd, 2)} USDT`}
+            caption={
+              summary.cost_pct_gross_return != null
+                ? `${formatPercent(summary.cost_pct_gross_return)} of gross return`
+                : undefined
+            }
+          />
         </div>
       </CardContent>
     </Card>
