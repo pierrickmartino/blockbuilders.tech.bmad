@@ -1,12 +1,12 @@
 """POST /backtests/coach — Tweak coaching (synchronous or async via Comparison runs)."""
 import logging
-from datetime import datetime, timezone
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from redis import Redis
 from rq import Queue
 from sqlmodel import Session, select
 
+from app.api.backtests import get_redis_queue
 from app.api.deps import get_current_user
 from app.backtest.coaching import (
     RunInfo,
@@ -17,7 +17,6 @@ from app.backtest.coaching import (
 )
 from app.backtest.position_manager import Trade
 from app.backtest.storage import download_json
-from app.core.config import settings
 from app.core.database import get_session
 from app.models.backtest_run import BacktestRun
 from app.models.strategy_version import StrategyVersion
@@ -69,6 +68,21 @@ def _raw_to_trade(t: dict) -> Trade:
         spread_cost_usd=t.get("spread_cost_usd", 0.0),
         total_cost_usd=t.get("total_cost_usd", 0.0),
         notional_usd=t.get("notional_usd", 0.0),
+    )
+
+
+def _run_info(run: BacktestRun) -> RunInfo:
+    """Project a BacktestRun onto the comparability-checking metadata."""
+    return RunInfo(
+        strategy_id=run.strategy_id,
+        strategy_version_id=run.strategy_version_id,
+        asset=run.asset,
+        timeframe=run.timeframe,
+        fee_rate=run.fee_rate,
+        slippage_rate=run.slippage_rate,
+        spread_rate=run.spread_rate,
+        date_from=run.date_from,
+        date_to=run.date_to,
     )
 
 
@@ -176,43 +190,19 @@ def coach_backtests(
     run_a = _load_run(data.run_id_a, user.id, session, "A")
     run_b = _load_run(data.run_id_b, user.id, session, "B")
 
-    info_a = RunInfo(
-        strategy_id=run_a.strategy_id,
-        strategy_version_id=run_a.strategy_version_id,
-        asset=run_a.asset,
-        timeframe=run_a.timeframe,
-        fee_rate=run_a.fee_rate,
-        slippage_rate=run_a.slippage_rate,
-        spread_rate=run_a.spread_rate,
-        date_from=run_a.date_from,
-        date_to=run_a.date_to,
-    )
-    info_b = RunInfo(
-        strategy_id=run_b.strategy_id,
-        strategy_version_id=run_b.strategy_version_id,
-        asset=run_b.asset,
-        timeframe=run_b.timeframe,
-        fee_rate=run_b.fee_rate,
-        slippage_rate=run_b.slippage_rate,
-        spread_rate=run_b.spread_rate,
-        date_from=run_b.date_from,
-        date_to=run_b.date_to,
-    )
-
-    compat = resolve_comparability(info_a, info_b)
+    compat = resolve_comparability(_run_info(run_a), _run_info(run_b))
     if not compat.eligible:
         return CoachResponse(eligible=False, reason=compat.reason)
 
     if compat.needs_rerun:
         try:
-            redis_conn = Redis.from_url(settings.redis_url)
-            queue = Queue("default", connection=redis_conn)
-            cr_a = _enqueue_comparison_run(
-                run_a, compat.intersection_from, compat.intersection_to, session, queue
-            )
-            cr_b = _enqueue_comparison_run(
-                run_b, compat.intersection_from, compat.intersection_to, session, queue
-            )
+            queue = get_redis_queue()
+            cr_a, cr_b = [
+                _enqueue_comparison_run(
+                    run, compat.intersection_from, compat.intersection_to, session, queue
+                )
+                for run in (run_a, run_b)
+            ]
         except Exception:
             logger.exception("Failed to enqueue comparison runs")
             return CoachResponse(eligible=False, reason="failed_comparison")

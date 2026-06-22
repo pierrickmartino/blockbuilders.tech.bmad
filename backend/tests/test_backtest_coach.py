@@ -148,8 +148,8 @@ class TestCoachFailedComparison:
         token = _login(client, user.email)
         run_a, run_b = _seed_pair(session, user)
 
-        with patch("app.api.backtest_coach.Redis") as mock_redis_cls:
-            mock_redis_cls.from_url.side_effect = Exception("Redis unavailable")
+        with patch("app.api.backtest_coach.get_redis_queue") as mock_get_queue:
+            mock_get_queue.side_effect = Exception("Redis unavailable")
 
             r = client.post(
                 "/backtests/coach",
