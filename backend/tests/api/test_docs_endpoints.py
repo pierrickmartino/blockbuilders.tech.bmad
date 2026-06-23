@@ -157,20 +157,19 @@ def test_other_domain_endpoints(client, auth_headers, seeded_objects, monkeypatc
         def setex(self, key, ttl, val): return None
     monkeypatch.setattr("app.api.market._get_redis", lambda: FakeRedis())
 
-    class DummyResp:
-        def __init__(self, data): self._data = data
-        def raise_for_status(self): return None
-        def json(self): return self._data
-    class DummyClient:
-        def __enter__(self): return self
-        def __exit__(self, *args): return False
-        def get(self, url, params=None):
-            if "pricemultifull" in url: return DummyResp({"RAW": {"BTC": {"USDT": {"PRICE": 50000, "CHANGEPCT24HOUR": 1.2, "MKTCAP": 1, "VOLUME24HOURTO": 1}}}})
-            if "fng" in url: return DummyResp({"data": [{"value": "60", "timestamp": "1710000000"}]})
-            if "globalLongShort" in url: return DummyResp([{"longShortRatio": "1.2", "timestamp": 1710000000000}])
-            if "fundingRate" in url: return DummyResp([{"fundingRate": "0.0001", "fundingTime": 1710000000000}])
-            return DummyResp({})
-    monkeypatch.setattr("app.api.market.httpx.Client", lambda timeout=10.0: DummyClient())
+    from app.schemas.market import MarketSentimentResponse, SentimentIndicator, SourceStatus
+
+    class FakeAssembler:
+        def collect(self, asset):
+            return MarketSentimentResponse(
+                as_of=datetime.now(timezone.utc),
+                asset=asset,
+                fear_greed=SentimentIndicator(value=60.0, history=[]),
+                long_short_ratio=SentimentIndicator(value=1.2, history=[]),
+                funding=SentimentIndicator(value=0.0001, history=[]),
+                source_status=SourceStatus(fear_greed="ok", long_short_ratio="ok", funding="ok"),
+            )
+    monkeypatch.setattr("app.api.market._sentiment_assembler", FakeAssembler())
     assert client.get("/market/sentiment", headers=auth_headers, params={"asset": "BTC/USDT"}).status_code == 200
     assert client.get("/market/tickers", headers=auth_headers).status_code == 200
 
