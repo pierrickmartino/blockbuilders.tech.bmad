@@ -97,6 +97,28 @@ These come from `PRODUCT.md` and describe what the product *is*.
   account-blind — the Engine loop owns equity, sizing, and the equity
   curve. See `backend/app/backtest/position_manager.py` and
   ADR-0004. _Avoid_: position tracker, trade manager.
+- **Backtest pipeline** — the deterministic assembly that turns a
+  validated **Strategy version** plus its candles into a **RunOutcome**:
+  it runs the **Interpreter** → **Engine**, computes the benchmark curve
+  and metrics (return / alpha / beta), serializes the three result
+  artifacts (equity curve, benchmark curve, and trades via the
+  **Backtest trades artifact**), and maps the engine result onto the
+  run's metric fields. **Pure** — no DB, S3, Redis, or candle fetch: it
+  takes a `ValidatedStrategy` + candles + `BacktestParams` and *returns a
+  value*, so it is unit-testable without the worker. Sits one level above
+  the **Engine** (`run_backtest`, the trade simulator) and must not be
+  confused with it. The worker (`worker/jobs.py`) is the thin shell
+  around it — run status transitions, candle fetch, artifact upload,
+  post-run side-effects (notifications / alerts / onboarding / analytics)
+  and error→status mapping all stay in the shell. _Avoid_: calling it the
+  engine or the runner; giving it I/O; folding the post-run side-effects
+  into it.
+- **RunOutcome** — the immutable value the **Backtest pipeline** returns:
+  the result metrics, the benchmark metrics (return / alpha / beta), the
+  `used_backup_data` flag, and the three ready-to-upload artifact
+  payloads. The worker copies its metrics onto the **Backtest** run row
+  and uploads its payloads. _Avoid_: putting artifact S3 keys on it (the
+  worker assigns those after upload); mutating it.
 
 ## Architecture concepts
 
