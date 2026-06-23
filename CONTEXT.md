@@ -206,6 +206,19 @@ exactly when discussing refactors.
   shape at any call site; folding S3 I/O into it; widening it to the
   equity/benchmark curve files (plain point lists with no per-field
   decode — out of scope).
+- **Backtest analytics** — the client-side, framework-free derivations
+  over a completed **Backtest**'s trades and equity curve, gathered in
+  one module (`lib/backtest-analysis.ts`): seasonality, return and
+  duration distributions, position stats, skew (and its callout), and
+  the multi-run **equity-curve alignment** the compare surface uses.
+  Individual **pure functions** — no React, no fetch, no DOM — so the
+  interface is the test surface; the result and compare pages call them
+  inside `useMemo` (memoization stays in the page) and own all
+  presentation (Tailwind classes, cell colors, and formatting stay out
+  of the module). _Avoid_: a single god-aggregate (the page computes
+  per-tab on demand); moving CSS / format helpers into the module;
+  leaving the equity-curve alignment duplicated inline on the compare
+  page.
 
 ## Market data concepts
 
