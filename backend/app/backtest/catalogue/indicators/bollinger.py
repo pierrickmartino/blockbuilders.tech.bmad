@@ -12,10 +12,10 @@ _SPEC = BlockSpec(
     label="Bollinger Bands",
     inputs=(),
     outputs=(
-        PortSpec(name="output", label="Output (Middle Band)"),
-        PortSpec(name="upper", label="Upper Band"),
-        PortSpec(name="middle", label="Middle Band"),
-        PortSpec(name="lower", label="Lower Band"),
+        PortSpec(name="output", label="Output (Middle Band)", explain="middle Bollinger Band ({period})"),
+        PortSpec(name="upper", label="Upper Band", explain="upper Bollinger Band ({period})"),
+        PortSpec(name="middle", label="Middle Band", explain="middle Bollinger Band ({period})"),
+        PortSpec(name="lower", label="Lower Band", explain="lower Bollinger Band ({period})"),
     ),
     params=(
         ParamSpec(name="source", label="Price Source", kind="enum", default="close",

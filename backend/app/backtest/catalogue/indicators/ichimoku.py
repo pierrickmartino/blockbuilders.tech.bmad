@@ -12,11 +12,11 @@ _SPEC = BlockSpec(
     label="Ichimoku Cloud",
     inputs=(),
     outputs=(
-        PortSpec(name="output", label="Output"),
-        PortSpec(name="conversion", label="Conversion"),
-        PortSpec(name="base", label="Base"),
-        PortSpec(name="span_a", label="Span A"),
-        PortSpec(name="span_b", label="Span B"),
+        PortSpec(name="output", label="Output", explain="Ichimoku Conversion({conversion},{base},{span_b},{displacement})"),
+        PortSpec(name="conversion", label="Conversion", explain="Ichimoku Conversion({conversion},{base},{span_b},{displacement})"),
+        PortSpec(name="base", label="Base", explain="Ichimoku Base({conversion},{base},{span_b},{displacement})"),
+        PortSpec(name="span_a", label="Span A", explain="Ichimoku Span A({conversion},{base},{span_b},{displacement})"),
+        PortSpec(name="span_b", label="Span B", explain="Ichimoku Span B({conversion},{base},{span_b},{displacement})"),
     ),
     params=(
         ParamSpec(name="conversion", label="Conversion Period", kind="int", default=9, min=1, max=100),

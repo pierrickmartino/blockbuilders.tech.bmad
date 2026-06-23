@@ -12,10 +12,10 @@ _SPEC = BlockSpec(
     label="MACD",
     inputs=(),
     outputs=(
-        PortSpec(name="output", label="Output (MACD Line)"),
-        PortSpec(name="macd", label="MACD Line"),
-        PortSpec(name="signal", label="Signal Line"),
-        PortSpec(name="histogram", label="Histogram"),
+        PortSpec(name="output", label="Output (MACD Line)", explain="MACD({fast_period},{slow_period},{signal_period})"),
+        PortSpec(name="macd", label="MACD Line", explain="MACD({fast_period},{slow_period},{signal_period})"),
+        PortSpec(name="signal", label="Signal Line", explain="MACD signal({fast_period},{slow_period},{signal_period})"),
+        PortSpec(name="histogram", label="Histogram", explain="MACD histogram({fast_period},{slow_period},{signal_period})"),
     ),
     params=(
         ParamSpec(name="source", label="Price Source", kind="enum", default="close",

@@ -12,10 +12,10 @@ _SPEC = BlockSpec(
     label="ADX",
     inputs=(),
     outputs=(
-        PortSpec(name="output", label="Output (ADX)"),
-        PortSpec(name="adx", label="ADX"),
-        PortSpec(name="plus_di", label="+DI"),
-        PortSpec(name="minus_di", label="-DI"),
+        PortSpec(name="output", label="Output (ADX)", explain="ADX({period})"),
+        PortSpec(name="adx", label="ADX", explain="ADX({period})"),
+        PortSpec(name="plus_di", label="+DI", explain="+DI({period})"),
+        PortSpec(name="minus_di", label="-DI", explain="-DI({period})"),
     ),
     params=(
         ParamSpec(name="period", label="Period", kind="int", default=14, min=1, max=100),

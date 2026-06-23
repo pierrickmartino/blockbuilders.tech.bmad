@@ -32,7 +32,7 @@ def _spec_to_ts_object(spec: BlockSpec) -> str:
     params_json = json.dumps([_param_to_ts(p) for p in spec.params], indent=4)
     params_indented = "\n".join("  " + line for line in params_json.splitlines())
     inputs_json = json.dumps([{"name": p.name, "label": p.label} for p in spec.inputs])
-    outputs_json = json.dumps([{"name": p.name, "label": p.label} for p in spec.outputs])
+    outputs_json = json.dumps([{"name": p.name, "label": p.label, "explain": p.explain} for p in spec.outputs])
     return (
         f"  {{\n"
         f"    type: {json.dumps(spec.type)},\n"
@@ -65,7 +65,7 @@ def emit_typescript() -> str:
         "  category: 'input' | 'indicator' | 'logic' | 'signal' | 'risk';",
         "  label: string;",
         "  inputs: { name: string; label: string }[];",
-        "  outputs: { name: string; label: string }[];",
+        "  outputs: { name: string; label: string; explain: string }[];",
         "  params: CatalogueParamSpec[];",
         "}",
         "",

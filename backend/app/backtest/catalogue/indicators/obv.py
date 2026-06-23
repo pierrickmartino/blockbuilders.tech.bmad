@@ -11,7 +11,7 @@ _SPEC = BlockSpec(
     category="indicator",
     label="OBV",
     inputs=(),
-    outputs=(PortSpec(name="output", label="Output"),),
+    outputs=(PortSpec(name="output", label="Output", explain="OBV"),),
     params=(),
 )
 
