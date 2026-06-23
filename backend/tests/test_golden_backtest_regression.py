@@ -29,9 +29,9 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from app.backtest.engine import BacktestResult, run_backtest
 from app.backtest.errors import StrategyInvalidError
-from app.backtest.interpreter import interpret_strategy
+from app.backtest.pipeline import BacktestParams, RunOutcome, run_pipeline
+from app.backtest.trades_artifact import load_trades
 from app.data.strategy_templates import TEMPLATES
 from app.models.candle import Candle
 from app.schemas.strategy import StrategyDefinitionValidate
@@ -39,22 +39,51 @@ from app.services.strategy_validation import validate_strategy
 
 
 # ---------------------------------------------------------------------------
-# Pipeline runner
+# Pipeline runner + backward-compat adapter
 # ---------------------------------------------------------------------------
+
+
+class GoldenResult:
+    """Thin adapter that wraps RunOutcome to expose BacktestResult-style access.
+
+    Lets existing golden test assertions use ``result.equity_curve`` and
+    ``result.trades[i]`` without modification, while the computation now goes
+    through the real Backtest pipeline (validate → run_pipeline).
+    """
+
+    def __init__(self, outcome: RunOutcome) -> None:
+        self._outcome = outcome
+        self._trades = load_trades(list(outcome.trades_payload))
+
+    @property
+    def equity_curve(self) -> list:
+        return self._outcome.equity_curve_payload
+
+    @property
+    def trades(self) -> list:
+        return self._trades
+
+    def __getattr__(self, name: str):
+        return getattr(self._outcome, name)
+
+    def __deepcopy__(self, memo):
+        cls = self.__class__
+        result = cls.__new__(cls)
+        memo[id(self)] = result
+        result._outcome = copy.deepcopy(self._outcome, memo)
+        result._trades = copy.deepcopy(self._trades, memo)
+        return result
 
 
 def run_golden_pipeline(
     definition_json: dict,
     candles: list[Candle],
     run_config: dict,
-) -> BacktestResult:
-    """Run the full validate -> interpret -> backtest pipeline.
+) -> GoldenResult:
+    """Run the full validate → pipeline sequence at the Backtest pipeline boundary.
 
-    Mirrors app.worker.jobs.run_backtest_job's sequence:
-    StrategyDefinitionValidate.model_validate -> validate_strategy ->
-    interpret_strategy -> run_backtest. Raises StrategyInvalidError if the
-    definition fails validation -- a golden strategy failing validation is
-    itself a regression.
+    Raises StrategyInvalidError if the definition fails validation — a golden
+    strategy failing validation is itself a regression.
     """
     parsed = StrategyDefinitionValidate.model_validate(definition_json)
     validation_result = validate_strategy(parsed)
@@ -65,17 +94,15 @@ def run_golden_pipeline(
             first.user_message,
         )
 
-    signals = interpret_strategy(validation_result.strategy, candles)
-
-    return run_backtest(
-        candles=candles,
-        signals=signals,
+    params = BacktestParams(
         initial_balance=run_config["initial_balance"],
         fee_rate=run_config["fee_rate"],
         slippage_rate=run_config["slippage_rate"],
         spread_rate=run_config["spread_rate"],
         timeframe=run_config["timeframe"],
     )
+    outcome = run_pipeline(validation_result.strategy, candles, params)
+    return GoldenResult(outcome)
 
 
 # ---------------------------------------------------------------------------
