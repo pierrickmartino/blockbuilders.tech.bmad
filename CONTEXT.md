@@ -17,8 +17,16 @@ These come from `PRODUCT.md` and describe what the product *is*.
   working copy — there is no draft-vs-version fallback. UI may call
   this the "draft". The only way an old snapshot re-enters the
   working copy is the deliberate "restore version" action from a
-  backtest, which overwrites it. _Avoid_: treating the working copy
-  as a version, or reserving a magic `version_number = 0` for it.
+  backtest, which overwrites it. All its lifecycle transitions —
+  eager **create** (seeded with the default definition or with a
+  template / NL-draft / duplicate definition), **get**, autosave
+  **save**, **freeze** (content-dedup → **Strategy version**), and the
+  not-yet-built **restore** — live in one transaction-agnostic Working
+  copy module (`services/working_copy.py`): every function flushes and
+  the calling route or worker owns the commit, and `strategy_versions`
+  is written *only* by its freeze path (ADR-0005). _Avoid_: treating the
+  working copy as a version, or reserving a magic `version_number = 0`
+  for it.
 - **Strategy version** — an immutable snapshot of a strategy
   definition, frozen automatically when a backtest runs (never by a
   user action, never autosaved). Backtests run against a specific
@@ -97,6 +105,28 @@ These come from `PRODUCT.md` and describe what the product *is*.
   account-blind — the Engine loop owns equity, sizing, and the equity
   curve. See `backend/app/backtest/position_manager.py` and
   ADR-0004. _Avoid_: position tracker, trade manager.
+- **Backtest pipeline** — the deterministic assembly that turns a
+  validated **Strategy version** plus its candles into a **RunOutcome**:
+  it runs the **Interpreter** → **Engine**, computes the benchmark curve
+  and metrics (return / alpha / beta), serializes the three result
+  artifacts (equity curve, benchmark curve, and trades via the
+  **Backtest trades artifact**), and maps the engine result onto the
+  run's metric fields. **Pure** — no DB, S3, Redis, or candle fetch: it
+  takes a `ValidatedStrategy` + candles + `BacktestParams` and *returns a
+  value*, so it is unit-testable without the worker. Sits one level above
+  the **Engine** (`run_backtest`, the trade simulator) and must not be
+  confused with it. The worker (`worker/jobs.py`) is the thin shell
+  around it — run status transitions, candle fetch, artifact upload,
+  post-run side-effects (notifications / alerts / onboarding / analytics)
+  and error→status mapping all stay in the shell. _Avoid_: calling it the
+  engine or the runner; giving it I/O; folding the post-run side-effects
+  into it.
+- **RunOutcome** — the immutable value the **Backtest pipeline** returns:
+  the result metrics, the benchmark metrics (return / alpha / beta), the
+  `used_backup_data` flag, and the three ready-to-upload artifact
+  payloads. The worker copies its metrics onto the **Backtest** run row
+  and uploads its payloads. _Avoid_: putting artifact S3 keys on it (the
+  worker assigns those after upload); mutating it.
 
 ## Architecture concepts
 
@@ -123,6 +153,20 @@ exactly when discussing refactors.
   Exposes `compute(ctx) -> outputs` and an optional
   `validate(params) -> Issues`. Co-located with its spec in the
   same file under `catalogue/`.
+- **Explanation template** — a short phrase string carried by each
+  **catalogue** output `PortSpec` (`explain`), projected into
+  `blocks.ts`, that the canvas renders into the plain-English strategy
+  summary. Plain `{param_name}` substitution only — no conditionals —
+  with an absent param falling back to the **ParamSpec** default. The
+  single source of an indicator/input block's phrasing, co-located with
+  the **BlockHandler** that computes it, so a new catalogue block ships
+  its explanation with its spec instead of being hand-mirrored on the
+  client. Scope is **catalogue leaf blocks only**: **logic** blocks
+  (composed by the client explanation generator) and the inline **risk**
+  blocks (out of catalogue scope) keep their client-side formatting.
+  _Avoid_: a template DSL with branching; duplicating the port `label`
+  (a UI caption, not a phrase); a server round-trip (the canvas
+  explanation is rendered client-side, live, per keystroke).
 - **Block type identifier** — the string in `BlockSpec.type`
   (`"sma"`, `"rsi"`, …). **Stable forever** once shipped.
   Renames are forbidden; deprecate-and-add instead. Persisted
@@ -145,6 +189,36 @@ exactly when discussing refactors.
   diff (this is semantic, for attribution, not a rendered overlay);
   importing the NL-wedge "there is no diff" framing (ADR-0012 had no
   baseline — here two versions exist).
+- **Backtest trades artifact** — the canonical serialized form of a
+  **Backtest**'s trades, persisted as `trades.json`
+  (`services/backtest_trades_artifact.py`). The single seam that owns
+  the per-trade wire schema and its backward-compatible decode:
+  `dump_trades(list[Trade]) -> list[dict]` and
+  `load_trades(list[dict]) -> list[TradeDetail]`. Tolerant of older
+  artifacts (added/optional fields default; an absent `pnl_pct` is
+  *recomputed* from entry/exit, never silently `0`) but strict on
+  structure (a record missing `entry_time`/`exit_time` raises). **Pure**
+  — S3 read/write stays in `backtest/storage.py`; the module never
+  touches infra. Every reader crosses it (status response, trade detail,
+  compare), replacing the hand-built dict in `worker/jobs.py` and the
+  duplicate re-parsing across `api/backtests.py` and
+  `services/backtest_responses.py`. _Avoid_: re-deriving the trade dict
+  shape at any call site; folding S3 I/O into it; widening it to the
+  equity/benchmark curve files (plain point lists with no per-field
+  decode — out of scope).
+- **Backtest analytics** — the client-side, framework-free derivations
+  over a completed **Backtest**'s trades and equity curve, gathered in
+  one module (`lib/backtest-analysis.ts`): seasonality, return and
+  duration distributions, position stats, skew (and its callout), and
+  the multi-run **equity-curve alignment** the compare surface uses.
+  Individual **pure functions** — no React, no fetch, no DOM — so the
+  interface is the test surface; the result and compare pages call them
+  inside `useMemo` (memoization stays in the page) and own all
+  presentation (Tailwind classes, cell colors, and formatting stay out
+  of the module). _Avoid_: a single god-aggregate (the page computes
+  per-tab on demand); moving CSS / format helpers into the module;
+  leaving the equity-curve alignment duplicated inline on the compare
+  page.
 
 ## Market data concepts
 
@@ -159,6 +233,20 @@ These name the seams around external price data.
   CryptoCompare in 2022); reserve **CoinDesk** for the billing /
   subscription relationship only, not the code. _Avoid_: CoinDesk
   (in code), vendor.
+- **Sentiment feed** — the abstraction over an external source of a
+  single market-**sentiment** indicator (latest value + short history),
+  mirroring the **Price Provider** pattern but *not* its failover: three
+  independent feeds — fear/greed (Alternative.me), long/short and funding
+  (Binance) — each from one vendor, behind a small `SentimentFeed`
+  protocol (a thin httpx `fetch` wrapping a pure `parse`). One
+  `collect_sentiment(asset)` module assembles their readings into a
+  snapshot carrying per-feed `SourceStatus`; partial availability is
+  expected (one feed down still returns the others). Distinct from the
+  **Price Provider** (price / OHLCV, multi-vendor failover, ADR-0003) and
+  the single-writer spot cache (ADR-0002): no circuit breaker, no
+  failover, and the 15-minute response cache stays in the route.
+  _Avoid_: folding it into the Price Provider or its router; giving it a
+  breaker; caching inside the feed.
 
 ## Analytics concepts
 
