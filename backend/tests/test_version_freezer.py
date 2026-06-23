@@ -1,12 +1,8 @@
-"""Unit tests for version_freezer: freeze_for_backtest behavior.
+"""Regression tests for freeze behavior — now served by working_copy.freeze (issue #767).
 
-Tests cover:
-  - New strategy with no versions → version 1 frozen
-  - Identical working copy → same version reused (no new row)
-  - Edited working copy → next sequential version frozen
-  - Sequential numbering across multiple edits
-  - Two backtest runs share one version row when working copy unchanged
-  - Working copy auto-created with default definition when absent
+The freeze_for_backtest name was the old version_freezer interface. These tests
+have been updated to import working_copy.freeze directly, confirming that the
+consolidated module preserves all prior behavior.
 """
 import os
 from uuid import uuid4
@@ -22,8 +18,10 @@ os.environ.setdefault("REDIS_URL", "redis://localhost:6379/15")
 from app.core.security import hash_password
 from app.models.strategy import Strategy
 from app.models.strategy_draft import StrategyDraft
+from app.models.strategy_template import StrategyTemplate  # noqa: F401 — registers FK target
 from app.models.strategy_version import StrategyVersion
 from app.models.user import PlanTier, User, UserTier
+from app.services.working_copy import freeze
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
@@ -81,16 +79,14 @@ def _set_working_copy(session, strategy, definition):
     session.commit()
 
 
-# ── freeze_for_backtest ──────────────────────────────────────────────────────
+# ── working_copy.freeze (was freeze_for_backtest) ─────────────────────────────
 
 def test_freeze_creates_version_1_for_new_strategy(session):
-    from app.services.version_freezer import freeze_for_backtest
-
     user = _make_user(session)
     strategy = _make_strategy(session, user.id)
     _set_working_copy(session, strategy, {"blocks": [{"id": "a"}], "connections": [], "meta": {}})
 
-    version = freeze_for_backtest(strategy, session)
+    version = freeze(strategy, session)
     session.commit()
 
     assert version.version_number == 1
@@ -98,17 +94,15 @@ def test_freeze_creates_version_1_for_new_strategy(session):
 
 
 def test_freeze_reuses_version_when_working_copy_unchanged(session):
-    from app.services.version_freezer import freeze_for_backtest
-
     user = _make_user(session)
     strategy = _make_strategy(session, user.id)
     definition = {"blocks": [{"id": "b"}], "connections": [], "meta": {}}
     _set_working_copy(session, strategy, definition)
 
-    v1 = freeze_for_backtest(strategy, session)
+    v1 = freeze(strategy, session)
     session.commit()
 
-    v2 = freeze_for_backtest(strategy, session)
+    v2 = freeze(strategy, session)
     session.commit()
 
     assert v1.id == v2.id
@@ -119,18 +113,16 @@ def test_freeze_reuses_version_when_working_copy_unchanged(session):
 
 
 def test_freeze_creates_new_version_after_edit(session):
-    from app.services.version_freezer import freeze_for_backtest
-
     user = _make_user(session)
     strategy = _make_strategy(session, user.id)
     _set_working_copy(session, strategy, {"blocks": [{"id": "c1"}], "connections": [], "meta": {}})
 
-    v1 = freeze_for_backtest(strategy, session)
+    v1 = freeze(strategy, session)
     session.commit()
 
     _set_working_copy(session, strategy, {"blocks": [{"id": "c2"}], "connections": [], "meta": {}})
 
-    v2 = freeze_for_backtest(strategy, session)
+    v2 = freeze(strategy, session)
     session.commit()
 
     assert v1.id != v2.id
@@ -138,29 +130,25 @@ def test_freeze_creates_new_version_after_edit(session):
 
 
 def test_freeze_sequential_numbering_across_edits(session):
-    from app.services.version_freezer import freeze_for_backtest
-
     user = _make_user(session)
     strategy = _make_strategy(session, user.id)
 
     for i in range(1, 5):
         _set_working_copy(session, strategy, {"blocks": [{"id": f"node-{i}"}], "connections": [], "meta": {}})
-        v = freeze_for_backtest(strategy, session)
+        v = freeze(strategy, session)
         session.commit()
         assert v.version_number == i
 
 
 def test_two_backtests_share_one_version_row(session):
-    from app.services.version_freezer import freeze_for_backtest
-
     user = _make_user(session)
     strategy = _make_strategy(session, user.id)
     _set_working_copy(session, strategy, {"blocks": [{"id": "shared"}], "connections": [], "meta": {}})
 
-    run1_version = freeze_for_backtest(strategy, session)
+    run1_version = freeze(strategy, session)
     session.commit()
 
-    run2_version = freeze_for_backtest(strategy, session)
+    run2_version = freeze(strategy, session)
     session.commit()
 
     assert run1_version.id == run2_version.id
@@ -171,13 +159,11 @@ def test_two_backtests_share_one_version_row(session):
 
 
 def test_freeze_auto_creates_working_copy_when_absent(session):
-    from app.services.version_freezer import freeze_for_backtest
-
     user = _make_user(session)
     strategy = _make_strategy(session, user.id)
     # Deliberately no working copy
 
-    version = freeze_for_backtest(strategy, session)
+    version = freeze(strategy, session)
     session.commit()
 
     assert version.version_number == 1

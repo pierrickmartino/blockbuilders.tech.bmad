@@ -28,6 +28,7 @@ from app.main import app
 from app.models.strategy import Strategy
 from app.models.strategy_draft import StrategyDraft
 from app.models.user import PlanTier, User, UserTier
+import app.services.working_copy as working_copy
 from app.services.working_copy import DEFAULT_DEFINITION
 
 
@@ -102,6 +103,10 @@ def strategy(session, user):
     session.add(s)
     session.commit()
     session.refresh(s)
+    # Reflect the real invariant: working copy is eagerly created at strategy creation.
+    # Tests that bypass POST /strategies/ must mirror what the route does.
+    working_copy.create(s, session)
+    session.commit()
     return s
 
 

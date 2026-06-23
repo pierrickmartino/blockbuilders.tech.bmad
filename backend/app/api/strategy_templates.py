@@ -11,7 +11,7 @@ from app.models.user import User
 from app.schemas.strategy_template import TemplateResponse, TemplateDetailResponse
 from app.schemas.strategy import StrategyResponse
 from app.core.plans import get_plan_limits
-from app.services.working_copy import upsert_working_copy
+import app.services.working_copy as working_copy
 
 router = APIRouter(prefix="/strategy-templates", tags=["strategy-templates"])
 
@@ -124,7 +124,8 @@ def clone_template(
     # Seed the working copy with the template definition (ADR-0005).
     # The editor reads from the working copy, not from versions; versions are
     # frozen on backtest, so a freshly cloned strategy has no version yet.
-    upsert_working_copy(new_strategy, template.definition_json, session)
+    working_copy.create(new_strategy, session, definition=template.definition_json)
+    session.commit()
 
     return StrategyResponse(
         id=new_strategy.id,
