@@ -10,7 +10,7 @@ _SPEC = BlockSpec(
     category="input",
     label="Price",
     inputs=(),
-    outputs=(PortSpec(name="output", label="Output"),),
+    outputs=(PortSpec(name="output", label="Output", explain="{source} price"),),
     params=(
         ParamSpec(
             name="source",

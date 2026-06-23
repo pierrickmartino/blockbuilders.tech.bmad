@@ -11,7 +11,7 @@ _SPEC = BlockSpec(
     category="indicator",
     label="RSI",
     inputs=(),
-    outputs=(PortSpec(name="output", label="Output"),),
+    outputs=(PortSpec(name="output", label="Output", explain="RSI({period})"),),
     params=(
         ParamSpec(name="period", label="Period", kind="int", default=14, min=2, max=100),
         ParamSpec(

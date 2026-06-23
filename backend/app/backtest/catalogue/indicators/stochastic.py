@@ -12,9 +12,9 @@ _SPEC = BlockSpec(
     label="Stochastic Oscillator",
     inputs=(),
     outputs=(
-        PortSpec(name="output", label="Output (%K)"),
-        PortSpec(name="k", label="%K Line"),
-        PortSpec(name="d", label="%D Line"),
+        PortSpec(name="output", label="Output (%K)", explain="Stochastic %K({k_period},{d_period},{smooth})"),
+        PortSpec(name="k", label="%K Line", explain="Stochastic %K({k_period},{d_period},{smooth})"),
+        PortSpec(name="d", label="%D Line", explain="Stochastic %D({k_period},{d_period},{smooth})"),
     ),
     params=(
         ParamSpec(name="k_period", label="K Period", kind="int", default=14, min=1, max=100),

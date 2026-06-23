@@ -11,7 +11,7 @@ _SPEC = BlockSpec(
     category="indicator",
     label="EMA",
     inputs=(),
-    outputs=(PortSpec(name="output", label="Output"),),
+    outputs=(PortSpec(name="output", label="Output", explain="the {period}-day EMA"),),
     params=(
         ParamSpec(name="period", label="Period", kind="int", default=20, min=1, max=500),
         ParamSpec(

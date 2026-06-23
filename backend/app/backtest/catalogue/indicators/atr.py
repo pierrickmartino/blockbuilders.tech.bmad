@@ -11,7 +11,7 @@ _SPEC = BlockSpec(
     category="indicator",
     label="ATR",
     inputs=(),
-    outputs=(PortSpec(name="output", label="Output"),),
+    outputs=(PortSpec(name="output", label="Output", explain="ATR({period})"),),
     params=(
         ParamSpec(name="period", label="Period", kind="int", default=14, min=1, max=500),
     ),

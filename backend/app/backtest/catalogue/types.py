@@ -25,6 +25,7 @@ class ParamSpec:
 class PortSpec:
     name: str
     label: str
+    explain: str = ""
 
 
 @dataclass(frozen=True)

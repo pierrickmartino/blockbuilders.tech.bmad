@@ -10,7 +10,7 @@ _SPEC = BlockSpec(
     category="input",
     label="Yesterday Close",
     inputs=(),
-    outputs=(PortSpec(name="output", label="Output"),),
+    outputs=(PortSpec(name="output", label="Output", explain="yesterday's close"),),
     params=(),
 )
 

@@ -317,3 +317,54 @@ def test_emitter_output_matches_committed_artifact():
         "Emitter output differs from committed frontend/src/generated/blocks.ts. "
         "Run the emitter and commit the updated artifact."
     )
+
+
+# ── Cycle 8: explanation templates — completeness and placeholder checks ──────
+
+def test_all_leaf_output_ports_have_explain_template():
+    """Every input/indicator block's output port must carry a non-empty explain template."""
+    from app.backtest.catalogue import CATALOGUE
+
+    missing: list[str] = []
+    for block_type, handler in CATALOGUE.items():
+        spec = handler.spec
+        if spec.category not in ("input", "indicator"):
+            continue
+        for port in spec.outputs:
+            if not getattr(port, "explain", ""):
+                missing.append(f"{block_type}:{port.name}")
+
+    assert not missing, (
+        f"These catalogue leaf output ports are missing an explain template: {missing}"
+    )
+
+
+def test_explain_templates_only_reference_real_param_names():
+    """Placeholders in explain templates must match actual param names on the block."""
+    import re
+    from app.backtest.catalogue import CATALOGUE
+
+    bad: list[str] = []
+    placeholder_re = re.compile(r"\{(\w+)\}")
+    for block_type, handler in CATALOGUE.items():
+        spec = handler.spec
+        if spec.category not in ("input", "indicator"):
+            continue
+        param_names = {p.name for p in spec.params}
+        for port in spec.outputs:
+            explain = getattr(port, "explain", "")
+            for placeholder in placeholder_re.findall(explain):
+                if placeholder not in param_names:
+                    bad.append(f"{block_type}:{port.name} references unknown param '{placeholder}'")
+
+    assert not bad, f"Explain templates reference undefined params: {bad}"
+
+
+def test_emitter_includes_explain_in_outputs():
+    """Emitter must include the explain field on output port objects."""
+    from app.backtest.catalogue.emitter import emit_typescript
+
+    output = emit_typescript()
+    assert '"explain"' in output, (
+        "Emitter output must include 'explain' keys on output port objects."
+    )

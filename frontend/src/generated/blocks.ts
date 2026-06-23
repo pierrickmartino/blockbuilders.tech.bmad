@@ -16,7 +16,7 @@ export interface CatalogueBlockSpec {
   category: 'input' | 'indicator' | 'logic' | 'signal' | 'risk';
   label: string;
   inputs: { name: string; label: string }[];
-  outputs: { name: string; label: string }[];
+  outputs: { name: string; label: string; explain: string }[];
   params: CatalogueParamSpec[];
 }
 
@@ -26,7 +26,7 @@ export const CATALOGUE_BLOCKS: CatalogueBlockSpec[] = [
     category: "input",
     label: "Price",
     inputs: [],
-    outputs: [{"name": "output", "label": "Output"}],
+    outputs: [{"name": "output", "label": "Output", "explain": "{source} price"}],
     params:
   [
       {
@@ -50,7 +50,7 @@ export const CATALOGUE_BLOCKS: CatalogueBlockSpec[] = [
     category: "input",
     label: "Volume",
     inputs: [],
-    outputs: [{"name": "output", "label": "Output"}],
+    outputs: [{"name": "output", "label": "Output", "explain": "volume"}],
     params:
   [],
   },
@@ -59,7 +59,7 @@ export const CATALOGUE_BLOCKS: CatalogueBlockSpec[] = [
     category: "input",
     label: "Constant",
     inputs: [],
-    outputs: [{"name": "output", "label": "Output"}],
+    outputs: [{"name": "output", "label": "Output", "explain": "{value}"}],
     params:
   [
       {
@@ -77,7 +77,7 @@ export const CATALOGUE_BLOCKS: CatalogueBlockSpec[] = [
     category: "input",
     label: "Yesterday Close",
     inputs: [],
-    outputs: [{"name": "output", "label": "Output"}],
+    outputs: [{"name": "output", "label": "Output", "explain": "yesterday's close"}],
     params:
   [],
   },
@@ -86,7 +86,7 @@ export const CATALOGUE_BLOCKS: CatalogueBlockSpec[] = [
     category: "indicator",
     label: "SMA",
     inputs: [],
-    outputs: [{"name": "output", "label": "Output"}],
+    outputs: [{"name": "output", "label": "Output", "explain": "the {period}-day SMA"}],
     params:
   [
       {
@@ -118,7 +118,7 @@ export const CATALOGUE_BLOCKS: CatalogueBlockSpec[] = [
     category: "indicator",
     label: "EMA",
     inputs: [],
-    outputs: [{"name": "output", "label": "Output"}],
+    outputs: [{"name": "output", "label": "Output", "explain": "the {period}-day EMA"}],
     params:
   [
       {
@@ -150,7 +150,7 @@ export const CATALOGUE_BLOCKS: CatalogueBlockSpec[] = [
     category: "indicator",
     label: "RSI",
     inputs: [],
-    outputs: [{"name": "output", "label": "Output"}],
+    outputs: [{"name": "output", "label": "Output", "explain": "RSI({period})"}],
     params:
   [
       {
@@ -182,7 +182,7 @@ export const CATALOGUE_BLOCKS: CatalogueBlockSpec[] = [
     category: "indicator",
     label: "ATR",
     inputs: [],
-    outputs: [{"name": "output", "label": "Output"}],
+    outputs: [{"name": "output", "label": "Output", "explain": "ATR({period})"}],
     params:
   [
       {
@@ -200,7 +200,7 @@ export const CATALOGUE_BLOCKS: CatalogueBlockSpec[] = [
     category: "indicator",
     label: "OBV",
     inputs: [],
-    outputs: [{"name": "output", "label": "Output"}],
+    outputs: [{"name": "output", "label": "Output", "explain": "OBV"}],
     params:
   [],
   },
@@ -209,7 +209,7 @@ export const CATALOGUE_BLOCKS: CatalogueBlockSpec[] = [
     category: "indicator",
     label: "Price Variation %",
     inputs: [],
-    outputs: [{"name": "output", "label": "Output"}],
+    outputs: [{"name": "output", "label": "Output", "explain": "price variation %"}],
     params:
   [],
   },
@@ -218,7 +218,7 @@ export const CATALOGUE_BLOCKS: CatalogueBlockSpec[] = [
     category: "indicator",
     label: "MACD",
     inputs: [],
-    outputs: [{"name": "output", "label": "Output (MACD Line)"}, {"name": "macd", "label": "MACD Line"}, {"name": "signal", "label": "Signal Line"}, {"name": "histogram", "label": "Histogram"}],
+    outputs: [{"name": "output", "label": "Output (MACD Line)", "explain": "MACD({fast_period},{slow_period},{signal_period})"}, {"name": "macd", "label": "MACD Line", "explain": "MACD({fast_period},{slow_period},{signal_period})"}, {"name": "signal", "label": "Signal Line", "explain": "MACD signal({fast_period},{slow_period},{signal_period})"}, {"name": "histogram", "label": "Histogram", "explain": "MACD histogram({fast_period},{slow_period},{signal_period})"}],
     params:
   [
       {
@@ -265,7 +265,7 @@ export const CATALOGUE_BLOCKS: CatalogueBlockSpec[] = [
     category: "indicator",
     label: "Bollinger Bands",
     inputs: [],
-    outputs: [{"name": "output", "label": "Output (Middle Band)"}, {"name": "upper", "label": "Upper Band"}, {"name": "middle", "label": "Middle Band"}, {"name": "lower", "label": "Lower Band"}],
+    outputs: [{"name": "output", "label": "Output (Middle Band)", "explain": "middle Bollinger Band ({period})"}, {"name": "upper", "label": "Upper Band", "explain": "upper Bollinger Band ({period})"}, {"name": "middle", "label": "Middle Band", "explain": "middle Bollinger Band ({period})"}, {"name": "lower", "label": "Lower Band", "explain": "lower Bollinger Band ({period})"}],
     params:
   [
       {
@@ -304,7 +304,7 @@ export const CATALOGUE_BLOCKS: CatalogueBlockSpec[] = [
     category: "indicator",
     label: "Stochastic Oscillator",
     inputs: [],
-    outputs: [{"name": "output", "label": "Output (%K)"}, {"name": "k", "label": "%K Line"}, {"name": "d", "label": "%D Line"}],
+    outputs: [{"name": "output", "label": "Output (%K)", "explain": "Stochastic %K({k_period},{d_period},{smooth})"}, {"name": "k", "label": "%K Line", "explain": "Stochastic %K({k_period},{d_period},{smooth})"}, {"name": "d", "label": "%D Line", "explain": "Stochastic %D({k_period},{d_period},{smooth})"}],
     params:
   [
       {
@@ -338,7 +338,7 @@ export const CATALOGUE_BLOCKS: CatalogueBlockSpec[] = [
     category: "indicator",
     label: "ADX",
     inputs: [],
-    outputs: [{"name": "output", "label": "Output (ADX)"}, {"name": "adx", "label": "ADX"}, {"name": "plus_di", "label": "+DI"}, {"name": "minus_di", "label": "-DI"}],
+    outputs: [{"name": "output", "label": "Output (ADX)", "explain": "ADX({period})"}, {"name": "adx", "label": "ADX", "explain": "ADX({period})"}, {"name": "plus_di", "label": "+DI", "explain": "+DI({period})"}, {"name": "minus_di", "label": "-DI", "explain": "-DI({period})"}],
     params:
   [
       {
@@ -356,7 +356,7 @@ export const CATALOGUE_BLOCKS: CatalogueBlockSpec[] = [
     category: "indicator",
     label: "Ichimoku Cloud",
     inputs: [],
-    outputs: [{"name": "output", "label": "Output"}, {"name": "conversion", "label": "Conversion"}, {"name": "base", "label": "Base"}, {"name": "span_a", "label": "Span A"}, {"name": "span_b", "label": "Span B"}],
+    outputs: [{"name": "output", "label": "Output", "explain": "Ichimoku Conversion({conversion},{base},{span_b},{displacement})"}, {"name": "conversion", "label": "Conversion", "explain": "Ichimoku Conversion({conversion},{base},{span_b},{displacement})"}, {"name": "base", "label": "Base", "explain": "Ichimoku Base({conversion},{base},{span_b},{displacement})"}, {"name": "span_a", "label": "Span A", "explain": "Ichimoku Span A({conversion},{base},{span_b},{displacement})"}, {"name": "span_b", "label": "Span B", "explain": "Ichimoku Span B({conversion},{base},{span_b},{displacement})"}],
     params:
   [
       {
@@ -398,7 +398,7 @@ export const CATALOGUE_BLOCKS: CatalogueBlockSpec[] = [
     category: "indicator",
     label: "Fibonacci",
     inputs: [],
-    outputs: [{"name": "output", "label": "Output (50%)"}, {"name": "level_236", "label": "23.6%"}, {"name": "level_382", "label": "38.2%"}, {"name": "level_5", "label": "50%"}, {"name": "level_618", "label": "61.8%"}, {"name": "level_786", "label": "78.6%"}],
+    outputs: [{"name": "output", "label": "Output (50%)", "explain": "Fib 50%({lookback})"}, {"name": "level_236", "label": "23.6%", "explain": "Fib 23.6%({lookback})"}, {"name": "level_382", "label": "38.2%", "explain": "Fib 38.2%({lookback})"}, {"name": "level_5", "label": "50%", "explain": "Fib 50%({lookback})"}, {"name": "level_618", "label": "61.8%", "explain": "Fib 61.8%({lookback})"}, {"name": "level_786", "label": "78.6%", "explain": "Fib 78.6%({lookback})"}],
     params:
   [
       {
@@ -416,7 +416,7 @@ export const CATALOGUE_BLOCKS: CatalogueBlockSpec[] = [
     category: "logic",
     label: "Compare",
     inputs: [{"name": "left", "label": "Left"}, {"name": "right", "label": "Right"}],
-    outputs: [{"name": "output", "label": "Output"}],
+    outputs: [{"name": "output", "label": "Output", "explain": ""}],
     params:
   [
       {
@@ -450,7 +450,7 @@ export const CATALOGUE_BLOCKS: CatalogueBlockSpec[] = [
     category: "logic",
     label: "Crossover",
     inputs: [{"name": "fast", "label": "Fast"}, {"name": "slow", "label": "Slow"}],
-    outputs: [{"name": "output", "label": "Output"}],
+    outputs: [{"name": "output", "label": "Output", "explain": ""}],
     params:
   [
       {
@@ -470,7 +470,7 @@ export const CATALOGUE_BLOCKS: CatalogueBlockSpec[] = [
     category: "logic",
     label: "AND",
     inputs: [{"name": "a", "label": "A"}, {"name": "b", "label": "B"}],
-    outputs: [{"name": "output", "label": "Output"}],
+    outputs: [{"name": "output", "label": "Output", "explain": ""}],
     params:
   [],
   },
@@ -479,7 +479,7 @@ export const CATALOGUE_BLOCKS: CatalogueBlockSpec[] = [
     category: "logic",
     label: "OR",
     inputs: [{"name": "a", "label": "A"}, {"name": "b", "label": "B"}],
-    outputs: [{"name": "output", "label": "Output"}],
+    outputs: [{"name": "output", "label": "Output", "explain": ""}],
     params:
   [],
   },
@@ -488,7 +488,7 @@ export const CATALOGUE_BLOCKS: CatalogueBlockSpec[] = [
     category: "logic",
     label: "NOT",
     inputs: [{"name": "input", "label": "Input"}],
-    outputs: [{"name": "output", "label": "Output"}],
+    outputs: [{"name": "output", "label": "Output", "explain": ""}],
     params:
   [],
   },
@@ -497,7 +497,7 @@ export const CATALOGUE_BLOCKS: CatalogueBlockSpec[] = [
     category: "signal",
     label: "Entry Signal",
     inputs: [{"name": "signal", "label": "Signal"}],
-    outputs: [{"name": "output", "label": "Output"}],
+    outputs: [{"name": "output", "label": "Output", "explain": ""}],
     params:
   [],
   },
@@ -506,7 +506,7 @@ export const CATALOGUE_BLOCKS: CatalogueBlockSpec[] = [
     category: "signal",
     label: "Exit Signal",
     inputs: [{"name": "signal", "label": "Signal"}],
-    outputs: [{"name": "output", "label": "Output"}],
+    outputs: [{"name": "output", "label": "Output", "explain": ""}],
     params:
   [],
   },

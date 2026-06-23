@@ -11,7 +11,7 @@ _SPEC = BlockSpec(
     category="indicator",
     label="SMA",
     inputs=(),
-    outputs=(PortSpec(name="output", label="Output"),),
+    outputs=(PortSpec(name="output", label="Output", explain="the {period}-day SMA"),),
     params=(
         ParamSpec(
             name="period",

@@ -12,12 +12,12 @@ _SPEC = BlockSpec(
     label="Fibonacci",
     inputs=(),
     outputs=(
-        PortSpec(name="output", label="Output (50%)"),
-        PortSpec(name="level_236", label="23.6%"),
-        PortSpec(name="level_382", label="38.2%"),
-        PortSpec(name="level_5", label="50%"),
-        PortSpec(name="level_618", label="61.8%"),
-        PortSpec(name="level_786", label="78.6%"),
+        PortSpec(name="output", label="Output (50%)", explain="Fib 50%({lookback})"),
+        PortSpec(name="level_236", label="23.6%", explain="Fib 23.6%({lookback})"),
+        PortSpec(name="level_382", label="38.2%", explain="Fib 38.2%({lookback})"),
+        PortSpec(name="level_5", label="50%", explain="Fib 50%({lookback})"),
+        PortSpec(name="level_618", label="61.8%", explain="Fib 61.8%({lookback})"),
+        PortSpec(name="level_786", label="78.6%", explain="Fib 78.6%({lookback})"),
     ),
     params=(
         ParamSpec(name="lookback", label="Lookback Period", kind="int", default=50, min=10, max=500),
