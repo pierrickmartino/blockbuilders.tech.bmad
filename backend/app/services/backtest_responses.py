@@ -113,50 +113,11 @@ def build_list_item(run: BacktestRun, now: datetime) -> BacktestListItem:
 
 def build_trade_detail_response(
     run: BacktestRun,
-    trade_raw: dict,
+    trade: TradeDetail,
     candles: list[CandleResponse],
     explanation: tuple[EntryExplanation, ExitExplanation, list[IndicatorSeries]] | None = None,
     partial: bool = False,
 ) -> TradeDetailResponse:
-    entry_ts_str = trade_raw.get("entry_time")
-    exit_ts_str = trade_raw.get("exit_time")
-    entry_ts = datetime.fromisoformat(entry_ts_str.replace("Z", "+00:00"))
-    exit_ts = datetime.fromisoformat(exit_ts_str.replace("Z", "+00:00"))
-
-    trade = TradeDetail(
-        entry_time=entry_ts,
-        entry_price=trade_raw.get("entry_price", 0),
-        exit_time=exit_ts,
-        exit_price=trade_raw.get("exit_price", 0),
-        side=trade_raw.get("side", "long"),
-        pnl=trade_raw.get("pnl", 0),
-        pnl_pct=trade_raw.get("pnl_pct", 0),
-        qty=trade_raw.get("qty", 0),
-        sl_price_at_entry=trade_raw.get("sl_price_at_entry"),
-        tp_price_at_entry=trade_raw.get("tp_price_at_entry"),
-        exit_reason=trade_raw.get("exit_reason", "unknown"),
-        mae_usd=trade_raw.get("mae_usd", 0),
-        mae_pct=trade_raw.get("mae_pct", 0),
-        mfe_usd=trade_raw.get("mfe_usd", 0),
-        mfe_pct=trade_raw.get("mfe_pct", 0),
-        initial_risk_usd=trade_raw.get("initial_risk_usd"),
-        r_multiple=trade_raw.get("r_multiple"),
-        peak_price=trade_raw.get("peak_price", 0),
-        peak_ts=datetime.fromisoformat(
-            (trade_raw.get("peak_ts") or entry_ts_str).replace("Z", "+00:00")
-        ),
-        trough_price=trade_raw.get("trough_price", 0),
-        trough_ts=datetime.fromisoformat(
-            (trade_raw.get("trough_ts") or entry_ts_str).replace("Z", "+00:00")
-        ),
-        duration_seconds=trade_raw.get("duration_seconds", 0),
-        fee_cost_usd=trade_raw.get("fee_cost_usd"),
-        slippage_cost_usd=trade_raw.get("slippage_cost_usd"),
-        spread_cost_usd=trade_raw.get("spread_cost_usd"),
-        total_cost_usd=trade_raw.get("total_cost_usd"),
-        notional_usd=trade_raw.get("notional_usd"),
-    )
-
     if explanation is not None:
         entry_exp, exit_exp, indicators = explanation
         return TradeDetailResponse(

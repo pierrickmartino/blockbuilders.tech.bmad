@@ -28,6 +28,7 @@ from app.backtest.data_quality import compute_daily_metrics, check_has_issues
 from app.backtest.interpreter import interpret_strategy
 from app.backtest.engine import run_backtest, compute_benchmark_curve, compute_benchmark_metrics
 from app.backtest.storage import upload_json, generate_results_key
+from app.backtest.trades_artifact import dump_trades
 from app.backtest.errors import BacktestError, StrategyInvalidError
 from app.schemas.strategy import StrategyDefinitionValidate
 from app.services.alert_evaluator import evaluate_alerts_for_run
@@ -260,40 +261,7 @@ def run_backtest_job(
                 benchmark_curve_key = generate_results_key(run.id, "benchmark_equity_curve.json")
                 upload_json(benchmark_curve_key, benchmark_equity)
 
-                trades_data = []
-                for t in result.trades:
-                    entry_time = t.entry_time.isoformat()
-                    trades_data.append(
-                        {
-                            "entry_time": entry_time,
-                            "entry_price": t.entry_price,
-                            "exit_time": t.exit_time.isoformat(),
-                            "exit_price": t.exit_price,
-                            "side": t.side,
-                            "pnl": t.pnl,
-                            "pnl_pct": t.pnl_pct,
-                            "qty": t.qty,
-                            "sl_price_at_entry": t.sl_price_at_entry,
-                            "tp_price_at_entry": t.tp_price_at_entry,
-                            "exit_reason": t.exit_reason,
-                            "mae_usd": t.mae_usd,
-                            "mae_pct": t.mae_pct,
-                            "mfe_usd": t.mfe_usd,
-                            "mfe_pct": t.mfe_pct,
-                            "initial_risk_usd": t.initial_risk_usd,
-                            "r_multiple": t.r_multiple,
-                            "peak_price": t.peak_price,
-                            "peak_ts": t.peak_ts.isoformat() if t.peak_ts else entry_time,
-                            "trough_price": t.trough_price,
-                            "trough_ts": t.trough_ts.isoformat() if t.trough_ts else entry_time,
-                            "duration_seconds": t.duration_seconds,
-                            "fee_cost_usd": t.fee_cost_usd,
-                            "slippage_cost_usd": t.slippage_cost_usd,
-                            "spread_cost_usd": t.spread_cost_usd,
-                            "total_cost_usd": t.total_cost_usd,
-                            "notional_usd": t.notional_usd,
-                        }
-                    )
+                trades_data = dump_trades(result.trades)
                 trades_key = generate_results_key(run.id, "trades.json")
                 upload_json(trades_key, trades_data)
 
