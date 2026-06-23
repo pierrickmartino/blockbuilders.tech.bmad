@@ -5,7 +5,6 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 from uuid import UUID
 
-import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from redis import Redis
 from rq import Queue
@@ -24,7 +23,6 @@ from app.models.user import User
 from app.models.data_quality_metric import DataQualityMetric
 from app.schemas.market import (
     DataAvailabilityResponse,
-    HistoryPoint,
     MarketSentimentResponse,
     SentimentIndicator,
     SourceStatus,
@@ -32,6 +30,7 @@ from app.schemas.market import (
     TickerListResponse,
 )
 from app.schemas.strategy import ALLOWED_ASSETS
+from app.sentiment import assembler as _sentiment_assembler
 from app.services.spot_price_cache import SpotPriceCache
 
 logger = logging.getLogger(__name__)
@@ -106,173 +105,6 @@ def _calculate_volatility_metrics(asset: str, current_price: float, session: Ses
             "volatility_percentile_1y": None,
         }
 
-
-def _fetch_fear_greed_index(days: int = 30) -> tuple[Optional[SentimentIndicator], str]:
-    """
-    Fetch Fear & Greed Index from Alternative.me.
-
-    Returns:
-        (SentimentIndicator | None, status: "ok" | "unavailable")
-
-    API: https://api.alternative.me/fng/?limit={days}
-    Response: {"data": [{"value": "62", "timestamp": "1672531200"}]}
-    """
-    try:
-        url = f"{settings.alternative_me_api_url}/fng/"
-        params = {"limit": str(days)}
-
-        with httpx.Client(timeout=10.0) as client:
-            response = client.get(url, params=params)
-            response.raise_for_status()
-            data = response.json()
-
-            if "data" not in data or len(data["data"]) == 0:
-                logger.warning("Alternative.me returned no data")
-                return None, "unavailable"
-
-            # data[0] is most recent
-            latest = data["data"][0]
-            history = []
-
-            for item in reversed(data["data"]):  # Oldest first
-                timestamp = datetime.fromtimestamp(
-                    int(item["timestamp"]), tz=timezone.utc
-                )
-                history.append(HistoryPoint(
-                    t=timestamp.strftime("%Y-%m-%d"),
-                    v=float(item["value"])
-                ))
-
-            indicator = SentimentIndicator(
-                value=float(latest["value"]),
-                history=history
-            )
-            return indicator, "ok"
-
-    except Exception as e:
-        logger.error(f"Failed to fetch Fear & Greed Index: {e}")
-        return None, "unavailable"
-
-
-def _fetch_long_short_ratio(asset: str, days: int = 7) -> tuple[Optional[SentimentIndicator], str]:
-    """
-    Fetch Long/Short Ratio from Binance Futures.
-
-    Returns:
-        (SentimentIndicator | None, status: "ok" | "unavailable")
-
-    API: GET /futures/data/globalLongShortAccountRatio?symbol={symbol}&period=1d&limit={days}
-    Symbol mapping: BTC/USDT -> BTCUSDT
-    Response: [{"symbol": "BTCUSDT", "longShortRatio": "1.75", "longAccount": "0.6364",
-               "shortAccount": "0.3636", "timestamp": 1672531200000}]
-
-    Interpretation:
-    - Ratio > 1: More traders are long (bullish sentiment)
-    - Ratio < 1: More traders are short (bearish sentiment)
-    - Ratio = 1: Equal long/short positions (neutral)
-    """
-    try:
-        # Binance symbol format: BTC/USDT -> BTCUSDT
-        symbol = asset.replace("/", "")
-
-        url = f"{settings.binance_futures_api_url}/futures/data/globalLongShortAccountRatio"
-        params = {
-            "symbol": symbol,
-            "period": "1d",
-            "limit": days
-        }
-
-        with httpx.Client(timeout=10.0) as client:
-            response = client.get(url, params=params)
-            response.raise_for_status()
-            data = response.json()
-
-            if not data or len(data) == 0:
-                logger.warning(f"Binance returned no long/short data for {symbol}")
-                return None, "unavailable"
-
-            # data is ordered oldest first, last item is most recent
-            latest = data[-1]
-            history = []
-
-            for item in data:
-                timestamp = datetime.fromtimestamp(
-                    int(item["timestamp"]) / 1000, tz=timezone.utc
-                )
-                history.append(HistoryPoint(
-                    t=timestamp.strftime("%Y-%m-%d"),
-                    v=float(item["longShortRatio"])
-                ))
-
-            indicator = SentimentIndicator(
-                value=float(latest["longShortRatio"]),
-                history=history
-            )
-            return indicator, "ok"
-
-    except Exception as e:
-        logger.error(f"Failed to fetch long/short ratio for {asset}: {e}")
-        return None, "unavailable"
-
-
-def _fetch_funding_rate(asset: str, days: int = 7) -> tuple[Optional[SentimentIndicator], str]:
-    """
-    Fetch funding rate from Binance perpetual futures.
-
-    Returns:
-        (SentimentIndicator | None, status: "ok" | "unavailable")
-
-    API: GET /fapi/v1/fundingRate?symbol={symbol}&limit={limit}
-    Symbol mapping: BTC/USDT -> BTCUSDT
-    Response: [{"symbol": "BTCUSDT", "fundingTime": 1672531200000, "fundingRate": "0.00010000"}]
-    """
-    try:
-        # Binance symbol format: BTC/USDT -> BTCUSDT
-        symbol = asset.replace("/", "")
-
-        url = f"{settings.binance_futures_api_url}/fapi/v1/fundingRate"
-        params = {
-            "symbol": symbol,
-            "limit": days * 3  # 3 funding periods per day (8h intervals)
-        }
-
-        with httpx.Client(timeout=10.0) as client:
-            response = client.get(url, params=params)
-            response.raise_for_status()
-            data = response.json()
-
-            if not data or len(data) == 0:
-                logger.warning(f"Binance returned no funding data for {symbol}")
-                return None, "unavailable"
-
-            # data[0] is oldest, data[-1] is most recent
-            latest = data[-1]
-            history = []
-
-            # Group by day and average (since funding occurs 3x daily)
-            from collections import defaultdict
-            daily_rates = defaultdict(list)
-
-            for item in data:
-                timestamp = datetime.fromtimestamp(
-                    int(item["fundingTime"]) / 1000, tz=timezone.utc
-                )
-                date_key = timestamp.strftime("%Y-%m-%d")
-                daily_rates[date_key].append(float(item["fundingRate"]))
-
-            for date_key in sorted(daily_rates.keys()):
-                avg_rate = sum(daily_rates[date_key]) / len(daily_rates[date_key])
-                history.append(HistoryPoint(t=date_key, v=avg_rate))
-
-            indicator = SentimentIndicator(
-                value=float(latest["fundingRate"]),
-                history=history
-            )
-            return indicator, "ok"
-
-    except Exception as e:
-        logger.error(f"Failed to fetch funding rate for {asset}: {e}")
-        return None, "unavailable"
 
 
 @router.get("/market/tickers", response_model=TickerListResponse)
@@ -383,28 +215,17 @@ def get_market_sentiment(
     asset: str = "BTC/USDT",
     user: User = Depends(get_current_user),
 ) -> MarketSentimentResponse:
-    """
-    Get market sentiment indicators for a given asset.
+    """Get market sentiment indicators for a given asset.
 
     Protected endpoint. Data is cached for 15 minutes.
-
-    Args:
-        asset: Trading pair (e.g., "BTC/USDT")
-
-    Returns:
-        MarketSentimentResponse with latest values and short history
-
-    Raises:
-        HTTPException: 503 if all providers fail, 400 if asset not supported
+    Returns 503 when all three feeds are unavailable; 400 for unsupported assets.
     """
-    # Validate asset
     if asset not in ALLOWED_ASSETS:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Asset {asset} not supported"
+            detail=f"Asset {asset} not supported",
         )
 
-    # Try cache first
     cache_key = f"market:sentiment:{asset}"
     redis = _get_redis()
     cached = redis.get(cache_key)
@@ -417,37 +238,19 @@ def get_market_sentiment(
         cached_data["source_status"] = SourceStatus(**cached_data["source_status"])
         return MarketSentimentResponse(**cached_data)
 
-    # Fetch from all providers
-    fear_greed, fg_status = _fetch_fear_greed_index(days=30)
-    long_short, ls_status = _fetch_long_short_ratio(asset, days=7)
-    funding, fr_status = _fetch_funding_rate(asset, days=7)
+    snapshot = _sentiment_assembler.collect(asset)
 
-    # If all providers fail, return 503
-    if fg_status == "unavailable" and ls_status == "unavailable" and fr_status == "unavailable":
+    ss = snapshot.source_status
+    if ss.fear_greed == "unavailable" and ss.long_short_ratio == "unavailable" and ss.funding == "unavailable":
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="All sentiment providers unavailable"
+            detail="All sentiment providers unavailable",
         )
 
-    # Build response with partial data
-    response_data = MarketSentimentResponse(
-        as_of=datetime.now(timezone.utc),
-        asset=asset,
-        fear_greed=fear_greed or SentimentIndicator(),
-        long_short_ratio=long_short or SentimentIndicator(),
-        funding=funding or SentimentIndicator(),
-        source_status=SourceStatus(
-            fear_greed=fg_status,
-            long_short_ratio=ls_status,
-            funding=fr_status
-        )
-    )
-
-    # Cache for 15 minutes
-    cache_dict = response_data.model_dump()
+    cache_dict = snapshot.model_dump()
     cache_dict["as_of"] = cache_dict["as_of"].isoformat()
     redis.setex(cache_key, SENTIMENT_CACHE_TTL_SECONDS, json.dumps(cache_dict))
 
-    return response_data
+    return snapshot
 
 
