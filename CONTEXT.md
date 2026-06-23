@@ -145,6 +145,20 @@ exactly when discussing refactors.
   Exposes `compute(ctx) -> outputs` and an optional
   `validate(params) -> Issues`. Co-located with its spec in the
   same file under `catalogue/`.
+- **Explanation template** — a short phrase string carried by each
+  **catalogue** output `PortSpec` (`explain`), projected into
+  `blocks.ts`, that the canvas renders into the plain-English strategy
+  summary. Plain `{param_name}` substitution only — no conditionals —
+  with an absent param falling back to the **ParamSpec** default. The
+  single source of an indicator/input block's phrasing, co-located with
+  the **BlockHandler** that computes it, so a new catalogue block ships
+  its explanation with its spec instead of being hand-mirrored on the
+  client. Scope is **catalogue leaf blocks only**: **logic** blocks
+  (composed by the client explanation generator) and the inline **risk**
+  blocks (out of catalogue scope) keep their client-side formatting.
+  _Avoid_: a template DSL with branching; duplicating the port `label`
+  (a UI caption, not a phrase); a server round-trip (the canvas
+  explanation is rendered client-side, live, per keystroke).
 - **Block type identifier** — the string in `BlockSpec.type`
   (`"sma"`, `"rsi"`, …). **Stable forever** once shipped.
   Renames are forbidden; deprecate-and-add instead. Persisted
