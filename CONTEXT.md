@@ -17,8 +17,16 @@ These come from `PRODUCT.md` and describe what the product *is*.
   working copy — there is no draft-vs-version fallback. UI may call
   this the "draft". The only way an old snapshot re-enters the
   working copy is the deliberate "restore version" action from a
-  backtest, which overwrites it. _Avoid_: treating the working copy
-  as a version, or reserving a magic `version_number = 0` for it.
+  backtest, which overwrites it. All its lifecycle transitions —
+  eager **create** (seeded with the default definition or with a
+  template / NL-draft / duplicate definition), **get**, autosave
+  **save**, **freeze** (content-dedup → **Strategy version**), and the
+  not-yet-built **restore** — live in one transaction-agnostic Working
+  copy module (`services/working_copy.py`): every function flushes and
+  the calling route or worker owns the commit, and `strategy_versions`
+  is written *only* by its freeze path (ADR-0005). _Avoid_: treating the
+  working copy as a version, or reserving a magic `version_number = 0`
+  for it.
 - **Strategy version** — an immutable snapshot of a strategy
   definition, frozen automatically when a backtest runs (never by a
   user action, never autosaved). Backtests run against a specific
