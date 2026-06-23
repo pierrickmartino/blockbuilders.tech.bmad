@@ -25,10 +25,8 @@ from app.models.strategy_version import StrategyVersion
 from app.models.user import User
 from app.backtest.candles import fetch_candles
 from app.backtest.data_quality import compute_daily_metrics, check_has_issues
-from app.backtest.interpreter import interpret_strategy
-from app.backtest.engine import run_backtest, compute_benchmark_curve, compute_benchmark_metrics
+from app.backtest.pipeline import BacktestParams, run_pipeline
 from app.backtest.storage import upload_json, generate_results_key
-from app.backtest.trades_artifact import dump_trades
 from app.backtest.errors import BacktestError, StrategyInvalidError
 from app.schemas.strategy import StrategyDefinitionValidate
 from app.services.alert_evaluator import evaluate_alerts_for_run
@@ -194,99 +192,65 @@ def run_backtest_job(
                     force_refresh=force_refresh_prices,
                 )
 
-                if not candles:
-                    raise BacktestError(
-                        "No candles found for the specified period",
-                        "No price data available for the selected date range.",
-                    )
+                logger.info("candles_fetched", extra={"count": len(candles)})
 
-                if any(c.source != "cryptocompare" for c in candles):
-                    run.used_backup_data = True
-                    session.add(run)
-
-                logger.info(
-                    "candles_fetched",
-                    extra={"count": len(candles), "used_backup_data": run.used_backup_data},
-                )
-
-                # Interpret strategy to get signals
-                signals = interpret_strategy(validated_strategy, candles)
-                logger.info(
-                    "strategy_interpreted",
-                    extra={
-                        "entry_signals": sum(signals.entry_long),
-                        "exit_signals": sum(signals.exit_long),
-                    },
-                )
-
-                # Run backtest engine
-                result = run_backtest(
-                    candles=candles,
-                    signals=signals,
+                # Run the deterministic Backtest pipeline (pure — no I/O inside)
+                params = BacktestParams(
                     initial_balance=run.initial_balance,
                     fee_rate=run.fee_rate,
                     slippage_rate=run.slippage_rate,
                     spread_rate=run.spread_rate,
                     timeframe=run.timeframe,
                 )
+                outcome = run_pipeline(validated_strategy, candles, params)
 
                 logger.info(
-                    "backtest_engine_complete",
+                    "backtest_pipeline_complete",
                     extra={
-                        "num_trades": result.num_trades,
-                        "total_return_pct": result.total_return_pct,
+                        "num_trades": outcome.num_trades,
+                        "total_return_pct": outcome.total_return_pct,
+                        "used_backup_data": outcome.used_backup_data,
+                        "benchmark_return_pct": outcome.benchmark_return_pct,
                     },
                 )
 
-                # Upload results to S3
+                # Persist used_backup_data flag determined by pipeline
+                if outcome.used_backup_data:
+                    run.used_backup_data = True
+                    session.add(run)
+
+                # Upload artifact payloads and capture S3 keys
                 equity_curve_key = generate_results_key(run.id, "equity_curve.json")
-                upload_json(equity_curve_key, result.equity_curve)
+                upload_json(equity_curve_key, outcome.equity_curve_payload)
 
-                # Compute benchmark equity curve
-                benchmark_equity = compute_benchmark_curve(candles, run.initial_balance)
-                logger.info("benchmark_computed", extra={"points": len(benchmark_equity)})
-
-                # Calculate benchmark metrics
-                benchmark_return_pct, alpha, beta = compute_benchmark_metrics(
-                    result.equity_curve,
-                    benchmark_equity,
-                    run.initial_balance
-                )
-                logger.info(
-                    "benchmark_metrics",
-                    extra={"return_pct": benchmark_return_pct, "alpha": alpha, "beta": beta},
-                )
-
-                # Upload benchmark equity curve
                 benchmark_curve_key = generate_results_key(run.id, "benchmark_equity_curve.json")
-                upload_json(benchmark_curve_key, benchmark_equity)
+                upload_json(benchmark_curve_key, outcome.benchmark_curve_payload)
 
-                trades_data = dump_trades(result.trades)
                 trades_key = generate_results_key(run.id, "trades.json")
-                upload_json(trades_key, trades_data)
+                upload_json(trades_key, outcome.trades_payload)
 
-                # Update run with results
+                # Copy metrics from outcome onto the run row
                 run.status = "completed"
-                run.total_return = result.total_return_pct
-                run.cagr = result.cagr_pct
-                run.max_drawdown = result.max_drawdown_pct
-                run.num_trades = result.num_trades
-                run.win_rate = result.win_rate_pct
-                run.benchmark_return = benchmark_return_pct
-                run.alpha = alpha
-                run.beta = beta
-                run.sharpe_ratio = result.sharpe_ratio
-                run.sortino_ratio = result.sortino_ratio
-                run.calmar_ratio = result.calmar_ratio
-                run.max_consecutive_losses = result.max_consecutive_losses
-                run.gross_return_usd = result.gross_return_usd
-                run.gross_return_pct = result.gross_return_pct
-                run.total_fees_usd = result.total_fees_usd
-                run.total_slippage_usd = result.total_slippage_usd
-                run.total_spread_usd = result.total_spread_usd
-                run.total_costs_usd = result.total_costs_usd
-                run.cost_pct_gross_return = result.cost_pct_gross_return
-                run.avg_cost_per_trade_usd = result.avg_cost_per_trade_usd
+                run.total_return = outcome.total_return_pct
+                run.cagr = outcome.cagr_pct
+                run.max_drawdown = outcome.max_drawdown_pct
+                run.num_trades = outcome.num_trades
+                run.win_rate = outcome.win_rate_pct
+                run.benchmark_return = outcome.benchmark_return_pct
+                run.alpha = outcome.alpha
+                run.beta = outcome.beta
+                run.sharpe_ratio = outcome.sharpe_ratio
+                run.sortino_ratio = outcome.sortino_ratio
+                run.calmar_ratio = outcome.calmar_ratio
+                run.max_consecutive_losses = outcome.max_consecutive_losses
+                run.gross_return_usd = outcome.gross_return_usd
+                run.gross_return_pct = outcome.gross_return_pct
+                run.total_fees_usd = outcome.total_fees_usd
+                run.total_slippage_usd = outcome.total_slippage_usd
+                run.total_spread_usd = outcome.total_spread_usd
+                run.total_costs_usd = outcome.total_costs_usd
+                run.cost_pct_gross_return = outcome.cost_pct_gross_return
+                run.avg_cost_per_trade_usd = outcome.avg_cost_per_trade_usd
                 run.equity_curve_key = equity_curve_key
                 run.benchmark_equity_curve_key = benchmark_curve_key
                 run.trades_key = trades_key
