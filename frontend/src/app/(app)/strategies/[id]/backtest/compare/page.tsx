@@ -12,6 +12,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
+import { alignEquityCurves } from "@/lib/backtest-analysis";
 import { StrategiesApiClient } from "@/lib/api/strategies-client";
 import { BacktestsApiClient } from "@/lib/api/backtests-client";
 import { formatDateTime, formatPercent, formatPrice, formatChartDate } from "@/lib/format";
@@ -106,37 +107,10 @@ export default function CompareBacktestsPage({ params }: Props) {
   }, [runIds]);
 
   // Align equity curves by timestamp (union of all timestamps)
-  const alignedChartData = useMemo(() => {
-    if (!compareData) return [];
-
-    // Collect all unique timestamps
-    const timestampSet = new Set<string>();
-    compareData.runs.forEach(run => {
-      run.equity_curve.forEach(point => {
-        timestampSet.add(point.timestamp);
-      });
-    });
-
-    const allTimestamps = Array.from(timestampSet).sort();
-
-    // Build maps for each run
-    const runMaps = compareData.runs.map(run => {
-      const map = new Map<string, number>();
-      run.equity_curve.forEach(point => {
-        map.set(point.timestamp, point.equity);
-      });
-      return map;
-    });
-
-    // Create aligned data
-    return allTimestamps.map(timestamp => {
-      const point: Record<string, string | number | null> = { timestamp };
-      compareData.runs.forEach((run, idx) => {
-        point[`run_${idx}`] = runMaps[idx].get(timestamp) ?? null;
-      });
-      return point;
-    });
-  }, [compareData]);
+  const alignedChartData = useMemo(
+    () => (compareData ? alignEquityCurves(compareData.runs) : []),
+    [compareData]
+  );
 
   // Metrics for comparison table. `direction` controls best-value highlighting:
   // 'higher' = max wins, 'lower' = min wins, 'none' = no winner (benchmark/beta).
