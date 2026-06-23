@@ -13,6 +13,7 @@ from app.schemas.backtest import (
     EquityCurvePoint,
     ExitExplanation,
     IndicatorSeries,
+    TradeDetail,
 )
 from app.services.backtest_responses import (
     build_list_item,
@@ -191,35 +192,35 @@ def _make_candles(n: int = 10) -> list[CandleResponse]:
     ]
 
 
-def _minimal_trade_raw() -> dict:
+def _minimal_trade_detail() -> TradeDetail:
     base = datetime(2024, 1, 10, tzinfo=timezone.utc)
-    return {
-        "entry_time": base.isoformat(),
-        "exit_time": (base + timedelta(days=5)).isoformat(),
-        "entry_price": 100.0,
-        "exit_price": 110.0,
-        "side": "long",
-        "pnl": 100.0,
-        "pnl_pct": 10.0,
-        "qty": 1.0,
-        "exit_reason": "tp",
-        "mae_usd": 50.0,
-        "mae_pct": 0.5,
-        "mfe_usd": 150.0,
-        "mfe_pct": 1.5,
-        "peak_price": 112.0,
-        "peak_ts": (base + timedelta(days=4)).isoformat(),
-        "trough_price": 98.0,
-        "trough_ts": (base + timedelta(days=1)).isoformat(),
-        "duration_seconds": 432000,
-    }
+    return TradeDetail(
+        entry_time=base,
+        exit_time=base + timedelta(days=5),
+        entry_price=100.0,
+        exit_price=110.0,
+        side="long",
+        pnl=100.0,
+        pnl_pct=10.0,
+        qty=1.0,
+        exit_reason="tp",
+        mae_usd=50.0,
+        mae_pct=0.5,
+        mfe_usd=150.0,
+        mfe_pct=1.5,
+        peak_price=112.0,
+        peak_ts=base + timedelta(days=4),
+        trough_price=98.0,
+        trough_ts=base + timedelta(days=1),
+        duration_seconds=432000,
+    )
 
 
 class TestBuildTradeDetailResponse:
     def test_no_explanation(self):
         run = _completed_run()
         response = build_trade_detail_response(
-            run, _minimal_trade_raw(), _make_candles(), explanation=None, partial=False
+            run, _minimal_trade_detail(), _make_candles(), explanation=None, partial=False
         )
         assert response.entry_explanation is None
         assert response.exit_explanation is None
@@ -232,7 +233,7 @@ class TestBuildTradeDetailResponse:
     def test_partial_true_when_explanation_failed(self):
         run = _completed_run()
         response = build_trade_detail_response(
-            run, _minimal_trade_raw(), _make_candles(), explanation=None, partial=True
+            run, _minimal_trade_detail(), _make_candles(), explanation=None, partial=True
         )
         assert response.explanation_partial is True
         assert response.entry_explanation is None
@@ -244,7 +245,7 @@ class TestBuildTradeDetailResponse:
         indicators: list[IndicatorSeries] = []
         response = build_trade_detail_response(
             run,
-            _minimal_trade_raw(),
+            _minimal_trade_detail(),
             _make_candles(),
             explanation=(entry_exp, exit_exp, indicators),
             partial=False,
@@ -257,7 +258,7 @@ class TestBuildTradeDetailResponse:
     def test_trade_fields_parsed_from_raw(self):
         run = _completed_run()
         response = build_trade_detail_response(
-            run, _minimal_trade_raw(), _make_candles(), explanation=None
+            run, _minimal_trade_detail(), _make_candles(), explanation=None
         )
         assert response.trade.pnl == 100.0
         assert response.trade.side == "long"

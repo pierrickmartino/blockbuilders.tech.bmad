@@ -26,6 +26,7 @@ import app.services.backtest_sharing as _backtest_sharing
 import app.services.version_freezer as version_freezer
 from app.backtest.data_quality import query_metrics_for_range
 from app.backtest.storage import download_json
+from app.backtest.trades_artifact import load_trades
 from app.backtest.explanation import build_trade_explanation
 from app.backtest.narrative import generate_narrative
 from app.schemas.backtest import (
@@ -235,65 +236,7 @@ def get_backtest_trades(
 
     try:
         trades_data = download_json(run.trades_key)
-
-        normalized = []
-        for t in trades_data:
-            # Calculate pnl_pct if missing (backward compatibility)
-            if "pnl_pct" not in t:
-                entry = t.get("entry_price")
-                exit_price = t.get("exit_price")
-                side = t.get("side", "long")
-                if entry and exit_price:
-                    if side == "short":
-                        t["pnl_pct"] = ((entry - exit_price) / entry) * 100
-                    else:
-                        t["pnl_pct"] = ((exit_price - entry) / entry) * 100
-                else:
-                    t["pnl_pct"] = 0.0
-
-            # Parse timestamps for TradeDetail
-            entry_ts_str = t.get("entry_time")
-            exit_ts_str = t.get("exit_time")
-            entry_ts = datetime.fromisoformat(entry_ts_str.replace("Z", "+00:00"))
-            exit_ts = datetime.fromisoformat(exit_ts_str.replace("Z", "+00:00"))
-
-            # Build TradeDetail with defaults for missing fields
-            trade_detail = TradeDetail(
-                entry_time=entry_ts,
-                entry_price=t.get("entry_price", 0),
-                exit_time=exit_ts,
-                exit_price=t.get("exit_price", 0),
-                side=t.get("side", "long"),
-                pnl=t.get("pnl", 0),
-                pnl_pct=t.get("pnl_pct", 0),
-                qty=t.get("qty", 0),
-                sl_price_at_entry=t.get("sl_price_at_entry"),
-                tp_price_at_entry=t.get("tp_price_at_entry"),
-                exit_reason=t.get("exit_reason", "unknown"),
-                mae_usd=t.get("mae_usd", 0),
-                mae_pct=t.get("mae_pct", 0),
-                mfe_usd=t.get("mfe_usd", 0),
-                mfe_pct=t.get("mfe_pct", 0),
-                initial_risk_usd=t.get("initial_risk_usd"),
-                r_multiple=t.get("r_multiple"),
-                peak_price=t.get("peak_price", 0),
-                peak_ts=datetime.fromisoformat(
-                    (t.get("peak_ts") or entry_ts_str).replace("Z", "+00:00")
-                ),
-                trough_price=t.get("trough_price", 0),
-                trough_ts=datetime.fromisoformat(
-                    (t.get("trough_ts") or entry_ts_str).replace("Z", "+00:00")
-                ),
-                duration_seconds=t.get("duration_seconds", 0),
-                fee_cost_usd=t.get("fee_cost_usd"),
-                slippage_cost_usd=t.get("slippage_cost_usd"),
-                spread_cost_usd=t.get("spread_cost_usd"),
-                total_cost_usd=t.get("total_cost_usd"),
-                notional_usd=t.get("notional_usd"),
-            )
-            normalized.append(trade_detail)
-
-        return normalized
+        return load_trades(trades_data)
     except (KeyError, TypeError, ValueError) as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -464,13 +407,9 @@ def get_trade_detail(
             detail=f"Trade index {trade_idx} out of range (0-{len(trades_data) - 1})",
         )
 
-    trade_raw = trades_data[trade_idx]
-
-    # Parse trade timestamps
-    entry_ts_str = trade_raw.get("entry_time")
-    exit_ts_str = trade_raw.get("exit_time")
-    entry_ts = datetime.fromisoformat(entry_ts_str.replace("Z", "+00:00"))
-    exit_ts = datetime.fromisoformat(exit_ts_str.replace("Z", "+00:00"))
+    trade = load_trades([trades_data[trade_idx]])[0]
+    entry_ts = trade.entry_time
+    exit_ts = trade.exit_time
 
     # Calculate chart window: 10 days before entry, 10 days after exit, min 90 days
     chart_start = entry_ts - timedelta(days=10)
@@ -515,7 +454,7 @@ def get_trade_detail(
             run.strategy_version_id,
         )
         return _backtest_responses.build_trade_detail_response(
-            run, trade_raw, candles_response, explanation=None
+            run, trade, candles_response, explanation=None
         )
 
     try:
@@ -529,7 +468,7 @@ def get_trade_detail(
         if entry_idx is None or exit_idx is None:
             logger.warning(f"Entry/exit not found in candle window for trade {trade_idx}")
             return _backtest_responses.build_trade_detail_response(
-                run, trade_raw, candles_response, explanation=None
+                run, trade, candles_response, explanation=None
             )
 
         entry_exp, exit_exp, indicators = build_trade_explanation(
@@ -537,17 +476,17 @@ def get_trade_detail(
             candles=list(candles),
             trade_entry_idx=entry_idx,
             trade_exit_idx=exit_idx,
-            exit_reason=trade_raw.get("exit_reason", "unknown"),
-            sl_price=trade_raw.get("sl_price_at_entry"),
-            tp_price=trade_raw.get("tp_price_at_entry"),
+            exit_reason=trade.exit_reason,
+            sl_price=trade.sl_price_at_entry,
+            tp_price=trade.tp_price_at_entry,
         )
         return _backtest_responses.build_trade_detail_response(
-            run, trade_raw, candles_response, explanation=(entry_exp, exit_exp, indicators)
+            run, trade, candles_response, explanation=(entry_exp, exit_exp, indicators)
         )
     except Exception as e:
         logger.warning(f"Failed to build explanation for trade {trade_idx}: {e}")
         return _backtest_responses.build_trade_detail_response(
-            run, trade_raw, candles_response, explanation=None, partial=True
+            run, trade, candles_response, explanation=None, partial=True
         )
 
 
