@@ -28,6 +28,7 @@ from app.models.backtest_run import BacktestRun
 from app.models.strategy import Strategy
 from app.models.strategy_version import StrategyVersion
 from app.models.user import PlanTier, User, UserTier
+import app.services.working_copy as working_copy
 
 
 @pytest.fixture(name="engine")
@@ -90,6 +91,9 @@ def _seed_strategy(session: Session, user_id) -> Strategy:
     session.add(strategy)
     session.commit()
     session.refresh(strategy)
+    # Reflect the real invariant: working copy is eagerly created at strategy creation.
+    working_copy.create(strategy, session)
+    session.commit()
     return strategy
 
 

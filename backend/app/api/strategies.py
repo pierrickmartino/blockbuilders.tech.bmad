@@ -19,7 +19,7 @@ from app.models.strategy_tag_link import StrategyTagLink
 from app.models.strategy_draft import StrategyDraft
 from app.models.strategy_version import StrategyVersion
 from app.models.user import User
-from app.services.working_copy import get_or_create_working_copy, upsert_working_copy
+import app.services.working_copy as working_copy
 from app.schemas.strategy import (
     BulkStrategyRequest,
     BulkStrategyResponse,
@@ -172,7 +172,8 @@ def create_strategy(
     session.refresh(strategy)
 
     # Eagerly create the working copy seeded with the default definition (ADR-0005).
-    get_or_create_working_copy(strategy, session)
+    working_copy.create(strategy, session)
+    session.commit()
 
     return StrategyResponse(
         id=strategy.id,
@@ -256,7 +257,8 @@ def draft_strategy_from_nl(
     session.commit()
     session.refresh(strategy)
 
-    upsert_working_copy(strategy, pipeline_result.definition, session)
+    working_copy.create(strategy, session, definition=pipeline_result.definition)
+    session.commit()
 
     return StrategyDraftFromNlResponse(outcome="success", strategy_id=strategy.id)
 
@@ -558,8 +560,9 @@ def duplicate_strategy(
     # Seed the new working copy from the original's working copy (ADR-0005).
     # The editor reads from the working copy, so the duplicate must carry the
     # original's current editing state — not just its frozen versions.
-    source_wc = get_or_create_working_copy(original, session)
-    upsert_working_copy(new_strategy, source_wc.definition_json, session)
+    source_wc = working_copy.get(original, session)
+    working_copy.create(new_strategy, session, definition=source_wc.definition_json)
+    session.commit()
 
     return StrategyResponse(
         id=new_strategy.id,
@@ -665,7 +668,8 @@ def get_draft(
 ) -> StrategyDraftResponse:
     """Return the working copy for a strategy. Never 404s for an owned strategy."""
     strategy = get_user_strategy(strategy_id, user, session)
-    wc = get_or_create_working_copy(strategy, session)
+    wc = working_copy.get(strategy, session)
+    session.commit()
     return StrategyDraftResponse(
         strategy_id=wc.strategy_id,
         definition_json=wc.definition_json,
@@ -685,7 +689,8 @@ def upsert_draft(
     Idempotent — safe for debounced retries. Always writes to strategy_drafts.
     """
     strategy = get_user_strategy(strategy_id, user, session)
-    wc = upsert_working_copy(strategy, data.definition_json, session)
+    wc = working_copy.save(strategy, data.definition_json, session)
+    session.commit()
     return StrategyDraftResponse(
         strategy_id=wc.strategy_id,
         definition_json=wc.definition_json,
@@ -707,7 +712,8 @@ def validate_draft(
     matching the editor's best-effort handling of this call.
     """
     strategy = get_user_strategy(strategy_id, user, session)
-    wc = get_or_create_working_copy(strategy, session)
+    wc = working_copy.get(strategy, session)
+    session.commit()
 
     try:
         definition = StrategyDefinitionValidate.model_validate(wc.definition_json)
