@@ -145,6 +145,23 @@ exactly when discussing refactors.
   diff (this is semantic, for attribution, not a rendered overlay);
   importing the NL-wedge "there is no diff" framing (ADR-0012 had no
   baseline — here two versions exist).
+- **Backtest trades artifact** — the canonical serialized form of a
+  **Backtest**'s trades, persisted as `trades.json`
+  (`services/backtest_trades_artifact.py`). The single seam that owns
+  the per-trade wire schema and its backward-compatible decode:
+  `dump_trades(list[Trade]) -> list[dict]` and
+  `load_trades(list[dict]) -> list[TradeDetail]`. Tolerant of older
+  artifacts (added/optional fields default; an absent `pnl_pct` is
+  *recomputed* from entry/exit, never silently `0`) but strict on
+  structure (a record missing `entry_time`/`exit_time` raises). **Pure**
+  — S3 read/write stays in `backtest/storage.py`; the module never
+  touches infra. Every reader crosses it (status response, trade detail,
+  compare), replacing the hand-built dict in `worker/jobs.py` and the
+  duplicate re-parsing across `api/backtests.py` and
+  `services/backtest_responses.py`. _Avoid_: re-deriving the trade dict
+  shape at any call site; folding S3 I/O into it; widening it to the
+  equity/benchmark curve files (plain point lists with no per-field
+  decode — out of scope).
 
 ## Market data concepts
 
