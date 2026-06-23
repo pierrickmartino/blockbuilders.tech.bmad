@@ -220,6 +220,20 @@ These name the seams around external price data.
   CryptoCompare in 2022); reserve **CoinDesk** for the billing /
   subscription relationship only, not the code. _Avoid_: CoinDesk
   (in code), vendor.
+- **Sentiment feed** — the abstraction over an external source of a
+  single market-**sentiment** indicator (latest value + short history),
+  mirroring the **Price Provider** pattern but *not* its failover: three
+  independent feeds — fear/greed (Alternative.me), long/short and funding
+  (Binance) — each from one vendor, behind a small `SentimentFeed`
+  protocol (a thin httpx `fetch` wrapping a pure `parse`). One
+  `collect_sentiment(asset)` module assembles their readings into a
+  snapshot carrying per-feed `SourceStatus`; partial availability is
+  expected (one feed down still returns the others). Distinct from the
+  **Price Provider** (price / OHLCV, multi-vendor failover, ADR-0003) and
+  the single-writer spot cache (ADR-0002): no circuit breaker, no
+  failover, and the 15-minute response cache stays in the route.
+  _Avoid_: folding it into the Price Provider or its router; giving it a
+  breaker; caching inside the feed.
 
 ## Analytics concepts
 
