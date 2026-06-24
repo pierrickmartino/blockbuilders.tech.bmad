@@ -1,15 +1,18 @@
 """Unit tests for finalize_run — drives the four completed-run side-effects
 directly against committed fixtures; no pipeline, candles, or uploads needed."""
 from datetime import datetime, timezone
+from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 from sqlmodel import Session, select
 
+from app.models.alert_rule import AlertRule, AlertType
 from app.models.backtest_run import BacktestRun
 from app.models.notification import Notification
 from app.models.strategy import Strategy
 from app.models.strategy_template import StrategyTemplate  # registers table
 from app.models.strategy_version import StrategyVersion
+from app.services.delivery_intent import DeliveryIntent, EmailMessage
 from app.services.run_finalization import finalize_run
 
 
@@ -173,3 +176,41 @@ def test_last_auto_run_at_not_set_on_manual_run(session, test_user):
 
     session.refresh(strategy)
     assert strategy.last_auto_run_at is None
+
+
+# ── Old-style alert delivery ──────────────────────────────────────────────────
+
+def _add_unpinned_alert_rule(session: Session, strategy_id, user_id):
+    rule = AlertRule(
+        id=uuid4(),
+        user_id=user_id,
+        alert_type=AlertType.PERFORMANCE,
+        strategy_id=strategy_id,
+        alert_on_exit=True,
+        notify_email=False,
+    )
+    session.add(rule)
+    session.commit()
+    return rule
+
+
+def test_finalize_run_delivers_old_style_intent_after_commit(session, test_user):
+    """finalize_run must call _deliver_intent with the DeliveryIntent from evaluate_alerts_for_run."""
+    run = _make_completed_run(session, test_user, triggered_by="auto")
+    _add_unpinned_alert_rule(session, run.strategy_id, test_user.id)
+
+    fake_intent = DeliveryIntent(
+        email=EmailMessage(
+            from_="noreply@blockbuilders.tech",
+            to=[test_user.email],
+            subject="Test alert",
+            html="<p>alert</p>",
+        )
+    )
+
+    with patch("app.services.run_finalization.evaluate_alerts_for_run", return_value=fake_intent) as mock_eval, \
+         patch("app.services.run_finalization._deliver_intent") as mock_deliver:
+        finalize_run(run, session)
+
+    mock_eval.assert_called_once_with(run, session)
+    mock_deliver.assert_called_once_with(fake_intent)

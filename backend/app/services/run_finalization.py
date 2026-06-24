@@ -12,7 +12,6 @@ _deliver_intent so the watermark is always durable before any network I/O.
 """
 import logging
 import time
-from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any
 
@@ -26,6 +25,7 @@ from app.models.notification import Notification
 from app.models.strategy import Strategy
 from app.models.user import User
 from app.services.alert_evaluator import evaluate_alerts_for_run
+from app.services.delivery_intent import DeliveryIntent, EmailMessage, WebhookPost
 from app.services.performance_alert_decision import (
     decide_entry_alert,
     decide_exit_alert,
@@ -49,34 +49,6 @@ def _as_utc_datetime(value: datetime | None) -> datetime | None:
         return value.replace(tzinfo=timezone.utc)
     return value.astimezone(timezone.utc)
 
-
-# ── Delivery-intent types ─────────────────────────────────────────────────────
-
-@dataclass
-class EmailMessage:
-    from_: str
-    to: list[str]
-    subject: str
-    html: str
-
-
-@dataclass
-class WebhookPost:
-    url: str
-    payloads: list[dict]
-
-
-@dataclass
-class DeliveryIntent:
-    """Describes what to send after the finalization commit.
-
-    Both fields are optional; a DeliveryIntent with no email and no webhooks
-    means conditions fired (watermark was advanced) but no external delivery
-    was configured.  None (not a DeliveryIntent) means the evaluator skipped
-    entirely (version mismatch, missing rule, etc.).
-    """
-    email: EmailMessage | None = None
-    webhooks: WebhookPost | None = None
 
 
 # ── Bounded webhook fan-out ───────────────────────────────────────────────────
@@ -344,6 +316,7 @@ def finalize_run(run: BacktestRun, session: Session) -> None:
         session.add(notification)
 
     # Auto-run: touch strategy timestamp and evaluate old-style (un-pinned) alerts
+    auto_intent: DeliveryIntent | None = None
     if run.triggered_by == "auto":
         strategy = session.exec(
             select(Strategy).where(Strategy.id == run.strategy_id)
@@ -351,7 +324,7 @@ def finalize_run(run: BacktestRun, session: Session) -> None:
         if strategy:
             strategy.last_auto_run_at = datetime.now(timezone.utc)
             session.add(strategy)
-        evaluate_alerts_for_run(run, session)
+        auto_intent = evaluate_alerts_for_run(run, session)
 
     # Alert-dispatched run: evaluate pinned-version conditions and collect intent
     intent: DeliveryIntent | None = None
@@ -368,5 +341,7 @@ def finalize_run(run: BacktestRun, session: Session) -> None:
     session.commit()
 
     # Best-effort delivery after the commit — watermark is durable before network I/O
+    if auto_intent is not None:
+        _deliver_intent(auto_intent)
     if intent is not None:
         _deliver_intent(intent)
