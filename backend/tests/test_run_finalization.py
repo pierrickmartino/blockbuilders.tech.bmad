@@ -88,8 +88,8 @@ def test_notification_created_for_auto_run(session, test_user):
 
 
 def test_notification_skipped_for_alert_run(session, test_user, monkeypatch):
-    from app.worker import jobs
-    monkeypatch.setattr(jobs, "_evaluate_pinned_alert", lambda r, s: None)
+    from app.services import run_finalization
+    monkeypatch.setattr(run_finalization, "_evaluate_pinned_alert", lambda r, s: None)
 
     run = _make_completed_run(session, test_user, triggered_by="alert")
     finalize_run(run, session)
