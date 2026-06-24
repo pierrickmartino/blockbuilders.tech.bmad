@@ -31,6 +31,7 @@ from app.backtest.errors import BacktestError, StrategyInvalidError
 from app.schemas.strategy import StrategyDefinitionValidate
 from app.services.alert_evaluator import evaluate_alerts_for_run
 from app.services.candle_boundary import last_closed_candle_ts
+from app.services.run_finalization import finalize_run
 from app.services.performance_alert_decision import (
     decide_entry_alert,
     decide_exit_alert,
@@ -257,41 +258,7 @@ def run_backtest_job(
                 run.updated_at = datetime.now(timezone.utc)
                 session.add(run)
 
-                # Create notification for backtest completion. Skip for
-                # alert-dispatched and comparison runs: those run silently in
-                # the background and should not appear in the user's feed.
-                if run.triggered_by not in ("alert", "comparison"):
-                    notification = Notification(
-                        user_id=run.user_id,
-                        type="backtest_completed",
-                        title="Backtest completed",
-                        body=f"{run.asset}/{run.timeframe} backtest finished.",
-                        link_url=f"/strategies/{run.strategy_id}/backtest?run={run.id}",
-                    )
-                    session.add(notification)
-
-                # If this was an auto-run, update the strategy's last_auto_run_at
-                if run.triggered_by == "auto":
-                    strategy = session.exec(
-                        select(Strategy).where(Strategy.id == run.strategy_id)
-                    ).first()
-                    if strategy:
-                        strategy.last_auto_run_at = datetime.now(timezone.utc)
-                        session.add(strategy)
-
-                    # Evaluate old-style performance alerts (no version pin)
-                    evaluate_alerts_for_run(run, session)
-
-                # If this was an alert-dispatched run, evaluate all pinned-version conditions
-                if run.triggered_by == "alert":
-                    _evaluate_pinned_alert(run, session)
-
-                # Mark user as onboarded on first completed backtest
-                onboarding_user = session.get(User, run.user_id)
-                if onboarding_user and not onboarding_user.has_completed_onboarding:
-                    onboarding_user.has_completed_onboarding = True
-                    session.add(onboarding_user)
-
+                finalize_run(run, session)
                 session.commit()
 
                 duration_ms = int((time.monotonic() - started_at) * 1000)
