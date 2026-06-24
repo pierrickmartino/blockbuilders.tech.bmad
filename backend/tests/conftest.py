@@ -16,6 +16,7 @@ os.environ["REDIS_URL"] = "redis://localhost:6379/15"
 
 from app.models.user import User, PlanTier, UserTier
 from app.models.candle import Candle
+from app.models.strategy_template import StrategyTemplate  # noqa: F401 — ensures table is registered before create_all
 
 
 @pytest.fixture(name="engine")

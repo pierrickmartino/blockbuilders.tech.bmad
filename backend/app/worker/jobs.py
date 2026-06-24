@@ -258,7 +258,6 @@ def run_backtest_job(
                 run.updated_at = datetime.now(timezone.utc)
                 session.add(run)
 
-                finalize_run(run, session)
                 session.commit()
 
                 duration_ms = int((time.monotonic() - started_at) * 1000)
@@ -272,6 +271,18 @@ def run_backtest_job(
                 )
 
                 logger.info("backtest_completed")
+
+                try:
+                    finalize_run(run, session)
+                except Exception:
+                    logger.exception(
+                        "run_finalization_failed",
+                        extra={
+                            "run_id": str(run.id),
+                            "user_id": str(run.user_id),
+                            "strategy_id": str(run.strategy_id),
+                        },
+                    )
 
             except BacktestError as e:
                 logger.error("backtest_error", extra={"error": e.message})
