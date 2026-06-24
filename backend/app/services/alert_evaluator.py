@@ -10,7 +10,6 @@ import logging
 from datetime import datetime, timezone
 from typing import Any
 
-import resend
 from sqlmodel import Session, select
 
 from app.core.config import settings
@@ -18,6 +17,8 @@ from app.models.alert_rule import AlertRule
 from app.models.backtest_run import BacktestRun
 from app.models.notification import Notification
 from app.models.strategy import Strategy
+from app.models.user import User
+from app.services.delivery_intent import DeliveryIntent, EmailMessage
 from app.services.performance_alert_decision import format_exit_reason
 from app.backtest.storage import get_s3_client, download_json
 
@@ -44,17 +45,20 @@ def _is_same_date(dt1: datetime | None, dt2: datetime | None) -> bool:
     return dt1.date() == dt2.date()
 
 
-def evaluate_alerts_for_run(run: BacktestRun, session: Session) -> None:
-    """
-    Evaluate alert conditions for a completed backtest run.
+def evaluate_alerts_for_run(run: BacktestRun, session: Session) -> DeliveryIntent | None:
+    """Evaluate alert conditions for a completed backtest run.
 
     Only processes alerts if:
     - Run is triggered by 'auto' (scheduled re-backtest)
     - An active alert rule exists for the strategy
     - Conditions haven't already been checked for this run
+
+    Stages the notification and rule-metadata writes via session.add() but does NOT
+    commit — finalize_run owns the single commit.  Returns a DeliveryIntent (possibly
+    with no email) when conditions fire, or None when the evaluator skipped entirely.
     """
     if run.triggered_by != "auto":
-        return
+        return None
 
     # Query active alert rule for this strategy
     rule = session.exec(
@@ -67,17 +71,17 @@ def evaluate_alerts_for_run(run: BacktestRun, session: Session) -> None:
     ).first()
 
     if not rule:
-        return  # No alert rule configured
+        return None  # No alert rule configured
 
     # New-style alerts (version-pinned) are evaluated by the alert dispatcher,
     # not by the auto-run evaluator.
     if rule.strategy_version_id is not None:
-        return
+        return None
 
     # Check if we already processed this run
     if rule.last_triggered_run_id == run.id:
         logger.debug(f"Alert rule {rule.id} already processed for run {run.id}")
-        return
+        return None
 
     # Fetch strategy for notification context
     strategy = session.exec(
@@ -85,7 +89,7 @@ def evaluate_alerts_for_run(run: BacktestRun, session: Session) -> None:
     ).first()
     if not strategy:
         logger.error(f"Strategy {run.strategy_id} not found for alert evaluation")
-        return
+        return None
 
     # Evaluate conditions - all alerts check FOR TODAY (the last day of the backtest)
     reasons = []
@@ -140,9 +144,9 @@ def evaluate_alerts_for_run(run: BacktestRun, session: Session) -> None:
 
     # If no conditions triggered, return early
     if not reasons:
-        return
+        return None
 
-    # Create in-app notification
+    # Stage in-app notification
     reasons_text = ", ".join(reasons)
     notification = Notification(
         user_id=run.user_id,
@@ -153,37 +157,30 @@ def evaluate_alerts_for_run(run: BacktestRun, session: Session) -> None:
     )
     session.add(notification)
 
-    # Send email if enabled
+    # Build email message for delivery intent (do not send inline)
+    email_message: EmailMessage | None = None
     if rule.notify_email and settings.resend_api_key:
-        try:
-            # Get user email
-            from app.models.user import User
-            user = session.exec(select(User).where(User.id == run.user_id)).first()
-            if user and user.email:
-                strategy_url = f"{settings.frontend_url}/strategies/{run.strategy_id}/backtest?run={run.id}"
-                html_body = f"""
-                <p>Your strategy <strong>{strategy.name}</strong> triggered a performance alert:</p>
-                <ul>
-                    {"".join(f"<li>{reason}</li>" for reason in reasons)}
-                </ul>
-                <p><a href="{strategy_url}">View backtest results</a></p>
-                """
+        user = session.exec(select(User).where(User.id == run.user_id)).first()
+        if user and user.email:
+            strategy_url = (
+                f"{settings.frontend_url}/strategies/{run.strategy_id}/backtest?run={run.id}"
+            )
+            email_message = EmailMessage(
+                from_="Blockbuilders <noreply@blockbuilders.tech>",
+                to=[user.email],
+                subject=f"Performance alert triggered - {strategy.name}",
+                html=(
+                    f"<p>Your strategy <strong>{strategy.name}</strong> triggered a"
+                    f" performance alert:</p>"
+                    f"<ul>{''.join(f'<li>{r}</li>' for r in reasons)}</ul>"
+                    f'<p><a href="{strategy_url}">View backtest results</a></p>'
+                ),
+            )
 
-                resend.api_key = settings.resend_api_key
-                resend.Emails.send({
-                    "from": "Blockbuilders <noreply@blockbuilders.tech>",
-                    "to": [user.email],
-                    "subject": f"Performance alert triggered - {strategy.name}",
-                    "html": html_body,
-                })
-                logger.info(f"Alert email sent to {user.email} for run {run.id}")
-        except Exception as e:
-            # Don't fail the alert if email fails
-            logger.error(f"Failed to send alert email: {e}")
-
-    # Update alert rule metadata
+    # Stage alert rule metadata — no commit here; finalize_run owns the single commit
     rule.last_triggered_run_id = run.id
     rule.last_triggered_at = datetime.now(timezone.utc)
     session.add(rule)
 
     logger.info(f"Alert triggered for strategy {strategy.name}: {reasons_text}")
+    return DeliveryIntent(email=email_message)
