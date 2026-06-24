@@ -117,8 +117,9 @@ These come from `PRODUCT.md` and describe what the product *is*.
   the **Engine** (`run_backtest`, the trade simulator) and must not be
   confused with it. The worker (`worker/jobs.py`) is the thin shell
   around it — run status transitions, candle fetch, artifact upload,
-  post-run side-effects (notifications / alerts / onboarding / analytics)
-  and error→status mapping all stay in the shell. _Avoid_: calling it the
+  lifecycle analytics and error→status mapping stay in the shell, while
+  the completed-run side-effects (notification / onboarding / alert
+  dispatch) are delegated to **Run finalization**. _Avoid_: calling it the
   engine or the runner; giving it I/O; folding the post-run side-effects
   into it.
 - **RunOutcome** — the immutable value the **Backtest pipeline** returns:
@@ -127,6 +128,29 @@ These come from `PRODUCT.md` and describe what the product *is*.
   payloads. The worker copies its metrics onto the **Backtest** run row
   and uploads its payloads. _Avoid_: putting artifact S3 keys on it (the
   worker assigns those after upload); mutating it.
+- **Run finalization** — the impure step that applies a *completed*
+  **Backtest** run's side-effects, behind one `finalize_run(run, session)`
+  interface (`services/run_finalization.py`). The deep sibling of the pure
+  **Backtest pipeline**: where the pipeline *returns a value*, finalization
+  *causes effects* — the completion **Notification** (skipped for `alert`
+  and `comparison` runs), the onboarding flag, the auto-run
+  `last_auto_run_at` touch, and **performance alert** dispatch (both the
+  old-style and pinned-version paths). Owns its own transaction *and*
+  delivery — an exception to the "calling shell owns the commit" rule
+  (ADR-0025), because the durability ordering is intrinsic to the effect:
+  the worker
+  commits `status="completed"` + metrics + artifact keys **first** (so an
+  expensive result is never lost to a side-effect error), then calls
+  finalization in an isolated transaction whose exceptions are logged but
+  never flip the run to failed. Internally it commits every DB write
+  (notification, onboarding, watermark) **once before** any best-effort
+  email/webhook delivery, so a stalled endpoint can never leave a
+  performance alert un-watermarked (ADR-0021's ordering). Keyed off the
+  persisted `run`, not the **RunOutcome** (metrics are already on the row).
+  _Avoid_: calling it from the failure path (only completed runs finalize;
+  lifecycle analytics and error→status mapping stay in the worker shell);
+  making it atomic with run completion (it is intentionally post-commit);
+  giving the pure pipeline any of these effects.
 
 ## Architecture concepts
 
