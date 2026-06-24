@@ -1,11 +1,9 @@
-"""Completed-run side-effects, extracted from the backtest worker (ADR-0025 slice #1).
+"""Completed-run side-effects, extracted from the backtest worker (ADR-0025).
 
-finalize_run relocates the four side-effects that previously lived inline in
-jobs.py after the metrics commit: completion notification, auto-run timestamp,
-old-style alert evaluation, and onboarding flag.
-
-Caller owns the outer session.commit().  _evaluate_pinned_alert retains its
-own internal commit (refined in slice #780).
+finalize_run applies the four side-effects that follow a successful backtest:
+completion notification, auto-run timestamp, old-style alert evaluation, and
+onboarding flag.  It owns its own session.commit() (ADR-0025: finalization owns
+its commit and runs after the completion commit in the worker shell).
 """
 import logging
 from datetime import datetime, timezone
@@ -22,11 +20,12 @@ logger = logging.getLogger(__name__)
 
 
 def finalize_run(run: BacktestRun, session: Session) -> None:
-    """Apply the four completed-run side-effects for *run*.
+    """Apply the four completed-run side-effects for *run* and commit them.
 
-    Adds DB objects to *session* but does not commit; the calling worker
-    issues the final commit.  Exception: _evaluate_pinned_alert commits
-    its own watermark before delivery (unchanged from the inline version).
+    Owns its own session.commit() (ADR-0025: finalization owns its commit and
+    runs after the completion commit).  Called only from the success path;
+    exceptions must be caught by the caller so a side-effect failure never
+    re-fails a completed run.
     """
     # Completion notification — silent for alert-dispatched and comparison runs
     if run.triggered_by not in ("alert", "comparison"):
@@ -60,3 +59,5 @@ def finalize_run(run: BacktestRun, session: Session) -> None:
     if onboarding_user and not onboarding_user.has_completed_onboarding:
         onboarding_user.has_completed_onboarding = True
         session.add(onboarding_user)
+
+    session.commit()
